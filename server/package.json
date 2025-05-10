@@ -4,8 +4,9 @@
   "description": "This repository contains the codebase for Keshevplus, organized as a monorepo with separate client and server applications.",
   "main": "index.js",
   "scripts": {
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "pnpm --filter ./client build && pnpm --filter ./server build"
+    "build": "echo 'No build step needed for plain Node.js server'"
   },
   "repository": {
     "type": "git",
