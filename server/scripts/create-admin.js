@@ -12,7 +12,8 @@ async function createAdminUser() {
     // Create admin user with default credentials
     const username = 'admin';
     const email = 'dr@keshevplus.co.il';
-    const password = 'changeme123'; // Prompt user to change after first login
+    let password = 'changeme123'; // Prompt user to change after first login
+    password = password.trim().replace(/\s+/g, '');
     const is_admin = true;
     const role = 'db_owner';
     
@@ -21,7 +22,15 @@ async function createAdminUser() {
     const existingUser = await sql`SELECT * FROM users WHERE email = ${email}`;
     
     if (existingUser && existingUser.length > 0) {
-      console.log('Admin user already exists');
+      console.log('Admin user already exists, updating password...');
+      // Hash new password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+      // Update password for existing admin
+      await sql`
+        UPDATE users SET password = ${hashedPassword} WHERE email = ${email}
+      `;
+      console.log('Password updated successfully for admin user.');
       process.exit(0);
     }
 

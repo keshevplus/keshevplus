@@ -5,6 +5,8 @@
   "main": "server.js",
   "private": true,
   "scripts": {
+    "dev": "nodemon server.js",
+    "build": "echo 'No build step needed for plain Node.js server'",
     "start": "node server.js"
   },
   "dependencies": {

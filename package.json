@@ -1,0 +1,22 @@
+{
+  "name": "keshevplus",
+  "version": "1.0.0",
+  "description": "This repository contains the codebase for Keshevplus, organized as a monorepo with separate client and server applications.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "pnpm --filter ./client build && pnpm --filter ./server build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keshevplus/keshevplus.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/keshevplus/keshevplus/issues"
+  },
+  "homepage": "https://github.com/keshevplus/keshevplus#readme"
+}
