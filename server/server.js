@@ -49,7 +49,9 @@ app.use("/api/test", testRoute);
 app.use('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
-
+app.get('/', (req, res) => {
+  res.send('Keshevplus API is running.');
+});
 // Modified API endpoint handling for contact forms
 app.post("/api/contact", (req, res) => {
   console.log(`[${new Date().toISOString()}] Received ${req.method} request to /api/contact`);
