@@ -1,34 +1,22 @@
 {
-  "name": "keshev-web",
+  "name": "keshevplus",
   "version": "1.0.0",
-  "description": "Keshev Plus - Fullstack Application",
-  "main": "server.js",
-  "private": true,
+  "description": "This repository contains the codebase for Keshevplus, organized as a monorepo with separate client and server applications.",
+  "main": "index.js",
   "scripts": {
-    "dev": "nodemon server.js",
-    "build": "echo 'No build step needed for plain Node.js server'",
-    "start": "node server.js"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "pnpm --filter ./client build && pnpm --filter ./server build"
   },
-  "dependencies": {
-    "@hookform/resolvers": "^3.0.0",
-    "@neondatabase/serverless": "^1.0.0",
-    "axios": "^1.8.4",
-    "bcryptjs": "^3.0.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.5.0",
-    "esbuild": "^0.25.3",
-    "express": "^4.21.2",
-    "express-validator": "^7.2.1",
-    "faker": "5.5.3",
-    "helmet": "^6.0.1",
-    "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.0",
-    "nodemailer": "^6.10.1",
-    "pg": "^8.11.1",
-    "react-hot-toast": "^2.5.2",
-    "react-toastify": "^11.0.5"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keshevplus/keshevplus.git"
   },
-  "devDependencies": {
-    "@types/node": "^22.15.17"
-  }
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/keshevplus/keshevplus/issues"
+  },
+  "homepage": "https://github.com/keshevplus/keshevplus#readme"
 }
