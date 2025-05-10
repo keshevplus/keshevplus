@@ -51,26 +51,14 @@ app.use('/admin', (req, res) => {
 });
 
 // Modified API endpoint handling for contact forms
-app.all("/api/contact", (req, res) => {
+app.post("/api/contact", (req, res) => {
   console.log(`[${new Date().toISOString()}] Received ${req.method} request to /api/contact`);
   
-  // For OPTIONS request (CORS preflight)
-  if (req.method === 'OPTIONS') {
-    return res.status(200).header('Access-Control-Allow-Methods', 'GET, POST').send();
-  }
+  // Log form data for debugging
+  console.log('Contact form data received:', req.body);
   
-  // For GET requests (health check)
-  if (req.method === 'GET') {
-    return res.status(200).json({ message: 'Contact API is available', success: true });
-  }
-  
-  // For POST requests (form submissions)
-  if (req.method === 'POST') {
-    // Log form data for debugging
-    console.log('Contact form data received:', req.body);
-    
-    // Check for required fields
-    if (!req.body.name || !req.body.email || !req.body.message) {
+  // Check for required fields
+  if (!req.body.name || !req.body.email || !req.body.message) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields',
