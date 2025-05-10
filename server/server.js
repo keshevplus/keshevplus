@@ -46,12 +46,17 @@ app.use("/api/leads", leadsRoutes);
 app.use("/api/neon/leads", neonLeadsRoutes);
 app.use("/api/test", testRoute);
 
+export default function handler(req, res) {
+  res.status(200).send('Hello from Vercel!');
+}
 app.use('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
+
 app.get('/', (req, res) => {
   res.send('Keshevplus API is running.');
 });
+
 // Modified API endpoint handling for contact forms
 app.post("/api/contact", (req, res) => {
   console.log(`[${new Date().toISOString()}] Received ${req.method} request to /api/contact`);
