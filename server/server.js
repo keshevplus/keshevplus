@@ -1,19 +1,20 @@
-require("dotenv").config();
-const path = require("path");
-// Load email configuration
-require("dotenv").config({ path: path.resolve(__dirname, '.env.email') });
-const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
-const morgan = require("morgan");
-const axios = require("axios");
-const fs = require("fs"); // Add this line to import the fs module
-const authRoutes = require("./routes/auth");
-const adminRoutes = require("./routes/admin");
-const leadsRoutes = require("./routes/leads");
-const neonLeadsRoutes = require("./routes/neon-leads");
-const testRoute = require("./routes/test");
-const authMiddleware = require("./middleware/auth");
+import path from "path";
+import dotenv from "dotenv";
+dotenv.config({ path: path.resolve(path.dirname(new URL(process.url).pathname), '.env.email') });
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import axios from "axios";
+import fs from "fs";
+import authRoutes from "./routes/auth.js";
+import adminRoutes from "./routes/admin.js";
+import leadsRoutes from "./routes/leads.js";
+import neonLeadsRoutes from "./routes/neon-leads.js";
+import testRoute from "./routes/test.js";
+import authMiddleware from "./middleware/auth.js";
+
+const API_BASE_URL = process.env.VITE_API_BASE_URL;
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -39,38 +40,38 @@ const getBaseUrl = (req) => {
 
 
 
-
-app.get('/', (req, res) => {
-  res.send('Keshevplus API is running.');
-});
-
-export default function handler(req, res) {
-  res.status(200).send('Hello from Vercel!');
-}
 // API Routes - Define these BEFORE static file handling
-app.use("/api/auth", authRoutes);
-app.use("/api/admin", authMiddleware, adminRoutes);
-app.use("/api/leads", leadsRoutes);
-app.use("/api/neon/leads", neonLeadsRoutes);
-app.use("/api/test", testRoute);
+app.use(API_BASE_URL + '/auth/login', authRoutes);
+app.use(API_BASE_URL + '/admin', authMiddleware, adminRoutes);
+app.use(API_BASE_URL + '/leads', leadsRoutes);
+app.use(API_BASE_URL + '/neon/leads', neonLeadsRoutes);
+app.use(API_BASE_URL + '/test', testRoute);
 
-app.use('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-});
-
-app.get('/', (req, res) => {
-  res.send('Keshevplus API is running.');
-});
+// Add direct /leads route (for https://api.keshevplus.co.il/leads)
+app.use('/leads', leadsRoutes);
 
 // Modified API endpoint handling for contact forms
-app.post("/api/contact", (req, res) => {
+app.all(
+  API_BASE_URL + '/contact', (req, res) => {
   console.log(`[${new Date().toISOString()}] Received ${req.method} request to /api/contact`);
   
-  // Log form data for debugging
-  console.log('Contact form data received:', req.body);
+  // For OPTIONS request (CORS preflight)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).header('Access-Control-Allow-Methods', 'GET, POST').send();
+  }
   
-  // Check for required fields
-  if (!req.body.name || !req.body.email || !req.body.message) {
+  // For GET requests (health check)
+  if (req.method === 'GET') {
+    return res.status(200).json({ message: 'Contact API is available', success: true });
+  }
+  
+  // For POST requests (form submissions)
+  if (req.method === 'POST') {
+    // Log form data for debugging
+    console.log('Contact form data received:', req.body);
+    
+    // Check for required fields
+    if (!req.body.name || !req.body.email || !req.body.message) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields',
@@ -85,7 +86,7 @@ app.post("/api/contact", (req, res) => {
     // Forward to the neon leads endpoint directly using proper protocol
     axios({
       method: 'post',
-      url: `${getBaseUrl(req)}/api/neon/leads`,
+      url: `${getBaseUrl(req)}${API_BASE_URL}/neon/leads`,
       data: req.body,
       headers: {
         'Content-Type': 'application/json'
@@ -179,6 +180,11 @@ app.get('*', (req, res) => {
   });
 }
 
+// Remove serving client from /admin on the API server
+// app.use('/admin', (req, res) => {
+//   res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+// });
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Unhandled error occurred:", {
@@ -205,4 +211,4 @@ if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
 }
 
 // Export the Express app for serverless environments (Vercel)
-module.exports = app;
+export default app;
