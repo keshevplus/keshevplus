@@ -19,6 +19,9 @@ const API_BASE_URL = process.env.VITE_API_BASE_URL;
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+// Serve static files FIRST, before any auth or API middleware
+app.use(express.static(path.join(__dirname, "public")));
+
 // Middleware
 app.use(cors());
 app.use(helmet({
@@ -132,7 +135,7 @@ if (process.env.NODE_ENV === 'production') {
   console.log("Running in production mode - serving static files from client/dist");
 
   // Serve static assets from the React build directory
-  app.use(express.static(path.join(__dirname, "../client/dist"), {
+  app.use(express.static(path.join(__dirname, "public"), {
     setHeaders: (res, path) => {
       if (path.endsWith(".js")) {
         res.setHeader("Content-Type", "application/javascript");
