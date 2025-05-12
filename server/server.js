@@ -24,6 +24,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // Middleware
 app.use(cors());
+
 app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP for simplicity, but consider enabling it in production with proper configuration
 }));
