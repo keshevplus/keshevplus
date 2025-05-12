@@ -1,5 +1,4 @@
 import 'dotenv/config';
-
 import bcrypt from 'bcryptjs';
 import { neon } from '@neondatabase/serverless';
 
@@ -21,8 +20,12 @@ async function createAdminUser() {
     const existingUser = await sql`SELECT * FROM users WHERE email = ${email}`;
     
     if (existingUser && existingUser.length > 0) {
-      console.log('Admin user already exists');
-      process.exit(0);
+      console.log('Admin user already exists, updating password...');
+      const newPassword = '12345678';
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await sql`UPDATE users SET password = ${hashedPassword} WHERE email = ${email}`;
+      console.log('Admin password updated.');
+      return;
     }
 
     console.log('Hashing password...');

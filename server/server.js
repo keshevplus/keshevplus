@@ -45,7 +45,7 @@ const getBaseUrl = (req) => {
 
 
 // API Routes - Define these BEFORE static file handling
-app.use(API_BASE_URL + '/auth/login', authRoutes);
+app.use(API_BASE_URL + '/auth', authRoutes);
 app.use(API_BASE_URL + '/admin', authMiddleware, adminRoutes);
 app.use(API_BASE_URL + '/leads', leadsRoutes);
 app.use(API_BASE_URL + '/neon/leads', neonLeadsRoutes);
