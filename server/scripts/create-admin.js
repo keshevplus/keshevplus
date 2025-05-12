@@ -1,5 +1,4 @@
-import dotenv from 'dotenv';
-dotenv.config({ path: new URL('../.env', import.meta.url).pathname });
+import 'dotenv/config';
 
 import bcrypt from 'bcryptjs';
 import { neon } from '@neondatabase/serverless';
