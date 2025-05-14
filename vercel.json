@@ -7,7 +7,6 @@
     { "src": "/api/(.*)", "dest": "/server.js" }
   ],
   "env": {
-    "DATABASE_URL": "@database_url",
     "EMAIL_HOST": "@email_host",
     "EMAIL_PORT": "@email_port",
     "EMAIL_USER": "@email_user",

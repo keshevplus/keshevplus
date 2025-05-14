@@ -59,11 +59,14 @@ export default async function handler(req, res) {
         data: response.data,
       });
     } catch (error) {
-      console.error('Error forwarding to neon leads:', error.message);
+      // Enhanced error logging for debugging
+      console.error('Error forwarding to neon leads:', error);
       return res.status(500).json({
         success: false,
         message: 'Failed to submit form',
         error: error.message,
+        stack: error.stack,
+        axiosResponse: error.response ? error.response.data : undefined
       });
     }
   }
