@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.0.0",
-    "@neondatabase/serverless": "^1.0.0",
     "@types/cors": "^2.8.18",
     "@types/express": "^5.0.1",
     "@types/helmet": "^4.0.0",
