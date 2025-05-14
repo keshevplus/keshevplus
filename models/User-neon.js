@@ -58,18 +58,18 @@ try {
 class User {
   /**
    * Find a user by ID
-   * @param {number} id - User ID
+   * @param {number} user_id - User ID
    * @returns {Promise<Object|null>} User object or null if not found
    */
-  static async findById(id) {
-    try {
-      if (!sql) {
+static async findById(user_id) {
+  try {
+    if (!sql) {
         throw new Error('Database connection not initialized');
       }
       
       const result = await sql`
-        SELECT id, username, email, is_admin, created_at 
-        FROM users WHERE id = ${id}
+        SELECT user_id, username, email, is_admin, created_at, last_login 
+        FROM users WHERE user_id = ${user_id}
       `;
       return result[0] || null;
     } catch (error) {
@@ -129,7 +129,7 @@ class User {
       const result = await sql`
         INSERT INTO users (username, email, password, is_admin) 
         VALUES (${userData.username}, ${userData.email}, ${hashedPassword}, ${is_admin}) 
-        RETURNING id, username, email, is_admin, created_at
+        RETURNING user_id, username, email, is_admin, created_at, last_login
       `;
 
       return result[0];
@@ -169,11 +169,11 @@ class User {
 
   /**
    * Update a user
-   * @param {number} id - User ID
+   * @param {number} user_id - User ID
    * @param {Object} updateData - Data to update
    * @returns {Promise<Object>} Updated user object
    */
-  static async update(id, updateData) {
+  static async update(user_id, updateData) {
     try {
       if (!sql) {
         throw new Error('Database connection not initialized');
@@ -190,20 +190,20 @@ class User {
       let updateValues = [];
       
       Object.entries(updateData).forEach(([key, value]) => {
-        if (key !== 'id') { // Skip the ID field
+        if (key !== 'user_id') { // Skip the ID field
           updateFields.push(`${key} = ?`);
           updateValues.push(value);
         }
       });
       
       // Add the ID as the last parameter
-      updateValues.push(id);
+      updateValues.push(user_id);
       
       const updateQuery = `
         UPDATE users 
         SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP 
-        WHERE id = ? 
-        RETURNING id, username, email, is_admin, created_at, updated_at
+        WHERE user_id = ? 
+        RETURNING user_id, username, email, is_admin, created_at, last_login
       `;
 
       const result = await sql(updateQuery, updateValues);
@@ -216,17 +216,17 @@ class User {
 
   /**
    * Delete a user
-   * @param {number} id - User ID
+   * @param {number} user_id - User ID
    * @returns {Promise<boolean>} True if deleted, false if not found
    */
-  static async delete(id) {
+  static async delete(user_id) {
     try {
       if (!sql) {
         throw new Error('Database connection not initialized');
       }
       
       const result = await sql`
-        DELETE FROM users WHERE id = ${id} RETURNING id
+        DELETE FROM users WHERE user_id = ${user_id} RETURNING user_id
       `;
       return result.length > 0;
     } catch (error) {
