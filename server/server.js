@@ -45,11 +45,11 @@ const getBaseUrl = (req) => {
 
 
 // API Routes - Define these BEFORE static file handling
-app.use(API_BASE_URL + '/auth', authRoutes);
-app.use(API_BASE_URL + '/admin', authMiddleware, adminRoutes);
-app.use(API_BASE_URL + '/leads', leadsRoutes);
-app.use(API_BASE_URL + '/neon/leads', neonLeadsRoutes);
-app.use(API_BASE_URL + '/test', testRoute);
+app.use(API_BASE_URL + 'api/auth', authRoutes);
+app.use(API_BASE_URL + 'api/admin', authMiddleware, adminRoutes);
+app.use(API_BASE_URL + 'api/leads', leadsRoutes);
+app.use(API_BASE_URL + 'api/neon/leads', neonLeadsRoutes);
+app.use(API_BASE_URL + 'api/test', testRoute);
 
 // Add direct /leads route (for https://api.keshevplus.co.il/leads)
 app.use('/leads', leadsRoutes);
@@ -177,18 +177,13 @@ app.get('*', (req, res) => {
     // Only handle non-API routes
     if (!req.path.startsWith('/api')) {
       console.log(`Redirecting ${req.path} to development server`);
-      res.redirect(`http://localhost:5173${req.path}`);
+      res.redirect(`http://api.keshevplus.co.il${req.path}`);
     } else {
       res.status(404).send('API endpoint not found');
     }
   });
 }
-
-// Remove serving client from /admin on the API server
-// app.use('/admin', (req, res) => {
-//   res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-// });
-
+ 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Unhandled error occurred:", {

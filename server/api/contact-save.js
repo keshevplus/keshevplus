@@ -1,7 +1,7 @@
 import { Client } from '@neondatabase/serverless';
 
 // Get database connection string from environment variable
-const connectionString = process.env.NEON_DATABASE_URL;
+const connectionString = process.env.DATABASE_URL;
 
 async function saveContactToDatabase(contactData) {
   if (!connectionString) {

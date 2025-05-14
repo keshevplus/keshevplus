@@ -22,7 +22,8 @@ async function createAdminUser() {
     if (existingUser && existingUser.length > 0) {
       console.log('Admin user already exists, updating password...');
       const newPassword = '12345678';
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(newPassword, salt);
       await sql`UPDATE users SET password = ${hashedPassword} WHERE email = ${email}`;
       console.log('Admin password updated.');
       return;
