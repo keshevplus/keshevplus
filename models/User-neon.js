@@ -10,8 +10,8 @@ dotenv.config();
 
 // Function to get database URL from various sources
 async function getDatabaseUrl() {
-  // First try DATABASE_URL, then NEON_DATABASE_URL, then KP_POSTGRES_URL
-  let databaseUrl = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || process.env.KP_POSTGRES_URL;
+  // First try DATABASE_URL
+  let databaseUrl = process.env.DATABASE_URL;
   
   // If still not found, try to read from database-connection.js if it exists
   if (!databaseUrl) {

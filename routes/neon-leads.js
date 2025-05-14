@@ -6,7 +6,7 @@ import { sendLeadNotification, sendLeadAcknowledgment } from "../utils/mailer.js
 const router = express.Router();
 
 // Create SQL instance with Neon, with fallback options
-const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
   console.error('No database URL found in environment variables. Please check your .env file.');
 }

@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+      const databaseUrl = process.env.DATABASE_URL;
       if (!databaseUrl) {
         return res.status(500).json({ message: 'Database configuration error', status: 'error' });
       }
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     try {
-      const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+      const databaseUrl =  process.env.DATABASE_URL;
       if (!databaseUrl) {
         console.error('No database URL found in environment variables');
         return res.status(500).json({ message: 'Database configuration error', status: 'error' });

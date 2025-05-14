@@ -2,7 +2,7 @@ const { neon } = require('@neondatabase/serverless');
 require('dotenv').config();
 
 // Check for required environment variables
-const requiredEnvVars = ['NEON_DATABASE_URL'];
+const requiredEnvVars = ['DATABASE_URL'];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
@@ -11,7 +11,7 @@ if (missingEnvVars.length > 0) {
 }
 
 // Create SQL query function using neon
-const sql = neon(process.env.NEON_DATABASE_URL + '?sslmode=require');
+const sql = neon(process.env.DATABASE_URL + '?sslmode=require');
 
 // Wrapper function to execute queries with error handling
 async function query(text, params = []) {
