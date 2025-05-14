@@ -1,9 +1,9 @@
-require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
-const express = require("express");
+import express from "express";
+import { neon } from "@neondatabase/serverless";
+import { body, validationResult } from "express-validator";
+import { sendLeadNotification, sendLeadAcknowledgment } from "../utils/mailer.js";
+
 const router = express.Router();
-const { neon } = require('@neondatabase/serverless');
-const { body, validationResult } = require("express-validator");
-const { sendLeadNotification, sendLeadAcknowledgment } = require('../utils/mailer');
 
 // Create SQL instance with Neon, with fallback options
 const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
@@ -185,4 +185,4 @@ router.get("/", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

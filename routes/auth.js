@@ -1,9 +1,11 @@
-const express = require('express');
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import User from '../models/User-neon.js';
+import auth from '../middleware/auth.js';
+import dotenv from 'dotenv';
+dotenv.config();
+
 const router = express.Router();
-const jwt = require('jsonwebtoken');
-const User = require('../models/User-neon'); 
-const auth = require('../middleware/auth');
-require('dotenv').config();
 
 // @route   POST api/auth/register
 // @desc    Register admin user
@@ -172,4 +174,4 @@ router.get('/user', auth, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

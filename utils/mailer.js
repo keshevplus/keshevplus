@@ -1,6 +1,6 @@
-const newLocal = 'nodemailer';
-const nodemailer = require(newLocal);
-require('dotenv').config();
+import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+dotenv.config();
 
 // Check for required environment variables
 const requiredEnvVars = ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USER', 'EMAIL_PASS'];
@@ -145,7 +145,4 @@ async function sendLeadAcknowledgment(lead) {
   }
 }
 
-module.exports = {
-  sendLeadNotification,
-  sendLeadAcknowledgment
-};
+export { sendLeadNotification, sendLeadAcknowledgment };

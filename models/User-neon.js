@@ -1,25 +1,24 @@
-const { neon } = require('@neondatabase/serverless');
-require('dotenv').config();
-const bcrypt = require('bcryptjs');
-const fs = require('fs');
-const path = require('path');
+import { neon } from '@neondatabase/serverless';
+import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
+import fs from 'fs';
+import path from 'path';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+const __dirname = dirname(fileURLToPath(import.meta.url));
+dotenv.config();
 
 // Function to get database URL from various sources
-function getDatabaseUrl() {
-  // First try environment variable
-  let databaseUrl = process.env.NEON_DATABASE_URL;
-  
-  // If not found, try KP_POSTGRES_URL
-  if (!databaseUrl) {
-    databaseUrl = process.env.KP_POSTGRES_URL;
-  }
+async function getDatabaseUrl() {
+  // First try DATABASE_URL, then NEON_DATABASE_URL, then KP_POSTGRES_URL
+  let databaseUrl = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || process.env.KP_POSTGRES_URL;
   
   // If still not found, try to read from database-connection.js if it exists
   if (!databaseUrl) {
     const connectionFile = path.join(__dirname, '../scripts/database-connection.js');
     if (fs.existsSync(connectionFile)) {
       try {
-        const connection = require('../scripts/database-connection.js');
+        const connection = await import('../scripts/database-connection.js');
         databaseUrl = connection.databaseUrl;
       } catch (error) {
         console.error('Error loading database connection file:', error.message);
@@ -45,7 +44,7 @@ function getDatabaseUrl() {
 // Create SQL instance with Neon - but handle missing connection gracefully
 let sql;
 try {
-  const databaseUrl = getDatabaseUrl();
+  const databaseUrl = await getDatabaseUrl();
   if (databaseUrl) {
     sql = neon(databaseUrl);
     console.log('Connected to Neon database successfully');
@@ -273,8 +272,8 @@ class User {
    */
   static async sendResetEmail(email, resetUrl) {
     // Use your EMAIL_API_KEY and email sending logic here
-    const nodemailer = require('nodemailer');
-    const transporter = nodemailer.createTransport({
+    const nodemailer = await import('nodemailer');
+    const transporter = nodemailer.default.createTransport({
       service: 'gmail',
       auth: {
         user: process.env.EMAIL_USER,
@@ -308,4 +307,4 @@ class User {
   }
 }
 
-module.exports = User;
+export default User;

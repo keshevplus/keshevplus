@@ -1,7 +1,8 @@
-const express = require("express");
+import express from "express";
+import { query } from "../config/db.js";
+import { body, validationResult } from "express-validator";
+
 const router = express.Router();
-const { query } = require("../config/db");
-const { body, validationResult } = require("express-validator");
 
 // @route   POST /api/leads
 // @desc    Save lead data to the database
@@ -114,4 +115,4 @@ router.post(
   }
 );
 
-module.exports = router;
+export default router;

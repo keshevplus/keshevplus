@@ -1,7 +1,8 @@
-const express = require("express");
+import express from "express";
+import { query } from "../config/db.js";
+import auth from "../middleware/auth.js";
+
 const router = express.Router();
-const { query } = require("../config/db");
-const auth = require("../middleware/auth"); // Import authentication middleware
 
 // Apply authentication middleware to all routes
 router.use(auth);
@@ -549,4 +550,4 @@ router.delete("/leads/:id", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

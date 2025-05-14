@@ -1,0 +1,40 @@
+{
+	"folders": [
+		{
+			"path": ".vercel"
+		},
+		{
+			"path": "api"
+		},
+		{
+			"path": "backups"
+		},
+		{
+			"path": "config"
+		},
+		{
+			"path": "db"
+		},
+		{
+			"path": "middleware"
+		},
+		{
+			"path": "models"
+		},
+		{
+			"path": "node_modules"
+		},
+		{
+			"path": "public"
+		},
+		{
+			"path": "routes"
+		},
+		{
+			"path": "scripts"
+		},
+		{
+			"path": "utils"
+		}
+	]
+}

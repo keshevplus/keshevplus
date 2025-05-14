@@ -1,6 +1,9 @@
 import path from "path";
 import dotenv from "dotenv";
-dotenv.config({ path: path.resolve(path.dirname(new URL(process.url).pathname), '.env.email') });
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+const __dirname = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '.env.email') });
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";

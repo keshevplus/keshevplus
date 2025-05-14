@@ -1,6 +1,5 @@
 node_modules
 .env
-dist
 coverage
 package-lock.json
 yarn-error.log
@@ -25,3 +24,6 @@ yarn-error.log
 *.tar.lzop
 *.tar.lz4
 .vercel
+backups
+.env.*
+scripts
