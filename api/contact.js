@@ -18,7 +18,7 @@ function getMissingFieldErrors(body) {
 
 function getBaseUrl() {
   const protocol = process.env.VERCEL_ENV === 'development' ? 'http://' : 'https://';
-  return process.env.VERCEL_URL ? `${protocol}${process.env.VERCEL_URL}` : "https://äpi.keshevplus.co.il";
+  return process.env.VERCEL_URL ? `${protocol}${process.env.VERCEL_URL}` : "https://api.keshevplus.co.il/api";
 }
 
 export default async function handler(req, res) {
