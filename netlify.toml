@@ -1,0 +1,11 @@
+[build]
+  command = "pnpm install && pnpm run build"
+  publish = "client/dist"
+
+[functions]
+  directory = "netlify/functions"
+
+[dev]
+  framework = "custom"
+  command = "pnpm start"
+  port = 3001
