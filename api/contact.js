@@ -1,7 +1,19 @@
 import axios from 'axios';
 
-function setCorsHeaders(res) {
-  res.setHeader('Access-Control-Allow-Origin', 'https://www.keshevplus.co.il');
+// CORS setup: You can allow multiple origins by checking req.headers.origin and conditionally setting the header
+// List of allowed origins for CORS
+const allowedOrigins = [
+  'https://keshevplus.co.il',
+  'https://www.keshevplus.co.il',
+];
+
+function setCorsHeaders(req, res) {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]); // fallback to main domain
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   // Add this only if you need cookies/auth: res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -25,17 +37,36 @@ function getBaseUrl() {
 }
 
 export default async function handler(req, res) {
-  setCorsHeaders(res);
+  setCorsHeaders(req, res);
+
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
+
+  // Health check endpoint
   if (req.method === 'GET') {
     res.status(200).json({ message: 'Contact API is available', success: true });
     return;
   }
+
+  // Handle POST (contact form)
   if (req.method === 'POST') {
-    const errors = getMissingFieldErrors(req.body);
+    let body = req.body;
+    // Vercel: body may not be parsed automatically
+    if (!body || typeof body !== 'object') {
+      try {
+        let raw = '';
+        for await (const chunk of req) { raw += chunk; }
+        body = JSON.parse(raw);
+      } catch (e) {
+        res.status(400).json({ success: false, message: 'Invalid JSON body', error: e.message });
+        return;
+      }
+    }
+
+    const errors = getMissingFieldErrors(body);
     if (errors.length > 0) {
       res.status(400).json({
         success: false,
@@ -49,7 +80,7 @@ export default async function handler(req, res) {
       const response = await axios({
         method: 'post',
         url: `${baseUrl}/neon/leads`,
-        data: req.body,
+        data: body,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -61,22 +92,24 @@ export default async function handler(req, res) {
       });
       return;
     } catch (error) {
-      // Enhanced error logging for debugging
+      // Log error server-side
       console.error('Error forwarding to neon leads:', {
         message: error.message,
         stack: error.stack,
-        requestData: req.body,
+        requestData: body,
       });
+      // Only show stack in development
+      const isDev = process.env.NODE_ENV === 'development';
       res.status(500).json({
         success: false,
         message: 'Failed to submit form',
         error: error.message,
-        stack: error.stack,
-        requestData: req.body,
+        ...(isDev ? { stack: error.stack, requestData: body } : {})
       });
       return;
     }
   }
+
   // If method not allowed
   res.setHeader('Allow', 'GET, POST, OPTIONS');
   res.status(405).end('Method Not Allowed');
