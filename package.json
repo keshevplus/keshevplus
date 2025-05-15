@@ -6,13 +6,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "concurrently \"pnpm run dev:server\" \"pnpm run dev:client\"",
+    "dev:server": "node server.js",
+    "dev:client": "cd client && pnpm run dev",
+    "build:all": "cd client && pnpm run build && pnpm run start"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.0.0",
+    "@neondatabase/serverless": "^1.0.0",
     "@types/cors": "^2.8.18",
     "@types/express": "^5.0.1",
-    "@types/helmet": "^4.0.0",
     "axios": "^1.8.4",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
@@ -24,13 +28,14 @@
     "helmet": "^6.0.1",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "nodejs": "^0.0.0",
     "nodemailer": "^6.10.1",
     "pg": "^8.11.1",
+    "pnpm": "^10.11.0",
     "react-hot-toast": "^2.5.2",
     "react-toastify": "^11.0.5"
   },
   "devDependencies": {
-    "@types/axios": "^0.14.4",
-    "@types/node": "^22.15.17"
+    "concurrently": "^8.2.2"
   }
 }

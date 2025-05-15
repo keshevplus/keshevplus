@@ -3,12 +3,14 @@ import dotenv from "dotenv";
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 dotenv.config({ path: path.resolve(__dirname, '.env.email') });
+
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import axios from "axios";
 import fs from "fs";
 import authRoutes from "./routes/auth.js";
 import adminRoutes from "./routes/admin.js";
@@ -16,11 +18,12 @@ import leadsRoutes from "./routes/leads.js";
 import neonLeadsRoutes from "./routes/neon-leads.js";
 import testRoute from "./routes/test.js";
 import authMiddleware from "./middleware/auth.js";
+import contactRoutes from "./api/contact.js";
 
 const API_BASE_URL = process.env.VITE_API_BASE_URL;
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 
 // Serve static files FIRST, before any auth or API middleware
 app.use(express.static(path.join(__dirname, "public")));
@@ -39,7 +42,7 @@ app.use(express.urlencoded({ extended: false }));
 const getBaseUrl = (req) => {
   // In production (Vercel), use https
   if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
-    return `https://${req.headers.host}`;
+    return `${req.headers.host}`;
   }
   // In development, use the protocol from request or default to http
   return `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
@@ -48,86 +51,70 @@ const getBaseUrl = (req) => {
 
 
 // API Routes - Define these BEFORE static file handling
-app.use(API_BASE_URL + 'api/auth', authRoutes);
-app.use(API_BASE_URL + 'api/admin', authMiddleware, adminRoutes);
-app.use(API_BASE_URL + 'api/leads', leadsRoutes);
-app.use(API_BASE_URL + 'api/neon/leads', neonLeadsRoutes);
-app.use(API_BASE_URL + 'api/test', testRoute);
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', authMiddleware, adminRoutes);
+app.use('/api/leads', leadsRoutes);
+app.use('/api/neon/leads', neonLeadsRoutes);
+app.use('/api/test', testRoute);
 
-// Add direct /leads route (for https://api.keshevplus.co.il/leads)
-app.use('/leads', leadsRoutes);
+// Add direct /leads route (for https://api.keshevplus.co.il/neon/leads)
+app.use('/neon/leads', neonLeadsRoutes);
 
-// Modified API endpoint handling for contact forms
-app.all(
-  API_BASE_URL + '/contact', (req, res) => {
-  console.log(`[${new Date().toISOString()}] Received ${req.method} request to /api/contact`);
-  
-  // For OPTIONS request (CORS preflight)
-  if (req.method === 'OPTIONS') {
-    return res.status(200).header('Access-Control-Allow-Methods', 'GET, POST').send();
-  }
-  
-  // For GET requests (health check)
-  if (req.method === 'GET') {
-    return res.status(200).json({ message: 'Contact API is available', success: true });
-  }
-  
-  // For POST requests (form submissions)
-  if (req.method === 'POST') {
-    // Log form data for debugging
-    console.log('Contact form data received:', req.body);
+app.use('/api/contact', contactRoutes);
+console.log('Registered /api/contact route');
+ 
+ 
+//     // Check for required fields
+//     if (!req.body.name || !req.body.email || !req.body.message) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Missing required fields',
+//         errors: [
+//           { field: 'name', message: !req.body.name ? 'Name is required' : '' },
+//           { field: 'email', message: !req.body.email ? 'Email is required' : '' },
+//           { field: 'message', message: !req.body.message ? 'Message is required' : '' }
+//         ].filter(e => e.message)
+//       });
+//     }
     
-    // Check for required fields
-    if (!req.body.name || !req.body.email || !req.body.message) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields',
-        errors: [
-          { field: 'name', message: !req.body.name ? 'Name is required' : '' },
-          { field: 'email', message: !req.body.email ? 'Email is required' : '' },
-          { field: 'message', message: !req.body.message ? 'Message is required' : '' }
-        ].filter(e => e.message)
-      });
-    }
-    
-    // Forward to the neon leads endpoint directly using proper protocol
-    axios({
-      method: 'post',
-      url: `${getBaseUrl(req)}${API_BASE_URL}/neon/leads`,
-      data: req.body,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-    .then(response => {
-      console.log('Successfully forwarded to neon leads endpoint');
-      res.status(200).json({
-        success: true,
-        message: 'Form submitted successfully',
-        data: response.data
-      });
-    })
-    .catch(error => {
-      console.error('Error forwarding to neon leads:', error.message);
+//     // Forward to the neon leads endpoint directly using proper protocol
+//     axios({
+//       method: 'post',
+//       url: `${getBaseUrl(req)}${API_BASE_URL}/neon/leads`,
+//       data: req.body,
+//       headers: {
+//         'Content-Type': 'application/json'
+//       }
+//     })
+//     .then(response => {
+//       console.log('Successfully forwarded to neon leads endpoint');
+//       res.status(200).json({
+//         success: true,
+//         message: 'Form submitted successfully',
+//         data: response.data
+//       });
+//     })
+//     .catch(error => {
+//       console.error('Error forwarding to neon leads:', error.message);
       
-      // Provide detailed error information
-      res.status(500).json({
-        success: false,
-        message: 'Error processing form submission',
-        error: error.message,
-        // Only include stack trace in development
-        ...(process.env.NODE_ENV !== 'production' && { stack: error.stack })
-      });
-    });
-  } else {
-    // For other methods (PUT, DELETE, etc.)
-    res.status(405).json({
-      success: false,
-      message: 'Method not allowed',
-      allowedMethods: ['GET', 'POST', 'OPTIONS']
-    });
-  }
-});
+//       // Provide detailed error information
+//       res.status(500).json({
+//         success: false,
+//         message: 'Error processing form submission',
+//         error: error.message,
+//         // Only include stack trace in development
+//         ...(process.env.NODE_ENV !== 'production' && { stack: error.stack })
+//       });
+//     });
+//   } else {
+//     // For other methods (PUT, DELETE, etc.)
+//     res.status(405).json({
+//       success: false,
+//       message: 'Method not allowed',
+//       allowedMethods: ['GET', 'POST', 'OPTIONS']
+//     });
+//   }
+// });
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
@@ -180,7 +167,7 @@ app.get('*', (req, res) => {
     // Only handle non-API routes
     if (!req.path.startsWith('/api')) {
       console.log(`Redirecting ${req.path} to development server`);
-      res.redirect(`http://api.keshevplus.co.il${req.path}`);
+      res.redirect(`localhost:5000${req.path}`);
     } else {
       res.status(404).send('API endpoint not found');
     }
