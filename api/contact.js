@@ -1,7 +1,4 @@
-import express from 'express';
 import axios from 'axios';
-
-const router = express.Router();
 
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', 'https://www.keshevplus.co.il');
@@ -27,56 +24,60 @@ function getBaseUrl() {
   return 'https://api.keshevplus.co.il';
 }
 
-router.options('/', (req, res) => {
+export default async function handler(req, res) {
   setCorsHeaders(res);
-  res.status(200).end();
-});
-
-router.get('/', (req, res) => {
-  setCorsHeaders(res);
-  res.status(200).json({ message: 'Contact API is available', success: true });
-});
-
-router.post('/', async (req, res) => {
-  setCorsHeaders(res);
-  const errors = getMissingFieldErrors(req.body);
-  if (errors.length > 0) {
-    return res.status(400).json({
-      success: false,
-      message: 'Missing required fields',
-      errors,
-    });
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
   }
-  try {
-    const baseUrl = getBaseUrl();
-    const response = await axios({
-      method: 'post',
-      url: `${baseUrl}/neon/leads`,
-      data: req.body,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    return res.status(200).json({
-      success: true,
-      message: 'Form submitted successfully',
-      data: response.data,
-    });
-  } catch (error) {
-    // Enhanced error logging for debugging
-    console.error('Error forwarding to neon leads:', {
-      message: error.message,
-      stack: error.stack,
-      requestData: req.body,
-    });
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to submit form',
-      error: error.message,
-      stack: error.stack,
-      requestData: req.body,
-    });
+  if (req.method === 'GET') {
+    res.status(200).json({ message: 'Contact API is available', success: true });
+    return;
   }
-});
-
-export default router;
+  if (req.method === 'POST') {
+    const errors = getMissingFieldErrors(req.body);
+    if (errors.length > 0) {
+      res.status(400).json({
+        success: false,
+        message: 'Missing required fields',
+        errors,
+      });
+      return;
+    }
+    try {
+      const baseUrl = getBaseUrl();
+      const response = await axios({
+        method: 'post',
+        url: `${baseUrl}/neon/leads`,
+        data: req.body,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      res.status(200).json({
+        success: true,
+        message: 'Form submitted successfully',
+        data: response.data,
+      });
+      return;
+    } catch (error) {
+      // Enhanced error logging for debugging
+      console.error('Error forwarding to neon leads:', {
+        message: error.message,
+        stack: error.stack,
+        requestData: req.body,
+      });
+      res.status(500).json({
+        success: false,
+        message: 'Failed to submit form',
+        error: error.message,
+        stack: error.stack,
+        requestData: req.body,
+      });
+      return;
+    }
+  }
+  // If method not allowed
+  res.setHeader('Allow', 'GET, POST, OPTIONS');
+  res.status(405).end('Method Not Allowed');
+}
