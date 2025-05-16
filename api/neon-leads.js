@@ -38,16 +38,25 @@ export default async function handler(req, res) {
       const sql = neon(databaseUrl + '?sslmode=require');
       // Insert the lead into the leads table
       const { name, email, phone, subject, message } = req.body;
+      console.log('[neon-leads] Incoming POST payload:', req.body);
       if (!name || !email || !phone || !message) {
-        return res.status(400).json({ status: 'error', message: 'Missing required fields' });
+        console.error('[neon-leads] Missing required fields:', { name, email, phone, message, fullBody: req.body });
+        return res.status(400).json({ status: 'error', message: 'Missing required fields', missing: { name, email, phone, message } });
       }
-      const insertResult = await sql`
-        INSERT INTO leads (name, email, phone, subject, message, created_at)
-        VALUES (${name}, ${email}, ${phone}, ${subject || ''}, ${message}, NOW())
-        RETURNING id
-      `;
-      const newLeadId = insertResult[0]?.id;
-      res.status(200).json({ status: 'success', message: 'Lead saved successfully', id: newLeadId });
+      try {
+        const insertResult = await sql`
+          INSERT INTO leads (name, email, phone, subject, message, created_at)
+          VALUES (${name}, ${email}, ${phone}, ${subject || ''}, ${message}, NOW())
+          RETURNING id
+        `;
+        const newLeadId = insertResult[0]?.id;
+        console.log('[neon-leads] Lead inserted successfully:', { id: newLeadId, name, email });
+        res.status(200).json({ status: 'success', message: 'Lead saved successfully', id: newLeadId });
+      } catch (sqlError) {
+        console.error('[neon-leads] SQL insert error:', sqlError, { attemptedInsert: req.body });
+        const isDev = process.env.NODE_ENV === 'development';
+        res.status(500).json({ status: 'error', message: 'Failed to insert lead into database', error: sqlError.message, ...(isDev ? { stack: sqlError.stack, requestData: req.body } : {}) });
+      }
     } catch (error) {
       console.error('Error saving lead:', error);
       res.status(500).json({ status: 'error', message: 'Failed to save lead' });
