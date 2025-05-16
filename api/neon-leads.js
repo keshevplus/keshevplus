@@ -36,8 +36,18 @@ export default async function handler(req, res) {
         return res.status(500).json({ message: 'Database configuration error', status: 'error' });
       }
       const sql = neon(databaseUrl + '?sslmode=require');
-      // ... (rest of your logic for inserting a lead, sending notifications, etc.)
-      res.status(200).json({ status: 'success', message: 'Lead saved successfully' });
+      // Insert the lead into the leads table
+      const { name, email, phone, subject, message } = req.body;
+      if (!name || !email || !phone || !message) {
+        return res.status(400).json({ status: 'error', message: 'Missing required fields' });
+      }
+      const insertResult = await sql`
+        INSERT INTO leads (name, email, phone, subject, message, created_at)
+        VALUES (${name}, ${email}, ${phone}, ${subject || ''}, ${message}, NOW())
+        RETURNING id
+      `;
+      const newLeadId = insertResult[0]?.id;
+      res.status(200).json({ status: 'success', message: 'Lead saved successfully', id: newLeadId });
     } catch (error) {
       console.error('Error saving lead:', error);
       res.status(500).json({ status: 'error', message: 'Failed to save lead' });
