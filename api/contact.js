@@ -4,6 +4,7 @@ import { sendLeadNotification, sendLeadAcknowledgment } from '../utils/mailer.js
 
 // CORS setup: You can allow multiple origins by checking req.headers.origin and conditionally setting the header
 // List of allowed origins for CORS
+// Allowlist of explicit origins
 const allowedOrigins = [
   'https://keshevplus.co.il',
   'https://www.keshevplus.co.il',
@@ -11,9 +12,19 @@ const allowedOrigins = [
   'https://api.keshevplus.co.il/api',
 ];
 
+// Allow *.vercel.app origins for CORS
+function isVercelAppOrigin(origin) {
+  try {
+    const url = new URL(origin);
+    return url.hostname.endsWith('.vercel.app');
+  } catch {
+    return false;
+  }
+}
+
 function setCorsHeaders(req, res) {
   const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
+  if (allowedOrigins.includes(origin) || isVercelAppOrigin(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   } else {
     res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]); // fallback to main domain
