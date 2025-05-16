@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { query } from '../config/db.js';
 import { sendLeadNotification, sendLeadAcknowledgment } from '../utils/mailer.js';
 // Added mailer import for sending notification and acknowledgment emails
 
@@ -96,17 +96,15 @@ export default async function handler(req, res) {
       return;
     }
     try {
-      console.log('[ContactAPI] Posting to /neon/leads...', { body });
-      const baseUrl = getBaseUrl();
-      const response = await axios({
-        method: 'post',
-        url: `${baseUrl}/neon/leads`,
-        data: body,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      console.log('[ContactAPI] /neon/leads response:', response.status, response.data);
+      // Insert contact form data into the database
+      const insertQuery = `
+        INSERT INTO messages (name, email, phone, subject, message, date_received)
+        VALUES ($1, $2, $3, $4, $5, NOW())
+        RETURNING id, name, email, phone, subject, message, date_received
+      `;
+      const values = [body.name, body.email, body.phone, body.subject || '', body.message];
+      const dbResult = await query(insertQuery, values);
+      const savedMessage = dbResult.rows[0];
       // After successful lead creation, send notification and acknowledgment emails
       let notificationResult = false;
       let acknowledgmentResult = false;
@@ -128,7 +126,7 @@ export default async function handler(req, res) {
       res.status(200).json({
         success: true,
         message: 'Form submitted successfully',
-        data: response.data,
+        data: savedMessage,
         emailNotificationSent: notificationResult,
         emailAcknowledgmentSent: acknowledgmentResult,
       });
