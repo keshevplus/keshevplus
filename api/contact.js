@@ -7,6 +7,8 @@ import { sendLeadNotification, sendLeadAcknowledgment } from '../utils/mailer.js
 const allowedOrigins = [
   'https://keshevplus.co.il',
   'https://www.keshevplus.co.il',
+  'https://api.keshevplus.co.il',
+  'https://api.keshevplus.co.il/api',
 ];
 
 function setCorsHeaders(req, res) {
