@@ -69,20 +69,25 @@ export default async function handler(req, res) {
   // Handle POST (contact form)
   if (req.method === 'POST') {
     let body = req.body;
+    console.log('[ContactAPI] Incoming request');
     // Vercel: body may not be parsed automatically
     if (!body || typeof body !== 'object') {
       try {
         let raw = '';
         for await (const chunk of req) { raw += chunk; }
         body = JSON.parse(raw);
+        console.log('[ContactAPI] Parsed raw JSON body:', body);
       } catch (e) {
+        console.error('[ContactAPI] Failed to parse JSON body:', e, { rawBody: typeof raw !== 'undefined' ? raw : undefined });
         res.status(400).json({ success: false, message: 'Invalid JSON body', error: e.message });
         return;
       }
     }
 
+    console.log('[ContactAPI] Validating required fields...');
     const errors = getMissingFieldErrors(body);
     if (errors.length > 0) {
+      console.warn('[ContactAPI] Missing required fields:', errors, { body });
       res.status(400).json({
         success: false,
         message: 'Missing required fields',
@@ -91,6 +96,7 @@ export default async function handler(req, res) {
       return;
     }
     try {
+      console.log('[ContactAPI] Posting to /neon/leads...', { body });
       const baseUrl = getBaseUrl();
       const response = await axios({
         method: 'post',
@@ -100,18 +106,23 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json',
         },
       });
+      console.log('[ContactAPI] /neon/leads response:', response.status, response.data);
       // After successful lead creation, send notification and acknowledgment emails
       let notificationResult = false;
       let acknowledgmentResult = false;
       try {
+        console.log('[ContactAPI] Sending admin notification email...');
         notificationResult = await sendLeadNotification(body);
+        console.log('[ContactAPI] Admin notification email result:', notificationResult);
       } catch (err) {
-        console.error('Failed to send admin notification email:', err);
+        console.error('[ContactAPI] Failed to send admin notification email:', err, { body });
       }
       try {
+        console.log('[ContactAPI] Sending acknowledgment email to lead...');
         acknowledgmentResult = await sendLeadAcknowledgment(body);
+        console.log('[ContactAPI] Acknowledgment email result:', acknowledgmentResult);
       } catch (err) {
-        console.error('Failed to send acknowledgment email to lead:', err);
+        console.error('[ContactAPI] Failed to send acknowledgment email to lead:', err, { body });
       }
       // Respond to frontend regardless of email result
       res.status(200).json({
@@ -123,8 +134,8 @@ export default async function handler(req, res) {
       });
       return;
     } catch (error) {
-      // Log error server-side
-      console.error('Error forwarding to neon leads:', {
+      // Log error server-side with stack and request body
+      console.error('[ContactAPI] Error in POST handler:', {
         message: error.message,
         stack: error.stack,
         requestData: body,
