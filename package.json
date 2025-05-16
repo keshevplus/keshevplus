@@ -6,6 +6,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "bacpd": "sh ./scripts/bacpd.sh",
     "start": "node server.js",
     "dev": "concurrently \"pnpm run dev:server\" \"pnpm run dev:client\"",
     "dev:server": "node server.js",

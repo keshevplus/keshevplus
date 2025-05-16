@@ -26,7 +26,6 @@ yarn-error.log
 .vercel
 backups
 .env.*
-scripts
 client/*
 client/public
 client/dist

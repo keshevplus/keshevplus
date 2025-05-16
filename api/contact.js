@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { sendLeadNotification, sendLeadAcknowledgment } from '../utils/mailer.js';
+// Added mailer import for sending notification and acknowledgment emails
 
 // CORS setup: You can allow multiple origins by checking req.headers.origin and conditionally setting the header
 // List of allowed origins for CORS
@@ -85,10 +87,26 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json',
         },
       });
+      // After successful lead creation, send notification and acknowledgment emails
+      let notificationResult = false;
+      let acknowledgmentResult = false;
+      try {
+        notificationResult = await sendLeadNotification(body);
+      } catch (err) {
+        console.error('Failed to send admin notification email:', err);
+      }
+      try {
+        acknowledgmentResult = await sendLeadAcknowledgment(body);
+      } catch (err) {
+        console.error('Failed to send acknowledgment email to lead:', err);
+      }
+      // Respond to frontend regardless of email result
       res.status(200).json({
         success: true,
         message: 'Form submitted successfully',
         data: response.data,
+        emailNotificationSent: notificationResult,
+        emailAcknowledgmentSent: acknowledgmentResult,
       });
       return;
     } catch (error) {
