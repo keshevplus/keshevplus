@@ -158,11 +158,13 @@ static async findById(user_id) {
    * @returns {Promise<Object|null>} User object if authenticated, null otherwise
    */
   static async authenticate(email, password) {
-    // TEMPORARY BYPASS: Always return the user object for free admin access (DEBUG ONLY)
     const user = await this.findByEmail(email);
-    if (user) {
-      const { password: _, ...userWithoutPassword } = user;
-      return userWithoutPassword;
+    if (user && user.password) {
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (isMatch) {
+        const { password: _, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      }
     }
     return null;
   }
