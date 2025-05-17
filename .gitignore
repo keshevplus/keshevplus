@@ -1,5 +1,4 @@
 node_modules
-.env
 coverage
 package-lock.json
 yarn-error.log
@@ -25,4 +24,11 @@ yarn-error.log
 *.tar.lz4
 .vercel
 backups
+.env
 .env.*
+.env.local
+.env.local.*
+.env.production
+.env.production.*
+.env.test
+.env.test.*

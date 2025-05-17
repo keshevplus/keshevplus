@@ -20,25 +20,43 @@ import testRoute from "./routes/test.js";
 import authMiddleware from "./middleware/auth.js";
 import contactRoutes from "./api/contact.js";
 
-const API_BASE_URL = process.env.VITE_API_BASE_URL;
+/**
+ * ================================
+ * Keshev Plus Server Configuration
+ * ================================
+ *
+ * This file sets up the Express server, configures middleware, and serves static files.
+ * Each section is documented and categorized for clarity and maintainability.
+ */
 
+// ===== Imports and Constants =====
+const API_BASE_URL = process.env.VITE_API_BASE_URL;
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// ===== Static File Serving =====
 // Serve static files FIRST, before any auth or API middleware
+// This allows quick serving of assets like images, CSS, and JS
 app.use(express.static(path.join(__dirname, "public")));
 
-// Middleware
+// ===== General Middleware =====
+// CORS: Allow cross-origin requests (important for frontend-backend communication)
 app.use(cors());
 
+// Helmet: Set security-related HTTP headers
 app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP for simplicity, but consider enabling it in production with proper configuration
 }));
+
+// Morgan: HTTP request logger for debugging and monitoring
 app.use(morgan("dev"));
+
+// Body Parsers: Parse JSON and URL-encoded request bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Set the base URL for API requests
+// ===== Utility Functions =====
+// Set the base URL for API requests (used for dynamic environments)
 const getBaseUrl = (req) => {
   // In production (Vercel), use https
   if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {

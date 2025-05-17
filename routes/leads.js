@@ -5,7 +5,7 @@ import { body, validationResult } from "express-validator";
 const router = express.Router();
 
 // @route   POST /api/leads
-// @desc    Save lead data to the database
+// @desc    Save contact form data to the messages table
 // @access  Public
 router.post(
   "/",
@@ -63,7 +63,7 @@ router.post(
       let result;
       try {
         result = await query(
-          "INSERT INTO leads (name, email, phone, subject, message, date_received) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) RETURNING id",
+          "INSERT INTO messages (name, email, phone, subject, message, date_received) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) RETURNING id",
           [sanitizedData.name, sanitizedData.email, sanitizedData.phone, sanitizedData.subject, sanitizedData.message]
         );
       } catch (dbError) {
