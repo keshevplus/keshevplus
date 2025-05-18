@@ -39,6 +39,10 @@ const PORT = process.env.PORT || 5000;
 // This allows quick serving of assets like images, CSS, and JS
 app.use(express.static(path.join(__dirname, "public")));
 
+app.options('/api/auth/login', (req, res) => {
+  res.sendStatus(200);
+});
+
 // ===== General Middleware =====
 // CORS: Allow cross-origin requests (important for frontend-backend communication)
 app.use(cors({
