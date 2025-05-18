@@ -14,11 +14,11 @@ import morgan from "morgan";
 import fs from "fs";
 import authRoutes from "./routes/auth.js";
 import adminRoutes from "./routes/admin.js";
+import contactRoutes from "./api/contact.js";
 import leadsRoutes from "./routes/leads.js";
 import neonLeadsRoutes from "./routes/neon-leads.js";
 import testRoute from "./routes/test.js";
 import authMiddleware from "./middleware/auth.js";
-import contactRoutes from "./api/contact.js";
 
 /**
  * ================================
@@ -59,8 +59,9 @@ app.use(express.urlencoded({ extended: false }));
 // Set the base URL for API requests (used for dynamic environments)
 const getBaseUrl = (req) => {
   // In production (Vercel), use https
-  if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+  if (process.env.NODE_ENV === 'production') {
     return `${req.headers.host}`;
+    console.log("Using production host: ", req.headers.host);
   }
   // In development, use the protocol from request or default to http
   return `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
@@ -82,57 +83,57 @@ app.use('/api/contact', contactRoutes);
 console.log('Registered /api/contact route');
  
  
-//     // Check for required fields
-//     if (!req.body.name || !req.body.email || !req.body.message) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Missing required fields',
-//         errors: [
-//           { field: 'name', message: !req.body.name ? 'Name is required' : '' },
-//           { field: 'email', message: !req.body.email ? 'Email is required' : '' },
-//           { field: 'message', message: !req.body.message ? 'Message is required' : '' }
-//         ].filter(e => e.message)
-//       });
-//     }
+    // Check for required fields
+    if (!req.body.name || !req.body.email || !req.body.message) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields',
+        errors: [
+          { field: 'name', message: !req.body.name ? 'Name is required' : '' },
+          { field: 'email', message: !req.body.email ? 'Email is required' : '' },
+          { field: 'message', message: !req.body.message ? 'Message is required' : '' }
+        ].filter(e => e.message)
+      });
+    }
     
-//     // Forward to the neon leads endpoint directly using proper protocol
-//     axios({
-//       method: 'post',
-//       url: `${getBaseUrl(req)}${API_BASE_URL}/neon/leads`,
-//       data: req.body,
-//       headers: {
-//         'Content-Type': 'application/json'
-//       }
-//     })
-//     .then(response => {
-//       console.log('Successfully forwarded to neon leads endpoint');
-//       res.status(200).json({
-//         success: true,
-//         message: 'Form submitted successfully',
-//         data: response.data
-//       });
-//     })
-//     .catch(error => {
-//       console.error('Error forwarding to neon leads:', error.message);
+    // Forward to the neon leads endpoint directly using proper protocol
+    axios({
+      method: 'post',
+      url: `${getBaseUrl(req)}${API_BASE_URL}/neon/leads`,
+      data: req.body,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(response => {
+      console.log('Successfully forwarded to neon leads endpoint');
+      res.status(200).json({
+        success: true,
+        message: 'Form submitted successfully',
+        data: response.data
+      });
+    })
+    .catch(error => {
+      console.error('Error forwarding to neon leads:', error.message);
       
-//       // Provide detailed error information
-//       res.status(500).json({
-//         success: false,
-//         message: 'Error processing form submission',
-//         error: error.message,
-//         // Only include stack trace in development
-//         ...(process.env.NODE_ENV !== 'production' && { stack: error.stack })
-//       });
-//     });
-//   } else {
-//     // For other methods (PUT, DELETE, etc.)
-//     res.status(405).json({
-//       success: false,
-//       message: 'Method not allowed',
-//       allowedMethods: ['GET', 'POST', 'OPTIONS']
-//     });
-//   }
-// });
+      // Provide detailed error information
+      res.status(500).json({
+        success: false,
+        message: 'Error processing form submission',
+        error: error.message,
+        // Only include stack trace in development
+        ...(process.env.NODE_ENV !== 'production' && { stack: error.stack })
+      });
+    });
+  } else {
+    // For other methods (PUT, DELETE, etc.)
+    res.status(405).json({
+      success: false,
+      message: 'Method not allowed',
+      allowedMethods: ['GET', 'POST', 'OPTIONS']
+    });
+  }
+});
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
