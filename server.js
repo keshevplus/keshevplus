@@ -41,7 +41,13 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // ===== General Middleware =====
 // CORS: Allow cross-origin requests (important for frontend-backend communication)
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://www.keshevplus.co.il',
+    'https://keshevplus.co.il'
+  ],
+  credentials: true
+}));
 
 // Helmet: Set security-related HTTP headers
 app.use(helmet({
