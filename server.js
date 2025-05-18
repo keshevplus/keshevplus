@@ -44,7 +44,10 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(cors({
   origin: [
     'https://www.keshevplus.co.il',
-    'https://keshevplus.co.il'
+    'https://keshevplus.co.il',
+    'http://localhost:5173',
+    'http://localhost:5000',
+    'https://api.keshevplus.co.il'
   ],
   credentials: true
 }));
@@ -95,62 +98,9 @@ app.use('/admin/leads', leadsRoutes);
 app.use('/api/test', testRoute);
 app.use('/test', testRoute);
 
-
 app.use('/api/contact', contactRoutes);
 app.use('/contact', contactRoutes);
 console.log('Registered /contact route');
- 
- 
-    // Check for required fields
-    if (!req.body.name || !req.body.email || !req.body.message) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields',
-        errors: [
-          { field: 'name', message: !req.body.name ? 'Name is required' : '' },
-          { field: 'email', message: !req.body.email ? 'Email is required' : '' },
-          { field: 'message', message: !req.body.message ? 'Message is required' : '' }
-        ].filter(e => e.message)
-      });
-
-    
-    // Forward to the neon leads endpoint directly using proper protocol
-    axios({
-      method: 'post',
-      url: `${getBaseUrl(req)}${API_BASE_URL}/neon/leads`,
-      data: req.body,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-    .then(response => {
-      console.log('Successfully forwarded to neon leads endpoint');
-      res.status(200).json({
-        success: true,
-        message: 'Form submitted successfully',
-        data: response.data
-      });
-    })
-    .catch(error => {
-      console.error('Error forwarding to neon leads:', error.message);
-      
-      // Provide detailed error information
-      res.status(500).json({
-        success: false,
-        message: 'Error processing form submission',
-        error: error.message,
-        // Only include stack trace in development
-        ...(process.env.NODE_ENV !== 'production' && { stack: error.stack })
-      });
-    });
-  } else {
-    // For other methods (PUT, DELETE, etc.)
-    res.status(405).json({
-      success: false,
-      message: 'Method not allowed',
-      allowedMethods: ['GET', 'POST', 'OPTIONS']
-    });
-  };
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

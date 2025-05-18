@@ -484,6 +484,7 @@ router.get("/leads", async (req, res) => {
     const countResult = await query(
       "SELECT COUNT(*) FROM messages WHERE name ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1",
       [`%${filter}%`]
+    );
 
   // Get messages with pagination and filtering
   const messagesResult = await query(
