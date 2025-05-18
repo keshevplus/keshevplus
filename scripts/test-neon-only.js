@@ -9,8 +9,7 @@ async function testNeonConnection() {
     return;
   }
   
-  console.log(`Connection string: ${process.env.NEON_DATABASE_URL.replace(/:[^:]*@/, ':****@')}`);
-  
+  console.log(`Connection string: ${process.env.\DATABASE_URL.replace(/:[^:]*@/, ':****@')}`);  
   try {
     const sql = neon(process.env.NEON_DATABASE_URL);
     const result = await sql`SELECT NOW() as now`;
