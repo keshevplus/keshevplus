@@ -83,16 +83,23 @@ const getBaseUrl = (req) => {
 
 // API Routes - Define these BEFORE static file handling
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
+
 app.use('/api/admin', authMiddleware, adminRoutes);
-app.use('/api/leads', leadsRoutes);
-app.use('/api/neon/leads', neonLeadsRoutes);
+app.use('/admin', authMiddleware, adminRoutes);
+
+app.use('/api/admin/leads', leadsRoutes);
+app.use('/admin/leads', leadsRoutes);
+
 app.use('/api/test', testRoute);
+app.use('/test', testRoute);
 
 // Add direct /leads route (for https://api.keshevplus.co.il/neon/leads)
 app.use('/neon/leads', neonLeadsRoutes);
 
 app.use('/api/contact', contactRoutes);
-console.log('Registered /api/contact route');
+app.use('/contact', contactRoutes);
+console.log('Registered /contact route');
  
  
     // Check for required fields
