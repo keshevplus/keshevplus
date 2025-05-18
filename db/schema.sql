@@ -71,14 +71,29 @@ CREATE TABLE forms (
 );
 
 -- Leads table
-CREATE TABLE IF NOT EXISTS leads (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  email VARCHAR(255),
-  phone VARCHAR(20) NOT NULL,
-  subject VARCHAR(255),
-  message TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE leads (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    phone VARCHAR(30),
+    email VARCHAR(255) NOT NULL,
+    subject VARCHAR(255),
+    message TEXT,
+    source VARCHAR(100),
+    status VARCHAR(30) DEFAULT 'new',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    user_id INTEGER REFERENCES users(id)
+);
+
+CREATE TABLE messages (
+    id SERIAL PRIMARY KEY,
+    sender_id INTEGER REFERENCES users(id),
+    recipient_id INTEGER REFERENCES users(id),
+    email VARCHAR(255),
+    phone VARCHAR(30),
+    subject VARCHAR(255),
+    body TEXT,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    read_at TIMESTAMP
 );
 
 -- Create indexes
