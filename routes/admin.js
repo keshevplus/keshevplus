@@ -494,19 +494,11 @@ router.get("/leads", async (req, res) => {
     [`%${filter}%`, limit, offset]
   );
 
-  res.json({
-    leads: messagesResult.rows,
-    pagination: {
-      total,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      totalPages: Math.ceil(total / limit),
-    },
-  });
-} catch (err) {
-  console.error(err.message);
-  res.status(500).send("Server error");
-}
+    const total = countResult.rows[0].count;
+
+    res.json({
+      leads: messagesResult.rows,
+      pagination: {
         total,
         page: parseInt(page),
         limit: parseInt(limit),

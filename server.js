@@ -83,7 +83,6 @@ const getBaseUrl = (req) => {
 };
 
 // Router
-app.use('/api', routes);
 
 // API Routes - Define these BEFORE static file handling
 app.use('/api/auth', authRoutes);
