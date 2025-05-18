@@ -50,7 +50,7 @@ app.use(cors({
 }));
 
 
-app.options('/api/auth/login', (req, res) => {
+app.options('/auth/login', (req, res) => {
   res.sendStatus(200);
 });
 

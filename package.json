@@ -17,6 +17,7 @@
   "dependencies": {
     "@hookform/resolvers": "^3.0.0",
     "@neondatabase/serverless": "^1.0.0",
+    "@remix-run/dev": "^2.16.6",
     "@types/cors": "^2.8.18",
     "@types/express": "^5.0.1",
     "@vercel/analytics": "^1.5.0",
