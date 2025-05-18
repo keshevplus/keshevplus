@@ -14,7 +14,6 @@ import morgan from "morgan";
 import fs from "fs";
 import authRoutes from "./routes/auth.js";
 import adminRoutes from "./routes/admin.js";
-import contactRoutes from "./api/contact.js";
 import leadsRoutes from "./routes/leads.js";
 import neonLeadsRoutes from "./routes/neon-leads.js";
 import testRoute from "./routes/test.js";
@@ -113,7 +112,7 @@ console.log('Registered /contact route');
           { field: 'message', message: !req.body.message ? 'Message is required' : '' }
         ].filter(e => e.message)
       });
-    }
+
     
     // Forward to the neon leads endpoint directly using proper protocol
     axios({
@@ -151,8 +150,7 @@ console.log('Registered /contact route');
       message: 'Method not allowed',
       allowedMethods: ['GET', 'POST', 'OPTIONS']
     });
-  }
-});
+  };
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
