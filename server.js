@@ -80,7 +80,8 @@ const getBaseUrl = (req) => {
   return `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
 };
 
-
+// Router
+app.use('/api', routes);
 
 // API Routes - Define these BEFORE static file handling
 app.use('/api/auth', authRoutes);
