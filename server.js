@@ -19,6 +19,7 @@ import leadsRoutes from "./routes/leads.js";
 import neonLeadsRoutes from "./routes/neon-leads.js";
 import testRoute from "./routes/test.js";
 import authMiddleware from "./middleware/auth.js";
+import contactRoutes from './routes/contact.js';
 
 /**
  * ================================
@@ -94,8 +95,6 @@ app.use('/admin/leads', leadsRoutes);
 app.use('/api/test', testRoute);
 app.use('/test', testRoute);
 
-// Add direct /leads route (for https://api.keshevplus.co.il/neon/leads)
-app.use('/neon/leads', neonLeadsRoutes);
 
 app.use('/api/contact', contactRoutes);
 app.use('/contact', contactRoutes);
