@@ -39,12 +39,12 @@ function generateRandomUser(index) {
 // Create connection to Neon database
 async function connectToNeonDB() {
   try {
-    if (!process.env.NEON_DATABASE_URL) {
-      console.error('NEON_DATABASE_URL environment variable is not set');
+    if (!process.env.DATABASE_URL) {
+      console.error('DATABASE_URL environment variable is not set');
       return null;
     }
     
-    const sql = neon(process.env.NEON_DATABASE_URL);
+    const sql = neon(process.env.DATABASE_URL);
     console.log('Connected to Neon PostgreSQL database');
     return { sql, type: 'neon' };
   } catch (error) {

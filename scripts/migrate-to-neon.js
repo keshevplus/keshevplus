@@ -12,7 +12,7 @@ const localPool = new Pool({
 });
 
 // Create Neon SQL executor
-const sql = neon(process.env.NEON_DATABASE_URL);
+const sql = neon(process.env.DATABASE_URL);
 
 // Tables to migrate
 const TABLES = [

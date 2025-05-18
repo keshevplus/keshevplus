@@ -5,7 +5,7 @@ async function setupNeonTables() {
   console.log('Setting up tables in Neon PostgreSQL database...');
   
   try {
-    const sql = neon(process.env.NEON_DATABASE_URL);
+    const sql = neon(process.env.DATABASE_URL);
     
     // Check if leads table exists
     console.log('Checking if leads table exists...');

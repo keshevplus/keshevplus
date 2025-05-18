@@ -3,11 +3,11 @@ const fs = require('fs');
 const path = require('path');
 const { neon } = require('@neondatabase/serverless');
 
-// Check if NEON_DATABASE_URL is set
-if (!process.env.NEON_DATABASE_URL) {
-  console.error('Error: NEON_DATABASE_URL environment variable is not set.');
+// Check if DATABASE_URL is set
+if (!process.env.DATABASE_URL) {
+  console.error('Error: DATABASE_URL environment variable is not set.');
   console.error('Please add it to your .env file, e.g.:');
-  console.error('NEON_DATABASE_URL=postgres://postgres:process.env.DB_PASSWORD@hostname/database');
+  console.error('DATABASE_URL=postgres://postgres:process.env.DB_PASSWORD@hostname/database');
   process.exit(1);
 }
 
@@ -60,7 +60,7 @@ function splitSqlStatements(sqlDump) {
 async function importDatabase() {
   try {
     console.log('Starting import to Neon database...');
-    const sql = neon(process.env.NEON_DATABASE_URL);
+    const sql = neon(process.env.DATABASE_URL);
     
     // Read the SQL dump file
     const sqlDumpPath = path.join(__dirname, '../../keshevplus_backup.sql');

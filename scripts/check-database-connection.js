@@ -15,7 +15,7 @@ async function checkDatabaseConnection() {
     path.join(__dirname, '../../.env.development.local')
   ];
   
-  let databaseUrl = process.env.NEON_DATABASE_URL || process.env.KP_POSTGRES_URL;
+  let databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
   
   // If database URL is not in process.env, try to read from env files directly
   if (!databaseUrl) {
@@ -24,17 +24,17 @@ async function checkDatabaseConnection() {
         console.log(`Found environment file: ${envFile}`);
         const envContent = fs.readFileSync(envFile, 'utf8');
         
-        // Look for NEON_DATABASE_URL or KP_POSTGRES_URL in the file
-        const neonMatch = envContent.match(/NEON_DATABASE_URL=["']?([^"'\s]+)["']?/);
-        const kpMatch = envContent.match(/KP_POSTGRES_URL=["']?([^"'\s]+)["']?/);
+        // Look for DATABASE_URL or POSTGRES_URL in the file
+        const neonMatch = envContent.match(/DATABASE_URL=["']?([^"'\s]+)["']?/);
+        const kpMatch = envContent.match(/POSTGRES_URL=["']?([^"'\s]+)["']?/);
         
         if (neonMatch && neonMatch[1]) {
           databaseUrl = neonMatch[1];
-          console.log('Found NEON_DATABASE_URL in environment file');
+          console.log('Found DATABASE_URL in environment file');
           break;
         } else if (kpMatch && kpMatch[1]) {
           databaseUrl = kpMatch[1];
-          console.log('Found KP_POSTGRES_URL in environment file');
+          console.log('Found POSTGRES_URL in environment file');
           break;
         }
       }
@@ -44,20 +44,20 @@ async function checkDatabaseConnection() {
   if (!databaseUrl) {
     console.error('\nERROR: Could not find database URL in any environment file');
     console.log('\nPlease make sure one of these environment variables is set:');
-    console.log('- NEON_DATABASE_URL');
-    console.log('- KP_POSTGRES_URL');
+    console.log('- DATABASE_URL');
+    console.log('- POSTGRES_URL');
     
     // Check if we have the Supabase URL in environment variables
-    if (process.env.KP_POSTGRES_HOST) {
-      console.log('\nFound KP_POSTGRES_HOST in environment variables. Constructing connection URL...');
+    if (process.env.POSTGRES_HOST) {
+      console.log('\nFound POSTGRES_HOST in environment variables. Constructing connection URL...');
       
-      const host = process.env.KP_POSTGRES_HOST;
-      const user = process.env.KP_POSTGRES_USER || 'postgres';
-      const password = process.env.KP_POSTGRES_PASSWORD;
-      const database = process.env.KP_POSTGRES_DATABASE || 'postgres';
+      const host = process.env.POSTGRES_HOST;
+      const user = process.env.POSTGRES_USER || 'postgres';
+      const password = process.env.POSTGRES_PASSWORD;
+      const database = process.env.POSTGRES_DATABASE || 'postgres';
       
       if (host && password) {
-        databaseUrl = `postgres://${user}:${password}@${host}:5432/${database}?sslmode=require`;
+        databaseUrl = `postgresql://${user}:${password}@${host}:5432/${database}?sslmode=require`;
         console.log('Successfully constructed database URL from environment variables');
       }
     }

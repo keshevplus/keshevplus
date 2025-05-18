@@ -35,13 +35,13 @@ async function testLocalConnection() {
 async function testNeonConnection() {
   console.log('\nTesting connection to Neon serverless database...');
   
-  if (!process.env.NEON_DATABASE_URL) {
-    console.error('❌ NEON_DATABASE_URL not found in environment variables');
+  if (!process.env.DATABASE_URL) {
+    console.error('❌ DATABASE_URL not found in environment variables');
     return;
   }
   
   try {
-    const sql = neon(process.env.NEON_DATABASE_URL);
+    const sql = neon(process.env.DATABASE_URL);
     const result = await sql`SELECT NOW() as now`;
     console.log('✅ Neon connection successful!');
     console.log(`Current time from database: ${result[0].now}`);

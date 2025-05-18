@@ -15,10 +15,10 @@ const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
 const backupFile = path.join(BACKUP_DIR, `neon-backup-${dateString}.sql`);
 
 // Get database connection details from environment variables
-const dbUrl = process.env.NEON_DATABASE_URL;
+const dbUrl = process.env.DATABASE_URL;
 
 if (!dbUrl) {
-  console.error('Error: NEON_DATABASE_URL environment variable is not set');
+  console.error('Error: DATABASE_URL environment variable is not set');
   process.exit(1);
 }
 

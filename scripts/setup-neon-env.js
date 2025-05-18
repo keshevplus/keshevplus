@@ -8,11 +8,11 @@ const path = require('path');
 function setupNeonEnv() {
   console.log('Setting up Neon database environment variables...');
   
-  // Get the KP_POSTGRES_URL from the .env.development.local file
-  const neonUrl = process.env.KP_POSTGRES_URL;
+  // Get the POSTGRES_URL from the .env.development.local file
+  const neonUrl = process.env.POSTGRES_URL;
   
   if (!neonUrl) {
-    console.error('Error: KP_POSTGRES_URL not found in .env.development.local');
+    console.error('Error: POSTGRES_URL not found in .env.development.local');
     console.log('Make sure you have the correct environment variables set.');
     process.exit(1);
   }
@@ -20,7 +20,7 @@ function setupNeonEnv() {
   console.log('Found database URL in environment variables');
   
   // Create the content for the .env file
-  const envContent = `NEON_DATABASE_URL="${neonUrl}"
+  const envContent = `DATABASE_URL="${neonUrl}"
 `;
   
   // Write to a temporary file that won't be committed to git
@@ -31,7 +31,7 @@ function setupNeonEnv() {
 // It should not be committed to git
 
 module.exports = {
-  NEON_DATABASE_URL: "${neonUrl}"
+  DATABASE_URL: "${neonUrl}"
 };
 `);
   
@@ -39,7 +39,7 @@ module.exports = {
   console.log('\nTo access your Neon database, use this code:');
   console.log('\nconst neonEnv = require(\'./scripts/temp-neon-env.js\');');
   console.log('const { neon } = require(\'@neondatabase/serverless\');');
-  console.log('const sql = neon(neonEnv.NEON_DATABASE_URL);');
+  console.log('const sql = neon(neonEnv_DATABASE_URL);');
   console.log('\nYou can now use the sql variable to query your Neon database.');
 }
 

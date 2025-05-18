@@ -28,8 +28,8 @@ function parseConnectionString(connectionString) {
 
 // Function to create a SQL backup using pg_dump
 async function createBackupWithPgDump() {
-  if (!process.env.NEON_DATABASE_URL) {
-    throw new Error('NEON_DATABASE_URL environment variable is not set');
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is not set');
   }
   
   // Make sure backup directory exists
@@ -43,7 +43,7 @@ async function createBackupWithPgDump() {
   const backupFilePath = path.join(BACKUP_DIR, backupFileName);
   
   // Parse connection details
-  const connDetails = parseConnectionString(process.env.NEON_DATABASE_URL);
+  const connDetails = parseConnectionString(process.env.DATABASE_URL);
   
   // Create pg_dump command with environment variables
   const pgDumpCommand = `set PGPASSWORD=${connDetails.password} && pg_dump -h ${connDetails.host} -U ${connDetails.user} -d ${connDetails.database} -f "${backupFilePath}" --no-owner --no-acl`;
@@ -68,7 +68,7 @@ async function createBackupWithPgDump() {
 
 // Fallback function to create a SQL backup using Node.js
 async function createBackupWithNode(backupFilePath) {
-  const sql = neon(process.env.NEON_DATABASE_URL);
+  const sql = neon(process.env.DATABASE_URL);
   
   try {
     // 1. Get list of all tables

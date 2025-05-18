@@ -6,7 +6,7 @@ async function setupUsersTable() {
   console.log('Setting up users table in Neon PostgreSQL database...');
   
   try {
-    const sql = neon(process.env.NEON_DATABASE_URL);
+    const sql = neon(process.env.DATABASE_URL);
     
     // Check if users table exists
     console.log('Checking if users table exists...');

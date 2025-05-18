@@ -12,7 +12,7 @@ const localPool = new Pool({
 });
 
 // Configure the Neon connection
-const sql = neon(process.env.NEON_DATABASE_URL);
+const sql = neon(process.env.DATABASE_URL);
 
 async function migrateTable(tableName) {
   console.log(`\nStarting migration for table: ${tableName}`);
