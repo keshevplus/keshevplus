@@ -106,6 +106,16 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
+// Root route handler
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message: "API Connected!",
+    version: "1.0.0",
+    serverTime: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 // Serve static assets and the React app
 if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
   console.log("Running in production mode (local) - serving static files from client/dist");
