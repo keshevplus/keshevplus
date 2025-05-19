@@ -40,9 +40,7 @@ app.use(cors({
   origin: [
     'https://www.keshevplus.co.il',
     'https://keshevplus.co.il',
-    'http://localhost:5173',
-    'http://localhost:5000',
-    'https://api.keshevplus.co.il',
+    'http://localhost:5173'
   ],
   credentials: true
 }));
@@ -50,6 +48,7 @@ app.use(cors({
 // Helmet: Set security-related HTTP headers
 app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP for simplicity, but consider enabling it in production with proper configuration
+  crossOriginResourcePolicy: { policy: "cross-origin" } // Allow resources to be loaded by other origins
 }));
 
 // Morgan: HTTP request logger for debugging and monitoring
