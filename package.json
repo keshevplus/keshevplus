@@ -14,7 +14,6 @@
     "dev:client": "cd ../keshev-web && pnpm run dev",
     "dev:web": "cd ../keshev-web && pnpm run dev",
     "dev:all": "concurrently \"pnpm run dev:server\" \"pnpm run dev:web\"",
-    "build:all": "cd client && pnpm run build && pnpm run start"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.0.0",

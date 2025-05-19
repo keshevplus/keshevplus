@@ -47,7 +47,7 @@ app.use(cors({
     'https://keshevplus.co.il',
     'http://localhost:5173',
     'http://localhost:5000',
-    'https://api.keshevplus.co.il'
+    'https://api.keshevplus.co.il',
   ],
   credentials: true
 }));
