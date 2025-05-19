@@ -58,6 +58,18 @@ app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Handle OPTIONS requests for all routes to ensure preflight checks pass
+app.options('*', cors({
+  origin: [
+    'https://www.keshevplus.co.il',
+    'https://keshevplus.co.il',
+    'http://localhost:5173'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // Include PATCH if used
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'] // Common headers
+}));
+
 // ===== Utility Functions =====
 // Set the base URL for API requests (used for dynamic environments)
 const getBaseUrl = (req) => {
