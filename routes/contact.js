@@ -1,6 +1,6 @@
 import express from 'express';
-import pool from '../../db/index.js'; 
-import { sendEmail } from '../../services/emailService.js'; 
+import pool from '../db/index.js'; 
+import { sendEmail } from '../services/emailService.js'; 
 import dotenv from 'dotenv';
 
 dotenv.config();
