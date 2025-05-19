@@ -127,7 +127,7 @@ static async findById(user_id) {
 
       // Insert user
       const result = await sql`
-        INSERT INTO users (username, email, password, is_admin) 
+        INSERT INTO users (username, email, password_hash, is_admin) 
         VALUES (${userData.username}, ${userData.email}, ${hashedPassword}, ${is_admin}) 
         RETURNING user_id, username, email, is_admin, created_at, last_login
       `;
@@ -159,10 +159,10 @@ static async findById(user_id) {
    */
   static async authenticate(email, password) {
     const user = await this.findByEmail(email);
-    if (user && user.password) {
-      const isMatch = await bcrypt.compare(password, user.password);
+    if (user && user.password_hash) {
+      const isMatch = await bcrypt.compare(password, user.password_hash);
       if (isMatch) {
-        const { password: _, ...userWithoutPassword } = user;
+        const { password_hash: _, ...userWithoutPassword } = user;
         return userWithoutPassword;
       }
     }
@@ -184,7 +184,8 @@ static async findById(user_id) {
       // If password is being updated, hash it
       if (updateData.password) {
         const salt = await bcrypt.genSalt(10);
-        updateData.password = await bcrypt.hash(updateData.password, salt);
+        updateData.password_hash = await bcrypt.hash(updateData.password, salt);
+        delete updateData.password;
       }
 
       // Build the update query dynamically
@@ -301,7 +302,7 @@ static async findById(user_id) {
       if (!sql) throw new Error('Database connection not initialized');
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(newPassword, salt);
-      await sql`UPDATE users SET password = ${hashedPassword} WHERE email = ${email}`;
+      await sql`UPDATE users SET password_hash = ${hashedPassword} WHERE email = ${email}`;
     } catch (error) {
       console.error('Error updating password:', error);
       throw error;
