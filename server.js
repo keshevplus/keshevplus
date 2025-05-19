@@ -34,11 +34,6 @@ const API_BASE_URL = process.env.VITE_API_BASE_URL;
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ===== Static File Serving =====
-// Serve static files FIRST, before any auth or API middleware
-// This allows quick serving of assets like images, CSS, and JS
-app.use(express.static(path.join(__dirname, "public")));
-
 // ===== General Middleware =====
 // CORS: Allow cross-origin requests (important for frontend-backend communication)
 app.use(cors({
@@ -51,12 +46,6 @@ app.use(cors({
   ],
   credentials: true
 }));
-
-
-app.options('/auth/login', (req, res) => {
-  res.sendStatus(200);
-});
-
 
 // Helmet: Set security-related HTTP headers
 app.use(helmet({
@@ -107,11 +96,11 @@ app.get("/api/health", (req, res) => {
 });
 
 // Serve static assets and the React app
-if (process.env.NODE_ENV === 'production') {
-  console.log("Running in production mode - serving static files from client/dist");
+if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
+  console.log("Running in production mode (local) - serving static files from client/dist");
 
   // Serve static assets from the React build directory
-  app.use(express.static(path.join(__dirname, "public"), {
+  app.use(express.static(path.join(__dirname, "../client/dist"), {
     setHeaders: (res, path) => {
       if (path.endsWith(".js")) {
         res.setHeader("Content-Type", "application/javascript");
@@ -122,43 +111,25 @@ if (process.env.NODE_ENV === 'production') {
   }));
 
   // Fallback: serve index.html for any route not handled above
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-});
-
-  // THIS IS CRITICAL: The catch-all route that serves the React app
-  app.get("*", (req, res) => {
-    // Explicitly resolve the absolute path to index.html
-    const indexPath = path.resolve(__dirname, "../client/dist/index.html");
-    
-    // Check if the file exists
-    if (fs.existsSync(indexPath)) {
-      // Set no-cache headers to ensure fresh content on refresh
-      res.set({
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      });
-      res.sendFile(indexPath);
-    } else {
-      // Log an error if the index.html file doesn't exist at the expected path
-      console.error(`Error: index.html not found at ${indexPath}`);
-      res.status(500).send('Server Error: index.html not found');
-    }
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html')); 
   });
-} else {
-  // In development mode, redirect all non-API routes to the development server
+
+} else if (process.env.NODE_ENV !== 'production') {
   app.get("*", (req, res) => {
-    // Only handle non-API routes
     if (!req.path.startsWith('/api')) {
-      console.log(`Redirecting ${req.path} to development server`);
-      res.redirect(`localhost:5000${req.path}`);
+      return res.status(404).send('Resource not found. In development, ensure your frontend dev server is running or a proxy is configured.');
     } else {
-      res.status(404).send('API endpoint not found');
+      next(); 
     }
   });
 }
- 
+
+// Final catch-all for API routes not found, AFTER all other route handlers
+app.use('/api/*', (req, res) => {
+  res.status(404).send('API endpoint not found');
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Unhandled error occurred:", {
