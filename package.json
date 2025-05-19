@@ -1,5 +1,5 @@
 {
-  "name": "keshev-web",
+  "name": "keshevplus",
   "version": "1.0.0",
   "description": "Keshev Plus - Fullstack Application",
   "main": "server.js",
@@ -9,11 +9,7 @@
     "bacpd": "sh ./scripts/bacpd.sh",
     "redeploy": "pnpm run --filter ./keshevplus bacpd && pnpm run --filter ./keshev-web bacpd",
     "start": "node server.js",
-    "dev": "concurrently \"pnpm run dev:server\" \"pnpm run dev:client\"",
-    "dev:server": "node server.js",
-    "dev:client": "cd ../keshev-web && pnpm run dev",
-    "dev:web": "cd ../keshev-web && pnpm run dev",
-    "dev:all": "concurrently \"pnpm run dev:server\" \"pnpm run dev:web\"",
+    "dev": "concurrently \"pnpm run dev:server\" \"pnpm run dev:client\""
   },
   "dependencies": {
     "@hookform/resolvers": "^3.0.0",
