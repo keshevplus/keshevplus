@@ -23,8 +23,8 @@ async function createAdminUser() {
       console.log('Admin user already exists, updating password...');
       const newPassword = '12345678';
       const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(newPassword, salt);
-      await sql`UPDATE users SET password = ${hashedPassword} WHERE email = ${email}`;
+      const password_hash = await bcrypt.hash(newPassword, salt);
+      await sql`UPDATE users SET password_hash = ${password_hash} WHERE email = ${email}`;
       console.log('Admin password updated.');
       return;
     }
@@ -32,7 +32,7 @@ async function createAdminUser() {
     console.log('Hashing password...');
     // Hash password
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const password_hash = await bcrypt.hash(password, salt);
 
     console.log('Creating admin user...');
     // Insert admin user

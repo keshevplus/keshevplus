@@ -26,6 +26,7 @@ yarn-error.log
 backups
 .env
 .env.*
+*.local
 .env.local
 .env.local.*
 .env.production
