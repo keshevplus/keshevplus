@@ -6,19 +6,21 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const router = express.Router();
+// Server-side logging
 
 router.post('/', async (req, res) => {
   const { name, email, phone, subject, message, source = 'Contact Form' } = req.body;
 
-  if (!name || !email || !message) {
+  if (!name || !phone || !email || !message) {
     return res.status(400).json({ success: false, message: 'Name, email, and message are required fields.' });
   }
 
-  try {
+  try {// Server-side logging
+
     // 1. Save to database (leads table)
     const dbResult = await pool.query(
       'INSERT INTO leads (name, email, phone, subject, message, source, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-      [name, email, phone || null, subject || 'Contact Form Submission', message, source, 'new']
+      [name, email || null, phone || null, subject || 'Contact Form Submission', message, source, 'new']
     );
     const newLeadId = dbResult.rows[0]?.id;
     console.log(`Lead saved with ID: ${newLeadId}`);
