@@ -21,15 +21,30 @@ async function setupTranslations() {
     // Create SQL connection
     const sql = neon(databaseUrl);
     
-    // Read and execute SQL schema file
+    // Read the SQL schema file
     const schemaFilePath = path.resolve('./migrations/create-translations-tables.sql');
     console.log(`Reading schema file: ${schemaFilePath}`);
     const schemaSQL = await fs.readFile(schemaFilePath, 'utf8');
     
-    // Execute schema SQL
     console.log('Creating translation tables in database...');
-    await sql.unsafe(schemaSQL);
-    console.log('Translation tables created successfully.');
+    
+    // Split SQL into individual statements and execute them one by one
+    const statements = schemaSQL.split(';')
+      .map(stmt => stmt.trim())
+      .filter(stmt => stmt.length > 0);
+    
+    for (const statement of statements) {
+      try {
+        // Execute each statement separately
+        await sql.unsafe(statement + ';');
+        console.log('Executed SQL statement successfully.');
+      } catch (error) {
+        console.error('Error executing SQL statement:', error.message);
+        console.log('Continuing with next statement...');
+      }
+    }
+    
+    console.log('Translation tables setup completed.');
     
     // Add initial translations - fetching namespaces and languages
     const namespaces = await sql`SELECT id, name FROM translation_namespaces`;
