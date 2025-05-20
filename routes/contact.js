@@ -77,6 +77,19 @@ router.post('/', async (req, res) => {
     // 3. Send email notification
     const emailTo = process.env.EMAIL_TO || 'pluskeshev@gmail.com'; 
     const emailSubject = `New Contact Form Submission: ${sanitizedData.subject || sanitizedData.name}`;
+    // Get a formatted timestamp for the current date/time
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('he-IL', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    });
+    const formattedTime = now.toLocaleTimeString('he-IL', { 
+      hour: '2-digit', 
+      minute: '2-digit'
+    });
+    const timestamp = `${formattedDate} ${formattedTime}`;
+    
     const emailHtml = `
       <h1>New Contact Form Submission</h1>
       <p><strong>Name:</strong> ${sanitizedData.name}</p>
@@ -89,6 +102,7 @@ router.post('/', async (req, res) => {
       <p>This contact has been saved to the database:</p>
       <p>- Message ID: ${messageId}</p>
       <p>- Lead ID: ${leadId}</p>
+      <p>- Date received: ${timestamp}</p>
     `;
     
     const emailText = `
@@ -101,6 +115,7 @@ router.post('/', async (req, res) => {
       ---
       Message ID: ${messageId}
       Lead ID: ${leadId}
+      Date received: ${timestamp}
     `;
 
     await sendEmail(emailTo, emailSubject, emailHtml, emailText);
