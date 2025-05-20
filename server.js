@@ -19,6 +19,7 @@ import neonLeadsRoutes from "./routes/neon-leads.js";
 import testRoute from "./routes/test.js";
 import authMiddleware from "./middleware/auth.js";
 import contactRoutes from './routes/contact.js';
+import translationsRoutes from './routes/translations.js';
 
 /**
  * ================================
@@ -123,6 +124,10 @@ app.use('/test', testRoute);
 app.use('/api/contact', contactRoutes);
 app.use('/contact', contactRoutes);
 console.log('Registered /contact route');
+
+app.use('/api/translations', translationsRoutes);
+app.use('/translations', translationsRoutes);
+console.log('Registered /translations route');
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
