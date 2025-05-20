@@ -68,7 +68,7 @@ static async findById(user_id) {
       }
       
       const result = await sql`
-        SELECT user_id, username, email, is_admin, created_at, last_login 
+        SELECT user_id, username, email, role, created_at, last_login 
         FROM users WHERE user_id = ${user_id}
       `;
       return result[0] || null;
@@ -147,7 +147,7 @@ static async findById(user_id) {
   static async createAdmin(userData) {
     return this.create({
       ...userData,
-      is_admin: true
+      role: 'admin'
     });
   }
 
@@ -245,7 +245,7 @@ static async findById(user_id) {
   static async getLoggedInAdmins() {
     try {
       if (!sql) throw new Error('Database connection not initialized');
-      const result = await sql`SELECT * FROM users WHERE is_admin = true AND logged_in = true`;
+      const result = await sql`SELECT * FROM users WHERE role = 'admin' AND logged_in = true`;
       return result;
     } catch (error) {
       console.error('Error getting logged in admins:', error);
