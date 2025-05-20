@@ -7,7 +7,7 @@ BEGIN
                 WHERE table_name = 'messages' AND column_name = 'user_id') THEN
     ALTER TABLE messages ADD COLUMN user_id INTEGER;
     ALTER TABLE messages ADD CONSTRAINT fk_messages_user 
-      FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL;
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL;
     RAISE NOTICE 'Added user_id column to messages table';
   ELSE
     RAISE NOTICE 'user_id column already exists in messages table';
@@ -21,7 +21,7 @@ BEGIN
                 WHERE table_name = 'leads' AND column_name = 'user_id') THEN
     ALTER TABLE leads ADD COLUMN user_id INTEGER;
     ALTER TABLE leads ADD CONSTRAINT fk_leads_user 
-      FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL;
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL;
     RAISE NOTICE 'Added user_id column to leads table';
   ELSE
     RAISE NOTICE 'user_id column already exists in leads table';

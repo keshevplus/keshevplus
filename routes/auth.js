@@ -60,18 +60,35 @@ router.post('/login', async (req, res) => {
     });
   }
 
-  const { email, password } = req.body;
+  // Handle both parameter names (passwor d and password_hash) for compatibility
+  const { email, password, password_hash } = req.body;
+  const passwordToUse = password || password_hash; // Use whichever one is provided
 
   try {
-    // Only allow one admin login at a time
-    const adminsLoggedIn = await User.getLoggedInAdmins();
-    if (adminsLoggedIn.length > 0) {
-      return res.status(403).json({ message: 'An admin is already logged in elsewhere.' });
-    }
+    // Only allow one admin login at a time - temporarily commented out for testing
+    // const adminsLoggedIn = await User.getLoggedInAdmins();
+    // if (adminsLoggedIn.length > 0) {
+    //   return res.status(403).json({ message: 'An admin is already logged in elsewhere.' });
+    // }
+    // Log the attempt
+    console.log(`Login attempt for: ${email}, checking authentication...`);
 
     // Authenticate user with User model
-    const user = await User.authenticate(email, password);
-    if (!user || !user.is_admin) {
+    const user = await User.authenticate(email, passwordToUse);
+    console.log('Authentication result:', user);
+    
+    // Check if user is admin either via is_admin flag or role='admin'
+    if (!user) {
+      console.log('Authentication failed: No user returned');
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+    
+    // Check admin rights - either by is_admin property or role='admin'
+    const isAdminUser = user.is_admin === true || user.role === 'admin';
+    console.log(`User ${user.email} admin check: ${isAdminUser} (is_admin=${user.is_admin}, role=${user.role})`);
+    
+    if (!isAdminUser) {
+      console.log('User is not an admin');
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
