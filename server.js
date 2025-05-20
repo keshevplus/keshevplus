@@ -40,9 +40,21 @@ app.use(cors({
   origin: [
     'https://www.keshevplus.co.il',
     'https://keshevplus.co.il',
-    'http://localhost:5173'
   ],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With', 
+    'Accept', 
+    'Accept-Version', 
+    'Content-Length', 
+    'Content-MD5', 
+    'Date', 
+    'X-Api-Version'
+  ],
+  exposedHeaders: ['Content-Length', 'X-Total-Count']
 }));
 
 // Helmet: Set security-related HTTP headers
@@ -62,12 +74,23 @@ app.use(express.urlencoded({ extended: false }));
 app.options('*', cors({
   origin: [
     'https://www.keshevplus.co.il',
-    'https://keshevplus.co.il',
-    'http://localhost:5173'
+    'https://keshevplus.co.il'
   ],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // Include PATCH if used
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'] // Common headers
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With', 
+    'Accept', 
+    'Accept-Version', 
+    'Content-Length', 
+    'Content-MD5', 
+    'Date', 
+    'X-Api-Version'
+  ],
+  exposedHeaders: ['Content-Length', 'X-Total-Count'],
+  maxAge: 86400 // Cache preflight results for 24 hours (in seconds)
 }));
 
 // ===== Utility Functions =====
