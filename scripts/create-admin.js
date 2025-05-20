@@ -39,14 +39,14 @@ async function createAdminUser() {
     const insertResult = await sql`
       INSERT INTO users (username, email, password, is_admin, role, created_at)
       VALUES (${username}, ${email}, ${hashedPassword}, ${is_admin}, ${role}, NOW())
-      RETURNING user_id, username, email, is_admin, role
+      RETURNING id, username, email, is_admin, role
     `;
 
     console.log('Admin user created successfully');
     console.log('Username:', username);
     console.log('Email:', email);
     console.log('Password:', password);
-    console.log('User ID:', insertResult[0].user_id);
+    console.log('User ID:', insertResult[0].id);
     
     process.exit(0);
   } catch (err) {

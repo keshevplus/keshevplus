@@ -4,6 +4,6 @@ SET role = 'admin'
 WHERE role = 'db_owner';
 
 -- Verify the changes
-SELECT user_id, username, email, role
+SELECT id, username, email, role
 FROM users
 WHERE role = 'admin';

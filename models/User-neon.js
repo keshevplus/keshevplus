@@ -68,8 +68,8 @@ static async findById(user_id) {
       }
       
       const result = await sql`
-        SELECT user_id, username, email, role, created_at, last_login 
-        FROM users WHERE user_id = ${user_id}
+        SELECT id, username, email, role, created_at, last_login 
+        FROM users WHERE id = ${user_id}
       `;
       return result[0] || null;
     } catch (error) {
@@ -96,6 +96,157 @@ static async findById(user_id) {
     } catch (error) {
       console.error('Error finding user by email:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Find a user by phone number
+   * @param {string} phone - User phone number
+   * @returns {Promise<Object|null>} User object or null if not found
+   */
+  static async findByPhone(phone) {
+    try {
+      if (!sql) {
+        throw new Error('Database connection not initialized');
+      }
+      
+      const result = await sql`
+        SELECT * FROM users WHERE phone = ${phone}
+      `;
+      return result[0] || null;
+    } catch (error) {
+      console.error('Error finding user by phone:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Find a user by email or phone, or create a new one from contact form data
+   * @param {Object} userData - User data from contact form
+   * @param {string} userData.name - User name
+   * @param {string} userData.email - User email
+   * @param {string} userData.phone - User phone number
+   * @returns {Promise<Object>} User object with additional 'matchType' property if existing user
+   */
+  static async findOrCreateFromContact(userData) {
+    try {
+      if (!sql) {
+        throw new Error('Database connection not initialized');
+      }
+      
+      // Handle empty strings as NULL
+      const email = userData.email && userData.email.trim() !== '' ? userData.email.trim() : null;
+      const phone = userData.phone && userData.phone.trim() !== '' ? userData.phone.trim() : null;
+      const name = userData.name && userData.name.trim() !== '' ? userData.name.trim() : 'Unknown';
+      
+      // First check if user exists by email
+      let user = null;
+      let matchType = null;
+      
+      if (email) {
+        user = await this.findByEmail(email);
+        if (user) matchType = 'email';
+      }
+      
+      // If not found by email, check by phone
+      if (!user && phone) {
+        user = await this.findByPhone(phone);
+        if (user) matchType = 'phone';
+      }
+      
+      // If user exists, return it with the match type
+      if (user) {
+        console.log(`User already exists with ID: ${user.user_id} (matched by ${matchType})`);
+        user.matchType = matchType; // Add match type to return object
+        return user;
+      }
+      
+      // Before creating, check that we're not about to create a duplicate
+      try {
+        // Double-check no user with this email exists
+        if (email) {
+          const emailCheck = await sql`SELECT COUNT(*) as count FROM users WHERE email = ${email}`;
+          if (emailCheck[0].count > 0) {
+            console.log(`Found existing user with email ${email} in final check`);
+            const existingUser = await this.findByEmail(email);
+            existingUser.matchType = 'email';
+            return existingUser;
+          }
+        }
+        
+        // Double-check no user with this phone exists
+        if (phone) {
+          const phoneCheck = await sql`SELECT COUNT(*) as count FROM users WHERE phone = ${phone}`;
+          if (phoneCheck[0].count > 0) {
+            console.log(`Found existing user with phone ${phone} in final check`);
+            const existingUser = await this.findByPhone(phone);
+            existingUser.matchType = 'phone';
+            return existingUser;
+          }
+        }
+      } catch (checkError) {
+        console.error('Error during duplicate check:', checkError);
+        // Continue with creation attempt even if check fails
+      }
+      
+      // Create new user without password, setting minimal fields
+      // Use a try-catch block specifically for the INSERT to handle unique constraint violations
+      try {
+        const result = await sql`
+          INSERT INTO users (
+            username, 
+            name, 
+            email, 
+            phone, 
+            role, 
+            created_at
+          ) VALUES (
+            ${email || phone || name},
+            ${name},
+            ${email},
+            ${phone},
+            'contact',
+            CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jerusalem'
+          )
+          RETURNING user_id, username, name, email, phone, role, created_at
+        `;
+        
+        console.log(`New user created from contact form with ID: ${result[0].user_id}`);
+        result[0].matchType = 'new'; // Add matchType to indicate this is a new user
+        return result[0];
+      } catch (insertError) {
+        console.error('Error creating user, likely duplicate:', insertError);
+        
+        // If insert fails due to unique constraint, try to find the existing user
+        if (insertError.message && (insertError.message.includes('unique constraint') || insertError.message.includes('duplicate key'))) {
+          // Try to find by email again
+          if (email) {
+            const userByEmail = await this.findByEmail(email);
+            if (userByEmail) {
+              console.log(`Found user by email after constraint error: ${userByEmail.user_id}`);
+              userByEmail.matchType = 'email-conflict';
+              return userByEmail;
+            }
+          }
+          
+          // Try to find by phone again
+          if (phone) {
+            const userByPhone = await this.findByPhone(phone);
+            if (userByPhone) {
+              console.log(`Found user by phone after constraint error: ${userByPhone.user_id}`);
+              userByPhone.matchType = 'phone-conflict';
+              return userByPhone;
+            }
+          }
+        }
+        
+        // If we still can't find an existing user, return null
+        return null;
+      }
+    } catch (error) {
+      console.error('Error finding or creating user from contact:', error);
+      // Just log the error but don't throw, so contact form still works even if this fails
+      return null;
     }
   }
 
