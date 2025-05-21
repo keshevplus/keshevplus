@@ -79,7 +79,11 @@ async function setupTranslations() {
         'logout': 'התנתקות',
         'yes': 'כן',
         'no': 'לא',
-        'back': 'חזרה'
+        'back': 'חזרה',
+        // Animated footer translations
+        'footer.animated.title': 'בריאות טובה יותר עם הבנה טובה יותר',
+        'footer.animated.tagline': 'פתרונות אבחון וטיפול ב-ADHD, מותאמים לצרכים שלך',
+        'footer.animated.cta': 'זמנו פגישה היום'
       },
       'en': {
         'welcome': 'Welcome to Keshev Plus',
@@ -95,7 +99,11 @@ async function setupTranslations() {
         'logout': 'Log out',
         'yes': 'Yes',
         'no': 'No',
-        'back': 'Back'
+        'back': 'Back',
+        // Animated footer translations
+        'footer.animated.title': 'Better Health with Better Understanding',
+        'footer.animated.tagline': 'ADHD diagnosis and treatment solutions, tailored to your needs.',
+        'footer.animated.cta': 'Schedule an appointment today'
       }
     };
     
