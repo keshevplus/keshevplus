@@ -472,7 +472,7 @@ router.delete("/forms/:id", async (req, res) => {
 
 // Messages Routes (Contact Form Submissions)
 
-// @route   GET api/admin/leads
+// @route   GET api/leads
 // @desc    Get all messages (contact form submissions) with pagination and filtering
 // @access  Private
 router.get("/leads", async (req, res) => {
@@ -511,7 +511,7 @@ router.get("/leads", async (req, res) => {
   }
 });
 
-// @route   GET api/admin/leads/:id
+// @route   GET api/leads/:id
 // @desc    Get message by ID
 // @access  Private
 router.get("/leads/:id", async (req, res) => {
@@ -531,7 +531,7 @@ router.get("/leads/:id", async (req, res) => {
   }
 });
 
-// @route   DELETE api/admin/leads/:id
+// @route   DELETE api/leads/:id
 // @desc    Delete message by ID
 // @access  Private
 router.delete("/leads/:id", async (req, res) => {

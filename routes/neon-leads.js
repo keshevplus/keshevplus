@@ -167,14 +167,53 @@ router.post(
 // @access  Should be protected in production
 router.get("/", async (req, res) => {
   try {
-    const leads = await sql`
-      SELECT * FROM leads ORDER BY date_received DESC
+    // Get pagination parameters from query string
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const filter = req.query.filter || "";
+    
+    console.log(`Fetching leads: page=${page}, limit=${limit}, filter=${filter}`);
+    
+    // Create filter condition if filter is provided
+    let filterCondition = "";
+    let filterParams = [];
+    
+    if (filter) {
+      filterCondition = `WHERE name ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1 OR subject ILIKE $1`;
+      filterParams = [`%${filter}%`];
+    }
+    
+    // Query to get total count
+    let countQuery = `SELECT COUNT(*) FROM leads ${filterCondition}`;
+    const countResult = await sql.unsafe(countQuery, filterParams);
+    const total = parseInt(countResult[0]?.count || 0);
+    
+    // Calculate pagination details
+    const offset = (page - 1) * limit;
+    const totalPages = Math.ceil(total / limit);
+    
+    // Query to get leads for current page
+    let leadsQuery = `
+      SELECT * FROM leads ${filterCondition}
+      ORDER BY date_received DESC
+      LIMIT ${limit} OFFSET ${offset}
     `;
     
+    const leads = await sql.unsafe(leadsQuery, filterParams);
+    
+    console.log(`Found ${leads.length} leads out of ${total} total`);
+    
+    // Format response to match frontend expectations
     return res.status(200).json({
-      status: "success",
-      count: leads.length,
-      data: leads
+      leads: leads,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
     });
   } catch (error) {
     console.error("Error retrieving leads:", error);

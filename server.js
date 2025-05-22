@@ -114,22 +114,23 @@ const getBaseUrl = (req) => {
 app.use('/api/auth', authRoutes);
 app.use('/auth', authRoutes);
 
-app.use('/api/admin', authMiddleware, adminRoutes);
 app.use('/admin', authMiddleware, adminRoutes);
+app.use('/api/admin', authMiddleware, adminRoutes);
 
 // Using Neon database for leads
-app.use('/api/admin/leads', neonLeadsRoutes);
+app.use('/api/leads', neonLeadsRoutes);
 app.use('/admin/leads', neonLeadsRoutes);
 
 // Legacy routes for messages table (keeping for backwards compatibility)
-// app.use('/api/admin/messages', leadsRoutes);
-// app.use('/admin/messages', leadsRoutes);
+app.use('/api/messages', leadsRoutes);
+app.use('/admin/messages', leadsRoutes);
 
 app.use('/api/test', testRoute);
 app.use('/test', testRoute);
 
 app.use('/api/contact', contactRoutes);
 app.use('/contact', contactRoutes);
+
 console.log('Registered /contact route');
 
 app.use('/api/translations', translationsRoutes);
