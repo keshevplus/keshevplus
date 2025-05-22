@@ -41,6 +41,7 @@ app.use(cors({
   origin: [
     'https://www.keshevplus.co.il',
     'https://keshevplus.co.il',
+    'http://localhost:5173', // Allow local development
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -75,7 +76,8 @@ app.use(express.urlencoded({ extended: false }));
 app.options('*', cors({
   origin: [
     'https://www.keshevplus.co.il',
-    'https://keshevplus.co.il'
+    'https://keshevplus.co.il',
+    'http://localhost:5173' // Allow local development
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
