@@ -117,8 +117,13 @@ app.use('/auth', authRoutes);
 app.use('/api/admin', authMiddleware, adminRoutes);
 app.use('/admin', authMiddleware, adminRoutes);
 
-app.use('/api/admin/leads', leadsRoutes);
-app.use('/admin/leads', leadsRoutes);
+// Using Neon database for leads
+app.use('/api/admin/leads', neonLeadsRoutes);
+app.use('/admin/leads', neonLeadsRoutes);
+
+// Legacy routes for messages table (keeping for backwards compatibility)
+// app.use('/api/admin/messages', leadsRoutes);
+// app.use('/admin/messages', leadsRoutes);
 
 app.use('/api/test', testRoute);
 app.use('/test', testRoute);
