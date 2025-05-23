@@ -7,10 +7,10 @@ const router = express.Router();
 // Apply authentication middleware to all routes
 router.use(auth);
 
-// @route   GET api/admin/content
+// @route   GET api/content
 // @desc    Get all content with pagination and filtering
 // @access  Private
-router.get("/content", async (req, res) => {
+router.get("/api/content", async (req, res) => {
   const { page = 1, limit = 10, filter = "" } = req.query; // Extract query parameters for pagination and filtering
   const offset = (page - 1) * limit; // Calculate offset for pagination
 
@@ -26,10 +26,10 @@ router.get("/content", async (req, res) => {
   }
 });
 
-// @route   GET api/admin/content/:id
+// @route   GET api/content/:id
 // @desc    Get content by ID
 // @access  Private
-router.get("/content/:id", async (req, res) => {
+router.get("/api/content/:id", async (req, res) => {
   try {
     const result = await query("SELECT * FROM content WHERE id = $1", [
       req.params.id, // Extract content ID from request parameters
@@ -46,10 +46,10 @@ router.get("/content/:id", async (req, res) => {
   }
 });
 
-// @route   POST api/admin/content
+// @route   POST api/content
 // @desc    Create new content
 // @access  Private
-router.post("/content", async (req, res) => {
+router.post("/api/content", async (req, res) => {
   const { title, content_type, content_data, status } = req.body; // Extract content details from request body
 
   if (!title || !content_type || !content_data) {
@@ -69,10 +69,10 @@ router.post("/content", async (req, res) => {
   }
 });
 
-// @route   PUT api/admin/content/:id
+// @route   PUT api/content/:id
 // @desc    Update content by ID
 // @access  Private
-router.put("/content/:id", async (req, res) => {
+router.put("/api/content/:id", async (req, res) => {
   const { title, content_type, content_data, status } = req.body; // Extract updated content details from request body
 
   if (!title || !content_type || !content_data) {
@@ -101,10 +101,10 @@ router.put("/content/:id", async (req, res) => {
   }
 });
 
-// @route   DELETE api/admin/content/:id
+// @route   DELETE api/content/:id
 // @desc    Delete content by ID
 // @access  Private
-router.delete("/content/:id", async (req, res) => {
+router.delete("/api/content/:id", async (req, res) => {
   try {
     const result = await query(
       "DELETE FROM content WHERE id = $1 RETURNING *",
@@ -514,7 +514,7 @@ router.get("/leads", async (req, res) => {
 // @route   GET api/leads/:id
 // @desc    Get message by ID
 // @access  Private
-router.get("/leads/:id", async (req, res) => {
+router.get("/api/leads/:id", async (req, res) => {
   try {
     const result = await query("SELECT * FROM messages WHERE id = $1", [
       req.params.id,
