@@ -54,7 +54,8 @@ app.use(cors({
     'Content-Length', 
     'Content-MD5', 
     'Date', 
-    'X-Api-Version'
+    'X-Api-Version',
+    'x-auth-token' // Added auth token header for admin API requests
   ],
   exposedHeaders: ['Content-Length', 'X-Total-Count']
 }));
@@ -90,7 +91,8 @@ app.options('*', cors({
     'Content-Length', 
     'Content-MD5', 
     'Date', 
-    'X-Api-Version'
+    'X-Api-Version',
+    'x-auth-token' // Added auth token header for admin API requests
   ],
   exposedHeaders: ['Content-Length', 'X-Total-Count'],
   maxAge: 86400 // Cache preflight results for 24 hours (in seconds)
