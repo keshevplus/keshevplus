@@ -15,7 +15,7 @@ import fs from "fs";
 import authRoutes from "./routes/auth.js";
 import adminRoutes from "./routes/admin.js";
 import leadsRoutes from "./routes/leads.js";
-import neonLeadsRoutes from "./routes/neon-leads.js";
+import messagesRoutes from "./routes/messages.js";
 import testRoute from "./routes/test.js";
 import authMiddleware from "./middleware/auth.js";
 import contactRoutes from './routes/contact.js';
@@ -117,13 +117,13 @@ app.use('/auth', authRoutes);
 app.use('/admin', authMiddleware, adminRoutes);
 app.use('/api/admin', authMiddleware, adminRoutes);
 
-// Using Neon database for leads
-app.use('/api/leads', neonLeadsRoutes);
-app.use('/admin/leads', neonLeadsRoutes);
+// Leads routes - Using NeonDB
+app.use('/api/leads', leadsRoutes);
+app.use('/admin/leads', leadsRoutes);
 
-// Legacy routes for messages table (keeping for backwards compatibility)
-app.use('/api/messages', leadsRoutes);
-app.use('/admin/messages', leadsRoutes);
+// Messages routes - Legacy system using original DB
+app.use('/api/messages', messagesRoutes);
+app.use('/admin/messages', messagesRoutes);
 
 app.use('/api/test', testRoute);
 app.use('/test', testRoute);

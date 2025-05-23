@@ -1,11 +1,22 @@
 import express from "express";
-import { query } from "../config/db.js";
+import { neon } from "@neondatabase/serverless";
 import { body, validationResult } from "express-validator";
+import { sendLeadNotification, sendLeadAcknowledgment } from "../utils/mailer.js";
 
 const router = express.Router();
 
+// Create SQL instance with Neon, with fallback options
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  console.error('No database URL found in environment variables. Please check your .env file.');
+}
+const sql = neon(databaseUrl + '?sslmode=require');
+
+// Log database connection status
+console.log('Connected to Neon database for leads API');
+
 // @route   POST /api/leads
-// @desc    Save contact form data to the messages table
+// @desc    Save lead data to Neon database (leads table)
 // @access  Public
 router.post(
   "/",
@@ -59,49 +70,78 @@ router.post(
         message: message.trim()
       };
 
-      // Database Operation
+      // Database Operation using Neon's tagged template literals
       let result;
       try {
-        result = await query(
-          "INSERT INTO messages (name, email, phone, subject, message, date_received) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) RETURNING id",
-          [sanitizedData.name, sanitizedData.email, sanitizedData.phone, sanitizedData.subject, sanitizedData.message]
-        );
+        result = await sql`
+          INSERT INTO leads (name, email, phone, subject, message, date_received) 
+          VALUES (
+            ${sanitizedData.name}, 
+            ${sanitizedData.email}, 
+            ${sanitizedData.phone}, 
+            ${sanitizedData.subject}, 
+            ${sanitizedData.message}, 
+            CURRENT_TIMESTAMP
+          ) 
+          RETURNING id, name, email, phone, subject, message, date_received
+        `;
+        
+        // Log for debugging
+        console.log(`Successfully saved lead with ID: ${result[0].id}`);
+
+        // Send email notifications
+        if (result && result[0]) {
+          // Send notification to admin
+          sendLeadNotification(result[0])
+            .then(sent => {
+              if (sent) {
+                console.log(`Admin notification email sent for lead ID: ${result[0].id}`);
+              }
+            })
+            .catch(err => {
+              console.error('Error sending admin notification:', err);
+            });
+          
+          // Send acknowledgment to the lead if they provided an email
+          if (result[0].email) {
+            sendLeadAcknowledgment(result[0])
+              .then(sent => {
+                if (sent) {
+                  console.log(`Acknowledgment email sent to ${result[0].email}`);
+                }
+              })
+              .catch(err => {
+                console.error('Error sending acknowledgment email:', err);
+              });
+          }
+        }
       } catch (dbError) {
         console.error("Database error during lead insertion:", {
-          error: dbError.stack,
+          error: dbError.stack || dbError.message,
           requestBody: sanitizedData,
           timestamp: new Date().toISOString(),
-          code: dbError.code
         });
-
-        // Handle specific database errors
-        if (dbError.code === '23505') { // Unique violation
-          return res.status(409).json({
-            status: "error",
-            message: "This lead already exists in our system"
-          });
-        }
 
         throw dbError; // Re-throw for general error handling
       }
 
       // Success Response
-      console.log("Lead saved successfully:", {
-        leadId: result.rows[0].id
+      console.log("Lead saved successfully to Neon database:", {
+        leadId: result?.[0]?.id
       });
 
       return res.status(201).json({
         status: "success",
         message: "Lead saved successfully",
         data: {
-          leadId: result.rows[0].id
+          leadId: result?.[0]?.id
         }
       });
 
     } catch (error) {
       // Global Error Handler
       console.error("Unexpected error in lead submission:", {
-        error: error.stack,
+        error: error.stack || error.message,
         requestBody: req.body,
         timestamp: new Date().toISOString()
       });
@@ -114,5 +154,110 @@ router.post(
     }
   }
 );
+
+// @route   GET /api/leads
+// @desc    Get all leads from Neon database (for administrative use)
+// @access  Should be protected in production
+router.get("/", async (req, res) => {
+  try {
+    // Get pagination parameters from query string
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const filter = req.query.filter || "";
+    
+    console.log(`Fetching leads: page=${page}, limit=${limit}, filter=${filter}`);
+    
+    // Create filter condition if filter is provided
+    let filterCondition = "";
+    let filterParams = [];
+    
+    if (filter) {
+      filterCondition = `WHERE name ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1 OR subject ILIKE $1`;
+      filterParams = [`%${filter}%`];
+    }
+    
+    // Query to get total count
+    let countQuery = `SELECT COUNT(*) FROM leads ${filterCondition}`;
+    const countResult = await sql.unsafe(countQuery, filterParams);
+    const total = parseInt(countResult[0]?.count || 0);
+    
+    // Calculate pagination details
+    const offset = (page - 1) * limit;
+    const totalPages = Math.ceil(total / limit);
+    
+    // Query to get leads for current page
+    let leadsQuery = `
+      SELECT * FROM leads ${filterCondition}
+      ORDER BY date_received DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+    
+    const leads = await sql.unsafe(leadsQuery, filterParams);
+    
+    console.log(`Found ${leads.length} leads out of ${total} total`);
+    
+    // Format response to match frontend expectations
+    return res.status(200).json({
+      leads: leads,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    });
+  } catch (error) {
+    console.error("Error retrieving leads:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve leads"
+    });
+  }
+});
+
+// @route   DELETE /api/leads/:id
+// @desc    Delete a lead by ID
+// @access  Should be protected in production
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Lead ID is required"
+      });
+    }
+    
+    console.log(`Attempting to delete lead with ID: ${id}`);
+    
+    // Delete the lead
+    const result = await sql`
+      DELETE FROM leads WHERE id = ${id} RETURNING id
+    `;
+    
+    if (result.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: `Lead with ID ${id} not found`
+      });
+    }
+    
+    console.log(`Successfully deleted lead with ID: ${id}`);
+    
+    return res.status(200).json({
+      status: "success",
+      message: "Lead deleted successfully"
+    });
+  } catch (error) {
+    console.error("Error deleting lead:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to delete lead"
+    });
+  }
+});
 
 export default router;
