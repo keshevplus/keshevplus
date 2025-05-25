@@ -436,4 +436,29 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+// @route   GET /api/leads/unread-count
+// @desc    Get count of unread leads
+// @access  Should be protected in production
+router.get("/unread-count", async (req, res) => {
+  try {
+    const result = await sql`
+      SELECT COUNT(*) AS count FROM leads WHERE is_read = false
+    `;
+    
+    const count = result?.[0]?.count || 0;
+    console.log(`Found ${count} unread leads`);
+    
+    return res.status(200).json({
+      status: "success",
+      count: Number(count)
+    });
+  } catch (error) {
+    console.error("Error getting unread lead count:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to get unread lead count"
+    });
+  }
+});
+
 export default router;
