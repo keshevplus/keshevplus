@@ -15,7 +15,7 @@ import fs from "fs";
 import authRoutes from "./routes/auth.js";
 import adminRoutes from "./routes/admin.js";
 import leadsRoutes from "./routes/leads.js";
-import neonLeadsRoutes from "./routes/neon-leads.js";
+import messagesRoutes from "./routes/messages.js";
 import testRoute from "./routes/test.js";
 import authMiddleware from "./middleware/auth.js";
 import contactRoutes from './routes/contact.js';
@@ -54,7 +54,8 @@ app.use(cors({
     'Content-Length', 
     'Content-MD5', 
     'Date', 
-    'X-Api-Version'
+    'X-Api-Version',
+    'x-auth-token' // Added auth token header for admin API requests
   ],
   exposedHeaders: ['Content-Length', 'X-Total-Count']
 }));
@@ -90,7 +91,8 @@ app.options('*', cors({
     'Content-Length', 
     'Content-MD5', 
     'Date', 
-    'X-Api-Version'
+    'X-Api-Version',
+    'x-auth-token' // Added auth token header for admin API requests
   ],
   exposedHeaders: ['Content-Length', 'X-Total-Count'],
   maxAge: 86400 // Cache preflight results for 24 hours (in seconds)
@@ -114,22 +116,23 @@ const getBaseUrl = (req) => {
 app.use('/api/auth', authRoutes);
 app.use('/auth', authRoutes);
 
-app.use('/api/admin', authMiddleware, adminRoutes);
 app.use('/admin', authMiddleware, adminRoutes);
+app.use('/api/admin', authMiddleware, adminRoutes);
 
-// Using Neon database for leads
-app.use('/api/admin/leads', neonLeadsRoutes);
-app.use('/admin/leads', neonLeadsRoutes);
+// Leads routes - Using NeonDB
+app.use('/api/leads', leadsRoutes);
+app.use('/admin/leads', leadsRoutes);
 
-// Legacy routes for messages table (keeping for backwards compatibility)
-// app.use('/api/admin/messages', leadsRoutes);
-// app.use('/admin/messages', leadsRoutes);
+// Messages routes - Legacy system using original DB
+app.use('/api/messages', messagesRoutes);
+app.use('/admin/messages', messagesRoutes);
 
 app.use('/api/test', testRoute);
 app.use('/test', testRoute);
 
 app.use('/api/contact', contactRoutes);
 app.use('/contact', contactRoutes);
+
 console.log('Registered /contact route');
 
 app.use('/api/translations', translationsRoutes);

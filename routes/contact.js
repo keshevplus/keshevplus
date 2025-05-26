@@ -2,7 +2,7 @@ import express from 'express';
 import pool from '../db/index.js'; 
 import { neon } from '@neondatabase/serverless';
 import { sendEmail } from '../services/emailService.js'; 
-import User from '../models/User-neon.js';
+import User from '../models/User.js';
 import dotenv from 'dotenv';
 
 dotenv.config();

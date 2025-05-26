@@ -7,10 +7,10 @@ const router = express.Router();
 // Apply authentication middleware to all routes
 router.use(auth);
 
-// @route   GET api/admin/content
+// @route   GET api/content
 // @desc    Get all content with pagination and filtering
 // @access  Private
-router.get("/content", async (req, res) => {
+router.get("/api/content", async (req, res) => {
   const { page = 1, limit = 10, filter = "" } = req.query; // Extract query parameters for pagination and filtering
   const offset = (page - 1) * limit; // Calculate offset for pagination
 
@@ -26,10 +26,10 @@ router.get("/content", async (req, res) => {
   }
 });
 
-// @route   GET api/admin/content/:id
+// @route   GET api/content/:id
 // @desc    Get content by ID
 // @access  Private
-router.get("/content/:id", async (req, res) => {
+router.get("/api/content/:id", async (req, res) => {
   try {
     const result = await query("SELECT * FROM content WHERE id = $1", [
       req.params.id, // Extract content ID from request parameters
@@ -46,10 +46,10 @@ router.get("/content/:id", async (req, res) => {
   }
 });
 
-// @route   POST api/admin/content
+// @route   POST api/content
 // @desc    Create new content
 // @access  Private
-router.post("/content", async (req, res) => {
+router.post("/api/content", async (req, res) => {
   const { title, content_type, content_data, status } = req.body; // Extract content details from request body
 
   if (!title || !content_type || !content_data) {
@@ -69,10 +69,10 @@ router.post("/content", async (req, res) => {
   }
 });
 
-// @route   PUT api/admin/content/:id
+// @route   PUT api/content/:id
 // @desc    Update content by ID
 // @access  Private
-router.put("/content/:id", async (req, res) => {
+router.put("/api/content/:id", async (req, res) => {
   const { title, content_type, content_data, status } = req.body; // Extract updated content details from request body
 
   if (!title || !content_type || !content_data) {
@@ -101,10 +101,10 @@ router.put("/content/:id", async (req, res) => {
   }
 });
 
-// @route   DELETE api/admin/content/:id
+// @route   DELETE api/content/:id
 // @desc    Delete content by ID
 // @access  Private
-router.delete("/content/:id", async (req, res) => {
+router.delete("/api/content/:id", async (req, res) => {
   try {
     const result = await query(
       "DELETE FROM content WHERE id = $1 RETURNING *",
@@ -122,10 +122,10 @@ router.delete("/content/:id", async (req, res) => {
   }
 });
 
-// @route   GET api/admin/pages
+// @route   GET api/pages
 // @desc    Get all pages
 // @access  Private
-router.get("/pages", async (req, res) => {
+router.get("/api/pages", async (req, res) => {
   const { page = 1, limit = 10, filter = "" } = req.query;
   const offset = (page - 1) * limit;
 
@@ -141,10 +141,10 @@ router.get("/pages", async (req, res) => {
   }
 });
 
-// @route   GET api/admin/pages/:slug
+// @route   GET api/pages/:slug
 // @desc    Get page by slug
 // @access  Private
-router.get("/pages/:slug", async (req, res) => {
+router.get("/api/pages/:slug", async (req, res) => {
   try {
     // Get page data
     const pageResult = await query("SELECT * FROM pages WHERE slug = $1", [
@@ -174,10 +174,10 @@ router.get("/pages/:slug", async (req, res) => {
   }
 });
 
-// @route   POST api/admin/pages
+// @route   POST api/pages
 // @desc    Create new page
 // @access  Private
-router.post("/pages", async (req, res) => {
+router.post("/api/pages", async (req, res) => {
   const { slug, title, status = "published" } = req.body;
 
   try {
@@ -201,10 +201,10 @@ router.post("/pages", async (req, res) => {
   }
 });
 
-// @route   PUT api/admin/pages/:id
+// @route   PUT api/pages/:id
 // @desc    Update page
 // @access  Private
-router.put("/pages/:id", async (req, res) => {
+router.put("/api/pages/:id", async (req, res) => {
   const { title, status } = req.body;
 
   try {
@@ -226,7 +226,7 @@ router.put("/pages/:id", async (req, res) => {
 
 // Page Sections Routes
 
-// @route   POST api/admin/pages/:pageId/sections
+// @route   POST api/pages/:pageId/sections
 // @desc    Add section to page
 // @access  Private
 router.post("/pages/:pageId/sections", async (req, res) => {
@@ -261,10 +261,10 @@ router.post("/pages/:pageId/sections", async (req, res) => {
   }
 });
 
-// @route   PUT api/admin/sections/:id
+// @route   PUT api/pages/:pageId/sections/:id
 // @desc    Update page section
 // @access  Private
-router.put("/sections/:id", async (req, res) => {
+router.put("/pages/:pageId/sections/:id", async (req, res) => {
   const { title, content, content_json, display_order } = req.body;
 
   try {
@@ -284,10 +284,10 @@ router.put("/sections/:id", async (req, res) => {
   }
 });
 
-// @route   DELETE api/admin/sections/:id
+// @route   DELETE api/pages/:pageId/sections/:id
 // @desc    Delete page section
 // @access  Private
-router.delete("/sections/:id", async (req, res) => {
+router.delete("/pages/:pageId/sections/:id", async (req, res) => {
   try {
     const result = await query(
       "DELETE FROM page_sections WHERE id = $1 RETURNING *",
@@ -307,10 +307,10 @@ router.delete("/sections/:id", async (req, res) => {
 
 // Services Routes
 
-// @route   GET api/admin/services
+// @route   GET api/services
 // @desc    Get all services
 // @access  Private
-router.get("/services", async (req, res) => {
+router.get("/api/services", async (req, res) => {
   try {
     const result = await query("SELECT * FROM services ORDER BY display_order");
     res.json(result.rows);
@@ -320,10 +320,10 @@ router.get("/services", async (req, res) => {
   }
 });
 
-// @route   POST api/admin/services
+// @route   POST api/services
 // @desc    Create new service
 // @access  Private
-router.post("/services", async (req, res) => {
+router.post("/api/services", async (req, res) => {
   const { title, description, icon, image_url, display_order } = req.body;
 
   try {
@@ -339,10 +339,10 @@ router.post("/services", async (req, res) => {
   }
 });
 
-// @route   PUT api/admin/services/:id
+// @route   PUT api/services/:id
 // @desc    Update service
 // @access  Private
-router.put("/services/:id", async (req, res) => {
+router.put("/api/services/:id", async (req, res) => {
   const { title, description, icon, image_url, display_order } = req.body;
 
   try {
@@ -362,10 +362,10 @@ router.put("/services/:id", async (req, res) => {
   }
 });
 
-// @route   DELETE api/admin/services/:id
+// @route   DELETE api/services/:id
 // @desc    Delete service
 // @access  Private
-router.delete("/services/:id", async (req, res) => {
+router.delete("/api/services/:id", async (req, res) => {
   try {
     const result = await query(
       "DELETE FROM services WHERE id = $1 RETURNING *",
@@ -385,10 +385,10 @@ router.delete("/services/:id", async (req, res) => {
 
 // Forms Routes
 
-// @route   GET api/admin/forms
+// @route   GET api/forms
 // @desc    Get all forms
 // @access  Private
-router.get("/forms", async (req, res) => {
+router.get("/api/forms", async (req, res) => {
   try {
     const result = await query("SELECT * FROM forms ORDER BY display_order");
     res.json(result.rows);
@@ -398,10 +398,10 @@ router.get("/forms", async (req, res) => {
   }
 });
 
-// @route   POST api/admin/forms
+// @route   POST api/forms
 // @desc    Create new form
 // @access  Private
-router.post("/forms", async (req, res) => {
+router.post("/api/forms", async (req, res) => {
   const { title, subtitle, description, file_url, image_url, display_order } =
     req.body;
 
@@ -418,10 +418,10 @@ router.post("/forms", async (req, res) => {
   }
 });
 
-// @route   PUT api/admin/forms/:id
+// @route   PUT api/forms/:id
 // @desc    Update form
 // @access  Private
-router.put("/forms/:id", async (req, res) => {
+router.put("/api/forms/:id", async (req, res) => {
   const { title, subtitle, description, file_url, image_url, display_order } =
     req.body;
 
@@ -450,10 +450,10 @@ router.put("/forms/:id", async (req, res) => {
   }
 });
 
-// @route   DELETE api/admin/forms/:id
+// @route   DELETE api/forms/:id
 // @desc    Delete form
 // @access  Private
-router.delete("/forms/:id", async (req, res) => {
+router.delete("/api/forms/:id", async (req, res) => {
   try {
     const result = await query("DELETE FROM forms WHERE id = $1 RETURNING *", [
       req.params.id,
@@ -472,10 +472,10 @@ router.delete("/forms/:id", async (req, res) => {
 
 // Messages Routes (Contact Form Submissions)
 
-// @route   GET api/admin/leads
+// @route   GET api/leads
 // @desc    Get all messages (contact form submissions) with pagination and filtering
 // @access  Private
-router.get("/leads", async (req, res) => {
+router.get("/api/leads", async (req, res) => {
   const { page = 1, limit = 10, filter = "" } = req.query;
   const offset = (page - 1) * limit;
 
@@ -511,10 +511,10 @@ router.get("/leads", async (req, res) => {
   }
 });
 
-// @route   GET api/admin/leads/:id
+// @route   GET api/leads/:id
 // @desc    Get message by ID
 // @access  Private
-router.get("/leads/:id", async (req, res) => {
+router.get("/api/leads/:id", async (req, res) => {
   try {
     const result = await query("SELECT * FROM messages WHERE id = $1", [
       req.params.id,
@@ -531,7 +531,7 @@ router.get("/leads/:id", async (req, res) => {
   }
 });
 
-// @route   DELETE api/admin/leads/:id
+// @route   DELETE api/leads/:id
 // @desc    Delete message by ID
 // @access  Private
 router.delete("/leads/:id", async (req, res) => {

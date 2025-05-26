@@ -217,6 +217,182 @@ router.get("/", async (req, res) => {
   }
 });
 
+// @route   GET /api/leads/:id
+// @desc    Get a single lead by ID
+// @access  Should be protected in production
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Lead ID is required"
+      });
+    }
+    
+    console.log(`Fetching lead with ID: ${id}`);
+    
+    // Get the lead
+    const result = await sql`
+      SELECT * FROM leads WHERE id = ${id}
+    `;
+    
+    if (result.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: `Lead with ID ${id} not found`
+      });
+    }
+    
+    return res.status(200).json({
+      status: "success",
+      data: result[0]
+    });
+  } catch (error) {
+    console.error(`Error retrieving lead ${req.params.id}:`, error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to retrieve lead"
+    });
+  }
+});
+
+// @route   PUT /api/leads/:id
+// @desc    Update a lead by ID (including marking as read)
+// @access  Should be protected in production
+router.put("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_read, name, email, phone, subject, message } = req.body;
+    
+    if (!id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Lead ID is required"
+      });
+    }
+    
+    console.log(`Updating lead with ID: ${id}`);
+    
+    // Build dynamic update query based on provided fields
+    let updateFields = [];
+    let updateValues = [];
+    
+    if (is_read !== undefined) {
+      updateFields.push('is_read');
+      updateValues.push(is_read);
+    }
+    
+    if (name) {
+      updateFields.push('name');
+      updateValues.push(name.trim());
+    }
+    
+    if (email) {
+      updateFields.push('email');
+      updateValues.push(email.trim().toLowerCase());
+    }
+    
+    if (phone) {
+      updateFields.push('phone');
+      updateValues.push(phone.trim());
+    }
+    
+    if (subject) {
+      updateFields.push('subject');
+      updateValues.push(subject.trim());
+    }
+    
+    if (message) {
+      updateFields.push('message');
+      updateValues.push(message.trim());
+    }
+    
+    if (updateFields.length === 0) {
+      return res.status(400).json({
+        status: "error",
+        message: "No update fields provided"
+      });
+    }
+    
+    // Create SQL SET clause for update
+    const setClause = updateFields.map((field, index) => `${field} = $${index + 1}`).join(', ');
+    const query = `UPDATE leads SET ${setClause} WHERE id = $${updateFields.length + 1} RETURNING *`;
+    
+    // Add ID to values array
+    updateValues.push(id);
+    
+    // Execute update
+    const result = await sql.unsafe(query, updateValues);
+    
+    if (result.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: `Lead with ID ${id} not found`
+      });
+    }
+    
+    console.log(`Successfully updated lead with ID: ${id}`);
+    
+    return res.status(200).json({
+      status: "success",
+      message: "Lead updated successfully",
+      data: result[0]
+    });
+  } catch (error) {
+    console.error(`Error updating lead ${req.params.id}:`, error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to update lead"
+    });
+  }
+});
+
+// @route   PUT /api/leads/:id/read
+// @desc    Mark a lead as read
+// @access  Should be protected in production
+router.put("/:id/read", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!id) {
+      return res.status(400).json({
+        status: "error",
+        message: "Lead ID is required"
+      });
+    }
+    
+    console.log(`Marking lead ${id} as read`);
+    
+    // Update the is_read field
+    const result = await sql`
+      UPDATE leads SET is_read = true WHERE id = ${id} RETURNING *
+    `;
+    
+    if (result.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: `Lead with ID ${id} not found`
+      });
+    }
+    
+    console.log(`Successfully marked lead ${id} as read`);
+    
+    return res.status(200).json({
+      status: "success",
+      message: "Lead marked as read",
+      data: result[0]
+    });
+  } catch (error) {
+    console.error(`Error marking lead ${req.params.id} as read:`, error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to mark lead as read"
+    });
+  }
+});
+
 // @route   DELETE /api/leads/:id
 // @desc    Delete a lead by ID
 // @access  Should be protected in production
@@ -256,6 +432,31 @@ router.delete("/:id", async (req, res) => {
     return res.status(500).json({
       status: "error",
       message: "Failed to delete lead"
+    });
+  }
+});
+
+// @route   GET /api/leads/unread-count
+// @desc    Get count of unread leads
+// @access  Should be protected in production
+router.get("/unread-count", async (req, res) => {
+  try {
+    const result = await sql`
+      SELECT COUNT(*) AS count FROM leads WHERE is_read = false
+    `;
+    
+    const count = result?.[0]?.count || 0;
+    console.log(`Found ${count} unread leads`);
+    
+    return res.status(200).json({
+      status: "success",
+      count: Number(count)
+    });
+  } catch (error) {
+    console.error("Error getting unread lead count:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to get unread lead count"
     });
   }
 });
