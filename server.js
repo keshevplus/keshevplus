@@ -20,6 +20,8 @@ import testRoute from "./routes/test.js";
 import authMiddleware from "./middleware/auth.js";
 import contactRoutes from './routes/contact.js';
 import translationsRoutes from './routes/translations.js';
+import apiRoutes from './routes/api.js';
+import contentRoutes from './routes/content.js';
 
 // ===== Server Setup =====
 const app = express();
@@ -91,6 +93,8 @@ app.use('/messages', messagesRoutes);
 app.use('/test', testRoute);
 app.use('/contact', contactRoutes);
 app.use('/translations', translationsRoutes);
+app.use('/content', contentRoutes);
+app.use('/api', apiRoutes);
 
 console.log('Registered all base routes');
 

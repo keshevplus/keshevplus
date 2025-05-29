@@ -1,11 +1,18 @@
 /**
  * Script to import client-side data from TypeScript files to PostgreSQL database
  */
-require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
-const { Pool } = require('pg');
-const esbuild = require('esbuild');
+import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { Pool } from 'pg';
+import * as esbuild from 'esbuild';
+
+dotenv.config();
+
+// Get current file path (ES Module replacement for __dirname)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configure the database connection
 const pool = new Pool({
@@ -25,7 +32,7 @@ async function buildTsFile(filePath) {
     entryPoints: [filePath],
     bundle: true,
     write: false,
-    format: 'cjs',
+    format: 'esm',
     platform: 'node',
     target: 'node14',
   });
@@ -43,14 +50,13 @@ async function extractDataFromTs(filePath) {
   const jsCode = await buildTsFile(filePath);
   
   // Create a temporary file
-  const tempFile = path.join(__dirname, '__temp_data.js');
+  const tempFile = path.join(__dirname, '__temp_data.mjs');
   fs.writeFileSync(tempFile, jsCode);
   
   try {
-    // Import the data
-    delete require.cache[require.resolve(tempFile)];
-    const data = require(tempFile);
-    return data.default || data;
+    // Import the data using dynamic import
+    const dataModule = await import(`file://${tempFile}`);
+    return dataModule.default || dataModule;
   } finally {
     // Clean up
     fs.unlinkSync(tempFile);
@@ -216,7 +222,7 @@ async function importAllData() {
     process.exit(1);
   } finally {
     client.release();
-    pool.end();
+    await pool.end();
   }
 }
 
