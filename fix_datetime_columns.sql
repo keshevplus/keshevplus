@@ -39,14 +39,14 @@ END $$;
 -- Leads table updates
 DO $$ 
 BEGIN
-    -- Check if date_received column exists and convert it to timestamp with time zone
+    -- Check if created_at column exists and convert it to timestamp with time zone
     IF EXISTS (SELECT 1 FROM information_schema.columns 
-              WHERE table_name = 'leads' AND column_name = 'date_received') THEN
+              WHERE table_name = 'leads' AND column_name = 'created_at') THEN
         ALTER TABLE leads 
-        ALTER COLUMN date_received TYPE timestamp with time zone 
-        USING date_received AT TIME ZONE 'Asia/Jerusalem';
+        ALTER COLUMN created_at TYPE timestamp with time zone 
+        USING created_at AT TIME ZONE 'Asia/Jerusalem';
         
-        RAISE NOTICE 'leads.date_received updated to timestamp with time zone';
+        RAISE NOTICE 'leads.created_at updated to timestamp with time zone';
     END IF;
     
     -- Check if read_at column exists and convert it to timestamp with time zone
@@ -63,5 +63,5 @@ END $$;
 SELECT table_name, column_name, data_type, is_nullable
 FROM information_schema.columns
 WHERE table_name IN ('messages', 'leads')
-  AND column_name IN ('created_at', 'date_received', 'read_at', 'sent_at')
+  AND column_name IN ('created_at', 'created_at', 'read_at', 'sent_at')
 ORDER BY table_name, column_name;

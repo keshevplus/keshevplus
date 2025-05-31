@@ -397,7 +397,7 @@
   {
     "statementIndex": 79,
     "error": "This function can now be called only as a tagged-template function: sql`SELECT ${value}`, not sql(\"SELECT $1\", [value], options). For a conventional function call with value placeholders ($1, $2, etc.), use sql.query(\"SELECT $1\", [value], options).",
-    "statementPreview": "Owner: postgres\n--\n\nCOPY public.leads (id, name, email, phone, subject, message, date_received) FROM..."
+    "statementPreview": "Owner: postgres\n--\n\nCOPY public.leads (id, name, email, phone, subject, message, created_at) FROM..."
   },
   {
     "statementIndex": 80,

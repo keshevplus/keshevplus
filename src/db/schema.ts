@@ -69,5 +69,5 @@ export const leads = pgTable('leads', {
     phone: text('phone').notNull(),
     subject: text('subject'),
     message: text('message').notNull(),
-    dateReceived: timestamp('date_received').defaultNow(),
+    createdAt: timestamp('created_at').defaultNow(),
 });

@@ -42,7 +42,7 @@ async function setupSyncTrigger() {
       RETURNS TRIGGER AS $$
       BEGIN
         -- Insert the new message into leads table
-        INSERT INTO leads (name, email, phone, subject, message, date_received)
+        INSERT INTO leads (name, email, phone, subject, message, created_at)
         VALUES (
           NEW.name,
           NEW.email,
@@ -103,7 +103,7 @@ async function setupSyncTrigger() {
     const leadCheck = await sql`
       SELECT id FROM leads 
       WHERE name = 'Trigger Test' AND email = 'test@example.com'
-      ORDER BY date_received DESC LIMIT 1;
+      ORDER BY created_at DESC LIMIT 1;
     `;
     
     if (leadCheck.length > 0) {

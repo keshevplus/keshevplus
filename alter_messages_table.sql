@@ -36,12 +36,12 @@ BEGIN
       ALTER TABLE leads ADD COLUMN subject varchar(255);
    END IF;
    
-   -- Check if created_at exists, and if so, rename it to date_received
+   -- Check if created_at exists, and if so, rename it to created_at
    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'leads' AND column_name = 'created_at') THEN
-      ALTER TABLE leads RENAME COLUMN created_at TO date_received;
-   -- If it doesn't exist, add date_received directly
-   ELSIF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'leads' AND column_name = 'date_received') THEN
-      ALTER TABLE leads ADD COLUMN date_received timestamp with time zone DEFAULT CURRENT_TIMESTAMP;
+      ALTER TABLE leads RENAME COLUMN created_at TO created_at;
+   -- If it doesn't exist, add created_at directly
+   ELSIF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'leads' AND column_name = 'created_at') THEN
+      ALTER TABLE leads ADD COLUMN created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP;
    END IF;
    
    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'leads' AND column_name = 'read_at') THEN

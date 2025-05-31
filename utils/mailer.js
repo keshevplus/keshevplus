@@ -52,7 +52,7 @@ async function sendLeadNotification(lead) {
 
   try {
     // Format the lead data for the email
-    const formattedDate = new Date(lead.date_received || new Date()).toLocaleString('he-IL', {
+    const formattedDate = new Date(lead.created_at || new Date()).toLocaleString('he-IL', {
       timeZone: 'Asia/Jerusalem'
     });
 

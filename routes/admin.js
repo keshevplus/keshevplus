@@ -488,9 +488,9 @@ router.get("/api/leads", async (req, res) => {
 
   // Get messages with pagination and filtering
   const messagesResult = await query(
-    `SELECT id, name, email, phone, message, date_received FROM messages 
+    `SELECT id, name, email, phone, message, created_at FROM messages 
      WHERE name ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1 
-     ORDER BY date_received DESC LIMIT $2 OFFSET $3`,
+     ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
     [`%${filter}%`, limit, offset]
   );
 

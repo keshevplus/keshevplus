@@ -28,7 +28,7 @@ async function initSchema() {
         phone VARCHAR(20) NOT NULL,
         subject VARCHAR(255),
         message TEXT NOT NULL,
-        date_received TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         status VARCHAR(50) DEFAULT 'new',
         notes TEXT,
         assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL
@@ -38,7 +38,7 @@ async function initSchema() {
     console.log('Leads table created or already exists');
     
     // Create index on commonly searched fields
-    await query('CREATE INDEX IF NOT EXISTS idx_leads_date_received ON leads(date_received)');
+    await query('CREATE INDEX IF NOT EXISTS idx_leads_created_at ON leads(created_at)');
     await query('CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status)');
     await query('CREATE INDEX IF NOT EXISTS idx_leads_phone ON leads(phone)');
     

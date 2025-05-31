@@ -63,7 +63,7 @@ router.post(
       let result;
       try {
         result = await query(
-          "INSERT INTO messages (name, email, phone, subject, message, date_received) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) RETURNING id",
+          "INSERT INTO messages (name, email, phone, subject, message, created_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) RETURNING id",
           [sanitizedData.name, sanitizedData.email, sanitizedData.phone, sanitizedData.subject, sanitizedData.message]
         );
       } catch (dbError) {
@@ -150,7 +150,7 @@ router.get("/", async (req, res) => {
       messagesQuery += " WHERE name ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1 OR subject ILIKE $1";
     }
     
-    messagesQuery += " ORDER BY date_received DESC LIMIT $" + (filter ? "2" : "1") + " OFFSET $" + (filter ? "3" : "2");
+    messagesQuery += " ORDER BY created_at DESC LIMIT $" + (filter ? "2" : "1") + " OFFSET $" + (filter ? "3" : "2");
     
     if (filter) {
       queryParams.push(limit, offset);

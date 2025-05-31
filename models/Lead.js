@@ -159,7 +159,7 @@ class Lead {
       const result = await sql`
         INSERT INTO leads (
           name, email, phone, subject, message, 
-          created_at, date_received, is_read, 
+          created_at, is_read, 
           user_id, previous_message_count
         ) VALUES (
           ${leadData.name}, 

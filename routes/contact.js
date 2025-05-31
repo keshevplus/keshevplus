@@ -1,6 +1,5 @@
 import express from 'express';
-import pool from '../db/index.js'; 
-import { neon } from '@neondatabase/serverless';
+import pool from '../services/database.js'; 
 import { sendEmail } from '../services/emailService.js'; 
 import User from '../models/User.js';
 import dotenv from 'dotenv';
@@ -9,14 +8,7 @@ dotenv.config();
 
 const router = express.Router();
 
-// Create SQL instance with Neon for direct database access
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
-  console.error('No DATABASE_URL found in environment variables. Please check your .env file.');
-}
-const sql = neon(databaseUrl + '?sslmode=require');
-
-console.log('Contact route initialized with Neon database connection');
+console.log('Contact route initialized with shared PG pool');
 
 router.post('/', async (req, res) => {
   const { name, email, phone, subject, message, source = 'Contact Form' } = req.body;
@@ -40,7 +32,7 @@ router.post('/', async (req, res) => {
     };
 
     // Set timezone for all database operations to Israel
-    await sql`SET TIME ZONE 'Asia/Jerusalem'`;
+    await pool.query(`SET TIME ZONE 'Asia/Jerusalem'`);
     
     // 3. First check if user exists or create new user - do this BEFORE messages and leads
     // to ensure we have a valid user_id to link to
@@ -70,41 +62,39 @@ router.post('/', async (req, res) => {
     }
     
     // 1. Save to messages table in NeonDB with timezone-aware timestamp and user_id if available
-    const messagesResult = await sql`
-      INSERT INTO messages (name, email, phone, subject, message, created_at, read_at, user_id)
-      VALUES (
-        ${sanitizedData.name},
-        ${sanitizedData.email},
-        ${sanitizedData.phone},
-        ${sanitizedData.subject},
-        ${sanitizedData.message},
-        CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jerusalem',
-        NULL,
-        ${user ? user.id : null}
-      )
-      RETURNING id
-    `;
+    const messagesResult = await pool.query(
+      `INSERT INTO messages (name, email, phone, subject, message, created_at, read_at, user_id)
+      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jerusalem', NULL, $6)
+      RETURNING id`,
+      [
+        sanitizedData.name,
+        sanitizedData.email,
+        sanitizedData.phone,
+        sanitizedData.subject,
+        sanitizedData.message,
+        user ? user.id : null
+      ]
+    );
     
-    const messageId = messagesResult[0]?.id;
+    const messageId = messagesResult.rows[0]?.id;
     console.log(`Message saved to messages table with ID: ${messageId}`);
 
     // 2. Save to leads table in NeonDB with Israeli timezone and user_id if available
-    const leadsResult = await sql`
-      INSERT INTO leads (name, email, phone, subject, message, date_received, status, user_id)
-      VALUES (
-        ${sanitizedData.name},
-        ${sanitizedData.email},
-        ${sanitizedData.phone},
-        ${sanitizedData.subject},
-        ${sanitizedData.message},
-        CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jerusalem',
-        'new',
-        ${user ? user.id : null}
-      )
-      RETURNING id
-    `;
+    const leadsResult = await pool.query(
+      `INSERT INTO leads (name, email, phone, subject, message, created_at, status, user_id)
+      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jerusalem', 'new', $6)
+      RETURNING id`,
+      [
+        sanitizedData.name,
+        sanitizedData.email,
+        sanitizedData.phone,
+        sanitizedData.subject,
+        sanitizedData.message,
+        user ? user.id : null
+      ]
+    );
     
-    const leadId = leadsResult[0]?.id;
+    const leadId = leadsResult.rows[0]?.id;
     
     // We've already handled user creation/finding earlier in the code
     // existingUserInfo will be the found user if they already exist

@@ -1,0 +1,25 @@
+# Backend API server environment variables
+PORT=5000
+NODE_ENV=development
+
+# Database connection (move from frontend to backend)
+DATABASE_URL=postgresql://neondb_owner:npg_tYJvA94QMXLK@ep-icy-forest-a4rpjd22-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require
+STORAGE_DATABASE_URL=postgresql://neondb_owner:npg_tYJvA94QMXLK@ep-icy-forest-a4rpjd22-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require
+
+# Database credentials
+STORAGE_POSTGRES_USER=neondb_owner
+STORAGE_POSTGRES_HOST=ep-icy-forest-a4rpjd22-pooler.us-east-1.aws.neon.tech
+STORAGE_POSTGRES_PASSWORD=npg_tYJvA94QMXLK
+STORAGE_POSTGRES_DATABASE=neondb
+
+# JWT for authentication
+JWT_SECRET=14acf2213c1c76d461ab2903e98afc01953a509db96f1b8aeeb1bfadbc0d98aa
+JWT_EXPIRES_IN=86400 # 24 hours in seconds
+
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=dr@keshevplus.co.il
+# MAIL APP PASSWORD
+EMAIL_PASS=htaj orbt wkgv bflf
+EMAIL_FROM=dr@keshevplus.co.il
+EMAIL_TO=pluskeshev@gmail.com

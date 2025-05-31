@@ -63,7 +63,7 @@ router.post(
       let result;
       try {
         result = await query(
-          "INSERT INTO messages (name, email, phone, subject, message, date_received) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) RETURNING id",
+          "INSERT INTO messages (name, email, phone, subject, message, created_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) RETURNING id",
           [sanitizedData.name, sanitizedData.email, sanitizedData.phone, sanitizedData.subject, sanitizedData.message]
         );
       } catch (dbError) {

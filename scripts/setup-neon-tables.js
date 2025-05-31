@@ -29,7 +29,7 @@ async function setupNeonTables() {
           phone TEXT NOT NULL,
           subject TEXT,
           message TEXT NOT NULL,
-          date_received TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         )
       `;
       console.log('✅ Leads table created successfully');

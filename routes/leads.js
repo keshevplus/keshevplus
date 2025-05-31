@@ -1,16 +1,12 @@
 import express from "express";
-import { neon } from "@neondatabase/serverless";
+import pool from "../services/database.js";
 import { body, validationResult } from "express-validator";
 import { sendLeadNotification, sendLeadAcknowledgment } from "../utils/mailer.js";
 
 const router = express.Router();
 
-// Create SQL instance with Neon, with fallback options
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
-  console.error('No database URL found in environment variables. Please check your .env file.');
-}
-const sql = neon(databaseUrl + '?sslmode=require');
+// use the shared Pool instance; it already has the right connectionString and ssl settings
+const client = pool;
 
 // Log database connection status
 console.log('Connected to Neon database for leads API');
@@ -70,21 +66,23 @@ router.post(
         message: message.trim()
       };
 
-      // Database Operation using Neon's tagged template literals
+      // Database Operation using PG Pool
       let result;
       try {
-        result = await sql`
-          INSERT INTO leads (name, email, phone, subject, message, date_received) 
-          VALUES (
-            ${sanitizedData.name}, 
-            ${sanitizedData.email}, 
-            ${sanitizedData.phone}, 
-            ${sanitizedData.subject}, 
-            ${sanitizedData.message}, 
-            CURRENT_TIMESTAMP
-          ) 
-          RETURNING id, name, email, phone, subject, message, date_received
+        const sql = `
+          INSERT INTO leads (name, email, phone, subject, message, created_at) 
+          VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) 
+          RETURNING id, name, email, phone, subject, message, created_at
         `;
+        const params = [
+          sanitizedData.name,
+          sanitizedData.email,
+          sanitizedData.phone,
+          sanitizedData.subject,
+          sanitizedData.message
+        ];
+        const queryResult = await client.query(sql, params);
+        result = queryResult.rows;
         
         // Log for debugging
         console.log(`Successfully saved lead with ID: ${result[0].id}`);
@@ -178,8 +176,8 @@ router.get("/", async (req, res) => {
     
     // Query to get total count
     let countQuery = `SELECT COUNT(*) FROM leads ${filterCondition}`;
-    const countResult = await sql.unsafe(countQuery, filterParams);
-    const total = parseInt(countResult[0]?.count || 0);
+    const countResult = await client.query(countQuery, filterParams);
+    const total = parseInt(countResult.rows[0]?.count || 0);
     
     // Calculate pagination details
     const offset = (page - 1) * limit;
@@ -188,17 +186,17 @@ router.get("/", async (req, res) => {
     // Query to get leads for current page
     let leadsQuery = `
       SELECT * FROM leads ${filterCondition}
-      ORDER BY date_received DESC
-      LIMIT ${limit} OFFSET ${offset}
+      ORDER BY created_at DESC
+      LIMIT $2 OFFSET $3
     `;
     
-    const leads = await sql.unsafe(leadsQuery, filterParams);
+    const leads = await client.query(leadsQuery, [...filterParams, limit, offset]);
     
-    console.log(`Found ${leads.length} leads out of ${total} total`);
+    console.log(`Found ${leads.rows.length} leads out of ${total} total`);
     
     // Format response to match frontend expectations
     return res.status(200).json({
-      leads: leads,
+      leads: leads.rows,
       pagination: {
         total,
         page,
@@ -234,11 +232,11 @@ router.delete("/:id", async (req, res) => {
     console.log(`Attempting to delete lead with ID: ${id}`);
     
     // Delete the lead
-    const result = await sql`
-      DELETE FROM leads WHERE id = ${id} RETURNING id
-    `;
+    const sql = `DELETE FROM leads WHERE id = $1 RETURNING id`;
+    const params = [id];
+    const result = await client.query(sql, params);
     
-    if (result.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({
         status: "error",
         message: `Lead with ID ${id} not found`

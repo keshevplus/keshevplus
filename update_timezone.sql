@@ -1,23 +1,23 @@
--- Check if date_received is already timestamp with time zone
+-- Check if created_at is already timestamp with time zone
 DO $$ 
 DECLARE
     column_data_type text;
 BEGIN
     SELECT data_type INTO column_data_type
     FROM information_schema.columns 
-    WHERE table_name = 'leads' AND column_name = 'date_received';
+    WHERE table_name = 'leads' AND column_name = 'created_at';
     
     IF column_data_type = 'timestamp without time zone' THEN
         -- Alter the column to use timestamp with time zone
         ALTER TABLE leads 
-        ALTER COLUMN date_received TYPE timestamp with time zone 
-        USING date_received AT TIME ZONE 'Asia/Jerusalem';
+        ALTER COLUMN created_at TYPE timestamp with time zone 
+        USING created_at AT TIME ZONE 'Asia/Jerusalem';
         
-        RAISE NOTICE 'Column date_received updated to timestamp with time zone';
+        RAISE NOTICE 'Column created_at updated to timestamp with time zone';
     ELSIF column_data_type = 'timestamp with time zone' THEN
-        RAISE NOTICE 'Column date_received is already timestamp with time zone';
+        RAISE NOTICE 'Column created_at is already timestamp with time zone';
     ELSE
-        RAISE NOTICE 'Column date_received has unexpected data type: %', column_data_type;
+        RAISE NOTICE 'Column created_at has unexpected data type: %', column_data_type;
     END IF;
 END $$;
 

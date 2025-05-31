@@ -575,7 +575,7 @@ CREATE TABLE public.leads (
     phone text NOT NULL,
     subject text,
     message text NOT NULL,
-    date_received timestamp with time zone DEFAULT now()
+    created_at timestamp with time zone DEFAULT now()
 );
 
 
@@ -2432,7 +2432,7 @@ COPY public.i18n_locale (id, document_id, name, code, created_at, updated_at, pu
 -- Data for Name: leads; Type: TABLE DATA; Schema: public; Owner: neondb_owner
 --
 
-COPY public.leads (id, name, email, phone, subject, message, date_received) FROM stdin;
+COPY public.leads (id, name, email, phone, subject, message, created_at) FROM stdin;
 05909241-edac-4a07-ab40-cb0dd7e10e28	Irine Kochav Raifman	pluskeshev@gmail.com	0545884645	\N	Power up your productivity with AI features directly in the apps you use every day\n\nCreate drafts in Gmail and Docs\n\nPlan projects quickly in Sheets\n\nGenerate original images in Slides\n\nStart enhanced meetings in Meet\nPlus, get access to Gemini Advanced with our most capable AI models and 2 TB of storage\nAlready signed up? Refresh this page	2025-04-24 13:14:45.050135+00
 bb315fe4-8ae4-4c96-bdd4-74ab5f49f115	Irine Kochav Raifman	pluskeshev@gmail.com	0545884645	\N	sasasdasdasd	2025-04-24 16:42:51.551065+00
 bb2e64ab-1be6-4a1a-9047-ca8f65db2e92	Irine Kochav Raifman	pluskeshev@gmail.com	0545884645	\N	fdterwtwe	2025-04-26 08:53:09.789379+00

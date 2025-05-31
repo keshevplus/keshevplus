@@ -74,7 +74,7 @@ router.post(
       let result;
       try {
         result = await sql`
-          INSERT INTO leads (name, email, phone, subject, message, date_received) 
+          INSERT INTO leads (name, email, phone, subject, message, created_at) 
           VALUES (
             ${sanitizedData.name}, 
             ${sanitizedData.email}, 
@@ -83,7 +83,7 @@ router.post(
             ${sanitizedData.message}, 
             CURRENT_TIMESTAMP
           ) 
-          RETURNING id, name, email, phone, subject, message, date_received
+          RETURNING id, name, email, phone, subject, message, created_at
         `;
         
         // Log for debugging
@@ -188,7 +188,7 @@ router.get("/", async (req, res) => {
     // Query to get leads for current page
     let leadsQuery = `
       SELECT * FROM leads ${filterCondition}
-      ORDER BY date_received DESC
+      ORDER BY created_at DESC
       LIMIT ${limit} OFFSET ${offset}
     `;
     
