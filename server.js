@@ -23,6 +23,7 @@ import contactRoutes from './routes/contact.js';
 import translationsRoutes from './routes/translations.js';
 import apiRoutes from './routes/api.js';
 import contentRoutes from './routes/content.js';
+import pool from './db/connection.js';
 
 // ===== Server Setup =====
 const app = express();
@@ -113,6 +114,27 @@ app.get("/", (req, res) => {
     environment: process.env.NODE_ENV || 'development'
   });
 });
+
+// ===== Verify Database Connection =====
+if (pool) {
+  // Add delay to ensure pool is ready
+  setTimeout(() => {
+    pool.query('SELECT NOW()')
+      .then(result => {
+        console.log('Database connection verified successfully:', result.rows[0].now);
+      })
+      .catch(err => {
+        console.error('Database connection test failed:', err.message);
+        
+        // Provide helpful troubleshooting info
+        console.log('\nDatabase troubleshooting tips:');
+        console.log('1. Check if PostgreSQL is running locally');
+        console.log('2. Verify the DATABASE_URL in your .env file');
+        console.log('3. Make sure the postgres user exists and has the correct permissions');
+        console.log('4. Try connecting with psql to verify credentials manually\n');
+      });
+  }, 1000);
+}
 
 // ===== Serve React App in Production (Non-Vercel) =====
 if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
