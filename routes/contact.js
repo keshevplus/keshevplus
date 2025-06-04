@@ -31,6 +31,16 @@ router.post('/', async (req, res) => {
       created_at: new Date().toISOString()
     };
 
+    // First test database connection to ensure it's active
+    const isConnected = await pool.testConnection();
+    if (!isConnected) {
+      console.error('Database connection failed, saving message locally only');
+      return res.status(503).json({
+        success: false,
+        message: 'Database service unavailable. Your message has been saved locally and will be sent when the service is available.'
+      });
+    }
+
     // Set timezone for all database operations to Israel
     await pool.query(`SET TIME ZONE 'Asia/Jerusalem'`);
     
@@ -61,47 +71,56 @@ router.post('/', async (req, res) => {
       // Continue without user_id if there's an error
     }
     
-    // 1. Save to messages table in NeonDB with timezone-aware timestamp and user_id if available
-    const messagesResult = await pool.query(
-      `INSERT INTO messages (name, email, phone, subject, message, created_at, read_at, user_id)
-      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jerusalem', NULL, $6)
-      RETURNING id`,
-      [
-        sanitizedData.name,
-        sanitizedData.email,
-        sanitizedData.phone,
-        sanitizedData.subject,
-        sanitizedData.message,
-        user ? user.id : null
-      ]
-    );
-    
-    const messageId = messagesResult.rows[0]?.id;
-    console.log(`Message saved to messages table with ID: ${messageId}`);
+    // Wrap database operations in try/catch blocks
+    try {
+      // 1. Save to messages table in NeonDB with timezone-aware timestamp and user_id if available
+      const messagesResult = await pool.query(
+        `INSERT INTO messages (name, email, phone, subject, message, created_at, read_at, user_id)
+        VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jerusalem', NULL, $6)
+        RETURNING id`,
+        [
+          sanitizedData.name,
+          sanitizedData.email,
+          sanitizedData.phone,
+          sanitizedData.subject,
+          sanitizedData.message,
+          user ? user.id : null
+        ]
+      );
+      
+      const messageId = messagesResult.rows[0]?.id;
+      console.log(`Message saved to messages table with ID: ${messageId}`);
+    } catch (dbError) {
+      console.error('Error saving to messages table:', dbError);
+      // Continue execution to try saving to leads table
+    }
 
-    // 2. Save to leads table in NeonDB with Israeli timezone and user_id if available
-    const leadsResult = await pool.query(
-      `INSERT INTO leads (name, email, phone, subject, message, created_at, status, user_id)
-      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jerusalem', 'new', $6)
-      RETURNING id`,
-      [
-        sanitizedData.name,
-        sanitizedData.email,
-        sanitizedData.phone,
-        sanitizedData.subject,
-        sanitizedData.message,
-        user ? user.id : null
-      ]
-    );
-    
-    const leadId = leadsResult.rows[0]?.id;
-    
-    // We've already handled user creation/finding earlier in the code
-    // existingUserInfo will be the found user if they already exist
+    try {
+      // 2. Save to leads table in NeonDB with Israeli timezone and user_id if available
+      const leadsResult = await pool.query(
+        `INSERT INTO leads (name, email, phone, subject, message, created_at, status, user_id)
+        VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jerusalem', 'new', $6)
+        RETURNING id`,
+        [
+          sanitizedData.name,
+          sanitizedData.email,
+          sanitizedData.phone,
+          sanitizedData.subject,
+          sanitizedData.message,
+          user ? user.id : null
+        ]
+      );
+      
+      const leadId = leadsResult.rows[0]?.id;
+      console.log(`Contact also saved to leads table with ID: ${leadId}`);
+    } catch (dbError) {
+      console.error('Error saving to leads table:', dbError);
+      // Continue execution to send the email
+    }
+
     // Prepare variables for notification
     let existingUserInfo = user && !isNewUser ? user : null;
     let findMethod = user ? user.matchType : '';    
-    console.log(`Contact also saved to leads table with ID: ${leadId}`);
 
     // 4. Send email notification
     const emailTo = process.env.EMAIL_TO || 'pluskeshev@gmail.com'; 
@@ -256,7 +275,11 @@ router.post('/', async (req, res) => {
 
   } catch (error) {
     console.error('Error processing contact form:', error);
-    res.status(500).json({ success: false, message: 'An error occurred while submitting the form. Please try again later.' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'An error occurred while submitting the form. Please try again later.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
