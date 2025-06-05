@@ -44,7 +44,7 @@ router.post('/', async (req, res) => {
     // Set timezone for all database operations to Israel
     await pool.query(`SET TIME ZONE 'Asia/Jerusalem'`);
     
-    // 3. First check if user exists or create new user - do this BEFORE messages and leads
+    // 3. First check if user exists or create new user - do this BEFORE messages and messages
     // to ensure we have a valid user_id to link to
     let user = null;
     let isNewUser = true;
@@ -57,12 +57,33 @@ router.post('/', async (req, res) => {
         phone: sanitizedData.phone
       };
       
-      // Use the enhanced findOrCreateFromContact method that handles duplicates
+      // Use the enhanced findOrCreateFromContact method
       user = await User.findOrCreateFromContact(userData);
       
       if (user) {
         isNewUser = user.matchType === 'new';
         console.log(`User ${isNewUser ? 'created' : 'found'} with ID: ${user.id}`);
+        
+        // --- new: update any blank user fields with incoming data ---
+        if (!isNewUser) {
+          const updates = {};
+          if (!user.name && sanitizedData.name)   updates.name  = sanitizedData.name;
+          if (!user.email && sanitizedData.email) updates.email = sanitizedData.email;
+          if (!user.phone && sanitizedData.phone) updates.phone = sanitizedData.phone;
+          
+          if (Object.keys(updates).length) {
+            // build SET clause and values array
+            const cols   = Object.keys(updates);
+            const vals   = Object.values(updates);
+            const setSQL = cols.map((col, i) => `${col} = $${i+1}`).join(', ');
+            // append user.id as last parameter
+            await pool.query(
+              `UPDATE users SET ${setSQL} WHERE id = $${cols.length + 1}`,
+              [...vals, user.id]
+            );
+            console.log('Updated user record with new contact info:', updates);
+          }
+        }
       } else {
         console.warn('Failed to find or create user, proceeding without user_id reference');
       }
@@ -92,31 +113,31 @@ router.post('/', async (req, res) => {
       console.log(`Message saved to messages table with ID: ${messageId}`);
     } catch (dbError) {
       console.error('Error saving to messages table:', dbError);
-      // Continue execution to try saving to leads table
+      // Continue execution to try saving to messages table
     }
 
-    try {
-      // 2. Save to leads table in NeonDB with Israeli timezone and user_id if available
-      const leadsResult = await pool.query(
-        `INSERT INTO leads (name, email, phone, subject, message, created_at, status, user_id)
-        VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jerusalem', 'new', $6)
-        RETURNING id`,
-        [
-          sanitizedData.name,
-          sanitizedData.email,
-          sanitizedData.phone,
-          sanitizedData.subject,
-          sanitizedData.message,
-          user ? user.id : null
-        ]
-      );
+    // try {
+    //   // 2. Save to messages table in NeonDB with Israeli timezone and user_id if available
+    //   const messagesResult = await pool.query(
+    //     `INSERT INTO messages (name, email, phone, subject, message, created_at, status, user_id)
+    //     VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jerusalem', 'new', $6)
+    //     RETURNING id`,
+    //     [
+    //       sanitizedData.name,
+    //       sanitizedData.email,
+    //       sanitizedData.phone,
+    //       sanitizedData.subject,
+    //       sanitizedData.message,
+    //       user ? user.id : null
+    //     ]
+    //   );
       
-      const leadId = leadsResult.rows[0]?.id;
-      console.log(`Contact also saved to leads table with ID: ${leadId}`);
-    } catch (dbError) {
-      console.error('Error saving to leads table:', dbError);
-      // Continue execution to send the email
-    }
+    //   const messageId = messagesResult.rows[0]?.id;
+    //   console.log(`Contact also saved to messages table with ID: ${messageId}`);
+    // } catch (dbError) {
+    //   console.error('Error saving to messages table:', dbError);
+    //   // Continue execution to send the email
+    // }
 
     // Prepare variables for notification
     let existingUserInfo = user && !isNewUser ? user : null;
@@ -201,7 +222,7 @@ router.post('/', async (req, res) => {
       <hr>
       <p>This contact has been saved to the database:</p>
       <p>- Message ID: ${messageId}</p>
-      <p>- Lead ID: ${leadId}</p>
+      <p>- Lead ID: ${messageId}</p>
       <p>- User ID: ${user ? user.id : 'Not linked'}</p>
       <p>- Date received: ${timestamp}</p>
     `;
@@ -258,7 +279,7 @@ router.post('/', async (req, res) => {
       ${userInfoTextSection}
       ---
       Message ID: ${messageId}
-      Lead ID: ${leadId}
+      Lead ID: ${messageId}
       User ID: ${user ? user.id : 'Not linked'}
       Date received: ${timestamp}
     `;
@@ -270,7 +291,7 @@ router.post('/', async (req, res) => {
       success: true, 
       message: 'Contact form submitted successfully. We will get back to you soon.',
       messageId: messageId,
-      leadId: leadId 
+      messageId: messageId 
     });
 
   } catch (error) {

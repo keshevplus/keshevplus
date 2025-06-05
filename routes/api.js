@@ -4,9 +4,9 @@ import { executeQuery, executeTransaction } from '../utils/db-utils.js';
 const router = express.Router();
 
 // Example API endpoint to fetch data
-router.get('/leads', async (req, res) => {
+router.get('/messages', async (req, res) => {
   try {
-    const result = await executeQuery('SELECT * FROM leads LIMIT 10');
+    const result = await executeQuery('SELECT * FROM messages LIMIT 10');
     res.json(result.rows);
   } catch (error) {
     console.error('Database query error:', error);
@@ -15,7 +15,7 @@ router.get('/leads', async (req, res) => {
 });
 
 // Example endpoint to get a single record by ID
-router.get('/leads/:id', async (req, res) => {
+router.get('/messages/:id', async (req, res) => {
   const { id } = req.params;
   try {
     const result = await executeQuery('SELECT * FROM your_table WHERE id = $1', [id]);
@@ -32,12 +32,12 @@ router.get('/leads/:id', async (req, res) => {
 });
 
 // Example endpoint to create a new record
-router.post('/leads', async (req, res) => {
+router.post('/messages', async (req, res) => {
   const { field1, field2, field3 } = req.body;
   
   try {
     const result = await executeQuery(
-      'INSERT INTO leads (field1, field2, field3) VALUES ($1, $2, $3) RETURNING *',
+      'INSERT INTO messages (field1, field2, field3) VALUES ($1, $2, $3) RETURNING *',
       [field1, field2, field3]
     );
     

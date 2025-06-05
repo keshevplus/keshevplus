@@ -14,40 +14,40 @@ let sql;
 try {
   if (databaseUrl) {
     sql = neon(databaseUrl);
-    console.log('Connected to Neon database successfully for Lead model');
+    console.log('Connected to Neon database successfully for Message model');
   } else {
-    console.error('No database URL found for Lead model. Operations will fail.');
+    console.error('No database URL found for Message model. Operations will fail.');
   }
 } catch (error) {
-  console.error('Error initializing Lead database connection:', error.message);
+  console.error('Error initializing Message database connection:', error.message);
 }
 
-class Lead {
+class Message {
   /**
-   * Find a lead by ID
-   * @param {string} id - Lead ID
-   * @returns {Promise<Object|null>} Lead object or null if not found
+   * Find a message by ID
+   * @param {string} id - Message ID
+   * @returns {Promise<Object|null>} Message object or null if not found
    */
   static async findById(id) {
     try {
       if (!sql) throw new Error('Database connection not initialized');
       
       const result = await sql`
-        SELECT * FROM leads WHERE id = ${id}
+        SELECT * FROM messages WHERE id = ${id}
       `;
       return result[0] || null;
     } catch (error) {
-      console.error('Error finding lead by ID:', error);
+      console.error('Error finding message by ID:', error);
       throw error;
     }
   }
 
   /**
-   * Get all leads with pagination
+   * Get all messages with pagination
    * @param {number} page - Page number (1-based)
    * @param {number} limit - Number of items per page
    * @param {string} filter - Optional filter string to search in name, email, subject
-   * @returns {Promise<Object>} Object with leads array and pagination info
+   * @returns {Promise<Object>} Object with messages array and pagination info
    */
   static async getAll(page = 1, limit = 100, filter = '') {
     try {
@@ -57,14 +57,14 @@ class Lead {
       const offset = (page - 1) * limit;
       
       // Build query based on filter
-      let leads;
+      let messages;
       let totalQuery;
       
       if (filter && filter.trim() !== '') {
         // Search with filter
         const searchPattern = `%${filter}%`;
-        leads = await sql`
-          SELECT * FROM leads 
+        messages = await sql`
+          SELECT * FROM messages 
           WHERE name ILIKE ${searchPattern} 
           OR email ILIKE ${searchPattern} 
           OR subject ILIKE ${searchPattern} 
@@ -74,22 +74,22 @@ class Lead {
         `;
         
         totalQuery = await sql`
-          SELECT COUNT(*) as total FROM leads 
+          SELECT COUNT(*) as total FROM messages 
           WHERE name ILIKE ${searchPattern} 
           OR email ILIKE ${searchPattern} 
           OR subject ILIKE ${searchPattern} 
           OR phone ILIKE ${searchPattern}
         `;
       } else {
-        // Get all leads without filter
-        leads = await sql`
-          SELECT * FROM leads
+        // Get all messages without filter
+        messages = await sql`
+          SELECT * FROM messages
           ORDER BY created_at DESC
           LIMIT ${limit} OFFSET ${offset}
         `;
         
         totalQuery = await sql`
-          SELECT COUNT(*) as total FROM leads
+          SELECT COUNT(*) as total FROM messages
         `;
       }
       
@@ -98,7 +98,7 @@ class Lead {
       const totalPages = Math.ceil(total / limit);
       
       return {
-        leads,
+        messages,
         pagination: {
           total,
           page,
@@ -109,22 +109,22 @@ class Lead {
         }
       };
     } catch (error) {
-      console.error('Error getting leads:', error);
+      console.error('Error getting messages:', error);
       throw error;
     }
   }
 
   /**
-   * Create a new lead and check if user exists
-   * @param {Object} leadData - Lead data
-   * @param {string} leadData.name - Name
-   * @param {string} leadData.email - Email
-   * @param {string} leadData.phone - Phone number
-   * @param {string} leadData.subject - Subject
-   * @param {string} leadData.message - Message content
-   * @returns {Promise<Object>} Created lead with user info
+   * Create a new message and check if user exists
+   * @param {Object} messageData - Message data
+   * @param {string} messageData.name - Name
+   * @param {string} messageData.email - Email
+   * @param {string} messageData.phone - Phone number
+   * @param {string} messageData.subject - Subject
+   * @param {string} messageData.message - Message content
+   * @returns {Promise<Object>} Created message with user info
    */
-  static async create(leadData) {
+  static async create(messageData) {
     try {
       if (!sql) throw new Error('Database connection not initialized');
       
@@ -133,20 +133,20 @@ class Lead {
       let userMatchType = null;
       let previousMessageCount = 0;
       
-      if (leadData.email) {
-        user = await User.findByEmail(leadData.email);
+      if (messageData.email) {
+        user = await User.findByEmail(messageData.email);
         if (user) userMatchType = 'email';
       }
       
-      if (!user && leadData.phone) {
-        user = await User.findByPhone(leadData.phone);
+      if (!user && messageData.phone) {
+        user = await User.findByPhone(messageData.phone);
         if (user) userMatchType = 'phone';
       }
       
       // If user exists, count their previous messages
       if (user) {
         const previousMessagesQuery = await sql`
-          SELECT COUNT(*) as count FROM leads 
+          SELECT COUNT(*) as count FROM messages 
           WHERE email = ${user.email} OR phone = ${user.phone}
         `;
         previousMessageCount = parseInt(previousMessagesQuery[0]?.count || '0', 10);
@@ -155,18 +155,18 @@ class Lead {
       // Add current timestamp
       const now = new Date().toISOString();
       
-      // Insert the lead
+      // Insert the message
       const result = await sql`
-        INSERT INTO leads (
+        INSERT INTO messages (
           name, email, phone, subject, message, 
           created_at, is_read, 
           user_id, previous_message_count
         ) VALUES (
-          ${leadData.name}, 
-          ${leadData.email}, 
-          ${leadData.phone}, 
-          ${leadData.subject}, 
-          ${leadData.message},
+          ${messageData.name}, 
+          ${messageData.email}, 
+          ${messageData.phone}, 
+          ${messageData.subject}, 
+          ${messageData.message},
           ${now}, 
           ${now}, 
           false,
@@ -176,46 +176,46 @@ class Lead {
       `;
       
       // Add user information to the response
-      const newLead = result[0];
-      if (newLead) {
-        newLead.userInfo = user ? {
+      const newMessage = result[0];
+      if (newMessage) {
+        newMessage.userInfo = user ? {
           id: user.id,
           matchType: userMatchType,
           previousMessageCount
         } : null;
       }
       
-      return newLead;
+      return newMessage;
     } catch (error) {
-      console.error('Error creating lead:', error);
+      console.error('Error creating message:', error);
       throw error;
     }
   }
 
   /**
-   * Mark a lead as read
-   * @param {string} id - Lead ID
-   * @returns {Promise<Object>} Updated lead
+   * Mark a message as read
+   * @param {string} id - Message ID
+   * @returns {Promise<Object>} Updated message
    */
   static async markAsRead(id) {
     try {
       if (!sql) throw new Error('Database connection not initialized');
       
       const result = await sql`
-        UPDATE leads SET is_read = true 
+        UPDATE messages SET is_read = true 
         WHERE id = ${id} 
         RETURNING *
       `;
       return result[0] || null;
     } catch (error) {
-      console.error('Error marking lead as read:', error);
+      console.error('Error marking message as read:', error);
       throw error;
     }
   }
 
   /**
-   * Delete a lead
-   * @param {string} id - Lead ID
+   * Delete a message
+   * @param {string} id - Message ID
    * @returns {Promise<boolean>} True if deleted, false if not found
    */
   static async delete(id) {
@@ -223,20 +223,20 @@ class Lead {
       if (!sql) throw new Error('Database connection not initialized');
       
       const result = await sql`
-        DELETE FROM leads 
+        DELETE FROM messages 
         WHERE id = ${id} 
         RETURNING id
       `;
       return result.length > 0;
     } catch (error) {
-      console.error('Error deleting lead:', error);
+      console.error('Error deleting message:', error);
       throw error;
     }
   }
 
   /**
-   * Get count of unread leads
-   * @returns {Promise<number>} Count of unread leads
+   * Get count of unread messages
+   * @returns {Promise<number>} Count of unread messages
    */
   static async getUnreadCount() {
     try {
@@ -244,7 +244,7 @@ class Lead {
       
       const result = await sql`
         SELECT COUNT(*) as count 
-        FROM leads 
+        FROM messages 
         WHERE is_read = false
       `;
       return parseInt(result[0]?.count || '0', 10);
@@ -255,4 +255,4 @@ class Lead {
   }
 }
 
-export default Lead;
+export default Message;

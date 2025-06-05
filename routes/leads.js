@@ -1,7 +1,7 @@
 import express from "express";
 import pool from "../services/database.js";
 import { body, validationResult } from "express-validator";
-import { sendLeadNotification, sendLeadAcknowledgment } from "../utils/mailer.js";
+import { sendMessageNotification, sendMessageAcknowledgment } from "../utils/mailer.js";
 
 const router = express.Router();
 
@@ -9,10 +9,10 @@ const router = express.Router();
 const client = pool;
 
 // Log database connection status
-console.log('Connected to Neon database for leads API');
+console.log('Connected to Neon database for messages API');
 
-// @route   POST /api/leads
-// @desc    Save lead data to Neon database (leads table)
+// @route   POST /api/messages
+// @desc    Save message data to Neon database (messages table)
 // @access  Public
 router.post(
   "/",
@@ -70,7 +70,7 @@ router.post(
       let result;
       try {
         const sql = `
-          INSERT INTO leads (name, email, phone, subject, message, created_at) 
+          INSERT INTO messages (name, email, phone, subject, message, created_at) 
           VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) 
           RETURNING id, name, email, phone, subject, message, created_at
         `;
@@ -85,24 +85,24 @@ router.post(
         result = queryResult.rows;
         
         // Log for debugging
-        console.log(`Successfully saved lead with ID: ${result[0].id}`);
+        console.log(`Successfully saved message with ID: ${result[0].id}`);
 
         // Send email notifications
         if (result && result[0]) {
           // Send notification to admin
-          sendLeadNotification(result[0])
+          sendMessageNotification(result[0])
             .then(sent => {
               if (sent) {
-                console.log(`Admin notification email sent for lead ID: ${result[0].id}`);
+                console.log(`Admin notification email sent for message ID: ${result[0].id}`);
               }
             })
             .catch(err => {
               console.error('Error sending admin notification:', err);
             });
           
-          // Send acknowledgment to the lead if they provided an email
+          // Send acknowledgment to the message if they provided an email
           if (result[0].email) {
-            sendLeadAcknowledgment(result[0])
+            sendMessageAcknowledgment(result[0])
               .then(sent => {
                 if (sent) {
                   console.log(`Acknowledgment email sent to ${result[0].email}`);
@@ -114,7 +114,7 @@ router.post(
           }
         }
       } catch (dbError) {
-        console.error("Database error during lead insertion:", {
+        console.error("Database error during message insertion:", {
           error: dbError.stack || dbError.message,
           requestBody: sanitizedData,
           timestamp: new Date().toISOString(),
@@ -124,21 +124,21 @@ router.post(
       }
 
       // Success Response
-      console.log("Lead saved successfully to Neon database:", {
-        leadId: result?.[0]?.id
+      console.log("Message saved successfully to Neon database:", {
+        messageId: result?.[0]?.id
       });
 
       return res.status(201).json({
         status: "success",
-        message: "Lead saved successfully",
+        message: "Message saved successfully",
         data: {
-          leadId: result?.[0]?.id
+          messageId: result?.[0]?.id
         }
       });
 
     } catch (error) {
       // Global Error Handler
-      console.error("Unexpected error in lead submission:", {
+      console.error("Unexpected error in message submission:", {
         error: error.stack || error.message,
         requestBody: req.body,
         timestamp: new Date().toISOString()
@@ -153,8 +153,8 @@ router.post(
   }
 );
 
-// @route   GET /api/leads
-// @desc    Get all leads from Neon database (for administrative use)
+// @route   GET /api/messages
+// @desc    Get all messages from Neon database (for administrative use)
 // @access  Should be protected in production
 router.get("/", async (req, res) => {
   try {
@@ -163,7 +163,7 @@ router.get("/", async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const filter = req.query.filter || "";
     
-    console.log(`Fetching leads: page=${page}, limit=${limit}, filter=${filter}`);
+    console.log(`Fetching messages: page=${page}, limit=${limit}, filter=${filter}`);
     
     // Create filter condition if filter is provided
     let filterCondition = "";
@@ -175,7 +175,7 @@ router.get("/", async (req, res) => {
     }
     
     // Query to get total count
-    let countQuery = `SELECT COUNT(*) FROM leads ${filterCondition}`;
+    let countQuery = `SELECT COUNT(*) FROM messages ${filterCondition}`;
     const countResult = await client.query(countQuery, filterParams);
     const total = parseInt(countResult.rows[0]?.count || 0);
     
@@ -183,20 +183,20 @@ router.get("/", async (req, res) => {
     const offset = (page - 1) * limit;
     const totalPages = Math.ceil(total / limit);
     
-    // Query to get leads for current page
-    let leadsQuery = `
-      SELECT * FROM leads ${filterCondition}
+    // Query to get messages for current page
+    let messagesQuery = `
+      SELECT * FROM messages ${filterCondition}
       ORDER BY created_at DESC
       LIMIT $2 OFFSET $3
     `;
     
-    const leads = await client.query(leadsQuery, [...filterParams, limit, offset]);
+    const messages = await client.query(messagesQuery, [...filterParams, limit, offset]);
     
-    console.log(`Found ${leads.rows.length} leads out of ${total} total`);
+    console.log(`Found ${messages.rows.length} messages out of ${total} total`);
     
     // Format response to match frontend expectations
     return res.status(200).json({
-      leads: leads.rows,
+      messages: messages.rows,
       pagination: {
         total,
         page,
@@ -207,16 +207,16 @@ router.get("/", async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("Error retrieving leads:", error);
+    console.error("Error retrieving messages:", error);
     return res.status(500).json({
       status: "error",
-      message: "Failed to retrieve leads"
+      message: "Failed to retrieve messages"
     });
   }
 });
 
-// @route   DELETE /api/leads/:id
-// @desc    Delete a lead by ID
+// @route   DELETE /api/messages/:id
+// @desc    Delete a message by ID
 // @access  Should be protected in production
 router.delete("/:id", async (req, res) => {
   try {
@@ -225,35 +225,35 @@ router.delete("/:id", async (req, res) => {
     if (!id) {
       return res.status(400).json({
         status: "error",
-        message: "Lead ID is required"
+        message: "Message ID is required"
       });
     }
     
-    console.log(`Attempting to delete lead with ID: ${id}`);
+    console.log(`Attempting to delete message with ID: ${id}`);
     
-    // Delete the lead
-    const sql = `DELETE FROM leads WHERE id = $1 RETURNING id`;
+    // Delete the message
+    const sql = `DELETE FROM messages WHERE id = $1 RETURNING id`;
     const params = [id];
     const result = await client.query(sql, params);
     
     if (result.rows.length === 0) {
       return res.status(404).json({
         status: "error",
-        message: `Lead with ID ${id} not found`
+        message: `Message with ID ${id} not found`
       });
     }
     
-    console.log(`Successfully deleted lead with ID: ${id}`);
+    console.log(`Successfully deleted message with ID: ${id}`);
     
     return res.status(200).json({
       status: "success",
-      message: "Lead deleted successfully"
+      message: "Message deleted successfully"
     });
   } catch (error) {
-    console.error("Error deleting lead:", error);
+    console.error("Error deleting message:", error);
     return res.status(500).json({
       status: "error",
-      message: "Failed to delete lead"
+      message: "Failed to delete message"
     });
   }
 });

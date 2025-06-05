@@ -472,10 +472,10 @@ router.delete("/api/forms/:id", async (req, res) => {
 
 // Messages Routes (Contact Form Submissions)
 
-// @route   GET api/leads
+// @route   GET api/messages
 // @desc    Get all messages (contact form submissions) with pagination and filtering
 // @access  Private
-router.get("/api/leads", async (req, res) => {
+router.get("/api/messages", async (req, res) => {
   const { page = 1, limit = 10, filter = "" } = req.query;
   const offset = (page - 1) * limit;
 
@@ -497,7 +497,7 @@ router.get("/api/leads", async (req, res) => {
     const total = countResult.rows[0].count;
 
     res.json({
-      leads: messagesResult.rows,
+      messages: messagesResult.rows,
       pagination: {
         total,
         page: parseInt(page),
@@ -511,10 +511,10 @@ router.get("/api/leads", async (req, res) => {
   }
 });
 
-// @route   GET api/leads/:id
+// @route   GET api/messages/:id
 // @desc    Get message by ID
 // @access  Private
-router.get("/api/leads/:id", async (req, res) => {
+router.get("/api/messages/:id", async (req, res) => {
   try {
     const result = await query("SELECT * FROM messages WHERE id = $1", [
       req.params.id,
@@ -531,10 +531,10 @@ router.get("/api/leads/:id", async (req, res) => {
   }
 });
 
-// @route   DELETE api/leads/:id
+// @route   DELETE api/messages/:id
 // @desc    Delete message by ID
 // @access  Private
-router.delete("/leads/:id", async (req, res) => {
+router.delete("/messages/:id", async (req, res) => {
   try {
     const result = await query("DELETE FROM messages WHERE id = $1 RETURNING *", [
       req.params.id,
