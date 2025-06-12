@@ -15,9 +15,7 @@ import morgan from "morgan";
 import fs from "fs";
 import authRoutes from "./routes/auth.js";
 import adminRoutes from "./routes/admin.js";
-import leadsRoutes from "./routes/leads.js";
 import messagesRoutes from "./routes/messages.js";
-import testRoute from "./routes/test.js";
 import authMiddleware from "./middleware/auth.js";
 import contactRoutes from './routes/contact.js';
 import translationsRoutes from './routes/translations.js';
@@ -90,9 +88,7 @@ app.options('*', cors({
 // ===== Routes =====
 app.use('/auth', authRoutes);
 app.use('/admin', authMiddleware, adminRoutes);
-app.use('/leads', leadsRoutes);
 app.use('/messages', messagesRoutes);
-app.use('/test', testRoute);
 app.use('/contact', contactRoutes);
 app.use('/translations', translationsRoutes);
 app.use('/content', contentRoutes);

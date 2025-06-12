@@ -1,4 +1,5 @@
-import express from "express";
+import express from 'express';
+import pool from '../db/connection.js';
 import { query } from "../config/db.js";
 import { body, validationResult } from "express-validator";
 
@@ -120,65 +121,11 @@ router.post(
 // @access  Should be protected in production
 router.get("/", async (req, res) => {
   try {
-    // Get pagination parameters from query string
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const filter = req.query.filter || "";
-    
-    console.log(`Fetching messages: page=${page}, limit=${limit}, filter=${filter}`);
-    
-    // Count total messages with filter
-    let countQuery = "SELECT COUNT(*) FROM messages";
-    let queryParams = [];
-    
-    if (filter) {
-      countQuery += " WHERE name ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1 OR subject ILIKE $1";
-      queryParams.push(`%${filter}%`);
-    }
-    
-    const countResult = await query(countQuery, queryParams);
-    const total = parseInt(countResult.rows[0].count);
-    
-    // Calculate pagination
-    const offset = (page - 1) * limit;
-    const totalPages = Math.ceil(total / limit);
-    
-    // Query to get messages for current page
-    let messagesQuery = "SELECT * FROM messages";
-    
-    if (filter) {
-      messagesQuery += " WHERE name ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1 OR subject ILIKE $1";
-    }
-    
-    messagesQuery += " ORDER BY created_at DESC LIMIT $" + (filter ? "2" : "1") + " OFFSET $" + (filter ? "3" : "2");
-    
-    if (filter) {
-      queryParams.push(limit, offset);
-    } else {
-      queryParams.push(limit, offset);
-    }
-    
-    const messagesResult = await query(messagesQuery, queryParams);
-    
-    // Format response to match frontend expectations
-    return res.status(200).json({
-      leads: messagesResult.rows,  // Using 'leads' key for frontend compatibility
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1
-      }
-    });
-    
+    const result = await pool.query('SELECT * FROM messages ORDER BY created_at DESC');
+    res.status(200).json(result.rows);
   } catch (error) {
-    console.error("Error retrieving messages:", error);
-    return res.status(500).json({
-      status: "error",
-      message: "Failed to retrieve messages"
-    });
+    console.error('Error fetching messages:', error.message);
+    res.status(500).json({ error: 'Failed to fetch messages' });
   }
 });
 

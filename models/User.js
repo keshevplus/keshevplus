@@ -438,7 +438,7 @@ static async findById(user_id) {
       from: process.env.EMAIL_USER,
       to: email,
       subject: 'Admin Password Reset',
-      html: `<p>Click <a href='${resetUrl}'>here</a> to reset your admin password. This link is valid for 1 hour.</p>`
+      html: `<p>Click <Link to='${resetUrl}'>here</Link> to reset your admin password. This link is valid for 1 hour.</p>`
     };
     await transporter.sendMail(mailOptions);
   }
