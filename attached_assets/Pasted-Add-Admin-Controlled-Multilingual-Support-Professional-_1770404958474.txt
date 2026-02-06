@@ -1,0 +1,128 @@
+Add Admin-Controlled Multilingual Support (Professional UX/UI)
+Role & Expertise
+You are acting as a Senior UX/UI Designer and Senior Full-Stack Developer with expertise in:
+Internationalization (i18n) & localization (l10n)
+React + TypeScript architecture
+Admin dashboard UX
+RTL & LTR layout handling
+Accessible language switching UI
+Scalable translation systems
+🎯 Objective
+Implement a fully integrated multilingual system that can be enabled or disabled from the admin dashboard, with a language selector dropdown in the UI that displays:
+A flag icon
+The language name in its own language (native name)
+The system must support two possible modes, configurable by admin:
+Bilingual mode
+Hebrew / English
+Multilingual mode
+Hebrew
+English
+French
+Spanish
+German
+Russian
+Amharic
+Arabic
+Yiddish
+🧱 Stack & Constraints
+Vite
+React
+TypeScript
+No heavy i18n framework unless justified
+Must be fully integrated, not a demo
+Must support future language expansion
+Clean, maintainable architecture
+🛠️ Core Requirements
+1️⃣ Admin Dashboard Controls (Mandatory)
+Add an admin-only setting that allows:
+Toggle Multilingual Support ON / OFF
+Select language mode:
+Bilingual (HE / EN)
+Multilingual (full list)
+Set default language
+Persist settings (state + storage)
+When multilingual support is OFF:
+Site behaves as a single-language app
+Language selector is hidden
+No translation logic runs unnecessarily
+2️⃣ Language Selector UI (Frontend)
+When multilingual support is ON:
+Display a language dropdown menu in the main UI (e.g. header)
+Each option must include:
+Flag icon
+Language name in its own native language
+English → English
+Hebrew → עברית
+French → Français
+Spanish → Español
+German → Deutsch
+Russian → Русский
+Amharic → አማርኛ
+Arabic → العربية
+Yiddish → ייִדיש
+Dropdown must:
+Be accessible (keyboard + screen readers)
+Work on mobile and desktop
+Close predictably on selection
+3️⃣ Translation Architecture
+You must implement a scalable translation system:
+Translation files per language (JSON or TS objects)
+Centralized translation lookup
+No hard-coded strings in components
+Graceful fallback to default language
+Easy to add new languages later
+Example structure (conceptual):
+Copy code
+
+/i18n
+  /locales
+    en.json
+    he.json
+    fr.json
+    ...
+4️⃣ RTL / LTR Handling (Critical)
+Because Hebrew, Arabic, and Yiddish are RTL:
+Automatically switch dir="rtl" / dir="ltr"
+Adjust layout where necessary (but avoid duplication)
+Ensure:
+Spacing remains visually balanced
+Icons and dropdowns behave correctly
+Do not break the existing layout system
+5️⃣ UX & Accessibility
+Language switch must:
+Not reload the page unnecessarily
+Preserve user context
+Persist user language preference
+Ensure:
+Proper ARIA labels
+Logical tab order
+No loss of readability in any language
+6️⃣ Performance Considerations
+Load only required translation data
+Avoid bloating initial bundle
+Do not run translation logic when multilingual mode is disabled
+🧪 Validation
+You must verify:
+Admin toggle correctly enables/disables multilingual mode
+Bilingual and multilingual modes behave differently as intended
+Language dropdown shows correct flags + native names
+RTL/LTR switching works without layout breakage
+Language selection persists across reloads
+No untranslated strings remain
+📦 Deliverables
+Admin dashboard controls
+Language selector dropdown component
+Translation files for all specified languages
+RTL/LTR handling logic
+Brief explanation of:
+Architecture choices
+How to add new languages
+How admin controls affect the system
+❗ Quality Bar
+No hard-coded UI text
+No duplicated translation logic
+No broken spacing when switching direction
+Multilingual support must feel intentional and native, not bolted on
+✅ Final Instruction
+If there is a trade-off between simplicity and future scalability, choose scalability.
+Do not ask the user to decide unless absolutely required.
