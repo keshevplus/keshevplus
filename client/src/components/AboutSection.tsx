@@ -8,11 +8,6 @@ import { contentApi, useContent, type AboutContent } from '@/lib/content';
 import { Section, SectionHeader } from '@/components/layout/Section';
 import heroAbout from '@/assets/hero-about.jpg';
 
-/**
- * AboutSection - Professional medical about section
- * Displays Dr. Irene Kochav-Reifman's profile and clinic values
- */
-
 const iconMap: Record<string, React.ElementType> = {
   Heart,
   Award,
@@ -22,7 +17,6 @@ const iconMap: Record<string, React.ElementType> = {
 const AboutSection: React.FC = () => {
   const { language, isRTL } = useLanguage();
   
-  // All hooks must be called before any conditional returns
   const [ref, inView] = useInView({
     triggerOnce: true,
     threshold: 0.1,
@@ -35,10 +29,10 @@ const AboutSection: React.FC = () => {
 
   if (loading || !content) {
     return (
-      <Section id="about" className="bg-gray-50">
+      <Section id="about" className="bg-muted/30">
         <div className="animate-pulse space-y-8">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mx-auto" />
-          <div className="h-64 bg-gray-200 rounded" />
+          <div className="h-8 bg-muted rounded w-1/3 mx-auto" />
+          <div className="h-64 bg-muted rounded" />
         </div>
       </Section>
     );
@@ -47,7 +41,7 @@ const AboutSection: React.FC = () => {
   return (
     <Section 
       id="about" 
-      className="bg-[#FFFDF5] overflow-visible"
+      className="bg-[#FFFDF5] dark:bg-card overflow-visible"
       dir={isRTL ? 'rtl' : 'ltr'}
       aria-labelledby="about-heading"
     >
@@ -57,8 +51,7 @@ const AboutSection: React.FC = () => {
         titleId="about-heading"
       />
 
-      <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center mb-8 sm:mb-12 lg:mb-16">
-        {/* Doctor Profile Image */}
+      <div ref={ref} className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center mb-8 sm:mb-12 lg:mb-16">
         <motion.div
           initial={{ opacity: 0, x: isRTL ? 30 : -30 }}
           animate={inView ? { opacity: 1, x: 0 } : {}}
@@ -66,7 +59,7 @@ const AboutSection: React.FC = () => {
           className={`order-1 ${isRTL ? 'lg:order-2' : 'lg:order-1'}`}
         >
           <div className="relative">
-            <div className="absolute -inset-2 sm:-inset-4 bg-gradient-to-br from-green-200 to-green-100 rounded-xl sm:rounded-2xl transform rotate-2" />
+            <div className="absolute -inset-2 sm:-inset-4 bg-gradient-to-br from-primary/30 to-primary/10 rounded-xl sm:rounded-2xl transform rotate-2" />
             <img
               src={heroAbout}
               alt={content.teamMember.name[language]}
@@ -76,26 +69,24 @@ const AboutSection: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Doctor Profile Content */}
         <motion.div
           initial={{ opacity: 0, x: isRTL ? -30 : 30 }}
           animate={inView ? { opacity: 1, x: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.3 }}
           className={`order-2 ${isRTL ? 'lg:order-1' : 'lg:order-2'}`}
         >
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur">
+          <Card className="border-0 shadow-lg">
             <CardContent className="p-6 md:p-8">
-              <h3 className="text-2xl md:text-3xl font-bold text-green-800 mb-2">
+              <h3 className="text-2xl md:text-3xl font-bold text-primary mb-2">
                 {content.teamMember.name[language]}
               </h3>
-              <p className="text-lg text-green-600 font-medium mb-4">
+              <p className="text-lg text-primary/80 font-medium mb-4">
                 {content.teamMember.title[language]}
               </p>
-              <p className="text-gray-600 leading-relaxed mb-6">
+              <p className="text-muted-foreground leading-relaxed mb-6">
                 {content.teamMember.description[language]}
               </p>
               
-              {/* Credentials */}
               <ul className="space-y-3">
                 {content.teamMember.credentials.map((credential, index) => (
                   <motion.li
@@ -105,8 +96,8 @@ const AboutSection: React.FC = () => {
                     transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
                     className="flex items-center gap-3"
                   >
-                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                    <span className="text-gray-700">{credential[language]}</span>
+                    <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                    <span className="text-foreground/80">{credential[language]}</span>
                   </motion.li>
                 ))}
               </ul>
@@ -115,19 +106,17 @@ const AboutSection: React.FC = () => {
         </motion.div>
       </div>
 
-      {/* Mission Statement */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={inView ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.6, delay: 0.5 }}
         className="text-center mb-12"
       >
-        <p className="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed italic">
+        <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed italic">
           "{content.mission[language]}"
         </p>
       </motion.div>
 
-      {/* Values Grid */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {content.values.map((value, index) => {
           const IconComponent = iconMap[value.icon] || Heart;
@@ -138,15 +127,15 @@ const AboutSection: React.FC = () => {
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.6 + index * 0.1 }}
             >
-              <Card className="h-full border-0 shadow-md hover:shadow-lg transition-shadow bg-white">
+              <Card className="h-full border-0 shadow-md hover:shadow-lg transition-shadow">
                 <CardContent className="p-6 text-center">
-                  <div className="w-14 h-14 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
-                    <IconComponent className="w-7 h-7 text-green-700" />
+                  <div className="w-14 h-14 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
+                    <IconComponent className="w-7 h-7 text-primary" />
                   </div>
-                  <h4 className="text-lg font-semibold text-gray-800 mb-2">
+                  <h4 className="text-lg font-semibold text-foreground mb-2">
                     {value.title[language]}
                   </h4>
-                  <p className="text-gray-600 text-sm leading-relaxed">
+                  <p className="text-muted-foreground text-sm leading-relaxed">
                     {value.description[language]}
                   </p>
                 </CardContent>

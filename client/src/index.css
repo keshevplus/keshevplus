@@ -93,62 +93,67 @@
   }
 
   .dark {
-    /* Core Brand Colors - Dark Mode */
-    --background: 215 30% 8%;
-    --foreground: 215 15% 92%;
+    /* Core Brand Colors - Dark Mode (Green/Orange clinic brand) */
+    --background: 150 15% 8%;
+    --foreground: 140 10% 90%;
     
     /* Surface Colors */
-    --card: 215 25% 12%;
-    --card-foreground: 215 15% 92%;
+    --card: 150 12% 12%;
+    --card-foreground: 140 10% 90%;
     
-    --popover: 215 25% 12%;
-    --popover-foreground: 215 15% 92%;
+    --popover: 150 12% 12%;
+    --popover-foreground: 140 10% 90%;
     
-    /* Brand Identity */
-    --primary: 215 100% 65%;
-    --primary-foreground: 215 30% 8%;
-    --primary-glow: 215 100% 75%;
+    /* Primary - Forest Green (brand) */
+    --primary: 142 55% 35%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 142 55% 45%;
     
-    /* Interactive Elements */
-    --secondary: 215 20% 18%;
-    --secondary-foreground: 215 15% 85%;
+    /* Secondary - Orange (brand) */
+    --secondary: 32 80% 50%;
+    --secondary-foreground: 0 0% 100%;
     
-    --muted: 215 20% 15%;
-    --muted-foreground: 215 10% 65%;
+    --muted: 150 10% 15%;
+    --muted-foreground: 140 8% 65%;
     
-    --accent: 210 100% 65%;
-    --accent-foreground: 215 30% 8%;
+    --accent: 142 55% 35%;
+    --accent-foreground: 0 0% 100%;
     
     /* Status Colors */
     --destructive: 0 70% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    --success: 145 70% 55%;
+    --success: 142 60% 50%;
     --success-foreground: 0 0% 100%;
     
     /* UI Elements */
-    --border: 215 20% 20%;
-    --input: 215 20% 18%;
-    --ring: 215 100% 65%;
+    --border: 150 10% 20%;
+    --input: 150 10% 18%;
+    --ring: 142 55% 35%;
+    
+    /* Keshev Plus Specific - Dark Mode */
+    --keshev-green: 142 55% 35%;
+    --keshev-green-dark: 142 55% 25%;
+    --keshev-orange: 32 80% 50%;
     
     /* Gradients - Dark Mode */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-hero: linear-gradient(165deg, hsl(var(--background)) 0%, hsl(215 25% 10%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(215 20% 14%) 100%);
+    --gradient-hero: linear-gradient(165deg, hsl(var(--background)) 0%, hsl(150 12% 10%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(150 10% 14%) 100%);
     
     /* Shadows - Dark Mode */
     --shadow-soft: 0 2px 20px -5px hsl(0 0% 0% / 0.3);
     --shadow-medium: 0 8px 30px -8px hsl(0 0% 0% / 0.4);
     --shadow-strong: 0 20px 40px -12px hsl(0 0% 0% / 0.5);
-    --shadow-glow: 0 0 50px hsl(var(--accent) / 0.4);
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --shadow-glow: 0 0 50px hsl(var(--primary) / 0.3);
+    --sidebar-background: 150 12% 10%;
+    --sidebar-foreground: 140 10% 90%;
+    --sidebar-primary: 142 55% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 150 10% 16%;
+    --sidebar-accent-foreground: 140 10% 90%;
+    --sidebar-border: 150 10% 18%;
+    --sidebar-ring: 142 55% 35%;
   }
 }
 

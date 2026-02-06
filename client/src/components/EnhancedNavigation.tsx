@@ -3,6 +3,7 @@ import { Phone, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/hooks/useLanguage';
 import { LanguageSelector } from '@/components/LanguageSelector';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import logo from '@/assets/logo.png';
 
@@ -47,8 +48,8 @@ const EnhancedNavigation = () => {
       animate={{ y: 0 }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled 
-          ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200' 
-          : 'bg-white/80 backdrop-blur-sm'
+          ? 'bg-background/95 backdrop-blur-md shadow-lg border-b border-border' 
+          : 'bg-background/80 backdrop-blur-sm'
       }`}
       dir={dir}
     >
@@ -71,33 +72,35 @@ const EnhancedNavigation = () => {
               <motion.button
                 key={item.href}
                 onClick={() => scrollToSection(item.href)}
-                className="text-gray-700 hover:text-green-800 font-medium transition-all duration-300 relative group text-sm"
+                className="text-foreground/70 hover:text-primary font-medium transition-all duration-300 relative group text-sm"
                 whileHover={{ y: -2 }}
               >
                 {item.label}
-                <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-800 group-hover:w-full transition-all duration-300" />
+                <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300" />
               </motion.button>
             ))}
             
             <a 
               href="tel:055-27-399-27"
-              className="flex items-center gap-2 text-green-800 font-semibold bg-green-50 px-4 py-2 rounded-full hover:bg-green-100 transition-colors"
+              className="flex items-center gap-2 text-primary font-semibold bg-primary/10 px-4 py-2 rounded-full hover:bg-primary/20 transition-colors"
             >
               <Phone className="w-4 h-4" />
               <span>055-27-399-27</span>
             </a>
 
             <LanguageSelector />
+            <ThemeToggle />
           </div>
 
           <div className="lg:hidden flex items-center gap-2">
             <LanguageSelector />
+            <ThemeToggle />
             
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsOpen(!isOpen)}
-              className="text-green-800"
+              className="text-primary"
               data-testid="button-mobile-menu"
             >
               <AnimatePresence mode="wait">
@@ -131,7 +134,7 @@ const EnhancedNavigation = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="lg:hidden mt-4 bg-white rounded-lg border border-gray-200 shadow-lg overflow-hidden"
+              className="lg:hidden mt-4 bg-card rounded-lg border border-border shadow-lg overflow-hidden"
             >
               <div className="p-4 space-y-1">
                 {navItems.map((item, index) => (
@@ -141,16 +144,16 @@ const EnhancedNavigation = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={() => scrollToSection(item.href)}
-                    className={`block w-full px-4 py-3 rounded-lg text-gray-700 hover:text-green-800 hover:bg-green-50 transition-all duration-300 font-medium ${isRTL ? 'text-right' : 'text-left'}`}
+                    className={`block w-full px-4 py-3 rounded-lg text-foreground/70 hover:text-primary hover:bg-primary/10 transition-all duration-300 font-medium ${isRTL ? 'text-right' : 'text-left'}`}
                   >
                     {item.label}
                   </motion.button>
                 ))}
                 
-                <div className="border-t border-gray-200 pt-4 mt-4">
+                <div className="border-t border-border pt-4 mt-4">
                   <a 
                     href="tel:055-27-399-27"
-                    className="flex items-center justify-center gap-2 text-green-800 font-semibold bg-green-50 px-4 py-3 rounded-lg hover:bg-green-100 transition-colors"
+                    className="flex items-center justify-center gap-2 text-primary font-semibold bg-primary/10 px-4 py-3 rounded-lg hover:bg-primary/20 transition-colors"
                   >
                     <Phone className="w-5 h-5" />
                     <span>055-27-399-27</span>

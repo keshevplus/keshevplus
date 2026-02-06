@@ -32,25 +32,25 @@ const accessibleButtonVariants = cva(
     variants: {
       variant: {
         primary: [
-          "bg-green-700 text-white",
-          "hover:bg-green-800",
+          "bg-primary text-primary-foreground",
+          "hover:bg-primary/90",
           "shadow-md hover:shadow-lg",
         ].join(" "),
         secondary: [
-          "bg-orange-500 text-white",
-          "hover:bg-orange-600",
+          "bg-secondary text-secondary-foreground",
+          "hover:bg-secondary/90",
           "shadow-md hover:shadow-lg",
         ].join(" "),
         outline: [
-          "border-2 border-green-700 text-green-700 bg-transparent",
-          "hover:bg-green-50",
+          "border-2 border-primary text-primary bg-transparent",
+          "hover:bg-primary/10",
         ].join(" "),
         ghost: [
           "text-foreground bg-transparent",
           "hover:bg-muted",
         ].join(" "),
         link: [
-          "text-green-700 underline-offset-4",
+          "text-primary underline-offset-4",
           "hover:underline",
           "min-h-0 px-0",
         ].join(" "),

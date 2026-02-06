@@ -70,7 +70,16 @@ shared/              - Shared types and schema
 - Main JS bundle: ~410 KB (down from ~592 KB), split into 19 lazy chunks
 - Images: hero images load eagerly, below-fold images use loading="lazy"
 
+## Dark Mode
+- **ThemeProvider**: `client/src/hooks/useTheme.tsx` - Context-based with localStorage persistence and system preference detection
+- **ThemeToggle**: `client/src/components/ThemeToggle.tsx` - Sun/Moon icon toggle button
+- **CSS Variables**: `.dark` class in `index.css` uses clinic green/orange brand colors (not default blue)
+- **Semantic Tokens**: All components use bg-background, text-foreground, bg-card, bg-primary, text-primary-foreground, bg-muted, text-muted-foreground instead of hardcoded colors
+- **Exceptions**: Third-party brand colors (WhatsApp #25D366, Waze #33CCFF, Google Maps #4285F4) remain hardcoded
+- **Toggle Location**: In navigation bar (both desktop and mobile)
+
 ## Recent Changes
+- 2026-02-06: Dark mode implementation - ThemeProvider, semantic color tokens, brand-consistent dark theme
 - 2026-02-06: Performance optimization - code splitting, dependency cleanup, 31% bundle reduction
 - 2026-02-06: Fixed SIGBUS crash by cleaning corrupted node_modules (bun/npm conflict)
 - 2026-02-06: Removed lovable-tagger dependency
@@ -79,3 +88,4 @@ shared/              - Shared types and schema
 ## User Preferences
 - Hebrew RTL website
 - Clean, professional medical clinic design
+- Dark mode support with brand-consistent colors

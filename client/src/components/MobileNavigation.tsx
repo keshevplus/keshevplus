@@ -3,6 +3,7 @@ import { Phone, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/hooks/useLanguage';
 import { LanguageSelector } from '@/components/LanguageSelector';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { AccessibleButton } from '@/components/ui/accessible-button';
 import logo from '@/assets/logo.png';
 import { cn } from '@/lib/utils';
@@ -78,7 +79,7 @@ const MobileNavigation: React.FC = () => {
     <>
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:bg-green-700 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-lg"
       >
         {isRTL ? '\u05d3\u05dc\u05d2 \u05dc\u05ea\u05d5\u05db\u05df \u05d4\u05e8\u05d0\u05e9\u05d9' : 'Skip to main content'}
       </a>
@@ -91,8 +92,8 @@ const MobileNavigation: React.FC = () => {
         className={cn(
           'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
           isScrolled 
-            ? 'bg-white/95 backdrop-blur-md shadow-md' 
-            : 'bg-white/80 backdrop-blur-sm'
+            ? 'bg-background/95 backdrop-blur-md shadow-md' 
+            : 'bg-background/80 backdrop-blur-sm'
         )}
         dir={dir}
       >
@@ -100,7 +101,7 @@ const MobileNavigation: React.FC = () => {
           <div className="flex items-center justify-between h-16 md:h-20">
             <button
               onClick={() => scrollToSection('#home')}
-              className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2 rounded-lg"
+              className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg"
               aria-label={isRTL ? '\u05d7\u05d6\u05e8\u05d4 \u05dc\u05d3\u05e3 \u05d4\u05d1\u05d9\u05ea' : 'Go to homepage'}
             >
               <img 
@@ -117,8 +118,8 @@ const MobileNavigation: React.FC = () => {
                   onClick={() => scrollToSection(item.href)}
                   className={cn(
                     "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
-                    "text-gray-700 hover:text-green-800 hover:bg-green-50",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2",
+                    "text-foreground/70 hover:text-primary hover:bg-primary/10",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                     "min-h-[44px] flex items-center"
                   )}
                 >
@@ -131,10 +132,10 @@ const MobileNavigation: React.FC = () => {
               <a 
                 href="tel:055-27-399-27"
                 className={cn(
-                  "flex items-center gap-2 text-green-800 font-medium",
-                  "bg-green-50 px-4 py-2 rounded-full",
-                  "hover:bg-green-100 transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2",
+                  "flex items-center gap-2 text-primary font-medium",
+                  "bg-primary/10 px-4 py-2 rounded-full",
+                  "hover:bg-primary/20 transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                   "min-h-[44px]"
                 )}
                 aria-label={isRTL ? '\u05d4\u05ea\u05e7\u05e9\u05e8\u05d5 \u05d0\u05dc\u05d9\u05e0\u05d5: 055-27-399-27' : 'Call us: 055-27-399-27'}
@@ -144,10 +145,12 @@ const MobileNavigation: React.FC = () => {
               </a>
 
               <LanguageSelector />
+              <ThemeToggle />
             </div>
 
             <div className="lg:hidden flex items-center gap-2">
               <LanguageSelector />
+              <ThemeToggle />
               
               <AccessibleButton
                 variant="ghost"
@@ -178,7 +181,7 @@ const MobileNavigation: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/20 backdrop-blur-sm lg:hidden"
+                className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm lg:hidden"
                 onClick={() => setIsOpen(false)}
                 aria-hidden="true"
               />
@@ -189,7 +192,7 @@ const MobileNavigation: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
-                className="absolute top-full left-0 right-0 bg-white border-t border-gray-100 shadow-lg lg:hidden"
+                className="absolute top-full left-0 right-0 bg-card border-t border-border shadow-lg lg:hidden"
                 role="menu"
               >
                 <div className="container mx-auto px-4 py-4">
@@ -203,8 +206,8 @@ const MobileNavigation: React.FC = () => {
                         onClick={() => scrollToSection(item.href)}
                         className={cn(
                           "w-full px-4 py-3 rounded-lg text-base font-medium",
-                          "text-gray-700 hover:text-green-800 hover:bg-green-50",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700",
+                          "text-foreground/70 hover:text-primary hover:bg-primary/10",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                           "min-h-[48px] flex items-center",
                           isRTL ? 'text-right' : 'text-left'
                         )}
@@ -215,15 +218,15 @@ const MobileNavigation: React.FC = () => {
                     ))}
                   </div>
                   
-                  <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="mt-4 pt-4 border-t border-border">
                     <a 
                       href="tel:055-27-399-27"
                       className={cn(
                         "flex items-center justify-center gap-2",
                         "w-full py-3 rounded-lg",
-                        "bg-green-700 text-white font-medium",
-                        "hover:bg-green-800 transition-colors",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2",
+                        "bg-primary text-primary-foreground font-medium",
+                        "hover:bg-primary/90 transition-colors",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                         "min-h-[48px]"
                       )}
                     >

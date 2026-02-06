@@ -421,7 +421,7 @@ const ContactSection: React.FC = () => {
           transition={{ duration: 0.5 }}
           viewport={{ once: true }}
         >
-          <Card className="border-gray-100 shadow-lg">
+          <Card className="border-border shadow-lg">
             <CardHeader className="pb-4">
               <CardTitle className="text-xl text-primary">
                 {language === 'he' ? 'השאירו פרטים' : 'Leave Your Details'}
@@ -435,8 +435,8 @@ const ContactSection: React.FC = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   className="text-center py-8"
                 >
-                  <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">
+                  <CheckCircle className="w-16 h-16 text-primary mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2 text-foreground">
                     {language === 'he' ? 'תודה שפניתם אלינו!' : 'Thank you for contacting us!'}
                   </h3>
                   <p className="text-muted-foreground">

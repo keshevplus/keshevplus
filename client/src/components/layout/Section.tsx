@@ -26,8 +26,8 @@ interface SectionProps {
 const backgroundVariants = {
   default: 'bg-background',
   muted: 'bg-muted/30',
-  primary: 'bg-green-800 text-white',
-  gradient: 'bg-gradient-to-br from-green-800 to-green-950 text-white',
+  primary: 'bg-primary text-primary-foreground',
+  gradient: 'bg-gradient-to-br from-primary to-primary/70 text-primary-foreground',
 };
 
 const spacingVariants = {
@@ -89,12 +89,12 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
 }) => {
   return (
     <div className={cn('mb-8 md:mb-12', className)}>
-      <div className="bg-green-700 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-5 md:py-6">
+      <div className="bg-primary -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-5 md:py-6">
         <div className="max-w-7xl mx-auto">
           <h2
             id={titleId}
             className={cn(
-              "text-2xl sm:text-3xl lg:text-4xl font-bold text-white",
+              "text-2xl sm:text-3xl lg:text-4xl font-bold text-primary-foreground",
               centered && "text-center"
             )}
           >
@@ -102,7 +102,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
           </h2>
           {subtitle && (
             <p className={cn(
-              "text-base sm:text-lg text-green-100 mt-2 max-w-2xl leading-relaxed",
+              "text-base sm:text-lg text-primary-foreground/80 mt-2 max-w-2xl leading-relaxed",
               centered && "text-center mx-auto"
             )}>
               {subtitle}

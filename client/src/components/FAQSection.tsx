@@ -11,27 +11,14 @@ import {
 import { contentApi, useContent } from '@/lib/content';
 import { cn } from '@/lib/utils';
 
-/**
- * FAQSection - Accessible FAQ with progressive disclosure
- * 
- * UX Improvements:
- * - Progressive disclosure reduces cognitive load
- * - Large touch targets for accordion triggers
- * - Semantic HTML with proper ARIA
- * - Data-driven content from API
- * - Mobile-optimized typography and spacing
- */
-
 const FAQSection: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
   
-  // Fetch FAQs from API
   const { data: faqs, loading } = useContent(
     () => contentApi.getFAQs(),
     []
   );
 
-  // Loading skeleton
   if (loading) {
     return (
       <Section 
@@ -46,7 +33,7 @@ const FAQSection: React.FC = () => {
         />
         <div className="max-w-3xl mx-auto space-y-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-16 bg-white rounded-lg animate-pulse" />
+            <div key={i} className="h-16 bg-card rounded-lg animate-pulse" />
           ))}
         </div>
       </Section>
@@ -63,7 +50,7 @@ const FAQSection: React.FC = () => {
       <SectionHeader 
         title={t('nav.faq')} 
         subtitle={language === 'he' 
-          ? 'מצאו תשובות לשאלות הנפוצות ביותר על אבחון וטיפול ב-ADHD'
+          ? '\u05de\u05e6\u05d0\u05d5 \u05ea\u05e9\u05d5\u05d1\u05d5\u05ea \u05dc\u05e9\u05d0\u05dc\u05d5\u05ea \u05d4\u05e0\u05e4\u05d5\u05e6\u05d5\u05ea \u05d1\u05d9\u05d5\u05ea\u05e8 \u05e2\u05dc \u05d0\u05d1\u05d7\u05d5\u05df \u05d5\u05d8\u05d9\u05e4\u05d5\u05dc \u05d1-ADHD'
           : 'Find answers to the most common questions about ADHD diagnosis and treatment'
         }
         titleId="faq-heading"
@@ -82,7 +69,7 @@ const FAQSection: React.FC = () => {
               key={faq.id}
               value={faq.id}
               className={cn(
-                "bg-white rounded-lg border border-gray-100",
+                "bg-card rounded-lg border border-border",
                 "shadow-sm hover:shadow-md transition-shadow",
                 "overflow-hidden"
               )}
@@ -92,9 +79,8 @@ const FAQSection: React.FC = () => {
                   "px-4 sm:px-6 py-4 sm:py-5",
                   "text-left hover:no-underline",
                   "min-h-[56px] sm:min-h-[64px]",
-                  // Ensure touch target is large enough
                   "[&>svg]:w-5 [&>svg]:h-5 [&>svg]:shrink-0",
-                  "[&>svg]:ml-4 [&>svg]:text-green-700",
+                  "[&>svg]:ml-4 [&>svg]:text-primary",
                   isRTL && "[&>svg]:ml-0 [&>svg]:mr-4"
                 )}
               >
@@ -104,7 +90,7 @@ const FAQSection: React.FC = () => {
               </AccordionTrigger>
               
               <AccordionContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-                <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
                   {faq.answer[language]}
                 </p>
               </AccordionContent>
@@ -113,7 +99,6 @@ const FAQSection: React.FC = () => {
         </Accordion>
       </motion.div>
 
-      {/* Additional Help CTA */}
       <motion.div
         className="text-center mt-10 sm:mt-12"
         initial={{ opacity: 0 }}
@@ -123,7 +108,7 @@ const FAQSection: React.FC = () => {
       >
         <p className="text-base text-muted-foreground">
           {language === 'he' 
-            ? 'לא מצאתם תשובה לשאלה שלכם?' 
+            ? '\u05dc\u05d0 \u05de\u05e6\u05d0\u05ea\u05dd \u05ea\u05e9\u05d5\u05d1\u05d4 \u05dc\u05e9\u05d0\u05dc\u05d4 \u05e9\u05dc\u05db\u05dd?' 
             : "Didn't find the answer you're looking for?"}
         </p>
         <a
@@ -133,14 +118,14 @@ const FAQSection: React.FC = () => {
             document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
           }}
           className={cn(
-            "inline-flex items-center justify-center mt-2 text-green-700 font-medium",
+            "inline-flex items-center justify-center mt-2 text-primary font-medium",
             "underline underline-offset-4",
-            "hover:text-green-800 transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2",
+            "hover:text-primary/80 transition-colors",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
             "min-h-[44px]"
           )}
         >
-          {language === 'he' ? 'צרו איתנו קשר' : 'Contact us'}
+          {language === 'he' ? '\u05e6\u05e8\u05d5 \u05d0\u05d9\u05ea\u05e0\u05d5 \u05e7\u05e9\u05e8' : 'Contact us'}
         </a>
       </motion.div>
     </Section>
