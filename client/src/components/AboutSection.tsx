@@ -47,7 +47,7 @@ const AboutSection: React.FC = () => {
   return (
     <Section 
       id="about" 
-      className="bg-gradient-to-b from-white to-gray-50"
+      className="bg-[#FFFDF5]"
       dir={isRTL ? 'rtl' : 'ltr'}
       aria-labelledby="about-heading"
     >
