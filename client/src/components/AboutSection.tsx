@@ -5,7 +5,7 @@ import { Heart, Award, Shield, CheckCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useLanguage } from '@/hooks/useLanguage';
 import { contentApi, useContent, type AboutContent } from '@/lib/content';
-import { Section } from '@/components/layout/Section';
+import { Section, SectionHeader } from '@/components/layout/Section';
 import heroAbout from '@/assets/hero-about.jpg';
 
 /**
@@ -49,21 +49,13 @@ const AboutSection: React.FC = () => {
       id="about" 
       className="bg-gradient-to-b from-white to-gray-50"
       dir={isRTL ? 'rtl' : 'ltr'}
+      aria-labelledby="about-heading"
     >
-      <motion.div
-        ref={ref}
-        initial={{ opacity: 0, y: 30 }}
-        animate={inView ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.6 }}
-        className="text-center mb-12"
-      >
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-green-800 mb-4">
-          {content.title[language]}
-        </h2>
-        <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
-          {content.subtitle[language]}
-        </p>
-      </motion.div>
+      <SectionHeader 
+        title={content.title[language]}
+        subtitle={content.subtitle[language]}
+        titleId="about-heading"
+      />
 
       <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center mb-8 sm:mb-12 lg:mb-16">
         {/* Doctor Profile Image */}

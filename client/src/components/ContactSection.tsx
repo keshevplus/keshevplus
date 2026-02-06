@@ -275,7 +275,7 @@ const ContactSection: React.FC = () => {
       aria-labelledby="contact-heading"
     >
       <SectionHeader 
-        title={language === 'he' ? 'צור קשר' : 'Contact Us'} 
+        title={t('nav.contact')} 
         subtitle={language === 'he' 
           ? 'השאירו פרטים ונחזור אליכם בהקדם האפשרי'
           : "Leave your details and we'll get back to you as soon as possible"

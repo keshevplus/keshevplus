@@ -69,7 +69,7 @@ export const Section: React.FC<SectionProps> = ({
 };
 
 /**
- * SectionHeader - Consistent section header with title and subtitle
+ * SectionHeader - Full-width green banner with white title text
  */
 interface SectionHeaderProps {
   title: string;
@@ -87,25 +87,28 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   titleId,
 }) => {
   return (
-    <header className={cn('mb-8 md:mb-12', centered && 'text-center', className)}>
-      <h2
-        id={titleId}
-        className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-3 md:mb-4"
-      >
-        {title}
-      </h2>
-      {subtitle && (
-        <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-          {subtitle}
-        </p>
-      )}
-      <div 
-        className={cn(
-          "h-1 w-16 bg-gradient-to-r from-green-600 to-green-800 rounded-full mt-4",
-          centered && "mx-auto"
-        )}
-        aria-hidden="true"
-      />
-    </header>
+    <div className={cn('mb-8 md:mb-12', className)}>
+      <div className="bg-green-700 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-5 md:py-6">
+        <div className="max-w-7xl mx-auto">
+          <h2
+            id={titleId}
+            className={cn(
+              "text-2xl sm:text-3xl lg:text-4xl font-bold text-white",
+              centered && "text-center"
+            )}
+          >
+            {title}
+          </h2>
+          {subtitle && (
+            <p className={cn(
+              "text-base sm:text-lg text-green-100 mt-2 max-w-2xl leading-relaxed",
+              centered && "text-center mx-auto"
+            )}>
+              {subtitle}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };

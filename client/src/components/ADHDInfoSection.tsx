@@ -6,7 +6,7 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { Section, SectionHeader } from '@/components/layout/Section';
 
 const ADHDInfoSection = () => {
-  const { language, isRTL } = useLanguage();
+  const { language, t, isRTL } = useLanguage();
 
   const symptoms = language === 'he' ? [
     { icon: Brain, title: 'קשיי ריכוז', desc: 'קושי בשמירה על קשב למשימות' },
@@ -27,27 +27,14 @@ const ADHDInfoSection = () => {
       dir={isRTL ? 'rtl' : 'ltr'}
       aria-labelledby="adhd-heading"
     >
-      <motion.div
-        className="text-center mb-8 sm:mb-12 lg:mb-16"
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        viewport={{ once: true }}
-      >
-        <h2 
-          id="adhd-heading"
-          className="font-bold mb-4 sm:mb-6 gradient-text"
-        >
-          {language === 'he' ? 'מה זה ADHD?' : 'What is ADHD?'}
-        </h2>
-        <div className="w-16 sm:w-24 h-1 bg-gradient-primary mx-auto rounded-full mb-4 sm:mb-6" aria-hidden="true" />
-        <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-          {language === 'he' 
-            ? 'ADHD היא הפרעה נוירו-התפתחותית הפוגעת ביכולת הריכוז, הקשב והשליטה בדחפים. ההפרעה מתחילה בגיל הילדות ויכולה להמשיך עד לבגרות.'
-            : 'ADHD is a neurodevelopmental disorder affecting concentration, attention and impulse control. The disorder begins in childhood and can continue into adulthood.'
-          }
-        </p>
-      </motion.div>
+      <SectionHeader 
+        title={t('nav.adhd')}
+        subtitle={language === 'he' 
+          ? 'ADHD היא הפרעה נוירו-התפתחותית הפוגעת ביכולת הריכוז, הקשב והשליטה בדחפים. ההפרעה מתחילה בגיל הילדות ויכולה להמשיך עד לבגרות.'
+          : 'ADHD is a neurodevelopmental disorder affecting concentration, attention and impulse control. The disorder begins in childhood and can continue into adulthood.'
+        }
+        titleId="adhd-heading"
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8 mb-8 sm:mb-12 lg:mb-16">
         {symptoms.map((symptom, index) => (
