@@ -137,15 +137,15 @@ const MobileNavigation: React.FC = () => {
               <a 
                 href="tel:055-27-399-27"
                 className={cn(
-                  "flex items-center gap-2 text-primary font-medium",
-                  "bg-primary/10 px-4 py-2 rounded-full",
+                  "flex items-center gap-2 text-primary font-semibold whitespace-nowrap",
+                  "bg-primary/10 px-5 py-2 rounded-full text-base lg:text-lg",
                   "hover:bg-primary/20 transition-colors",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                   "min-h-[44px]"
                 )}
                 aria-label={isRTL ? 'התקשרו אלינו: 055-27-399-27' : 'Call us: 055-27-399-27'}
               >
-                <Phone className="w-4 h-4" aria-hidden="true" />
+                <Phone className="w-5 h-5" aria-hidden="true" />
                 <span>055-27-399-27</span>
               </a>
 
