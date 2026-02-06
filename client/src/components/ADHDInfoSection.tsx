@@ -3,11 +3,13 @@ import { motion } from 'framer-motion';
 import { Brain, Target, Zap, Users } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useLanguage } from '@/hooks/useLanguage';
+import { Section, SectionHeader } from '@/components/layout/Section';
 
 const ADHDInfoSection = () => {
   const { language } = useLanguage();
+  const isRTL = language === 'he';
 
-  const symptoms = language === 'he' ? [
+  const symptoms = isRTL ? [
     { icon: Brain, title: 'קשיי ריכוז', desc: 'קושי בשמירה על קשב למשימות' },
     { icon: Zap, title: 'היפראקטיביות', desc: 'תנועתיות מוגברת וחוסר מנוחה' },
     { icon: Target, title: 'אימפולסיביות', desc: 'פעילות ללא מחשבה מוקדמת' },
@@ -20,72 +22,77 @@ const ADHDInfoSection = () => {
   ];
 
   return (
-    <section id="adhd" className="py-20 bg-muted/30" dir={language === 'he' ? 'rtl' : 'ltr'}>
-      <div className="max-w-7xl mx-auto px-4">
-        <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
+    <Section 
+      id="adhd" 
+      background="muted" 
+      dir={isRTL ? 'rtl' : 'ltr'}
+      aria-labelledby="adhd-heading"
+    >
+      <motion.div
+        className="text-center mb-8 sm:mb-12 lg:mb-16"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true }}
+      >
+        <h2 
+          id="adhd-heading"
+          className="font-bold mb-4 sm:mb-6 gradient-text"
         >
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6 gradient-text">
-            {language === 'he' ? 'מה זה ADHD?' : 'What is ADHD?'}
-          </h2>
-          <div className="w-24 h-1 bg-gradient-primary mx-auto rounded-full mb-8" />
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            {language === 'he' 
-              ? 'ADHD היא הפרעה נוירו-התפתחותית הפוגעת ביכולת הריכוז, הקשב והשליטה בדחפים. ההפרעה מתחילה בגיל הילדות ויכולה להמשיך עד לבגרות.'
-              : 'ADHD is a neurodevelopmental disorder affecting concentration, attention and impulse control. The disorder begins in childhood and can continue into adulthood.'
-            }
-          </p>
-        </motion.div>
+          {isRTL ? 'מה זה ADHD?' : 'What is ADHD?'}
+        </h2>
+        <div className="w-16 sm:w-24 h-1 bg-gradient-primary mx-auto rounded-full mb-4 sm:mb-6" aria-hidden="true" />
+        <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+          {isRTL 
+            ? 'ADHD היא הפרעה נוירו-התפתחותית הפוגעת ביכולת הריכוז, הקשב והשליטה בדחפים. ההפרעה מתחילה בגיל הילדות ויכולה להמשיך עד לבגרות.'
+            : 'ADHD is a neurodevelopmental disorder affecting concentration, attention and impulse control. The disorder begins in childhood and can continue into adulthood.'
+          }
+        </p>
+      </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
-          {symptoms.map((symptom, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              viewport={{ once: true }}
-            >
-              <Card className="h-full text-center hover-lift shadow-elegant border-0 bg-background">
-                <CardContent className="p-6">
-                  <motion.div
-                    className="w-16 h-16 mx-auto mb-4 bg-gradient-primary rounded-2xl flex items-center justify-center shadow-glow"
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <symptom.icon className="w-8 h-8 text-primary-foreground" />
-                  </motion.div>
-                  <h3 className="font-bold text-lg mb-2">{symptom.title}</h3>
-                  <p className="text-muted-foreground text-sm">{symptom.desc}</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-
-        <motion.div
-          className="bg-gradient-primary rounded-3xl p-8 lg:p-12 text-center"
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
-        >
-          <h3 className="text-2xl lg:text-3xl font-bold text-primary-foreground mb-6">
-            {language === 'he' ? 'זכרו - ADHD ניתן לטיפול!' : 'Remember - ADHD is treatable!'}
-          </h3>
-          <p className="text-primary-foreground/90 text-lg leading-relaxed max-w-3xl mx-auto">
-            {language === 'he'
-              ? 'עם האבחון הנכון והטיפול המתאים, ניתן לשפר משמעותית את איכות החיים ולהגיע להישגים גבוהים בכל תחומי החיים.'
-              : 'With proper diagnosis and appropriate treatment, quality of life can be significantly improved and high achievements can be reached in all areas of life.'
-            }
-          </p>
-        </motion.div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8 mb-8 sm:mb-12 lg:mb-16">
+        {symptoms.map((symptom, index) => (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
+            viewport={{ once: true }}
+          >
+            <Card className="h-full text-center shadow-md border-0 bg-background">
+              <CardContent className="p-3 sm:p-4 md:p-6">
+                <div
+                  className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 mx-auto mb-2 sm:mb-3 md:mb-4 bg-gradient-primary rounded-xl sm:rounded-2xl flex items-center justify-center"
+                  aria-hidden="true"
+                >
+                  <symptom.icon className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-primary-foreground" />
+                </div>
+                <h3 className="font-bold text-sm sm:text-base md:text-lg mb-1 sm:mb-2">{symptom.title}</h3>
+                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">{symptom.desc}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
       </div>
-    </section>
+
+      <motion.div
+        className="bg-gradient-primary rounded-xl sm:rounded-2xl lg:rounded-3xl p-5 sm:p-8 lg:p-12 text-center"
+        initial={{ opacity: 0, scale: 0.95 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true }}
+      >
+        <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-primary-foreground mb-3 sm:mb-4 md:mb-6">
+          {isRTL ? 'זכרו - ADHD ניתן לטיפול!' : 'Remember - ADHD is treatable!'}
+        </h3>
+        <p className="text-primary-foreground/90 text-sm sm:text-base lg:text-lg leading-relaxed max-w-3xl mx-auto">
+          {isRTL
+            ? 'עם האבחון הנכון והטיפול המתאים, ניתן לשפר משמעותית את איכות החיים ולהגיע להישגים גבוהים בכל תחומי החיים.'
+            : 'With proper diagnosis and appropriate treatment, quality of life can be significantly improved and high achievements can be reached in all areas of life.'
+          }
+        </p>
+      </motion.div>
+    </Section>
   );
 };
 

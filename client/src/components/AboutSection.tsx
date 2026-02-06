@@ -66,7 +66,7 @@ const AboutSection: React.FC = () => {
         </p>
       </motion.div>
 
-      <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center mb-16">
+      <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center mb-8 sm:mb-12 lg:mb-16">
         {/* Doctor Profile Image */}
         <motion.div
           initial={{ opacity: 0, x: isRTL ? 30 : -30 }}
@@ -75,11 +75,11 @@ const AboutSection: React.FC = () => {
           className={`order-1 ${isRTL ? 'lg:order-2' : 'lg:order-1'}`}
         >
           <div className="relative">
-            <div className="absolute -inset-4 bg-gradient-to-br from-green-200 to-green-100 rounded-2xl transform rotate-2" />
+            <div className="absolute -inset-2 sm:-inset-4 bg-gradient-to-br from-green-200 to-green-100 rounded-xl sm:rounded-2xl transform rotate-2" />
             <img
               src={heroAbout}
               alt={content.teamMember.name[language]}
-              className="relative rounded-xl shadow-xl w-full max-w-md mx-auto object-cover aspect-[4/5]"
+              className="relative rounded-lg sm:rounded-xl shadow-xl w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto object-cover aspect-[4/5]"
               loading="lazy"
             />
           </div>

@@ -49,15 +49,15 @@ const MedicalHero: React.FC = () => {
           aria-label={isRTL ? 'ברוכים הבאים לקשב פלוס' : 'Welcome to Keshev Plus'}
         >
           {/* Hero Content */}
-          <div className="relative z-10 container mx-auto px-4 sm:px-6 pt-20 md:pt-24 lg:pt-28 pb-12 md:pb-16">
-            <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
+          <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 pt-20 md:pt-24 lg:pt-28 pb-8 sm:pb-12 md:pb-16">
+            <div className="flex flex-col lg:flex-row items-center gap-6 sm:gap-8 lg:gap-12">
               
               {/* Text Content */}
               <div className="w-full lg:w-1/2 order-2 lg:order-1 text-center lg:text-start">
                 
-                {/* Logo - Centered and larger */}
+                {/* Logo */}
                 <motion.div
-                  className="flex justify-center lg:justify-start mb-6"
+                  className="flex justify-center lg:justify-start mb-4 sm:mb-6"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.5, delay: 0.1 }}
@@ -65,13 +65,14 @@ const MedicalHero: React.FC = () => {
                   <img
                     src={logo}
                     alt={isRTL ? 'קשב פלוס' : 'Keshev Plus'}
-                    className="w-48 sm:w-56 md:w-64 lg:w-80 xl:w-96 h-auto drop-shadow-md"
+                    className="w-40 sm:w-52 md:w-64 lg:w-72 xl:w-80 h-auto drop-shadow-md"
                   />
                 </motion.div>
                 
-                {/* Welcome Text - Without duplicate clinic name */}
+                {/* Welcome Text */}
                 <motion.h1 
-                  className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-green-800 mb-4 leading-tight"
+                  className="font-bold text-green-800 mb-3 sm:mb-4 leading-tight"
+                  style={{ fontSize: 'clamp(1.25rem, 3vw + 0.25rem, 2.5rem)' }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
@@ -81,14 +82,14 @@ const MedicalHero: React.FC = () => {
 
                 {/* Typing Animation Text */}
                 <motion.p 
-                  className="text-lg sm:text-xl md:text-2xl text-gray-700 mb-4 leading-relaxed"
+                  className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-700 mb-3 sm:mb-4 leading-relaxed"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.3 }}
                 >
                   {isRTL ? 'אבחון וטיפול בהפרעות קשב וריכוז ' : 'Diagnosis and Treatment of ADHD '}
                   <span 
-                    className="inline-block min-w-[100px] font-bold text-green-800"
+                    className="inline-block min-w-[80px] sm:min-w-[100px] font-bold text-green-800"
                     aria-live="polite"
                     aria-atomic="true"
                   >
@@ -98,7 +99,7 @@ const MedicalHero: React.FC = () => {
 
                 {/* Value Proposition */}
                 <motion.p 
-                  className="text-base sm:text-lg md:text-xl text-gray-600 mb-6 leading-relaxed max-w-xl mx-auto lg:mx-0"
+                  className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-600 mb-4 sm:mb-6 leading-relaxed max-w-xl mx-auto lg:mx-0"
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.4 }}
@@ -110,7 +111,7 @@ const MedicalHero: React.FC = () => {
 
                 {/* Reassurance Text */}
                 <motion.p 
-                  className="text-sm sm:text-base text-gray-500 mb-8 max-w-lg mx-auto lg:mx-0"
+                  className="text-xs sm:text-sm md:text-base text-gray-500 mb-6 sm:mb-8 max-w-lg mx-auto lg:mx-0"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.5 }}
@@ -120,7 +121,7 @@ const MedicalHero: React.FC = () => {
                     : 'One small step can change everything'}
                 </motion.p>
 
-                {/* CTA Buttons - Stacked on mobile, side-by-side on desktop */}
+                {/* CTA Buttons */}
                 <motion.div 
                   className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start"
                   initial={{ opacity: 0, y: 20 }}
@@ -152,8 +153,9 @@ const MedicalHero: React.FC = () => {
                 <motion.a
                   href="tel:055-27-399-27"
                   className={cn(
-                    "mt-6 inline-flex items-center justify-center gap-2",
+                    "mt-4 sm:mt-6 inline-flex items-center justify-center gap-2",
                     "text-green-800 font-medium text-sm",
+                    "min-h-[44px]",
                     "lg:hidden"
                   )}
                   initial={{ opacity: 0 }}
@@ -176,7 +178,7 @@ const MedicalHero: React.FC = () => {
                 <img
                   src={doctorHero}
                   alt={isRTL ? 'רופאה מומחית באבחון ADHD' : 'Expert ADHD specialist doctor'}
-                  className="w-64 sm:w-80 md:w-96 lg:w-full max-w-md h-auto object-contain drop-shadow-xl"
+                  className="w-48 sm:w-64 md:w-80 lg:w-full max-w-sm lg:max-w-md h-auto object-contain drop-shadow-xl"
                   loading="eager"
                 />
               </motion.div>
@@ -185,7 +187,7 @@ const MedicalHero: React.FC = () => {
 
           {/* Bottom CTA Section */}
           <section 
-            className="relative z-10 bg-gradient-to-r from-green-800 to-green-900 py-12 md:py-16"
+            className="relative z-10 bg-gradient-to-r from-green-800 to-green-900 py-8 sm:py-12 md:py-16"
             dir={isRTL ? 'rtl' : 'ltr'}
             aria-labelledby="cta-heading"
           >

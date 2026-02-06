@@ -35,8 +35,8 @@ const Footer: React.FC = () => {
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       {/* Main Footer Content */}
-      <div className="container mx-auto px-4 py-12 lg:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-12">
           
           {/* Logo & About */}
           <div className="space-y-4">
@@ -147,8 +147,8 @@ const Footer: React.FC = () => {
       <Separator className="bg-green-800" />
 
       {/* Bottom Bar */}
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-green-200">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 text-xs sm:text-sm text-green-200">
           <p>{t('footer.rights')}</p>
           <div className="flex gap-4">
             <a href="#" className="hover:text-white transition-colors">

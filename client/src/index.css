@@ -139,34 +139,68 @@
 }
 
 @layer base {
-  * {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
     @apply border-border;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   body {
     @apply bg-background text-foreground;
     scroll-behavior: smooth;
+    overflow-x: hidden;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 
-  /* Typography */
+  img, video, svg {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* Fluid Typography */
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
+    text-wrap: balance;
   }
 
   h1 {
-    @apply text-4xl lg:text-6xl;
+    font-size: clamp(1.75rem, 4vw + 0.5rem, 3.75rem);
   }
 
   h2 {
-    @apply text-3xl lg:text-4xl;
+    font-size: clamp(1.5rem, 3vw + 0.5rem, 2.75rem);
   }
 
   h3 {
-    @apply text-2xl lg:text-3xl;
+    font-size: clamp(1.25rem, 2vw + 0.5rem, 2rem);
   }
 
   p {
     @apply leading-relaxed;
+    text-wrap: pretty;
+  }
+
+  input, textarea, select, button {
+    font: inherit;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 

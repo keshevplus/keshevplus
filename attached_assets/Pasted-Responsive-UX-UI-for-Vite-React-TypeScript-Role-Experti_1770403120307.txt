@@ -1,0 +1,120 @@
+Responsive UX/UI for Vite + React + TypeScript
+Role & Expertise
+You are acting as a Senior UX/UI Designer and Senior Frontend Engineer with deep expertise in:
+Responsive design systems
+React component architecture
+TypeScript-first development
+Accessibility (WCAG 2.1+)
+Modern CSS (Grid, Flexbox, clamp, container queries if supported)
+🎯 Objective
+Refactor and/or implement the UI so the entire React application is fully responsive, device-agnostic, and breakpoint-safe across:
+Mobile: 320–480px
+Large mobile / small tablet: 481–768px
+Tablet: 769–1024px
+Laptop: 1025–1440px
+Large / ultra-wide: 1441px+
+This applies to:
+Page layouts
+React components
+Forms
+Tables / result views
+Navigation
+Interactive states
+🧱 Tech Stack & Constraints
+Build tool: Vite
+Framework: React
+Language: TypeScript
+Styling: CSS / CSS Modules / PostCSS (no heavy UI frameworks unless unavoidable)
+Prefer CSS Grid for layout, Flexbox for components
+No device-specific hacks
+Use progressive enhancement
+🏗️ Project-Level Architecture Rules
+1. Mobile-First Strategy
+Start with single-column layouts
+Enhance progressively using:
+Copy code
+Css
+@media (min-width: ...)
+Avoid max-width queries unless there is a strong reason
+2. Layout System
+Use CSS Grid for:
+Page shells
+Section layouts
+Results panels
+Use Flexbox for:
+Form rows
+Button groups
+Inline controls
+No fixed widths unless strictly necessary
+3. Container Strategy
+Implement a reusable layout container:
+Centered content
+Max width for large screens
+Comfortable line length (≈ 60–80ch)
+Do not stretch long-form content edge-to-edge on ultra-wide screens
+📝 Typography & Spacing
+Use relative units only:
+rem, em, %, vw (sparingly)
+Base font size: 16px (1rem)
+Headings must scale fluidly using:
+Copy code
+Css
+font-size: clamp(min, preferred, max);
+Establish spacing tokens (design-system-lite):
+Copy code
+Css
+--space-1 … --space-n
+Maintain consistent vertical rhythm across components
+🧩 Forms & Interactive Components (Critical)
+On mobile:
+All fields stack vertically
+On tablet+:
+Optional multi-column layouts
+Inputs, selects, buttons must:
+Have a minimum 44px touch height
+Be full-width on small screens
+Conditional fields must:
+Appear/disappear without layout jumps
+Never cause overflow or horizontal scroll
+📊 Tables & Data Views
+For any tabular or dense data:
+Mobile behavior must be one of:
+Horizontal scroll container with visual affordance
+Transform rows into stacked “card” layouts
+Headers must remain readable and accessible
+Long values must wrap, not clip
+🧭 Navigation
+Mobile:
+Collapsible menu or stacked navigation
+Desktop:
+Horizontal navigation
+Navigation must support:
+Touch
+Keyboard navigation
+Screen readers (ARIA where appropriate)
+♿ Accessibility (Mandatory)
+WCAG-compliant color contrast
+Proper label–input associations
+Logical tab order
+Visible focus states (:focus-visible)
+No hover-only interactions
+Responsive changes must not break accessibility semantics
+🧪 Testing & Validation
+You must verify:
+Breakpoints at:
+320, 375, 414, 768, 1024, 1280, 1440, 1920px
+Chrome + Firefox
+Mobile emulation
+No unintended horizontal scrolling
+No layout jumps between breakpoints
+Consistent spacing and alignment
+📦 Deliverables
+Clean, modular, well-commented CSS (or CSS Modules)
+Updated React components with semantic markup
+Minimal JS/TS logic only where required (e.g. menu toggles)
+No unused CSS, no redundant media queries
+❗ Quality Bar
+No hard-coded pixel layouts
+No “desktop-first” assumptions
+Mobile experience is first-class, not degraded
+Usability, clarity, and responsiveness take priority over visual flair
