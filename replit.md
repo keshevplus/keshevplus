@@ -79,7 +79,8 @@ shared/              - Shared types and schema
 - **Toggle Location**: In navigation bar (both desktop and mobile)
 
 ## Recent Changes
-- 2026-02-06: Hero redesign - 50/50 split layout, removed duplicate logo, woman image adjacent to green bar, navbar logo scales with scroll
+- 2026-02-06: Hero redesign to match keshevplus.co.il - logo in hero content, cycling audience text, exact Hebrew copy, 50/50 split layout
+- 2026-02-06: ContactModal component - popup contact form triggered from CTA buttons and nav "יצירת קשר" link
 - 2026-02-06: Dark mode implementation - ThemeProvider, semantic color tokens, brand-consistent dark theme
 - 2026-02-06: Performance optimization - code splitting, dependency cleanup, 31% bundle reduction
 - 2026-02-06: Fixed SIGBUS crash by cleaning corrupted node_modules (bun/npm conflict)
