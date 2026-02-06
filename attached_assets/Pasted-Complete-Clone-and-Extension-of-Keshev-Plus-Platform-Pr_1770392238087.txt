@@ -1,0 +1,102 @@
+Complete Clone and Extension of Keshev Plus Platform
+🧩 Project Name
+
+Keshev Plus Clone and Extension
+
+📝 Project Description
+
+Clone, evaluate, fix, and extend the existing Keshev Plus platform. Start from the monorepo at https://github.com/kaospan/keshevplus-monorepo
+, and rebuild both the frontend and backend to reflect the current production version https://www.keshevplus.co.il
+ without altering the appearance.
+
+The main goal is to complete the clone and:
+
+Refactor and unify the codebase (DRY, clean, reusable).
+
+Add a full admin/user dashboard.
+
+Add online appointment scheduling functionality synced with the database.
+
+Fix any broken or unused components or make them operational.
+
+🌐 Target Platform
+
+Web application (desktop + mobile responsive)
+
+🌍 Operating Environment
+
+Online (cloud-hosted)
+
+☁️ Hosting Preferences
+
+Use Replit hosting for development; allow optional deployment to Google Cloud Platform or Vercel for production.
+
+🎨 Interface Style
+
+Keep the current production design exactly as-is.
+
+UI should not change visually.
+
+Use clean, reusable React components.
+
+Follow accessible and mobile-responsive practices.
+
+🧪 Evaluate Codebase
+
+Start by checking whether the work in the following repos has already been implemented:
+
+Current clone repo (starting point):
+
+https://github.com/kaospan/keshevplus-monorepo
+
+Live production frontend:
+
+https://github.com/keshevplus/keshev-web
+
+Live production backend:
+
+https://github.com/keshevplus/keshevplus
+
+Compare features, structure, and status, and continue from the latest functional point, avoiding duplication of already working code.
+
+⚙️ Expected Outputs
+
+Working full-stack app replicating the production site functionality.
+
+Admin/user dashboard with:
+
+User data management
+
+Analytics/reporting view
+
+Appointments management
+
+Appointment booking UI for users with:
+
+Calendar picker
+
+Email/SMS confirmation (optional, can use 3rd party API like Twilio)
+
+Backend sync to DB
+
+DRY, modular and readable code
+
+Unused or broken code cleaned or made active
+
+🔧 Additional Features (to be added)
+
+Role-based access control (admin, regular user)
+
+Dashboard notification system (basic)
+
+Optional: integrate calendar APIs (Google Calendar or similar)
+
+Optional: add REST API testing documentation via Swagger or Postman
+
+💬 Interaction Language (with Replit Agent)
+
+English
+
+🌐 Application Interface Language
+
+Hebrew (matching the current site)

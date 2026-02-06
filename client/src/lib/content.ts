@@ -334,12 +334,14 @@ export const contentApi = {
     email?: string;
     message: string;
   }): Promise<{ success: boolean; message: string }> {
-    // TODO: Replace with: POST /api/contact
     try {
-      console.log('Submitting contact form:', data);
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return { success: true, message: 'Form submitted successfully' };
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      return { success: result.success, message: result.message };
     } catch (error) {
       console.error('Contact form error:', error);
       return { success: false, message: 'Failed to submit form' };

@@ -1,0 +1,57 @@
+Objective: Complete the development of the "Keshev Plus" clone website using the provided monorepo as the foundation. The goal is to replace the current production site (https://www.keshevplus.co.il/) with this enhanced version.
+
+1. Context & Source Material:
+
+
+
+Base Repo: Use the uploaded kaospan/keshevplus-monorepo as the starting point.
+
+Reference Repos: Use https://github.com/keshevplus/keshev-web (Frontend) and https://github.com/keshevplus/keshevplus (Backend) to check for more recent commits or logic that might be missing from the monorepo.
+
+Live Reference: Match the look and feel of https://www.keshevplus.co.il/ exactly.
+
+2. Core Tasks:
+
+
+
+Synchronization: Audit the monorepo against the separate frontend/backend repos. Move any updated logic into the monorepo structure.
+
+Fix & Clean: * Apply DRY (Don't Repeat Yourself) principles across the monorepo.
+
+Remove unused imports, dead code, and "placeholder" files.
+
+Fix any existing TypeScript/Linting errors.
+
+Feature Expansion:
+
+Full Dashboard: Build/Complete a secure user dashboard for clients.
+
+Online Scheduling: Implement a full appointment booking system.
+
+Database Sync: Ensure the scheduling system synchronizes in real-time with the database (PostgreSQL/Prisma or MongoDB as per current stack).
+
+3. Development Standards:
+
+
+
+Architecture: Maintain a clean Monorepo structure (e.g., using Turborepo or NPM/Yarn Workspaces).
+
+UI/UX: Do not change the existing CSS/styling. Ensure responsiveness.
+
+Code Quality: Use reusable React components and custom hooks for logic. Use absolute imports where possible.
+
+4. Execution Steps:
+
+
+
+Analyze the current file structure of the monorepo.
+
+Install all necessary dependencies.
+
+Configure environment variables for the local/Replit environment.
+
+Activate any "commented out" features that are required for the dashboard or scheduling.
+
+Deploy a preview to ensure the clone is visually identical to production before adding the new features.
+
+Pro-Tips for Replit Setup:
