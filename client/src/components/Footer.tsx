@@ -44,6 +44,7 @@ const Footer: React.FC = () => {
               src={logo} 
               alt="Keshev Plus Logo" 
               className="h-16 w-auto brightness-0 invert"
+              loading="lazy"
             />
             <p className="text-green-100 text-sm leading-relaxed">
               {isRTL 

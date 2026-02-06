@@ -1,0 +1,250 @@
+Here is a clean, copy-paste–ready Replit Agent prompt specifically focused on fixing uneven blank spaces and making the layout look professionally designed on mobile, written from the perspective of a senior UX/UI expert + full-stack developer.
+
+This prompt is layout-only (not performance, not responsiveness basics) and targets the exact issue you described: awkward gaps, uneven spacing, broken visual rhythm on mobile.
+
+✅ Replit Agent Prompt — Fix Mobile Layout & Uneven Spacing (Professional UX/UI)
+
+Role & Expertise
+
+You are acting as a Senior UX/UI Designer and Senior Full-Stack Developer with strong expertise in:
+
+Mobile-first layout systems
+
+Visual rhythm & spacing consistency
+
+Professional UI composition
+
+React component layout patterns
+
+Modern CSS (Grid, Flexbox, clamp, spacing tokens)
+
+
+🎯 Objective
+
+Refactor the UI layout so the site looks professionally designed and visually balanced, especially on mobile, by:
+
+Eliminating uneven blank spaces
+
+Removing awkward gaps between sections
+
+Fixing inconsistent padding/margins
+
+Ensuring predictable visual rhythm
+
+Preventing elements from feeling “floating” or misaligned
+
+
+The goal is a clean, intentional, production-quality layout, not just “working responsiveness”.
+
+🧱 Stack & Constraints
+
+Vite
+
+React
+
+TypeScript
+
+CSS / CSS Modules / PostCSS
+
+No UI framework unless absolutely necessary
+
+Prefer CSS Grid for structure, Flexbox for components
+
+
+🔍 Step 1 — Diagnose the Spacing Problems (Mandatory)
+
+Before changing code, you must:
+
+Identify where uneven spacing comes from:
+
+Inconsistent margins on child components
+
+Nested padding compounding unexpectedly
+
+Mixed layout paradigms (Grid + Flex misuse)
+
+Elements with default margins (e.g. headings, lists)
+
+Components adding their own spacing instead of relying on layout
+
+
+Identify mobile-only spacing issues (most important)
+
+
+Briefly explain why the layout currently feels uneven.
+
+🧱 Step 2 — Establish a Clear Layout System
+
+Page Structure
+
+Define a clear page shell:
+
+Header
+
+Main content
+
+Sections
+
+
+Use one primary vertical spacing system
+
+Avoid each component “deciding” its own margins independently
+
+
+Container Rules
+
+Use a consistent container strategy:
+
+Centered content
+
+Controlled max width
+
+Equal side padding on mobile
+
+
+Ensure content does not hug screen edges or float inconsistently
+
+
+📏 Step 3 — Fix Spacing & Visual Rhythm
+
+You must:
+
+Normalize spacing using spacing tokens, e.g.: --space-1 … --space-n 
+
+Replace arbitrary values (12px, 17px, 23px, etc.)
+
+Ensure:
+
+Consistent vertical spacing between sections
+
+Predictable spacing between form fields
+
+Headings visually “belong” to their content
+
+
+Remove accidental double spacing (margin + padding stacking)
+
+
+📱 Step 4 — Mobile-First Layout Cleanup (Critical)
+
+On mobile:
+
+Layout must feel:
+
+Tight but not cramped
+
+Spacious but not empty
+
+
+Fix:
+
+Large unexplained gaps
+
+Sections that appear disconnected
+
+Content that starts too far down the screen
+
+
+Ensure all sections:
+
+Align to the same vertical rhythm
+
+Share consistent side padding
+
+
+
+No section should look like it was placed independently of the rest.
+
+🧩 Step 5 — Component-Level Rules
+
+For React components:
+
+Components should not define large outer margins
+
+Layout spacing should come from:
+
+Parent layout
+
+Section wrappers
+
+
+Internal spacing (inside components) is allowed, but must be consistent
+
+Avoid layout hacks like:
+
+Random margin-top to “fix” spacing
+
+Magic numbers
+
+
+
+♿ UX & Accessibility Check
+
+Spacing changes must not:
+
+Reduce readability
+
+Break touch targets
+
+Cause layout shifts
+
+
+Maintain comfortable tap areas
+
+Preserve logical content flow
+
+
+🧪 Validation
+
+You must verify:
+
+Mobile layout (320–414px) feels intentional and balanced
+
+No uneven blank areas remain
+
+Spacing is consistent across:
+
+Forms
+
+Sections
+
+Results / content blocks
+
+
+No horizontal scrolling
+
+No visual “jank” when content appears/disappears
+
+
+📦 Deliverables
+
+Cleaned and normalized CSS
+
+Updated React layout components if needed
+
+Removal of redundant margins/padding
+
+Brief explanation of:
+
+What caused the uneven spacing
+
+What was changed
+
+Why the layout now feels more professional
+
+
+
+❗ Quality Bar
+
+No arbitrary spacing values
+
+No visual guesswork
+
+Layout should look designed, not “adjusted until it fits”
+
+Mobile layout must feel as polished as desktop
+
+
+✅ Final Instruction
+
+If there is a choice between more whitespace and more consistency, choose consistency. Do not ask the user to decide unless absolutely required.

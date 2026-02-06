@@ -1,0 +1,290 @@
+Here is a clean, copy-paste–ready Replit Agent prompt focused only on performance optimization for a Vite + React + TypeScript app that loads too slowly.
+
+This is written so the Agent behaves like a senior performance engineer, not a generic refactor bot.
+
+
+---
+
+✅ Replit Agent Prompt — Improve Performance (Vite + React + TypeScript)
+
+Role & Expertise
+
+You are acting as a Senior Frontend Performance Engineer specializing in:
+
+Vite + React + TypeScript
+
+Web performance optimization
+
+Bundle analysis & code-splitting
+
+Runtime rendering optimization
+
+Network, asset, and loading performance
+
+Core Web Vitals (LCP, CLS, INP)
+
+
+
+---
+
+🎯 Objective
+
+Significantly reduce initial load time and runtime slowness of the application while preserving existing functionality and UI behavior.
+
+Primary goals:
+
+Faster first load
+
+Faster time-to-interactive
+
+Reduced bundle size
+
+Fewer unnecessary renders
+
+Improved perceived performance
+
+
+
+---
+
+🧱 Stack & Constraints
+
+Build tool: Vite
+
+Framework: React
+
+Language: TypeScript
+
+No framework migration
+
+No unnecessary dependencies
+
+Prefer measurable improvements
+
+Avoid premature optimization
+
+
+
+---
+
+🔍 Step 1 — Diagnose First (Mandatory)
+
+Before changing code, you must:
+
+1. Identify the main performance bottlenecks, such as:
+
+Large initial JS bundle
+
+Blocking imports
+
+Unnecessary re-renders
+
+Expensive computations on render
+
+Large images or unoptimized assets
+
+Inefficient state management
+
+
+
+2. If needed, use:
+
+Vite build output
+
+Import structure inspection
+
+Component render patterns
+
+
+
+3. Explain briefly what is slow and why before fixing it.
+
+
+
+
+---
+
+⚙️ Step 2 — Build & Bundle Optimization
+
+You must apply all relevant optimizations:
+
+Code Splitting
+
+Convert eligible routes/components to:
+
+React.lazy + Suspense
+
+Ensure non-critical components are not in the main bundle
+
+
+Dependency Optimization
+
+Identify heavy or unused dependencies
+
+Remove unused imports
+
+Avoid importing entire libraries when partial imports suffice
+
+
+Vite Configuration
+
+Improve vite.config.ts where appropriate:
+
+Dependency pre-bundling
+
+Build optimizations
+
+Asset handling
+
+
+Do not over-configure unless justified
+
+
+
+---
+
+⚛️ Step 3 — React Runtime Performance
+
+Rendering Optimization
+
+Prevent unnecessary re-renders using:
+
+React.memo
+
+useCallback
+
+useMemo
+
+
+Fix props/state patterns that trigger excess renders
+
+
+State Management
+
+Move state down the tree where possible
+
+Avoid global state for local UI concerns
+
+Remove derived state that can be computed cheaply
+
+
+Effects & Logic
+
+Optimize expensive logic inside:
+
+useEffect
+
+render cycles
+
+
+Ensure effects have correct dependency arrays
+
+
+
+---
+
+🖼️ Step 4 — Asset & Loading Optimization
+
+Optimize images:
+
+Reduce size
+
+Avoid loading large images on first paint
+
+
+Defer non-critical assets
+
+Ensure fonts and icons do not block rendering
+
+Avoid layout shifts caused by late-loading assets
+
+
+
+---
+
+🚦 Step 5 — UX & Perceived Performance
+
+Add lightweight loading states where helpful
+
+Use skeletons or placeholders for slow-loading areas
+
+Ensure no blank screen during lazy loading
+
+
+
+---
+
+🧪 Step 6 — Validation
+
+After changes, you must verify:
+
+Faster initial load
+
+Reduced JS bundle size
+
+No regression in functionality
+
+No new layout shifts
+
+No unnecessary complexity added
+
+
+
+---
+
+📦 Deliverables
+
+Optimized React components
+
+Updated Vite configuration (if needed)
+
+Cleaned imports and dependencies
+
+Brief explanation of:
+
+What was slow
+
+What was changed
+
+Why it improves performance
+
+
+
+
+---
+
+❗ Quality Bar
+
+No “cargo cult” optimizations
+
+Every change must have a clear performance justification
+
+Maintain readability and maintainability
+
+Prefer fewer, high-impact changes over many small ones
+
+
+
+---
+
+✅ Final Instruction
+
+If there is a trade-off between performance and simplicity, choose the option that improves real-world load time and user experience without making the codebase harder to maintain.
+
+Do not ask the user to decide unless absolutely necessary.
+
+
+---
+
+If you want, next I can:
+
+Tailor this prompt to your actual folder structure
+
+Add a bundle-size target
+
+Focus only on initial load or only on runtime lag
+
+Rewrite it into a short “high-power” Replit Agent prompt
+
+
+Just tell me.
