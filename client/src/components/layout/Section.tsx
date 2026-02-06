@@ -54,6 +54,7 @@ export const Section: React.FC<SectionProps> = ({
       className={cn(
         backgroundVariants[background],
         spacingVariants[spacing],
+        "overflow-visible relative",
         className
       )}
     >

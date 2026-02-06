@@ -47,7 +47,7 @@ const AboutSection: React.FC = () => {
   return (
     <Section 
       id="about" 
-      className="bg-[#FFFDF5]"
+      className="bg-[#FFFDF5] overflow-visible"
       dir={isRTL ? 'rtl' : 'ltr'}
       aria-labelledby="about-heading"
     >
