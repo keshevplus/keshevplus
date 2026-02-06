@@ -1,0 +1,55 @@
+const fr: Record<string, string> = {
+  "nav.home": "Accueil",
+  "nav.about": "\u00c0 propos",
+  "nav.services": "Services",
+  "nav.adhd": "Qu'est-ce que le TDAH ?",
+  "nav.process": "Processus de diagnostic",
+  "nav.faq": "FAQ",
+  "nav.contact": "Contact",
+
+  "hero.title": "Bienvenue \u00e0 la clinique",
+  "hero.clinic": "\"Keshev Plus\"",
+  "hero.subtitle": "Enfants \u2022 Adolescents \u2022 Adultes",
+  "hero.description": "Chez \"Keshev Plus\", vous recevrez un diagnostic pr\u00e9cis\net un plan de traitement personnalis\u00e9",
+  "hero.step": "Le premier pas commence ici",
+  "hero.consultation": "Prenez rendez-vous - d\u00e9couvrez le chemin vers le succ\u00e8s",
+  "hero.read_more": "En savoir plus",
+  "hero.start_diagnosis": "Commencer le diagnostic",
+  "hero.ready_title": "Pr\u00eat \u00e0 commencer ?",
+  "hero.ready_text": "Contactez-nous aujourd'hui pour planifier votre diagnostic et faire le premier pas\nvers une vie meilleure.",
+  "hero.contact_now": "Contactez-nous",
+
+  "about.title": "\u00c0 propos",
+  "about.subtitle": "Sp\u00e9cialistes du diagnostic et du traitement du TDAH",
+  "about.text": "Nous sommes sp\u00e9cialis\u00e9s dans le diagnostic et le traitement du TDAH pour tous les \u00e2ges. Notre \u00e9quipe est compos\u00e9e de m\u00e9decins et de psychologues experts.",
+
+  "services.title": "Nos services",
+  "services.diagnosis": "Diagnostic du TDAH",
+  "services.diagnosis_desc": "Diagnostic professionnel et pr\u00e9cis pour enfants, adolescents et adultes",
+  "services.treatment": "Plan de traitement",
+  "services.treatment_desc": "Plan de traitement personnalis\u00e9 adapt\u00e9 aux besoins uniques",
+  "services.counseling": "Conseil familial",
+  "services.counseling_desc": "Orientation et soutien pour les familles et les proches",
+
+  "contact.title": "Contactez-nous",
+  "contact.phone": "055-27-399-27",
+  "contact.email": "info@keshevplus.co.il",
+  "contact.address": "Tel Aviv, Isra\u00ebl",
+
+  "footer.rights": "\u00a9 2025 Tous droits r\u00e9serv\u00e9s \u00e0 Keshev Plus",
+
+  "admin.dashboard": "Tableau de bord",
+  "admin.welcome": "Bienvenue",
+  "admin.signout": "D\u00e9connexion",
+  "admin.language_settings": "Param\u00e8tres de langue",
+  "admin.multilingual_support": "Support multilingue",
+  "admin.multilingual_desc": "Activer ou d\u00e9sactiver le s\u00e9lecteur de langue sur le site",
+  "admin.language_mode": "Mode linguistique",
+  "admin.bilingual": "Bilingue (H\u00e9breu / Anglais)",
+  "admin.multilingual": "Multilingue (Toutes les langues)",
+  "admin.default_language": "Langue par d\u00e9faut",
+  "admin.settings_saved": "Param\u00e8tres enregistr\u00e9s",
+  "admin.settings_error": "\u00c9chec de l'enregistrement",
+};
+
+export default fr;

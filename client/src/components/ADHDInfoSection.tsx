@@ -6,10 +6,9 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { Section, SectionHeader } from '@/components/layout/Section';
 
 const ADHDInfoSection = () => {
-  const { language } = useLanguage();
-  const isRTL = language === 'he';
+  const { language, isRTL } = useLanguage();
 
-  const symptoms = isRTL ? [
+  const symptoms = language === 'he' ? [
     { icon: Brain, title: 'קשיי ריכוז', desc: 'קושי בשמירה על קשב למשימות' },
     { icon: Zap, title: 'היפראקטיביות', desc: 'תנועתיות מוגברת וחוסר מנוחה' },
     { icon: Target, title: 'אימפולסיביות', desc: 'פעילות ללא מחשבה מוקדמת' },
@@ -39,11 +38,11 @@ const ADHDInfoSection = () => {
           id="adhd-heading"
           className="font-bold mb-4 sm:mb-6 gradient-text"
         >
-          {isRTL ? 'מה זה ADHD?' : 'What is ADHD?'}
+          {language === 'he' ? 'מה זה ADHD?' : 'What is ADHD?'}
         </h2>
         <div className="w-16 sm:w-24 h-1 bg-gradient-primary mx-auto rounded-full mb-4 sm:mb-6" aria-hidden="true" />
         <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-          {isRTL 
+          {language === 'he' 
             ? 'ADHD היא הפרעה נוירו-התפתחותית הפוגעת ביכולת הריכוז, הקשב והשליטה בדחפים. ההפרעה מתחילה בגיל הילדות ויכולה להמשיך עד לבגרות.'
             : 'ADHD is a neurodevelopmental disorder affecting concentration, attention and impulse control. The disorder begins in childhood and can continue into adulthood.'
           }
@@ -83,10 +82,10 @@ const ADHDInfoSection = () => {
         viewport={{ once: true }}
       >
         <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-primary-foreground mb-3 sm:mb-4 md:mb-6">
-          {isRTL ? 'זכרו - ADHD ניתן לטיפול!' : 'Remember - ADHD is treatable!'}
+          {language === 'he' ? 'זכרו - ADHD ניתן לטיפול!' : 'Remember - ADHD is treatable!'}
         </h3>
         <p className="text-primary-foreground/90 text-sm sm:text-base lg:text-lg leading-relaxed max-w-3xl mx-auto">
-          {isRTL
+          {language === 'he'
             ? 'עם האבחון הנכון והטיפול המתאים, ניתן לשפר משמעותית את איכות החיים ולהגיע להישגים גבוהים בכל תחומי החיים.'
             : 'With proper diagnosis and appropriate treatment, quality of life can be significantly improved and high achievements can be reached in all areas of life.'
           }

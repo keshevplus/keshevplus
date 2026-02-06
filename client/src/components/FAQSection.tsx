@@ -23,8 +23,7 @@ import { cn } from '@/lib/utils';
  */
 
 const FAQSection: React.FC = () => {
-  const { t, language } = useLanguage();
-  const isRTL = language === 'he';
+  const { t, language, isRTL } = useLanguage();
   
   // Fetch FAQs from API
   const { data: faqs, loading } = useContent(
@@ -63,7 +62,7 @@ const FAQSection: React.FC = () => {
     >
       <SectionHeader 
         title={t('nav.faq')} 
-        subtitle={isRTL 
+        subtitle={language === 'he' 
           ? 'מצאו תשובות לשאלות הנפוצות ביותר על אבחון וטיפול ב-ADHD'
           : 'Find answers to the most common questions about ADHD diagnosis and treatment'
         }
@@ -123,7 +122,7 @@ const FAQSection: React.FC = () => {
         viewport={{ once: true }}
       >
         <p className="text-base text-muted-foreground">
-          {isRTL 
+          {language === 'he' 
             ? 'לא מצאתם תשובה לשאלה שלכם?' 
             : "Didn't find the answer you're looking for?"}
         </p>
@@ -141,7 +140,7 @@ const FAQSection: React.FC = () => {
             "min-h-[44px]"
           )}
         >
-          {isRTL ? 'צרו איתנו קשר' : 'Contact us'}
+          {language === 'he' ? 'צרו איתנו קשר' : 'Contact us'}
         </a>
       </motion.div>
     </Section>

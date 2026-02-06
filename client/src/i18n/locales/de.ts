@@ -1,0 +1,55 @@
+const de: Record<string, string> = {
+  "nav.home": "Startseite",
+  "nav.about": "\u00dcber uns",
+  "nav.services": "Leistungen",
+  "nav.adhd": "Was ist ADHS?",
+  "nav.process": "Diagnoseverfahren",
+  "nav.faq": "H\u00e4ufige Fragen",
+  "nav.contact": "Kontakt",
+
+  "hero.title": "Willkommen in der Klinik",
+  "hero.clinic": "\"Keshev Plus\"",
+  "hero.subtitle": "Kinder \u2022 Jugendliche \u2022 Erwachsene",
+  "hero.description": "Bei \"Keshev Plus\" erhalten Sie eine pr\u00e4zise Diagnose\nund einen personalisierten Behandlungsplan",
+  "hero.step": "Der erste Schritt beginnt hier",
+  "hero.consultation": "Vereinbaren Sie einen Beratungstermin - entdecken Sie den Weg zum Erfolg",
+  "hero.read_more": "Mehr erfahren",
+  "hero.start_diagnosis": "Diagnose starten",
+  "hero.ready_title": "Bereit anzufangen?",
+  "hero.ready_text": "Kontaktieren Sie uns noch heute, um Ihre Diagnose zu planen und den ersten Schritt\nin ein besseres Leben zu machen.",
+  "hero.contact_now": "Jetzt kontaktieren",
+
+  "about.title": "\u00dcber uns",
+  "about.subtitle": "Spezialisten f\u00fcr ADHS-Diagnose und -Behandlung",
+  "about.text": "Wir sind auf die Diagnose und Behandlung von ADHS f\u00fcr alle Altersgruppen spezialisiert. Unser Team besteht aus erfahrenen \u00c4rzten und Psychologen.",
+
+  "services.title": "Unsere Leistungen",
+  "services.diagnosis": "ADHS-Diagnose",
+  "services.diagnosis_desc": "Professionelle und pr\u00e4zise Diagnose f\u00fcr Kinder, Jugendliche und Erwachsene",
+  "services.treatment": "Behandlungsplan",
+  "services.treatment_desc": "Personalisierter Behandlungsplan, angepasst an individuelle Bed\u00fcrfnisse",
+  "services.counseling": "Familienberatung",
+  "services.counseling_desc": "Begleitung und Unterst\u00fctzung f\u00fcr Familien und Angeh\u00f6rige",
+
+  "contact.title": "Kontaktieren Sie uns",
+  "contact.phone": "055-27-399-27",
+  "contact.email": "info@keshevplus.co.il",
+  "contact.address": "Tel Aviv, Israel",
+
+  "footer.rights": "\u00a9 2025 Alle Rechte vorbehalten f\u00fcr Keshev Plus",
+
+  "admin.dashboard": "Admin-Dashboard",
+  "admin.welcome": "Willkommen zur\u00fcck",
+  "admin.signout": "Abmelden",
+  "admin.language_settings": "Spracheinstellungen",
+  "admin.multilingual_support": "Mehrsprachige Unterst\u00fctzung",
+  "admin.multilingual_desc": "Sprachauswahl auf der Website aktivieren oder deaktivieren",
+  "admin.language_mode": "Sprachmodus",
+  "admin.bilingual": "Zweisprachig (Hebr\u00e4isch / Englisch)",
+  "admin.multilingual": "Mehrsprachig (Alle Sprachen)",
+  "admin.default_language": "Standardsprache",
+  "admin.settings_saved": "Einstellungen gespeichert",
+  "admin.settings_error": "Fehler beim Speichern",
+};
+
+export default de;

@@ -1,0 +1,55 @@
+const en: Record<string, string> = {
+  "nav.home": "Home",
+  "nav.about": "About Us",
+  "nav.services": "Services",
+  "nav.adhd": "What is ADHD?",
+  "nav.process": "Diagnosis Process",
+  "nav.faq": "FAQ",
+  "nav.contact": "Contact",
+
+  "hero.title": "Welcome to",
+  "hero.clinic": "\"Keshev Plus\" Clinic",
+  "hero.subtitle": "Children \u2022 Teens \u2022 Adults",
+  "hero.description": "At \"Keshev Plus\" you will receive accurate diagnosis\nand personalized treatment plan",
+  "hero.step": "The first step starts here",
+  "hero.consultation": "Schedule a consultation - discover the path to success",
+  "hero.read_more": "Read More About Us",
+  "hero.start_diagnosis": "Start Diagnosis Now",
+  "hero.ready_title": "Ready to Begin?",
+  "hero.ready_text": "Contact us today to schedule your diagnosis and take the first step\ntowards a better life.",
+  "hero.contact_now": "Contact Us Now",
+
+  "about.title": "About Us",
+  "about.subtitle": "ADHD Diagnosis & Treatment Specialists",
+  "about.text": "We specialize in ADHD diagnosis and treatment for all ages. Our team consists of expert doctors and psychologists with extensive experience in the field.",
+
+  "services.title": "Our Services",
+  "services.diagnosis": "ADHD Diagnosis",
+  "services.diagnosis_desc": "Professional and accurate diagnosis for children, teens and adults",
+  "services.treatment": "Treatment Plan",
+  "services.treatment_desc": "Personalized treatment plan tailored to unique needs",
+  "services.counseling": "Family Counseling",
+  "services.counseling_desc": "Guidance and support for families and loved ones",
+
+  "contact.title": "Contact Us",
+  "contact.phone": "055-27-399-27",
+  "contact.email": "info@keshevplus.co.il",
+  "contact.address": "Tel Aviv, Israel",
+
+  "footer.rights": "\u00a9 2025 All rights reserved to Keshev Plus",
+
+  "admin.dashboard": "Admin Dashboard",
+  "admin.welcome": "Welcome back",
+  "admin.signout": "Sign Out",
+  "admin.language_settings": "Language Settings",
+  "admin.multilingual_support": "Multilingual Support",
+  "admin.multilingual_desc": "Enable or disable the language selector on the website",
+  "admin.language_mode": "Language Mode",
+  "admin.bilingual": "Bilingual (Hebrew / English)",
+  "admin.multilingual": "Multilingual (All languages)",
+  "admin.default_language": "Default Language",
+  "admin.settings_saved": "Settings saved successfully",
+  "admin.settings_error": "Failed to save settings",
+};
+
+export default en;

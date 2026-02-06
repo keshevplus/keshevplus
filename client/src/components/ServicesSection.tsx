@@ -26,8 +26,7 @@ const iconMap: Record<string, React.FC<{ className?: string }>> = {
 };
 
 const ServicesSection: React.FC = () => {
-  const { t, language } = useLanguage();
-  const isRTL = language === 'he';
+  const { t, language, isRTL } = useLanguage();
   
   // Fetch services from API
   const { data: services, loading } = useContent(
@@ -73,7 +72,7 @@ const ServicesSection: React.FC = () => {
       <div 
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8"
         role="list"
-        aria-label={isRTL ? 'רשימת השירותים שלנו' : 'Our services list'}
+        aria-label={language === 'he' ? 'רשימת השירותים שלנו' : 'Our services list'}
         data-testid="list-services"
       >
         {services?.map((service, index) => {
@@ -131,13 +130,13 @@ const ServicesSection: React.FC = () => {
           id="process-heading"
           className="text-xl sm:text-2xl font-bold text-center mb-8 sm:mb-12 text-foreground"
         >
-          {isRTL ? 'תהליך האבחון' : 'Diagnosis Process'}
+          {language === 'he' ? 'תהליך האבחון' : 'Diagnosis Process'}
         </h3>
         
         {/* Mobile: Vertical steps, Desktop: Horizontal */}
         <ol 
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8"
-          aria-label={isRTL ? 'שלבי תהליך האבחון' : 'Diagnosis process steps'}
+          aria-label={language === 'he' ? 'שלבי תהליך האבחון' : 'Diagnosis process steps'}
         >
           {processSteps?.map((step, index) => (
             <motion.li

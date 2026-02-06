@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -19,10 +19,27 @@ export const contacts = pgTable("contacts", {
   read: boolean("read").default(false).notNull(),
 });
 
+export const siteSettings = pgTable("site_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: jsonb("value").notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertContactSchema = createInsertSchema(contacts).omit({ id: true, createdAt: true, read: true });
+export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({ id: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertContact = z.infer<typeof insertContactSchema>;
 export type Contact = typeof contacts.$inferSelect;
+export type SiteSetting = typeof siteSettings.$inferSelect;
+export type InsertSiteSetting = z.infer<typeof insertSiteSettingSchema>;
+
+export const languageSettingsSchema = z.object({
+  enabled: z.boolean(),
+  mode: z.enum(["bilingual", "multilingual"]),
+  defaultLanguage: z.enum(["he", "en", "fr", "es", "de", "ru", "am", "ar", "yi"]),
+});
+
+export type LanguageSettings = z.infer<typeof languageSettingsSchema>;

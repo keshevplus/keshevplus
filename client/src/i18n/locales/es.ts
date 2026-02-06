@@ -1,0 +1,55 @@
+const es: Record<string, string> = {
+  "nav.home": "Inicio",
+  "nav.about": "Sobre nosotros",
+  "nav.services": "Servicios",
+  "nav.adhd": "\u00bfQu\u00e9 es el TDAH?",
+  "nav.process": "Proceso de diagn\u00f3stico",
+  "nav.faq": "Preguntas frecuentes",
+  "nav.contact": "Contacto",
+
+  "hero.title": "Bienvenido a la cl\u00ednica",
+  "hero.clinic": "\"Keshev Plus\"",
+  "hero.subtitle": "Ni\u00f1os \u2022 Adolescentes \u2022 Adultos",
+  "hero.description": "En \"Keshev Plus\" recibir\u00e1 un diagn\u00f3stico preciso\ny un plan de tratamiento personalizado",
+  "hero.step": "El primer paso comienza aqu\u00ed",
+  "hero.consultation": "Programe una consulta - descubra el camino hacia el \u00e9xito",
+  "hero.read_more": "Leer m\u00e1s",
+  "hero.start_diagnosis": "Iniciar diagn\u00f3stico",
+  "hero.ready_title": "\u00bfListo para empezar?",
+  "hero.ready_text": "Cont\u00e1ctenos hoy para programar su diagn\u00f3stico y dar el primer paso\nhacia una vida mejor.",
+  "hero.contact_now": "Cont\u00e1ctenos ahora",
+
+  "about.title": "Sobre nosotros",
+  "about.subtitle": "Especialistas en diagn\u00f3stico y tratamiento del TDAH",
+  "about.text": "Nos especializamos en el diagn\u00f3stico y tratamiento del TDAH para todas las edades. Nuestro equipo est\u00e1 compuesto por m\u00e9dicos y psic\u00f3logos expertos.",
+
+  "services.title": "Nuestros servicios",
+  "services.diagnosis": "Diagn\u00f3stico de TDAH",
+  "services.diagnosis_desc": "Diagn\u00f3stico profesional y preciso para ni\u00f1os, adolescentes y adultos",
+  "services.treatment": "Plan de tratamiento",
+  "services.treatment_desc": "Plan de tratamiento personalizado adaptado a necesidades \u00fanicas",
+  "services.counseling": "Asesoramiento familiar",
+  "services.counseling_desc": "Orientaci\u00f3n y apoyo para familias y seres queridos",
+
+  "contact.title": "Cont\u00e1ctenos",
+  "contact.phone": "055-27-399-27",
+  "contact.email": "info@keshevplus.co.il",
+  "contact.address": "Tel Aviv, Israel",
+
+  "footer.rights": "\u00a9 2025 Todos los derechos reservados a Keshev Plus",
+
+  "admin.dashboard": "Panel de administraci\u00f3n",
+  "admin.welcome": "Bienvenido de nuevo",
+  "admin.signout": "Cerrar sesi\u00f3n",
+  "admin.language_settings": "Configuraci\u00f3n de idioma",
+  "admin.multilingual_support": "Soporte multiling\u00fce",
+  "admin.multilingual_desc": "Activar o desactivar el selector de idioma en el sitio",
+  "admin.language_mode": "Modo de idioma",
+  "admin.bilingual": "Biling\u00fce (Hebreo / Ingl\u00e9s)",
+  "admin.multilingual": "Multiling\u00fce (Todos los idiomas)",
+  "admin.default_language": "Idioma predeterminado",
+  "admin.settings_saved": "Configuraci\u00f3n guardada",
+  "admin.settings_error": "Error al guardar",
+};
+
+export default es;

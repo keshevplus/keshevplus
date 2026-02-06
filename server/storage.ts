@@ -1,4 +1,4 @@
-import { users, contacts, type User, type InsertUser, type Contact, type InsertContact } from "@shared/schema";
+import { users, contacts, siteSettings, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -9,6 +9,8 @@ export interface IStorage {
   createContact(contact: InsertContact): Promise<Contact>;
   getContacts(): Promise<Contact[]>;
   markContactRead(id: number): Promise<Contact | undefined>;
+  getSetting(key: string): Promise<SiteSetting | undefined>;
+  upsertSetting(key: string, value: unknown): Promise<SiteSetting>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -49,6 +51,28 @@ export class DatabaseStorage implements IStorage {
       .where(eq(contacts.id, id))
       .returning();
     return contact || undefined;
+  }
+
+  async getSetting(key: string): Promise<SiteSetting | undefined> {
+    const [setting] = await db.select().from(siteSettings).where(eq(siteSettings.key, key));
+    return setting || undefined;
+  }
+
+  async upsertSetting(key: string, value: unknown): Promise<SiteSetting> {
+    const existing = await this.getSetting(key);
+    if (existing) {
+      const [updated] = await db
+        .update(siteSettings)
+        .set({ value } as any)
+        .where(eq(siteSettings.key, key))
+        .returning();
+      return updated;
+    }
+    const [created] = await db
+      .insert(siteSettings)
+      .values({ key, value } as any)
+      .returning();
+    return created;
   }
 }
 

@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
  */
 
 const MedicalHero: React.FC = () => {
-  const { t, language } = useLanguage();
+  const { t, language, isRTL } = useLanguage();
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
   
   const typingTexts = language === 'he' 
@@ -35,8 +35,6 @@ const MedicalHero: React.FC = () => {
     return () => clearInterval(interval);
   }, [typingTexts.length]);
 
-  const isRTL = language === 'he';
-
   return (
     <>
       <MobileNavigation />
@@ -46,7 +44,7 @@ const MedicalHero: React.FC = () => {
           id="home" 
           className="relative min-h-screen bg-white overflow-hidden" 
           dir={isRTL ? 'rtl' : 'ltr'}
-          aria-label={isRTL ? 'ברוכים הבאים לקשב פלוס' : 'Welcome to Keshev Plus'}
+          aria-label={language === 'he' ? 'ברוכים הבאים לקשב פלוס' : 'Welcome to Keshev Plus'}
         >
           {/* Hero Content */}
           <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 pt-20 md:pt-24 lg:pt-28 pb-8 sm:pb-12 md:pb-16">
@@ -64,7 +62,7 @@ const MedicalHero: React.FC = () => {
                 >
                   <img
                     src={logo}
-                    alt={isRTL ? 'קשב פלוס' : 'Keshev Plus'}
+                    alt={language === 'he' ? 'קשב פלוס' : 'Keshev Plus'}
                     className="w-40 sm:w-52 md:w-64 lg:w-72 xl:w-80 h-auto drop-shadow-md"
                   />
                 </motion.div>
@@ -77,7 +75,7 @@ const MedicalHero: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
                 >
-                  {isRTL ? 'ברוכים הבאים למרפאה' : 'Welcome to the Clinic'}
+                  {language === 'he' ? 'ברוכים הבאים למרפאה' : 'Welcome to the Clinic'}
                 </motion.h1>
 
                 {/* Typing Animation Text */}
@@ -87,7 +85,7 @@ const MedicalHero: React.FC = () => {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.3 }}
                 >
-                  {isRTL ? 'אבחון וטיפול בהפרעות קשב וריכוז ' : 'Diagnosis and Treatment of ADHD '}
+                  {language === 'he' ? 'אבחון וטיפול בהפרעות קשב וריכוז ' : 'Diagnosis and Treatment of ADHD '}
                   <span 
                     className="inline-block min-w-[80px] sm:min-w-[100px] font-bold text-green-800"
                     aria-live="polite"
@@ -104,7 +102,7 @@ const MedicalHero: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.4 }}
                 >
-                  {isRTL 
+                  {language === 'he' 
                     ? 'ב"קשב פלוס" תקבלו אבחון מדויק ותוכנית טיפול אישית'
                     : 'At "Keshev Plus" you will receive accurate diagnosis and a personalized treatment plan'}
                 </motion.p>
@@ -116,7 +114,7 @@ const MedicalHero: React.FC = () => {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.5 }}
                 >
-                  {isRTL 
+                  {language === 'he' 
                     ? 'צעד אחד קטן יכול לשנות את כל התמונה'
                     : 'One small step can change everything'}
                 </motion.p>
@@ -136,7 +134,7 @@ const MedicalHero: React.FC = () => {
                     onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
                     data-testid="button-start-diagnosis"
                   >
-                    {isRTL ? 'התחילו אבחון עכשיו' : 'Start Diagnosis Now'}
+                    {language === 'he' ? 'התחילו אבחון עכשיו' : 'Start Diagnosis Now'}
                   </AccessibleButton>
                   
                   <AccessibleButton 
@@ -147,7 +145,7 @@ const MedicalHero: React.FC = () => {
                     onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })}
                     data-testid="button-read-more"
                   >
-                    {isRTL ? 'קראו עוד עלינו' : 'Read More About Us'}
+                    {language === 'he' ? 'קראו עוד עלינו' : 'Read More About Us'}
                   </AccessibleButton>
                 </motion.div>
 
@@ -163,11 +161,11 @@ const MedicalHero: React.FC = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.7 }}
-                  aria-label={isRTL ? 'התקשרו עכשיו: 055-27-399-27' : 'Call now: 055-27-399-27'}
+                  aria-label={language === 'he' ? 'התקשרו עכשיו: 055-27-399-27' : 'Call now: 055-27-399-27'}
                   data-testid="link-phone-hero"
                 >
                   <Phone className="w-4 h-4" aria-hidden="true" />
-                  <span>{isRTL ? 'או התקשרו עכשיו: 055-27-399-27' : 'Or call now: 055-27-399-27'}</span>
+                  <span>{language === 'he' ? 'או התקשרו עכשיו: 055-27-399-27' : 'Or call now: 055-27-399-27'}</span>
                 </motion.a>
               </div>
 
@@ -180,7 +178,7 @@ const MedicalHero: React.FC = () => {
               >
                 <img
                   src={doctorHero}
-                  alt={isRTL ? 'רופאה מומחית באבחון ADHD' : 'Expert ADHD specialist doctor'}
+                  alt={language === 'he' ? 'רופאה מומחית באבחון ADHD' : 'Expert ADHD specialist doctor'}
                   className="w-48 sm:w-64 md:w-80 lg:w-full max-w-sm lg:max-w-md h-auto object-contain drop-shadow-xl"
                   loading="eager"
                 />
@@ -203,7 +201,7 @@ const MedicalHero: React.FC = () => {
                 transition={{ duration: 0.5 }}
                 viewport={{ once: true }}
               >
-                {isRTL ? 'מוכנים להתחיל?' : 'Ready to Start?'}
+                {language === 'he' ? 'מוכנים להתחיל?' : 'Ready to Start?'}
               </motion.h2>
               
               <motion.p 
@@ -213,7 +211,7 @@ const MedicalHero: React.FC = () => {
                 transition={{ duration: 0.5, delay: 0.1 }}
                 viewport={{ once: true }}
               >
-                {isRTL 
+                {language === 'he' 
                   ? 'צרו קשר עכשיו לקביעת פגישת ייעוץ ראשונית'
                   : 'Contact us now to schedule an initial consultation'}
               </motion.p>
@@ -231,7 +229,7 @@ const MedicalHero: React.FC = () => {
                   data-testid="button-contact-cta"
                 >
                   <Phone className="w-5 h-5" aria-hidden="true" />
-                  {isRTL ? 'צרו קשר עכשיו' : 'Contact Us Now'}
+                  {language === 'he' ? 'צרו קשר עכשיו' : 'Contact Us Now'}
                 </AccessibleButton>
               </motion.div>
             </div>

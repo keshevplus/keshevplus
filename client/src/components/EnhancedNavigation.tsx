@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Phone, Menu, X, Globe } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Phone, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/hooks/useLanguage';
+import { LanguageSelector } from '@/components/LanguageSelector';
+import { Button } from '@/components/ui/button';
 import logo from '@/assets/logo.png';
 
 const EnhancedNavigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const { language, setLanguage, t } = useLanguage();
+  const { language, t, isRTL, dir } = useLanguage();
 
   const navItems = [
-    { href: '#home', label: language === 'he' ? 'בית' : 'Home' },
+    { href: '#home', label: t('nav.home') },
     { href: '#about', label: t('nav.about') },
     { href: '#services', label: t('nav.services') },
-    { href: '#adhd', label: language === 'he' ? 'הפרעות קשב' : 'ADHD' },
+    { href: '#adhd', label: t('nav.adhd') },
     { href: '#process', label: t('nav.process') },
     { href: '#faq', label: t('nav.faq') },
     { href: '#contact', label: t('nav.contact') },
@@ -40,10 +41,6 @@ const EnhancedNavigation = () => {
     setIsOpen(false);
   };
 
-  const toggleLanguage = () => {
-    setLanguage(language === 'he' ? 'en' : 'he');
-  };
-
   return (
     <motion.nav
       initial={{ y: -100 }}
@@ -53,11 +50,10 @@ const EnhancedNavigation = () => {
           ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200' 
           : 'bg-white/80 backdrop-blur-sm'
       }`}
-      dir={language === 'he' ? 'rtl' : 'ltr'}
+      dir={dir}
     >
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          {/* Logo */}
           <motion.div 
             className="flex items-center cursor-pointer"
             whileHover={{ scale: 1.05 }}
@@ -65,12 +61,11 @@ const EnhancedNavigation = () => {
           >
             <img 
               src={logo} 
-              alt="קשב פלוס" 
+              alt={isRTL ? '\u05e7\u05e9\u05d1 \u05e4\u05dc\u05d5\u05e1' : 'Keshev Plus'}
               className="h-12 md:h-14 w-auto"
             />
           </motion.div>
 
-          {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-6">
             {navItems.map((item) => (
               <motion.button
@@ -84,7 +79,6 @@ const EnhancedNavigation = () => {
               </motion.button>
             ))}
             
-            {/* Phone */}
             <a 
               href="tel:055-27-399-27"
               className="flex items-center gap-2 text-green-800 font-semibold bg-green-50 px-4 py-2 rounded-full hover:bg-green-100 transition-colors"
@@ -93,34 +87,18 @@ const EnhancedNavigation = () => {
               <span>055-27-399-27</span>
             </a>
 
-            {/* Language Toggle */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleLanguage}
-              className="border-green-800 text-green-800 hover:bg-green-800 hover:text-white transition-all"
-            >
-              <Globe className="w-4 h-4 ml-2" />
-              {language === 'he' ? 'EN' : 'עב'}
-            </Button>
+            <LanguageSelector />
           </div>
 
-          {/* Mobile Menu Button */}
           <div className="lg:hidden flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleLanguage}
-              className="text-green-800"
-            >
-              <Globe className="w-5 h-5" />
-            </Button>
+            <LanguageSelector />
             
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsOpen(!isOpen)}
               className="text-green-800"
+              data-testid="button-mobile-menu"
             >
               <AnimatePresence mode="wait">
                 {isOpen ? (
@@ -147,7 +125,6 @@ const EnhancedNavigation = () => {
           </div>
         </div>
 
-        {/* Mobile Menu */}
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -160,11 +137,11 @@ const EnhancedNavigation = () => {
                 {navItems.map((item, index) => (
                   <motion.button
                     key={item.href}
-                    initial={{ opacity: 0, x: language === 'he' ? 20 : -20 }}
+                    initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={() => scrollToSection(item.href)}
-                    className={`block w-full px-4 py-3 rounded-lg text-gray-700 hover:text-green-800 hover:bg-green-50 transition-all duration-300 font-medium ${language === 'he' ? 'text-right' : 'text-left'}`}
+                    className={`block w-full px-4 py-3 rounded-lg text-gray-700 hover:text-green-800 hover:bg-green-50 transition-all duration-300 font-medium ${isRTL ? 'text-right' : 'text-left'}`}
                   >
                     {item.label}
                   </motion.button>

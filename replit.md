@@ -1,7 +1,7 @@
 # KeshevPlus - ADHD Clinic Website
 
 ## Overview
-KeshevPlus is a Hebrew-language website for an ADHD clinic specializing in diagnosis and treatment of attention disorders in children. Migrated from Lovable (frontend-only with Supabase) to Replit fullstack environment.
+KeshevPlus is a multilingual website for an ADHD clinic specializing in diagnosis and treatment of attention disorders in children. Migrated from Lovable (frontend-only with Supabase) to Replit fullstack environment.
 
 ## Current State
 - Fully functional fullstack application running on Replit
@@ -10,12 +10,14 @@ KeshevPlus is a Hebrew-language website for an ADHD clinic specializing in diagn
 - Session-based authentication replacing Supabase Auth
 - Contact form with database persistence
 - Firecrawl proxy endpoint
+- Admin-controlled multilingual support (9 languages)
 
 ## Architecture
-- **Frontend**: React + Vite + TailwindCSS + shadcn/ui (RTL Hebrew layout)
+- **Frontend**: React + Vite + TailwindCSS + shadcn/ui (RTL/LTR layout)
 - **Backend**: Express.js with session-based auth
 - **Database**: Neon Postgres via Drizzle ORM
-- **Schema**: Users table (auth) + Contacts table (contact form submissions)
+- **Schema**: Users table (auth) + Contacts table (contact form) + SiteSettings table (language config)
+- **i18n**: Custom translation system with 9 languages, admin-controlled via database settings
 
 ## Project Structure
 ```
@@ -23,7 +25,10 @@ client/src/          - React frontend source
   components/        - UI components (auth, layout, sections, ui)
   pages/             - Page components
   lib/               - Utilities, API helpers
-  hooks/             - Custom React hooks
+  hooks/             - Custom React hooks (useLanguage for i18n)
+  i18n/              - Translation system
+    config.ts        - Language types, constants, settings
+    locales/         - Translation files (he, en, fr, es, de, ru, am, ar, yi)
 server/              - Express backend
   index.ts           - Server entry point
   routes.ts          - API routes
@@ -41,6 +46,16 @@ shared/              - Shared types and schema
 - `GET /api/contacts` - List contacts (admin)
 - `PATCH /api/contacts/:id/read` - Mark contact as read
 - `POST /api/firecrawl-scrape` - Firecrawl proxy
+- `GET /api/settings/language` - Get language settings (public)
+- `PUT /api/settings/language` - Update language settings (admin only)
+
+## Multilingual System
+- **Languages**: Hebrew (he), English (en), French (fr), Spanish (es), German (de), Russian (ru), Amharic (am), Arabic (ar), Yiddish (yi)
+- **RTL Languages**: Hebrew, Arabic, Yiddish
+- **Modes**: Bilingual (he/en only) or Multilingual (all 9)
+- **Admin Control**: Toggle on/off, select mode, set default language via Admin Dashboard
+- **Settings Storage**: `site_settings` table with JSONB value, key="language"
+- **Translation Keys**: `section.key` pattern (e.g., `nav.about`, `hero.title`)
 
 ## Running
 - `npm run dev` starts Express + Vite on port 5000

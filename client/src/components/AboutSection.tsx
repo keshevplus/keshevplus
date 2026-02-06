@@ -20,8 +20,7 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 const AboutSection: React.FC = () => {
-  const { language } = useLanguage();
-  const isRTL = language === 'he';
+  const { language, isRTL } = useLanguage();
   
   // All hooks must be called before any conditional returns
   const [ref, inView] = useInView({

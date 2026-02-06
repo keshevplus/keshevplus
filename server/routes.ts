@@ -1,8 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSchema } from "@shared/schema";
+import { insertContactSchema, languageSettingsSchema } from "@shared/schema";
 import { z } from "zod";
+
+const DEFAULT_LANGUAGE_SETTINGS = {
+  enabled: false,
+  mode: "bilingual" as const,
+  defaultLanguage: "he",
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/contact", async (req, res) => {
@@ -39,6 +45,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json(contact);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update contact" });
+    }
+  });
+
+  app.get("/api/settings/language", async (_req, res) => {
+    try {
+      const setting = await storage.getSetting("language");
+      if (setting) {
+        return res.json(setting.value);
+      }
+      return res.json(DEFAULT_LANGUAGE_SETTINGS);
+    } catch (error) {
+      console.error("Error fetching language settings:", error);
+      return res.json(DEFAULT_LANGUAGE_SETTINGS);
+    }
+  });
+
+  app.put("/api/settings/language", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const result = languageSettingsSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.message });
+      }
+
+      const setting = await storage.upsertSetting("language", result.data);
+      return res.json(setting.value);
+    } catch (error) {
+      console.error("Error saving language settings:", error);
+      return res.status(500).json({ error: "Failed to save settings" });
     }
   });
 
