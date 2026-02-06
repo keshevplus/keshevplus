@@ -35,12 +35,12 @@ shared/              - Shared types and schema
 
 ## Key API Routes
 - `POST /api/auth/login` - User login
-- `POST /api/auth/register` - User registration
 - `POST /api/auth/logout` - User logout
 - `GET /api/auth/me` - Current user check
 - `POST /api/contact` - Contact form submission
 - `GET /api/contacts` - List contacts (admin)
-- `POST /api/firecrawl` - Firecrawl proxy
+- `PATCH /api/contacts/:id/read` - Mark contact as read
+- `POST /api/firecrawl-scrape` - Firecrawl proxy
 
 ## Running
 - `npm run dev` starts Express + Vite on port 5000

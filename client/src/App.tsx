@@ -1,25 +1,29 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import { Switch, Route } from "wouter";
 import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import AdminPage from "./pages/AdminPage";
+import NotFound from "./pages/not-found";
 
-const queryClient = new QueryClient();
+function Router() {
+  return (
+    <Switch>
+      <Route path="/" component={Index} />
+      <Route path="/admin" component={AdminPage} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <Router />
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
