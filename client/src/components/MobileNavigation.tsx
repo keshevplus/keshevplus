@@ -79,35 +79,40 @@ const MobileNavigation: React.FC = () => {
     <>
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-lg"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-md"
       >
-        {isRTL ? '\u05d3\u05dc\u05d2 \u05dc\u05ea\u05d5\u05db\u05df \u05d4\u05e8\u05d0\u05e9\u05d9' : 'Skip to main content'}
+        {isRTL ? 'דלג לתוכן הראשי' : 'Skip to main content'}
       </a>
 
       <motion.nav
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         role="navigation"
-        aria-label={isRTL ? '\u05e0\u05d9\u05d5\u05d5\u05d8 \u05e8\u05d0\u05e9\u05d9' : 'Main navigation'}
+        aria-label={isRTL ? 'ניווט ראשי' : 'Main navigation'}
         className={cn(
           'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
           isScrolled 
-            ? 'bg-background/95 backdrop-blur-md shadow-md' 
-            : 'bg-background/80 backdrop-blur-sm'
+            ? 'bg-background/95 backdrop-blur-md shadow-md py-2' 
+            : 'bg-background/80 backdrop-blur-sm py-3'
         )}
         dir={dir}
       >
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-16 md:h-20">
+          <div className="flex items-center justify-between">
             <button
               onClick={() => scrollToSection('#home')}
-              className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg"
-              aria-label={isRTL ? '\u05d7\u05d6\u05e8\u05d4 \u05dc\u05d3\u05e3 \u05d4\u05d1\u05d9\u05ea' : 'Go to homepage'}
+              className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md"
+              aria-label={isRTL ? 'חזרה לדף הבית' : 'Go to homepage'}
             >
               <img 
                 src={logo} 
-                alt={isRTL ? '\u05e7\u05e9\u05d1 \u05e4\u05dc\u05d5\u05e1' : 'Keshev Plus'}
-                className="h-10 sm:h-12 md:h-14 lg:h-16 w-auto"
+                alt={isRTL ? 'קשב פלוס' : 'Keshev Plus'}
+                className={cn(
+                  "w-auto transition-all duration-300",
+                  isScrolled 
+                    ? "h-10 sm:h-12" 
+                    : "h-14 sm:h-16 md:h-20 lg:h-24"
+                )}
               />
             </button>
 
@@ -117,7 +122,7 @@ const MobileNavigation: React.FC = () => {
                   key={item.href}
                   onClick={() => scrollToSection(item.href)}
                   className={cn(
-                    "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                    "px-4 py-2 text-sm font-medium rounded-md transition-colors",
                     "text-foreground/70 hover:text-primary hover:bg-primary/10",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                     "min-h-[44px] flex items-center"
@@ -138,7 +143,7 @@ const MobileNavigation: React.FC = () => {
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                   "min-h-[44px]"
                 )}
-                aria-label={isRTL ? '\u05d4\u05ea\u05e7\u05e9\u05e8\u05d5 \u05d0\u05dc\u05d9\u05e0\u05d5: 055-27-399-27' : 'Call us: 055-27-399-27'}
+                aria-label={isRTL ? 'התקשרו אלינו: 055-27-399-27' : 'Call us: 055-27-399-27'}
               >
                 <Phone className="w-4 h-4" aria-hidden="true" />
                 <span>055-27-399-27</span>
@@ -159,8 +164,8 @@ const MobileNavigation: React.FC = () => {
                 aria-expanded={isOpen}
                 aria-controls="mobile-menu"
                 aria-label={isOpen 
-                  ? (isRTL ? '\u05e1\u05d2\u05d5\u05e8 \u05ea\u05e4\u05e8\u05d9\u05d8' : 'Close menu')
-                  : (isRTL ? '\u05e4\u05ea\u05d7 \u05ea\u05e4\u05e8\u05d9\u05d8' : 'Open menu')
+                  ? (isRTL ? 'סגור תפריט' : 'Close menu')
+                  : (isRTL ? 'פתח תפריט' : 'Open menu')
                 }
                 data-testid="button-mobile-menu"
               >
@@ -205,7 +210,7 @@ const MobileNavigation: React.FC = () => {
                         transition={{ delay: index * 0.05 }}
                         onClick={() => scrollToSection(item.href)}
                         className={cn(
-                          "w-full px-4 py-3 rounded-lg text-base font-medium",
+                          "w-full px-4 py-3 rounded-md text-base font-medium",
                           "text-foreground/70 hover:text-primary hover:bg-primary/10",
                           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                           "min-h-[48px] flex items-center",
@@ -223,7 +228,7 @@ const MobileNavigation: React.FC = () => {
                       href="tel:055-27-399-27"
                       className={cn(
                         "flex items-center justify-center gap-2",
-                        "w-full py-3 rounded-lg",
+                        "w-full py-3 rounded-md",
                         "bg-primary text-primary-foreground font-medium",
                         "hover:bg-primary/90 transition-colors",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
