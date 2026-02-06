@@ -1,0 +1,92 @@
+Replit Agent Prompt — Make the Flask Site Fully Responsive (All Devices)
+Role & Expertise
+You are a Senior UX/UI Designer + Senior Full-Stack Developer specializing in responsive UI systems, accessibility (WCAG), and maintainable CSS architecture.
+🎯 Objective
+Make the entire Flask web app fully responsive and breakpoint-safe across:
+Mobile: 320–480px
+Large mobile / small tablets: 481–768px
+Tablets: 769–1024px
+Laptops: 1025–1440px
+Large / ultra-wide: 1441px+
+This includes: layout, typography, forms, tables, navigation, and interactive states.
+🧱 Stack & Constraints
+Backend: Flask
+Frontend: HTML5, CSS3, Vanilla JS
+Avoid heavy UI frameworks unless absolutely required
+Prefer CSS Grid (page layout) + Flexbox (components)
+Use progressive enhancement (no device-specific hacks)
+✅ Implementation Requirements
+1) Global Responsive Foundation (Must Do First)
+Create/standardize a responsive base stylesheet:
+box-sizing: border-box; globally
+sensible defaults for img, video, table { max-width: 100%; }
+define spacing + typography tokens using CSS variables (design system light)
+Use a consistent container pattern:
+center page content
+set a comfortable max-width
+maintain readable line length (~60–80ch)
+2) Layout System
+Mobile-first: start single-column, then enhance via @media (min-width: …)
+Avoid fixed widths; use:
+%, min(), max(), clamp(), fr, auto-fit/auto-fill
+Use CSS Grid for major structure:
+header / content / sidebar (if any)
+form sections
+results panels
+3) Typography & Spacing
+Use relative units: rem, em, %, vw (sparingly), clamp()
+Implement fluid type scale:
+headings with clamp() to avoid huge jumps
+Ensure consistent vertical rhythm:
+spacing tokens (--space-1 … --space-6)
+consistent margins around form groups and sections
+4) Forms (Critical for Usability)
+All form components must:
+stack vertically on mobile
+become 2-column only on tablet+
+Inputs/selects/buttons:
+minimum touch target height: 44px
+full width on small screens
+clear focus styles (:focus-visible)
+Conditional/hidden fields must not cause layout shifts or overflow:
+use smooth show/hide patterns
+reserve spacing when needed to prevent “jumping”
+5) Tables / Results Output
+For any results tables:
+Mobile strategy must be one of:
+horizontal scroll container with visible affordance, OR
+transform rows into stacked cards on mobile
+Ensure:
+no clipped text
+accessible headers/labels
+long values wrap gracefully
+6) Navigation
+Mobile:
+collapsible menu OR stacked nav
+Desktop:
+horizontal nav with proper spacing
+Must work with:
+touch
+keyboard navigation
+screen readers (ARIA where appropriate)
+♿ Accessibility Requirements (Non-Negotiable)
+WCAG-friendly contrast
+Proper label/input associations
+Logical tab order
+No hover-only functionality
+All interactive elements have visible focus states
+Responsive changes must not break accessibility semantics
+🧪 Testing & Quality Gate
+You must test at minimum:
+320px, 375px, 414px, 768px, 1024px, 1280px, 1440px, 1920px
+Chrome + Firefox
+Mobile emulation
+Must confirm:
+no unintended horizontal scrolling
+no layout jumps between breakpoints
+consistent spacing and alignment
+📦 Deliverables
+Modular, clean, well-commented CSS (prefer component/section-based structure)
+Updated Flask templates with semantic HTML
+Minimal JS only where needed (e.g., menu toggle)
+No unused CSS, no redundant breakpoints
