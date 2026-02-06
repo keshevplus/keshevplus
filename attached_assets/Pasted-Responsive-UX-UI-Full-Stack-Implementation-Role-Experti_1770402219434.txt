@@ -1,0 +1,89 @@
+Responsive UX/UI & Full-Stack Implementation
+Role & Expertise
+You are acting as a Senior UX/UI Designer and Senior Full-Stack Developer with strong expertise in responsive web design, accessibility, and modern CSS architecture.
+🎯 Objective
+Make the entire web application fully responsive, device-agnostic, and breakpoint-safe, ensuring a consistent, usable, and visually balanced experience on:
+Mobile phones (320px–480px)
+Large phones & small tablets (481px–768px)
+Tablets (769px–1024px)
+Laptops (1025px–1440px)
+Large & ultra-wide screens (1441px+)
+This includes layout, typography, forms, tables, navigation, and interactive elements.
+🧱 Technical Constraints & Stack
+Backend: Flask
+Frontend: HTML5, CSS3, Vanilla JS
+No heavy UI frameworks unless absolutely necessary
+Prefer CSS Grid + Flexbox
+Use progressive enhancement, not device-specific hacks
+🖥️ Layout & Structure Requirements
+Mobile-First Design
+Start with a single-column layout
+Scale up progressively using min-width media queries
+Avoid max-width logic unless justified
+Responsive Grid System
+Use CSS Grid for page-level layouts
+Use Flexbox for internal components (forms, buttons, inputs)
+No fixed widths except where unavoidable
+Container Strategy
+Use a max-width container for large screens
+Center content horizontally
+Maintain readable line lengths (60–80ch)
+📝 Typography & Spacing
+Use relative units only: rem, em, %, vw, vh
+Base font-size: 16px (1rem)
+Scale headings using a fluid type scale (e.g. clamp())
+Maintain consistent vertical rhythm with spacing tokens
+🧩 Forms & UI Components
+All form elements must:
+Stack vertically on mobile
+Use multi-column layout only on tablet+
+Inputs, selects, and buttons must:
+Be at least 44px touch height
+Stretch full-width on small screens
+Validation and conditional fields must not break layout at any breakpoint
+📊 Tables & Data Display
+Tables must:
+Scroll horizontally on small screens or
+Collapse into stacked “card” layouts on mobile
+Headers must remain readable and accessible
+No content should overflow or be clipped
+🧭 Navigation
+Mobile:
+Collapsible menu or stacked navigation
+Desktop:
+Horizontal navigation
+Navigation must remain usable with:
+Touch
+Keyboard
+Screen readers
+♿ Accessibility (Mandatory)
+WCAG-friendly color contrast
+Proper label–input associations
+Logical tab order
+No hover-only interactions
+Responsive behavior must not break accessibility
+🧪 Testing & Validation
+You must:
+Test layouts at all major breakpoints
+Verify behavior in:
+Chrome
+Firefox
+Mobile emulation
+Ensure no horizontal scrolling appears unintentionally
+Confirm consistent spacing and alignment
+📦 Deliverables
+Clean, well-commented CSS (preferably modular)
+Updated HTML templates using semantic markup
+Responsive behavior documented in comments
+No unused CSS or redundant media queries
+❗ Quality Bar
+No hard-coded pixel layouts
+No layout jumps between breakpoints
+No mobile experience treated as “secondary”
+Visual clarity and usability always take priority over visual complexity
+✅ Final Instruction
+If a design or layout decision is unclear, choose the option that improves usability, readability, and responsiveness.
+Do not ask the user to decide unless absolutely required.
+📎 Referenced Project Context
+This prompt is designed to integrate cleanly with a Flask-based, form-heavy calculation application, following structured development steps and validation logic �
+replit-instructions.md None
