@@ -13,7 +13,11 @@ interface NavItem {
   label: string;
 }
 
-const MobileNavigation: React.FC = () => {
+interface MobileNavigationProps {
+  onContactClick?: () => void;
+}
+
+const MobileNavigation: React.FC<MobileNavigationProps> = ({ onContactClick }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const { t, isRTL, dir } = useLanguage();
@@ -59,6 +63,11 @@ const MobileNavigation: React.FC = () => {
   }, [isOpen]);
 
   const scrollToSection = useCallback((href: string) => {
+    if (href === '#contact' && onContactClick) {
+      onContactClick();
+      setIsOpen(false);
+      return;
+    }
     if (href === '#home') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
@@ -73,7 +82,7 @@ const MobileNavigation: React.FC = () => {
       }
     }
     setIsOpen(false);
-  }, []);
+  }, [onContactClick]);
 
   return (
     <>
