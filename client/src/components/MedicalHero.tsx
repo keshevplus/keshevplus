@@ -134,6 +134,7 @@ const MedicalHero: React.FC = () => {
                     fullWidth
                     className="sm:w-auto"
                     onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
+                    data-testid="button-start-diagnosis"
                   >
                     {isRTL ? 'התחילו אבחון עכשיו' : 'Start Diagnosis Now'}
                   </AccessibleButton>
@@ -144,6 +145,7 @@ const MedicalHero: React.FC = () => {
                     fullWidth
                     className="sm:w-auto"
                     onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })}
+                    data-testid="button-read-more"
                   >
                     {isRTL ? 'קראו עוד עלינו' : 'Read More About Us'}
                   </AccessibleButton>
@@ -162,6 +164,7 @@ const MedicalHero: React.FC = () => {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.7 }}
                   aria-label={isRTL ? 'התקשרו עכשיו: 055-27-399-27' : 'Call now: 055-27-399-27'}
+                  data-testid="link-phone-hero"
                 >
                   <Phone className="w-4 h-4" aria-hidden="true" />
                   <span>{isRTL ? 'או התקשרו עכשיו: 055-27-399-27' : 'Or call now: 055-27-399-27'}</span>
@@ -225,6 +228,7 @@ const MedicalHero: React.FC = () => {
                   variant="secondary"
                   size="lg"
                   onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
+                  data-testid="button-contact-cta"
                 >
                   <Phone className="w-5 h-5" aria-hidden="true" />
                   {isRTL ? 'צרו קשר עכשיו' : 'Contact Us Now'}

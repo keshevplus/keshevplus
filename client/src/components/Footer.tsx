@@ -57,13 +57,14 @@ const Footer: React.FC = () => {
             <h3 className="text-lg font-semibold mb-4 text-white">
               {isRTL ? 'ניווט מהיר' : 'Quick Links'}
             </h3>
-            <nav>
-              <ul className="space-y-2">
+            <nav aria-label={isRTL ? 'ניווט מהיר' : 'Quick navigation'}>
+              <ul className="space-y-1">
                 {navigationLinks.map((link) => (
                   <li key={link.key}>
                     <a 
                       href={link.href}
-                      className="text-green-100 hover:text-white transition-colors duration-200 text-sm"
+                      className="text-green-100 hover:text-white transition-colors duration-200 text-sm inline-flex items-center min-h-[44px]"
+                      data-testid={`link-footer-${link.key.split('.')[1]}`}
                     >
                       {t(link.key)}
                     </a>
@@ -82,7 +83,8 @@ const Footer: React.FC = () => {
               <li>
                 <a 
                   href={`tel:${contactInfo.phone.replace(/-/g, '')}`}
-                  className="flex items-center gap-3 text-green-100 hover:text-white transition-colors text-sm"
+                  className="flex items-center gap-3 text-green-100 hover:text-white transition-colors text-sm min-h-[44px]"
+                  data-testid="link-footer-phone"
                 >
                   <Phone className="h-4 w-4 shrink-0" />
                   <span dir="ltr">{contactInfo.phone}</span>
@@ -91,17 +93,18 @@ const Footer: React.FC = () => {
               <li>
                 <a 
                   href={`mailto:${contactInfo.email}`}
-                  className="flex items-center gap-3 text-green-100 hover:text-white transition-colors text-sm"
+                  className="flex items-center gap-3 text-green-100 hover:text-white transition-colors text-sm min-h-[44px]"
+                  data-testid="link-footer-email"
                 >
                   <Mail className="h-4 w-4 shrink-0" />
                   <span>{contactInfo.email}</span>
                 </a>
               </li>
-              <li className="flex items-center gap-3 text-green-100 text-sm">
+              <li className="flex items-center gap-3 text-green-100 text-sm min-h-[44px]" data-testid="text-footer-address">
                 <MapPin className="h-4 w-4 shrink-0" />
                 <span>{contactInfo.address}</span>
               </li>
-              <li className="flex items-center gap-3 text-green-100 text-sm">
+              <li className="flex items-center gap-3 text-green-100 text-sm min-h-[44px]" data-testid="text-footer-hours">
                 <Clock className="h-4 w-4 shrink-0" />
                 <span>{contactInfo.hours}</span>
               </li>
@@ -121,7 +124,8 @@ const Footer: React.FC = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={social.label}
-                  className="w-10 h-10 rounded-full bg-green-800 hover:bg-green-700 flex items-center justify-center transition-colors"
+                  className="w-10 h-10 rounded-full bg-green-800 hover:bg-green-700 flex items-center justify-center transition-colors min-h-[44px] min-w-[44px]"
+                  data-testid={`link-social-${social.label.toLowerCase()}`}
                 >
                   <social.icon className="h-5 w-5" />
                 </a>

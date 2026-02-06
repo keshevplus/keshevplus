@@ -49,7 +49,7 @@ const ServicesSection: React.FC = () => {
           title={t('services.title')} 
           titleId="services-heading"
         />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-64 bg-muted/50 rounded-xl animate-pulse" />
           ))}
@@ -71,9 +71,10 @@ const ServicesSection: React.FC = () => {
 
       {/* Services Grid */}
       <div 
-        className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8"
         role="list"
         aria-label={isRTL ? 'רשימת השירותים שלנו' : 'Our services list'}
+        data-testid="list-services"
       >
         {services?.map((service, index) => {
           const IconComponent = iconMap[service.icon] || Brain;
@@ -86,6 +87,7 @@ const ServicesSection: React.FC = () => {
               transition={{ duration: 0.5, delay: index * 0.1 }}
               viewport={{ once: true, margin: '-50px' }}
               role="listitem"
+              data-testid={`card-service-${service.id}`}
             >
               <Card className={cn(
                 "h-full transition-all duration-300",

@@ -452,62 +452,67 @@ const ContactSection: React.FC = () => {
                   </AccessibleButton>
                 </motion.div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-                  {/* Name Field */}
-                  <div className="space-y-2">
-                    <Label htmlFor="name" className="text-base font-medium">
-                      {isRTL ? 'שם מלא' : 'Full Name'} *
-                    </Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      type="text"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      placeholder={isRTL ? 'הכניסו את שמכם המלא' : 'Enter your full name'}
-                      required
-                      aria-required="true"
-                      aria-invalid={!!errors.name}
-                      aria-describedby={errors.name ? 'name-error' : undefined}
-                      className={cn(
-                        "h-12 text-base",
-                        errors.name && "border-red-500 focus-visible:ring-red-500"
+                <form onSubmit={handleSubmit} className="space-y-5" noValidate data-testid="form-contact">
+                  {/* Name & Phone - side by side on tablet+ */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    {/* Name Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="name" className="text-base font-medium">
+                        {isRTL ? 'שם מלא' : 'Full Name'} *
+                      </Label>
+                      <Input
+                        id="name"
+                        name="name"
+                        type="text"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        placeholder={isRTL ? 'הכניסו את שמכם המלא' : 'Enter your full name'}
+                        required
+                        aria-required="true"
+                        aria-invalid={!!errors.name}
+                        aria-describedby={errors.name ? 'name-error' : undefined}
+                        className={cn(
+                          "h-12 text-base",
+                          errors.name && "border-red-500 focus-visible:ring-red-500"
+                        )}
+                        data-testid="input-name"
+                      />
+                      {errors.name && (
+                        <p id="name-error" className="text-sm text-red-600" role="alert">
+                          {errors.name}
+                        </p>
                       )}
-                    />
-                    {errors.name && (
-                      <p id="name-error" className="text-sm text-red-600" role="alert">
-                        {errors.name}
-                      </p>
-                    )}
-                  </div>
+                    </div>
 
-                  {/* Phone Field */}
-                  <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-base font-medium">
-                      {isRTL ? 'טלפון' : 'Phone'} *
-                    </Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      inputMode="tel"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      placeholder={isRTL ? '050-000-0000' : '050-000-0000'}
-                      required
-                      aria-required="true"
-                      aria-invalid={!!errors.phone}
-                      aria-describedby={errors.phone ? 'phone-error' : undefined}
-                      className={cn(
-                        "h-12 text-base",
-                        errors.phone && "border-red-500 focus-visible:ring-red-500"
+                    {/* Phone Field */}
+                    <div className="space-y-2">
+                      <Label htmlFor="phone" className="text-base font-medium">
+                        {isRTL ? 'טלפון' : 'Phone'} *
+                      </Label>
+                      <Input
+                        id="phone"
+                        name="phone"
+                        type="tel"
+                        inputMode="tel"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        placeholder={isRTL ? '050-000-0000' : '050-000-0000'}
+                        required
+                        aria-required="true"
+                        aria-invalid={!!errors.phone}
+                        aria-describedby={errors.phone ? 'phone-error' : undefined}
+                        className={cn(
+                          "h-12 text-base",
+                          errors.phone && "border-red-500 focus-visible:ring-red-500"
+                        )}
+                        data-testid="input-phone"
+                      />
+                      {errors.phone && (
+                        <p id="phone-error" className="text-sm text-red-600" role="alert">
+                          {errors.phone}
+                        </p>
                       )}
-                    />
-                    {errors.phone && (
-                      <p id="phone-error" className="text-sm text-red-600" role="alert">
-                        {errors.phone}
-                      </p>
-                    )}
+                    </div>
                   </div>
 
                   {/* Email Field - Optional */}
@@ -529,6 +534,7 @@ const ContactSection: React.FC = () => {
                         "h-12 text-base",
                         errors.email && "border-red-500 focus-visible:ring-red-500"
                       )}
+                      data-testid="input-email"
                     />
                     {errors.email && (
                       <p id="email-error" className="text-sm text-red-600" role="alert">
@@ -557,6 +563,7 @@ const ContactSection: React.FC = () => {
                         "text-base resize-none",
                         errors.message && "border-red-500 focus-visible:ring-red-500"
                       )}
+                      data-testid="input-message"
                     />
                     {errors.message && (
                       <p id="message-error" className="text-sm text-red-600" role="alert">
@@ -574,6 +581,7 @@ const ContactSection: React.FC = () => {
                     loading={isSubmitting}
                     loadingText={isRTL ? 'שולח...' : 'Sending...'}
                     className="mt-6"
+                    data-testid="button-submit-contact"
                   >
                     <Send className="w-5 h-5" aria-hidden="true" />
                     {isRTL ? 'שליחת הודעה' : 'Send Message'}

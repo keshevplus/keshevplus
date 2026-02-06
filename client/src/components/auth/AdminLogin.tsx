@@ -51,6 +51,7 @@ const AdminLogin = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
                   required
+                  data-testid="input-admin-email"
                 />
               </div>
             </div>
@@ -65,6 +66,7 @@ const AdminLogin = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
                   required
+                  data-testid="input-admin-password"
                 />
               </div>
             </div>
@@ -79,6 +81,7 @@ const AdminLogin = () => {
               type="submit" 
               className="w-full" 
               disabled={loading}
+              data-testid="button-admin-login"
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
