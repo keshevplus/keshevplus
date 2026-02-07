@@ -4,7 +4,7 @@ import MedicalHero from "@/components/MedicalHero";
 const AboutSection = lazy(() => import("@/components/AboutSection"));
 const ServicesSection = lazy(() => import("@/components/ServicesSection"));
 const ADHDInfoSection = lazy(() => import("@/components/ADHDInfoSection"));
-const FAQSection = lazy(() => import("@/components/FAQSection"));
+const QuestionnairesSection = lazy(() => import("@/components/QuestionnairesSection"));
 const ContactSection = lazy(() => import("@/components/ContactSection"));
 const Footer = lazy(() => import("@/components/Footer"));
 
@@ -26,7 +26,7 @@ const Index = () => {
         <ADHDInfoSection />
       </Suspense>
       <Suspense fallback={<SectionFallback />}>
-        <FAQSection />
+        <QuestionnairesSection />
       </Suspense>
       <Suspense fallback={<SectionFallback />}>
         <ContactSection />

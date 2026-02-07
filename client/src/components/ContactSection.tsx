@@ -73,7 +73,7 @@ const ArrivalParkingModal: React.FC<{ isRTL: boolean }> = ({ isRTL }) => {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent 
-          className="max-w-md sm:max-w-lg"
+          className="max-w-lg sm:max-w-xl"
           dir={isRTL ? 'rtl' : 'ltr'}
         >
           <DialogHeader>
@@ -140,6 +140,21 @@ const ArrivalParkingModal: React.FC<{ isRTL: boolean }> = ({ isRTL }) => {
                     : 'The clinic is a short walk from Beer Sheva Central train station. Multiple bus lines pass nearby.'}
                 </p>
               </div>
+            </div>
+
+            {/* Google Maps Embed */}
+            <div className="aspect-video rounded-lg overflow-hidden border">
+              <iframe
+                src={`https://maps.google.com/maps?q=${encodeURIComponent('יגאל אלון 94, תל אביב')}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title={isRTL ? 'מפת הגעה למרפאת קשב פלוס' : 'Map to Keshev Plus clinic'}
+                data-testid="iframe-clinic-map"
+              />
             </div>
 
             {/* Navigation Buttons */}

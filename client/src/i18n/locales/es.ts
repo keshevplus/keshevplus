@@ -5,6 +5,7 @@ const es: Record<string, string> = {
   "nav.adhd": "\u00bfQu\u00e9 es el TDAH?",
   "nav.process": "Proceso de diagn\u00f3stico",
   "nav.faq": "Preguntas frecuentes",
+  "nav.questionnaires": "Cuestionarios",
   "nav.contact": "Contacto",
 
   "hero.title": "Bienvenido a la cl\u00ednica",
@@ -35,6 +36,23 @@ const es: Record<string, string> = {
   "contact.phone": "055-27-399-27",
   "contact.email": "info@keshevplus.co.il",
   "contact.address": "Tel Aviv, Israel",
+
+  "questionnaires.title": "Cuestionarios",
+  "questionnaires.subtitle": "Cuestionarios de detección y diagnóstico de TDAH para descargar",
+  "questionnaires.conners_parents": "Cuestionario Conners para padres",
+  "questionnaires.conners_parents_desc": "Cuestionario para identificar síntomas de TDAH en niños, para ser completado por los padres",
+  "questionnaires.conners_teachers": "Cuestionario Conners para maestros",
+  "questionnaires.conners_teachers_desc": "Cuestionario para identificar síntomas de TDAH en entornos educativos, para ser completado por el maestro",
+  "questionnaires.asrs_adults": "Autoinforme ASRS para adultos",
+  "questionnaires.asrs_adults_desc": "Cuestionario de autoinforme para el diagnóstico de TDAH en adultos",
+  "questionnaires.daily_functioning": "Cuestionario de funcionamiento diario",
+  "questionnaires.daily_functioning_desc": "Cuestionario para evaluar el funcionamiento diario y el impacto del TDAH",
+  "questionnaires.note": "Puede descargar los cuestionarios y completarlos antes de su cita en la clínica",
+  "questionnaires.download_pdf": "Descargar PDF",
+  "questionnaires.download_doc": "Descargar DOC",
+  "faq.title": "Preguntas frecuentes",
+  "faq.subtitle": "Respuestas a las preguntas más comunes",
+  "faq.no_answer": "¿No encontró respuesta? Contáctenos",
 
   "footer.rights": "\u00a9 2025 Todos los derechos reservados a Keshev Plus",
 

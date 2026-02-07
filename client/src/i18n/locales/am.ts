@@ -5,6 +5,7 @@ const am: Record<string, string> = {
   "nav.adhd": "ADHD \u121d\u1295\u12f5\u1290\u12cd?",
   "nav.process": "\u12e8\u121d\u122d\u1218\u122b \u1202\u12f0\u1275",
   "nav.faq": "\u1260\u1265\u12da \u12e8\u121a\u1320\u12e8\u1241 \u1325\u12eb\u1244\u12ce\u127d",
+  "nav.questionnaires": "\u1218\u1320\u12ed\u1246\u127d",
   "nav.contact": "\u12a5\u12e8\u1293 \u12eb\u1309\u129d\u1291",
 
   "hero.title": "\u12a5\u1295\u12f3\u121d\u1228\u1320\u12cd \u12c8\u12f0 \u12ad\u120a\u1292\u12ad",
@@ -35,6 +36,23 @@ const am: Record<string, string> = {
   "contact.phone": "055-27-399-27",
   "contact.email": "info@keshevplus.co.il",
   "contact.address": "\u1270\u120d \u12a0\u1262\u1265\u1363 \u12a5\u1235\u122b\u12a4\u120d",
+
+  "questionnaires.title": "መጠይቆች",
+  "questionnaires.subtitle": "ለማውረድ የ ADHD ምርመራ መጠይቆች",
+  "questionnaires.conners_parents": "የኮነርስ የወላጅ መጠይቅ",
+  "questionnaires.conners_parents_desc": "በልጆች ላይ የ ADHD ምልክቶችን ለመለየት መጠይቅ፣ በወላጆች የሚሞላ",
+  "questionnaires.conners_teachers": "የኮነርስ የመምህር መጠይቅ",
+  "questionnaires.conners_teachers_desc": "በትምህርት ቤት ውስጥ የ ADHD ምልክቶችን ለመለየት መጠይቅ፣ በመምህሩ የሚሞላ",
+  "questionnaires.asrs_adults": "የ ASRS የጎልማሶች ራስ-ሪፖርት",
+  "questionnaires.asrs_adults_desc": "በጎልማሶች ላይ ADHD ለመመርመር የራስ-ሪፖርት መጠይቅ",
+  "questionnaires.daily_functioning": "የዕለት ተዕለት ተግባር መጠይቅ",
+  "questionnaires.daily_functioning_desc": "የዕለት ተዕለት ተግባርን እና የ ADHD ተጽዕኖን ለመገምገም መጠይቅ",
+  "questionnaires.note": "መጠይቆችን አውርደው ከቀጠሮዎ በፊት ሊሞሉ ይችላሉ",
+  "questionnaires.download_pdf": "PDF አውርድ",
+  "questionnaires.download_doc": "DOC አውርድ",
+  "faq.title": "በብዛት የሚጠየቁ ጥያቄዎች",
+  "faq.subtitle": "ለተለመዱ ጥያቄዎች መልሶች",
+  "faq.no_answer": "መልስ አላገኙም? ያግኙን",
 
   "footer.rights": "\u00a9 2025 \u1201\u1209\u121d \u1218\u1265\u1276\u127d \u12e8\u1270\u1320\u1260\u1241 \u1293\u127d\u12c8 - Keshev Plus",
 

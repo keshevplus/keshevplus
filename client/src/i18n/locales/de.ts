@@ -5,6 +5,7 @@ const de: Record<string, string> = {
   "nav.adhd": "Was ist ADHS?",
   "nav.process": "Diagnoseverfahren",
   "nav.faq": "H\u00e4ufige Fragen",
+  "nav.questionnaires": "Frageb\u00f6gen",
   "nav.contact": "Kontakt",
 
   "hero.title": "Willkommen in der Klinik",
@@ -35,6 +36,23 @@ const de: Record<string, string> = {
   "contact.phone": "055-27-399-27",
   "contact.email": "info@keshevplus.co.il",
   "contact.address": "Tel Aviv, Israel",
+
+  "questionnaires.title": "Fragebögen",
+  "questionnaires.subtitle": "ADHS-Screening- und Diagnosefragebögen zum Herunterladen",
+  "questionnaires.conners_parents": "Conners-Fragebogen für Eltern",
+  "questionnaires.conners_parents_desc": "Fragebogen zur Erkennung von ADHS-Symptomen bei Kindern, von den Eltern auszufüllen",
+  "questionnaires.conners_teachers": "Conners-Fragebogen für Lehrer",
+  "questionnaires.conners_teachers_desc": "Fragebogen zur Erkennung von ADHS-Symptomen im schulischen Umfeld, vom Lehrer auszufüllen",
+  "questionnaires.asrs_adults": "ASRS-Selbstbericht für Erwachsene",
+  "questionnaires.asrs_adults_desc": "Selbstbeurteilungsfragebogen zur ADHS-Diagnose bei Erwachsenen",
+  "questionnaires.daily_functioning": "Fragebogen zum täglichen Funktionieren",
+  "questionnaires.daily_functioning_desc": "Fragebogen zur Bewertung des täglichen Funktionierens und der Auswirkungen von ADHS",
+  "questionnaires.note": "Sie können die Fragebögen herunterladen und vor Ihrem Termin ausfüllen",
+  "questionnaires.download_pdf": "PDF herunterladen",
+  "questionnaires.download_doc": "DOC herunterladen",
+  "faq.title": "Häufige Fragen",
+  "faq.subtitle": "Antworten auf die häufigsten Fragen",
+  "faq.no_answer": "Keine Antwort gefunden? Kontaktieren Sie uns",
 
   "footer.rights": "\u00a9 2025 Alle Rechte vorbehalten f\u00fcr Keshev Plus",
 

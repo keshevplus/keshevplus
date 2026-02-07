@@ -5,6 +5,7 @@ const he: Record<string, string> = {
   "nav.adhd": "\u05de\u05d4 \u05d6\u05d4 ADHD?",
   "nav.process": "\u05ea\u05d4\u05dc\u05d9\u05da \u05d4\u05d0\u05d1\u05d7\u05d5\u05df",
   "nav.faq": "\u05e9\u05d0\u05dc\u05d5\u05ea \u05e0\u05e4\u05d5\u05e6\u05d5\u05ea",
+  "nav.questionnaires": "\u05e9\u05d0\u05dc\u05d5\u05e0\u05d9\u05dd",
   "nav.contact": "\u05d9\u05e6\u05d9\u05e8\u05ea \u05e7\u05e9\u05e8",
 
   "hero.title": "\u05d1\u05e8\u05d5\u05db\u05d9\u05dd \u05d4\u05d1\u05d0\u05d9\u05dd \u05dc\u05de\u05e8\u05e4\u05d0\u05ea",
@@ -35,6 +36,23 @@ const he: Record<string, string> = {
   "contact.phone": "055-27-399-27",
   "contact.email": "info@keshevplus.co.il",
   "contact.address": "\u05ea\u05dc \u05d0\u05d1\u05d9\u05d1, \u05d9\u05e9\u05e8\u05d0\u05dc",
+
+  "questionnaires.title": "שאלונים",
+  "questionnaires.subtitle": "שאלוני סקירה ואבחון ADHD להורדה",
+  "questionnaires.conners_parents": "שאלון Conners להורים",
+  "questionnaires.conners_parents_desc": "שאלון לזיהוי תסמיני ADHD בילדים, למילוי על ידי ההורים",
+  "questionnaires.conners_teachers": "שאלון Conners למורים",
+  "questionnaires.conners_teachers_desc": "שאלון לזיהוי תסמיני ADHD בסביבה הלימודית, למילוי על ידי המורה",
+  "questionnaires.asrs_adults": "שאלון ASRS למבוגרים",
+  "questionnaires.asrs_adults_desc": "שאלון דיווח עצמי לאבחון ADHD במבוגרים",
+  "questionnaires.daily_functioning": "שאלון תפקוד יומיומי",
+  "questionnaires.daily_functioning_desc": "שאלון להערכת תפקוד יומיומי והשפעת ADHD על חיי היומיום",
+  "questionnaires.note": "ניתן להוריד את השאלונים ולמלא אותם לפני הפגישה במרפאה",
+  "questionnaires.download_pdf": "הורדת PDF",
+  "questionnaires.download_doc": "הורדת DOC",
+  "faq.title": "שאלות נפוצות",
+  "faq.subtitle": "תשובות לשאלות הנפוצות ביותר",
+  "faq.no_answer": "לא מצאתם תשובה? צרו איתנו קשר",
 
   "footer.rights": "\u00a9 2025 \u05db\u05dc \u05d4\u05d6\u05db\u05d5\u05d9\u05d5\u05ea \u05e9\u05de\u05d5\u05e8\u05d5\u05ea \u05dc\u05e7\u05e9\u05d1 \u05e4\u05dc\u05d5\u05e1",
 

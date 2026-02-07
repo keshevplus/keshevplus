@@ -17,8 +17,7 @@ const EnhancedNavigation = () => {
     { href: '#about', label: t('nav.about') },
     { href: '#services', label: t('nav.services') },
     { href: '#adhd', label: t('nav.adhd') },
-    { href: '#process', label: t('nav.process') },
-    { href: '#faq', label: t('nav.faq') },
+    { href: '#questionnaires', label: t('nav.questionnaires') },
     { href: '#contact', label: t('nav.contact') },
   ];
 

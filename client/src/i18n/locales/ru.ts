@@ -5,6 +5,7 @@ const ru: Record<string, string> = {
   "nav.adhd": "\u0427\u0442\u043e \u0442\u0430\u043a\u043e\u0435 \u0421\u0414\u0412\u0413?",
   "nav.process": "\u041f\u0440\u043e\u0446\u0435\u0441\u0441 \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0438",
   "nav.faq": "\u0427\u0430\u0441\u0442\u044b\u0435 \u0432\u043e\u043f\u0440\u043e\u0441\u044b",
+  "nav.questionnaires": "\u041e\u043f\u0440\u043e\u0441\u043d\u0438\u043a\u0438",
   "nav.contact": "\u041a\u043e\u043d\u0442\u0430\u043a\u0442\u044b",
 
   "hero.title": "\u0414\u043e\u0431\u0440\u043e \u043f\u043e\u0436\u0430\u043b\u043e\u0432\u0430\u0442\u044c \u0432 \u043a\u043b\u0438\u043d\u0438\u043a\u0443",
@@ -35,6 +36,23 @@ const ru: Record<string, string> = {
   "contact.phone": "055-27-399-27",
   "contact.email": "info@keshevplus.co.il",
   "contact.address": "\u0422\u0435\u043b\u044c-\u0410\u0432\u0438\u0432, \u0418\u0437\u0440\u0430\u0438\u043b\u044c",
+
+  "questionnaires.title": "Опросники",
+  "questionnaires.subtitle": "Опросники для скрининга и диагностики СДВГ для скачивания",
+  "questionnaires.conners_parents": "Опросник Коннерса для родителей",
+  "questionnaires.conners_parents_desc": "Опросник для выявления симптомов СДВГ у детей, заполняется родителями",
+  "questionnaires.conners_teachers": "Опросник Коннерса для учителей",
+  "questionnaires.conners_teachers_desc": "Опросник для выявления симптомов СДВГ в учебной среде, заполняется учителем",
+  "questionnaires.asrs_adults": "Самоотчёт ASRS для взрослых",
+  "questionnaires.asrs_adults_desc": "Опросник самоотчёта для диагностики СДВГ у взрослых",
+  "questionnaires.daily_functioning": "Опросник повседневного функционирования",
+  "questionnaires.daily_functioning_desc": "Опросник для оценки повседневного функционирования и влияния СДВГ",
+  "questionnaires.note": "Вы можете скачать опросники и заполнить их до визита в клинику",
+  "questionnaires.download_pdf": "Скачать PDF",
+  "questionnaires.download_doc": "Скачать DOC",
+  "faq.title": "Часто задаваемые вопросы",
+  "faq.subtitle": "Ответы на самые частые вопросы",
+  "faq.no_answer": "Не нашли ответ? Свяжитесь с нами",
 
   "footer.rights": "\u00a9 2025 \u0412\u0441\u0435 \u043f\u0440\u0430\u0432\u0430 \u0437\u0430\u0449\u0438\u0449\u0435\u043d\u044b Keshev Plus",
 

@@ -5,6 +5,7 @@ const en: Record<string, string> = {
   "nav.adhd": "What is ADHD?",
   "nav.process": "Diagnosis Process",
   "nav.faq": "FAQ",
+  "nav.questionnaires": "Questionnaires",
   "nav.contact": "Contact",
 
   "hero.title": "Welcome to",
@@ -35,6 +36,23 @@ const en: Record<string, string> = {
   "contact.phone": "055-27-399-27",
   "contact.email": "info@keshevplus.co.il",
   "contact.address": "Tel Aviv, Israel",
+
+  "questionnaires.title": "Questionnaires",
+  "questionnaires.subtitle": "ADHD screening and diagnostic questionnaires for download",
+  "questionnaires.conners_parents": "Conners Parent Questionnaire",
+  "questionnaires.conners_parents_desc": "Questionnaire for identifying ADHD symptoms in children, to be filled by parents",
+  "questionnaires.conners_teachers": "Conners Teacher Questionnaire",
+  "questionnaires.conners_teachers_desc": "Questionnaire for identifying ADHD symptoms in educational settings, to be filled by teachers",
+  "questionnaires.asrs_adults": "ASRS Adult Self-Report",
+  "questionnaires.asrs_adults_desc": "Self-report questionnaire for ADHD diagnosis in adults",
+  "questionnaires.daily_functioning": "Daily Functioning Questionnaire",
+  "questionnaires.daily_functioning_desc": "Questionnaire for evaluating daily functioning and the impact of ADHD on daily life",
+  "questionnaires.note": "You can download the questionnaires and fill them out before your appointment at the clinic",
+  "questionnaires.download_pdf": "Download PDF",
+  "questionnaires.download_doc": "Download DOC",
+  "faq.title": "Frequently Asked Questions",
+  "faq.subtitle": "Answers to the most common questions",
+  "faq.no_answer": "Didn't find your answer? Contact us",
 
   "footer.rights": "\u00a9 2025 All rights reserved to Keshev Plus",
 

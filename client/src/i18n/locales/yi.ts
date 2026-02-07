@@ -5,6 +5,7 @@ const yi: Record<string, string> = {
   "nav.adhd": "\u05d5\u05d5\u05d0\u05e1 \u05d0\u05d9\u05d6 ADHD?",
   "nav.process": "\u05d3\u05d9\u05d0\u05b7\u05d2\u05e0\u05d0\u05b8\u05d6 \u05e4\u05bc\u05e8\u05d0\u05b8\u05e6\u05e2\u05e1",
   "nav.faq": "\u05d0\u05e4\u05d8 \u05d2\u05e2\u05e4\u05e8\u05e2\u05d2\u05d8\u05e2 \u05e4\u05e8\u05d0\u05b7\u05d2\u05df",
+  "nav.questionnaires": "\u05e4\u05e8\u05d0\u05b7\u05d2\u05e2\u05d1\u05d5\u05d9\u05d2\u05e0\u05e1",
   "nav.contact": "\u05e7\u05d0\u05b8\u05e0\u05d8\u05d0\u05b7\u05e7\u05d8",
 
   "hero.title": "\u05d1\u05e8\u05d5\u05db\u05d9\u05dd \u05d4\u05d1\u05d0\u05d9\u05dd \u05d0\u05d9\u05df \u05d3\u05e2\u05e8 \u05e7\u05dc\u05d9\u05e0\u05d9\u05e7",
@@ -35,6 +36,23 @@ const yi: Record<string, string> = {
   "contact.phone": "055-27-399-27",
   "contact.email": "info@keshevplus.co.il",
   "contact.address": "\u05ea\u05dc \u05d0\u05d1\u05d9\u05d1, \u05d9\u05e9\u05e8\u05d0\u05dc",
+
+  "questionnaires.title": "פראַגעבויגנס",
+  "questionnaires.subtitle": "ADHD סקרירונג און דיאַגנאָז פראַגעבויגנס צום אַראָפּלאָדן",
+  "questionnaires.conners_parents": "קאָנערס עלטערן פראַגעבויגן",
+  "questionnaires.conners_parents_desc": "פראַגעבויגן צו אידענטיפיצירן ADHD סימפּטאָמען ביי קינדער, אויסצופֿילן דורך עלטערן",
+  "questionnaires.conners_teachers": "קאָנערס לערער פראַגעבויגן",
+  "questionnaires.conners_teachers_desc": "פראַגעבויגן צו אידענטיפיצירן ADHD סימפּטאָמען אין לערנען, אויסצופֿילן דורך דעם לערער",
+  "questionnaires.asrs_adults": "ASRS זעלבסט-באַריכט פֿאַר דערוואַקסענע",
+  "questionnaires.asrs_adults_desc": "זעלבסט-באַריכט פראַגעבויגן פֿאַר ADHD דיאַגנאָז ביי דערוואַקסענע",
+  "questionnaires.daily_functioning": "טעגלעכער פֿונקציאָנירונג פראַגעבויגן",
+  "questionnaires.daily_functioning_desc": "פראַגעבויגן צו אָפּשאַצן טעגלעכן פֿונקציאָנירונג און ADHD אויסווירקונג",
+  "questionnaires.note": "איר קענט אַראָפּלאָדן די פראַגעבויגנס און אויספֿילן זיי פֿאַר אייער באַזוך",
+  "questionnaires.download_pdf": "אַראָפּלאָדן PDF",
+  "questionnaires.download_doc": "אַראָפּלאָדן DOC",
+  "faq.title": "אָפט געפרעגטע פֿראַגן",
+  "faq.subtitle": "ענטפֿערס אויף די מערסט פֿאַרשפּרייטע פֿראַגן",
+  "faq.no_answer": "נישט געפֿונען אַן ענטפֿער? קאָנטאַקט אונדז",
 
   "footer.rights": "\u00a9 2025 \u05d0\u05b7\u05dc\u05e2 \u05e8\u05e2\u05db\u05d8\u05df \u05e8\u05e2\u05d6\u05e2\u05e8\u05d5\u05d5\u05d9\u05e8\u05d8 \u05e4\u05bf\u05d0\u05b7\u05e8 Keshev Plus",
 
