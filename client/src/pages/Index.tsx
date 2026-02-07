@@ -9,7 +9,7 @@ const ContactSection = lazy(() => import("@/components/ContactSection"));
 const Footer = lazy(() => import("@/components/Footer"));
 
 function SectionFallback() {
-  return <div className="py-16" />;
+  return <div className="py-32" />;
 }
 
 const Index = () => {

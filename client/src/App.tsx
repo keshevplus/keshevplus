@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Switch, Route } from "wouter";
 import { ThemeProvider } from "@/hooks/useTheme";
+import AccessibilityWidget from "@/components/AccessibilityWidget";
 import Index from "./pages/Index";
 
 const AdminPage = lazy(() => import("./pages/AdminPage"));
@@ -38,6 +39,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Router />
+        <AccessibilityWidget />
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

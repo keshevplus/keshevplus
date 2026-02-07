@@ -94,47 +94,47 @@
 
   .dark {
     /* Core Brand Colors - Dark Mode (Green/Orange clinic brand) */
-    --background: 150 15% 8%;
-    --foreground: 140 10% 90%;
+    --background: 150 10% 9%;
+    --foreground: 140 5% 90%;
     
     /* Surface Colors */
-    --card: 150 12% 12%;
-    --card-foreground: 140 10% 90%;
+    --card: 150 8% 13%;
+    --card-foreground: 140 5% 90%;
     
-    --popover: 150 12% 12%;
-    --popover-foreground: 140 10% 90%;
+    --popover: 150 8% 13%;
+    --popover-foreground: 140 5% 90%;
     
-    /* Primary - Forest Green (brand) */
-    --primary: 142 55% 35%;
+    /* Primary - Muted Green (less saturated for dark mode) */
+    --primary: 145 30% 38%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 142 55% 45%;
+    --primary-glow: 145 30% 48%;
     
-    /* Secondary - Orange (brand) */
-    --secondary: 32 80% 50%;
+    /* Secondary - Orange (slightly muted) */
+    --secondary: 32 65% 52%;
     --secondary-foreground: 0 0% 100%;
     
-    --muted: 150 10% 15%;
-    --muted-foreground: 140 8% 65%;
+    --muted: 150 6% 16%;
+    --muted-foreground: 140 5% 65%;
     
-    --accent: 142 55% 35%;
+    --accent: 145 30% 38%;
     --accent-foreground: 0 0% 100%;
     
     /* Status Colors */
-    --destructive: 0 70% 60%;
+    --destructive: 0 60% 58%;
     --destructive-foreground: 0 0% 100%;
     
-    --success: 142 60% 50%;
+    --success: 145 40% 48%;
     --success-foreground: 0 0% 100%;
     
     /* UI Elements */
-    --border: 150 10% 20%;
-    --input: 150 10% 18%;
-    --ring: 142 55% 35%;
+    --border: 150 6% 22%;
+    --input: 150 6% 19%;
+    --ring: 145 30% 38%;
     
     /* Keshev Plus Specific - Dark Mode */
-    --keshev-green: 142 55% 35%;
-    --keshev-green-dark: 142 55% 25%;
-    --keshev-orange: 32 80% 50%;
+    --keshev-green: 145 30% 38%;
+    --keshev-green-dark: 145 30% 28%;
+    --keshev-orange: 32 65% 52%;
     
     /* Gradients - Dark Mode */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
@@ -146,14 +146,14 @@
     --shadow-medium: 0 8px 30px -8px hsl(0 0% 0% / 0.4);
     --shadow-strong: 0 20px 40px -12px hsl(0 0% 0% / 0.5);
     --shadow-glow: 0 0 50px hsl(var(--primary) / 0.3);
-    --sidebar-background: 150 12% 10%;
-    --sidebar-foreground: 140 10% 90%;
-    --sidebar-primary: 142 55% 35%;
+    --sidebar-background: 150 8% 11%;
+    --sidebar-foreground: 140 5% 90%;
+    --sidebar-primary: 145 30% 38%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 150 10% 16%;
-    --sidebar-accent-foreground: 140 10% 90%;
-    --sidebar-border: 150 10% 18%;
-    --sidebar-ring: 142 55% 35%;
+    --sidebar-accent: 150 6% 17%;
+    --sidebar-accent-foreground: 140 5% 90%;
+    --sidebar-border: 150 6% 19%;
+    --sidebar-ring: 145 30% 38%;
   }
 }
 
@@ -326,4 +326,31 @@
   .hover-glow:hover {
     box-shadow: var(--shadow-glow);
   }
+}
+
+/* Accessibility Styles */
+.a11y-high-contrast {
+  filter: contrast(1.4);
+}
+
+.a11y-grayscale {
+  filter: grayscale(1);
+}
+
+.a11y-high-contrast.a11y-grayscale {
+  filter: contrast(1.4) grayscale(1);
+}
+
+.a11y-link-highlight a {
+  text-decoration: underline !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 3px !important;
+}
+
+.a11y-readable-font {
+  font-family: Arial, Helvetica, sans-serif !important;
+}
+
+.a11y-readable-font * {
+  font-family: inherit !important;
 }
