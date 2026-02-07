@@ -14,24 +14,32 @@ const QuestionnairesSection = () => {
       title: t('questionnaires.conners_parents'),
       description: t('questionnaires.conners_parents_desc'),
       id: 'conners-parents',
+      pdf: '/docs/conners_parents.pdf',
+      doc: '/docs/conners_parents.doc',
     },
     {
       icon: FileText,
       title: t('questionnaires.conners_teachers'),
       description: t('questionnaires.conners_teachers_desc'),
       id: 'conners-teachers',
+      pdf: '/docs/conners_teachers.pdf',
+      doc: '/docs/conners_teachers.doc',
     },
     {
       icon: FileCheck,
       title: t('questionnaires.asrs_adults'),
       description: t('questionnaires.asrs_adults_desc'),
       id: 'asrs-adults',
+      pdf: '/docs/asrs_adults.pdf',
+      doc: '/docs/asrs_adults.doc',
     },
     {
       icon: FileCheck,
       title: t('questionnaires.daily_functioning'),
       description: t('questionnaires.daily_functioning_desc'),
       id: 'daily-functioning',
+      pdf: '/docs/daily_functioning.pdf',
+      doc: '/docs/daily_functioning.doc',
     },
   ];
 
@@ -73,7 +81,8 @@ const QuestionnairesSection = () => {
                 </div>
                 <div className={cn("flex flex-wrap gap-3", isRTL ? "justify-end" : "justify-start")}>
                   <a
-                    href="#"
+                    href={item.pdf}
+                    download
                     className={cn(
                       "inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium",
                       "bg-secondary text-secondary-foreground",
@@ -85,7 +94,8 @@ const QuestionnairesSection = () => {
                     {t('questionnaires.download_pdf')}
                   </a>
                   <a
-                    href="#"
+                    href={item.doc}
+                    download
                     className={cn(
                       "inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium",
                       "bg-secondary text-secondary-foreground",
