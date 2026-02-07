@@ -135,6 +135,7 @@ const he: Record<string, string> = {
   "questionnaires.download_files": "קבצים להורדה",
   "questionnaires.download_pdf": "הורדת PDF",
   "questionnaires.download_word": "הורדת Word",
+  "questionnaires.fill_online": "מלא/י שאלון אונליין",
   "adhd.subtitle": "הפרעת קשב וריכוז (ADHD) היא הפרעה נוירו-התפתחותית שמשפיעה על ילדים ומבוגרים כאחד",
   "adhd.symptom1_title": "קשיי ריכוז",
   "adhd.symptom1_desc": "קושי לשמור על ריכוז לאורך זמן, הסחת דעת קלה ושכחנות",

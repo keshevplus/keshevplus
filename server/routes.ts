@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES } from "@shared/schema";
+import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema } from "@shared/schema";
 import { z } from "zod";
 import nodemailer from "nodemailer";
 
@@ -491,6 +491,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error seeding translations:", error);
       return res.status(500).json({ error: "Failed to seed translations" });
+    }
+  });
+
+  const questionnaireSubmitSchema = z.object({
+    type: z.enum(QUESTIONNAIRE_TYPES),
+    respondentName: z.string().min(1, "Name is required"),
+    respondentEmail: z.string().email("Valid email is required"),
+    respondentPhone: z.string().min(7, "Phone number is required"),
+    childName: z.string().optional().nullable(),
+    childAge: z.number().int().min(1).max(120).optional().nullable(),
+    childGender: z.string().optional().nullable(),
+    relationship: z.string().optional().nullable(),
+    answers: z.record(z.string(), z.number()),
+    scores: z.any().optional().nullable(),
+    notes: z.string().optional().nullable(),
+  });
+
+  app.post("/api/questionnaires/submit", async (req, res) => {
+    try {
+      const result = questionnaireSubmitSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ success: false, error: result.error.message });
+      }
+
+      const submission = await storage.createQuestionnaireSubmission(result.data as any);
+      return res.json({ success: true, id: submission.id });
+    } catch (error) {
+      console.error("Questionnaire submission error:", error);
+      return res.status(500).json({ success: false, error: "Failed to submit questionnaire" });
+    }
+  });
+
+  app.get("/api/questionnaires", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const type = req.query.type as string | undefined;
+      const submissions = await storage.getQuestionnaireSubmissions(type);
+      return res.json(submissions);
+    } catch (error) {
+      console.error("Error fetching questionnaires:", error);
+      return res.status(500).json({ error: "Failed to fetch questionnaires" });
+    }
+  });
+
+  app.get("/api/questionnaires/stats", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const stats = await storage.getQuestionnaireStats();
+      return res.json(stats);
+    } catch (error) {
+      console.error("Error fetching questionnaire stats:", error);
+      return res.status(500).json({ error: "Failed to fetch stats" });
+    }
+  });
+
+  app.get("/api/questionnaires/:id", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid ID" });
+      }
+      const submission = await storage.getQuestionnaireSubmission(id);
+      if (!submission) {
+        return res.status(404).json({ error: "Submission not found" });
+      }
+      return res.json(submission);
+    } catch (error) {
+      console.error("Error fetching questionnaire:", error);
+      return res.status(500).json({ error: "Failed to fetch questionnaire" });
+    }
+  });
+
+  app.patch("/api/questionnaires/:id/reviewed", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid ID" });
+      }
+      const submission = await storage.markQuestionnaireReviewed(id);
+      if (!submission) {
+        return res.status(404).json({ error: "Submission not found" });
+      }
+      return res.json(submission);
+    } catch (error) {
+      console.error("Error updating questionnaire:", error);
+      return res.status(500).json({ error: "Failed to update questionnaire" });
     }
   });
 

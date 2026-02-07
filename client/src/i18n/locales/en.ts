@@ -135,6 +135,7 @@ const en: Record<string, string> = {
   "questionnaires.download_files": "Download Files",
   "questionnaires.download_pdf": "Download PDF",
   "questionnaires.download_word": "Download Word",
+  "questionnaires.fill_online": "Fill Out Online",
   "adhd.subtitle": "ADHD (Attention Deficit Hyperactivity Disorder) is a neurodevelopmental disorder that affects both children and adults",
   "adhd.symptom1_title": "Difficulty Concentrating",
   "adhd.symptom1_desc": "Trouble maintaining focus over time, easy distractibility, and forgetfulness",

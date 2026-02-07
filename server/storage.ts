@@ -1,4 +1,4 @@
-import { users, contacts, siteSettings, translations, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation } from "@shared/schema";
+import { users, contacts, siteSettings, translations, questionnaireSubmissions, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
 
@@ -17,6 +17,11 @@ export interface IStorage {
   upsertTranslationsBulk(items: InsertTranslation[]): Promise<number>;
   deleteTranslationKey(key: string): Promise<number>;
   getTranslationKeys(): Promise<string[]>;
+  createQuestionnaireSubmission(submission: InsertQuestionnaireSubmission): Promise<QuestionnaireSubmission>;
+  getQuestionnaireSubmissions(type?: string): Promise<QuestionnaireSubmission[]>;
+  getQuestionnaireSubmission(id: number): Promise<QuestionnaireSubmission | undefined>;
+  markQuestionnaireReviewed(id: number): Promise<QuestionnaireSubmission | undefined>;
+  getQuestionnaireStats(): Promise<{ total: number; byType: Record<string, number>; unreviewed: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -145,6 +150,50 @@ export class DatabaseStorage implements IStorage {
       .from(translations)
       .orderBy(translations.key);
     return rows.map((r) => r.key);
+  }
+
+  async createQuestionnaireSubmission(submission: InsertQuestionnaireSubmission): Promise<QuestionnaireSubmission> {
+    const [created] = await db
+      .insert(questionnaireSubmissions)
+      .values(submission as any)
+      .returning();
+    return created;
+  }
+
+  async getQuestionnaireSubmissions(type?: string): Promise<QuestionnaireSubmission[]> {
+    if (type) {
+      return await db.select().from(questionnaireSubmissions)
+        .where(eq(questionnaireSubmissions.type, type))
+        .orderBy(desc(questionnaireSubmissions.createdAt));
+    }
+    return await db.select().from(questionnaireSubmissions)
+      .orderBy(desc(questionnaireSubmissions.createdAt));
+  }
+
+  async getQuestionnaireSubmission(id: number): Promise<QuestionnaireSubmission | undefined> {
+    const [submission] = await db.select().from(questionnaireSubmissions)
+      .where(eq(questionnaireSubmissions.id, id));
+    return submission || undefined;
+  }
+
+  async markQuestionnaireReviewed(id: number): Promise<QuestionnaireSubmission | undefined> {
+    const [updated] = await db
+      .update(questionnaireSubmissions)
+      .set({ reviewed: true } as any)
+      .where(eq(questionnaireSubmissions.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async getQuestionnaireStats(): Promise<{ total: number; byType: Record<string, number>; unreviewed: number }> {
+    const all = await db.select().from(questionnaireSubmissions);
+    const byType: Record<string, number> = {};
+    let unreviewed = 0;
+    for (const sub of all) {
+      byType[sub.type] = (byType[sub.type] || 0) + 1;
+      if (!sub.reviewed) unreviewed++;
+    }
+    return { total: all.length, byType, unreviewed };
   }
 }
 

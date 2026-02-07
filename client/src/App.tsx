@@ -9,6 +9,7 @@ import AccessibilityWidget from "@/components/AccessibilityWidget";
 import Index from "./pages/Index";
 
 const AdminPage = lazy(() => import("./pages/AdminPage"));
+const QuestionnairePage = lazy(() => import("./pages/QuestionnairePage"));
 const NotFound = lazy(() => import("./pages/not-found"));
 
 function PageFallback() {
@@ -27,6 +28,7 @@ function Router() {
     <Suspense fallback={<PageFallback />}>
       <Switch>
         <Route path="/" component={Index} />
+        <Route path="/questionnaire/:type" component={QuestionnairePage} />
         <Route path="/admin" component={AdminPage} />
         <Route component={NotFound} />
       </Switch>
