@@ -1,46 +1,28 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Brain, ClipboardList, Users, CheckCircle } from 'lucide-react';
+import { Brain, Pill, Monitor, ClipboardList, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage } from '@/hooks/useLanguage';
 import { Section, SectionHeader } from '@/components/layout/Section';
-import { contentApi, useContent, type Service, type ProcessStep } from '@/lib/content';
 import { cn } from '@/lib/utils';
 
-const iconMap: Record<string, React.FC<{ className?: string }>> = {
-  Brain,
-  ClipboardList,
-  Users,
-};
+const services = [
+  { id: '1', icon: Brain, titleKey: 'services.service1_title', descKey: 'services.service1_desc', color: 'from-emerald-500 to-teal-600' },
+  { id: '2', icon: Pill, titleKey: 'services.service2_title', descKey: 'services.service2_desc', color: 'from-blue-500 to-indigo-600' },
+  { id: '3', icon: Monitor, titleKey: 'services.service3_title', descKey: 'services.service3_desc', color: 'from-purple-500 to-violet-600' },
+  { id: '4', icon: ClipboardList, titleKey: 'services.service4_title', descKey: 'services.service4_desc', color: 'from-orange-500 to-amber-600' },
+  { id: '5', icon: Users, titleKey: 'services.service5_title', descKey: 'services.service5_desc', color: 'from-teal-500 to-cyan-600' },
+];
+
+const processSteps = [
+  { id: '1', step: 1, titleKey: 'services.step1_title', descKey: 'services.step1_desc' },
+  { id: '2', step: 2, titleKey: 'services.step2_title', descKey: 'services.step2_desc' },
+  { id: '3', step: 3, titleKey: 'services.step3_title', descKey: 'services.step3_desc' },
+  { id: '4', step: 4, titleKey: 'services.step4_title', descKey: 'services.step4_desc' },
+];
 
 const ServicesSection: React.FC = () => {
-  const { t, language, isRTL } = useLanguage();
-  
-  const { data: services, loading } = useContent(
-    () => contentApi.getServices(),
-    []
-  );
-  
-  const { data: processSteps } = useContent(
-    () => contentApi.getProcessSteps(),
-    []
-  );
-
-  if (loading) {
-    return (
-      <Section id="services" dir={isRTL ? 'rtl' : 'ltr'} aria-labelledby="services-heading">
-        <SectionHeader 
-          title={t('services.title')} 
-          titleId="services-heading"
-        />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-64 bg-muted/50 rounded-xl animate-pulse" />
-          ))}
-        </div>
-      </Section>
-    );
-  }
+  const { t, isRTL } = useLanguage();
 
   return (
     <Section 
@@ -59,8 +41,8 @@ const ServicesSection: React.FC = () => {
         aria-label={t('services.list_label')}
         data-testid="list-services"
       >
-        {services?.map((service, index) => {
-          const IconComponent = iconMap[service.icon] || Brain;
+        {services.map((service, index) => {
+          const IconComponent = service.icon;
           
           return (
             <motion.article
@@ -91,14 +73,14 @@ const ServicesSection: React.FC = () => {
                     <IconComponent className="w-7 h-7 sm:w-8 sm:h-8 text-primary-foreground" />
                   </div>
                   
-                  <CardTitle className="text-lg sm:text-xl font-bold">
-                    {service.title[language]}
+                  <CardTitle className="text-lg sm:text-xl font-bold" data-testid={`text-service-title-${service.id}`}>
+                    {t(service.titleKey)}
                   </CardTitle>
                 </CardHeader>
                 
                 <CardContent>
-                  <CardDescription className="text-center text-base text-muted-foreground leading-relaxed">
-                    {service.description[language]}
+                  <CardDescription className="text-center text-base text-muted-foreground leading-relaxed" data-testid={`text-service-desc-${service.id}`}>
+                    {t(service.descKey)}
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -119,7 +101,7 @@ const ServicesSection: React.FC = () => {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8"
           aria-label={t('services.process_steps')}
         >
-          {processSteps?.map((step, index) => (
+          {processSteps.map((step, index) => (
             <motion.li
               key={step.id}
               className="relative text-center"
@@ -141,12 +123,12 @@ const ServicesSection: React.FC = () => {
                 </span>
               </div>
               
-              <h4 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2 text-foreground">
-                {step.title[language]}
+              <h4 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2 text-foreground" data-testid={`text-step-title-${step.id}`}>
+                {t(step.titleKey)}
               </h4>
               
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {step.description[language]}
+              <p className="text-sm text-muted-foreground leading-relaxed" data-testid={`text-step-desc-${step.id}`}>
+                {t(step.descKey)}
               </p>
             </motion.li>
           ))}

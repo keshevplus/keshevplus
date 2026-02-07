@@ -10,23 +10,26 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { contentApi, useContent } from '@/lib/content';
 import { cn } from '@/lib/utils';
 
+const symptomData = [
+  { icon: Brain, titleKey: 'adhd.symptom1_title', descKey: 'adhd.symptom1_desc' },
+  { icon: Zap, titleKey: 'adhd.symptom2_title', descKey: 'adhd.symptom2_desc' },
+  { icon: Target, titleKey: 'adhd.symptom3_title', descKey: 'adhd.symptom3_desc' },
+  { icon: Users, titleKey: 'adhd.symptom4_title', descKey: 'adhd.symptom4_desc' },
+];
+
+const faqData = [
+  { id: 'faq1', questionKey: 'faq.q1', answerKey: 'faq.a1' },
+  { id: 'faq2', questionKey: 'faq.q2', answerKey: 'faq.a2' },
+  { id: 'faq3', questionKey: 'faq.q3', answerKey: 'faq.a3' },
+  { id: 'faq4', questionKey: 'faq.q4', answerKey: 'faq.a4' },
+  { id: 'faq5', questionKey: 'faq.q5', answerKey: 'faq.a5' },
+  { id: 'faq6', questionKey: 'faq.q6', answerKey: 'faq.a6' },
+];
+
 const ADHDInfoSection = () => {
-  const { language, t, isRTL } = useLanguage();
-
-  const { data: faqs, loading: faqsLoading } = useContent(
-    () => contentApi.getFAQs(),
-    []
-  );
-
-  const symptoms = [
-    { icon: Brain, title: t('adhd.symptom1_title'), desc: t('adhd.symptom1_desc') },
-    { icon: Zap, title: t('adhd.symptom2_title'), desc: t('adhd.symptom2_desc') },
-    { icon: Target, title: t('adhd.symptom3_title'), desc: t('adhd.symptom3_desc') },
-    { icon: Users, title: t('adhd.symptom4_title'), desc: t('adhd.symptom4_desc') },
-  ];
+  const { t, isRTL } = useLanguage();
 
   return (
     <Section 
@@ -42,9 +45,9 @@ const ADHDInfoSection = () => {
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8 mb-8 sm:mb-12 lg:mb-16">
-        {symptoms.map((symptom, index) => (
+        {symptomData.map((symptom, index) => (
           <motion.div
-            key={index}
+            key={symptom.titleKey}
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
@@ -58,8 +61,8 @@ const ADHDInfoSection = () => {
                 >
                   <symptom.icon className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-primary-foreground" />
                 </div>
-                <h3 className="font-bold text-sm sm:text-base md:text-lg mb-1 sm:mb-2">{symptom.title}</h3>
-                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">{symptom.desc}</p>
+                <h3 className="font-bold text-sm sm:text-base md:text-lg mb-1 sm:mb-2" data-testid={`text-symptom-title-${index}`}>{t(symptom.titleKey)}</h3>
+                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed" data-testid={`text-symptom-desc-${index}`}>{t(symptom.descKey)}</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -73,10 +76,10 @@ const ADHDInfoSection = () => {
         transition={{ duration: 0.6 }}
         viewport={{ once: true }}
       >
-        <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-primary-foreground mb-3 sm:mb-4 md:mb-6">
+        <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-primary-foreground mb-3 sm:mb-4 md:mb-6" data-testid="text-treatable-title">
           {t('adhd.treatable_title')}
         </h3>
-        <p className="text-primary-foreground/90 text-sm sm:text-base lg:text-lg leading-relaxed max-w-3xl mx-auto">
+        <p className="text-primary-foreground/90 text-sm sm:text-base lg:text-lg leading-relaxed max-w-3xl mx-auto" data-testid="text-treatable-desc">
           {t('adhd.treatable_desc')}
         </p>
       </motion.div>
@@ -97,56 +100,48 @@ const ADHDInfoSection = () => {
           </p>
         </motion.div>
 
-        {faqsLoading ? (
-          <div className="max-w-3xl mx-auto space-y-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-16 bg-card rounded-lg animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <motion.div
-            className="max-w-3xl mx-auto"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
-          >
-            <Accordion type="single" collapsible className="space-y-3 sm:space-y-4">
-              {faqs?.map((faq) => (
-                <AccordionItem
-                  key={faq.id}
-                  value={faq.id}
+        <motion.div
+          className="max-w-3xl mx-auto"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          viewport={{ once: true }}
+        >
+          <Accordion type="single" collapsible className="space-y-3 sm:space-y-4">
+            {faqData.map((faq) => (
+              <AccordionItem
+                key={faq.id}
+                value={faq.id}
+                className={cn(
+                  "bg-card rounded-lg border border-border",
+                  "shadow-sm hover:shadow-md transition-shadow",
+                  "overflow-hidden"
+                )}
+              >
+                <AccordionTrigger
                   className={cn(
-                    "bg-card rounded-lg border border-border",
-                    "shadow-sm hover:shadow-md transition-shadow",
-                    "overflow-hidden"
+                    "px-4 sm:px-6 py-4 sm:py-5",
+                    "text-left hover:no-underline",
+                    "min-h-[56px] sm:min-h-[64px]",
+                    "[&>svg]:w-5 [&>svg]:h-5 [&>svg]:shrink-0",
+                    "[&>svg]:ml-4 [&>svg]:text-primary",
+                    isRTL && "[&>svg]:ml-0 [&>svg]:mr-4"
                   )}
                 >
-                  <AccordionTrigger
-                    className={cn(
-                      "px-4 sm:px-6 py-4 sm:py-5",
-                      "text-left hover:no-underline",
-                      "min-h-[56px] sm:min-h-[64px]",
-                      "[&>svg]:w-5 [&>svg]:h-5 [&>svg]:shrink-0",
-                      "[&>svg]:ml-4 [&>svg]:text-primary",
-                      isRTL && "[&>svg]:ml-0 [&>svg]:mr-4"
-                    )}
-                  >
-                    <span className="text-base sm:text-lg font-medium text-foreground leading-snug pr-4">
-                      {faq.question[language]}
-                    </span>
-                  </AccordionTrigger>
-                  
-                  <AccordionContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-                    <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                      {faq.answer[language]}
-                    </p>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </motion.div>
-        )}
+                  <span className="text-base sm:text-lg font-medium text-foreground leading-snug pr-4" data-testid={`text-faq-question-${faq.id}`}>
+                    {t(faq.questionKey)}
+                  </span>
+                </AccordionTrigger>
+                
+                <AccordionContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed" data-testid={`text-faq-answer-${faq.id}`}>
+                    {t(faq.answerKey)}
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </motion.div>
 
         <motion.div
           className="text-center mt-10 sm:mt-12"
