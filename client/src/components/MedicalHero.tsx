@@ -46,7 +46,7 @@ const MedicalHero: React.FC = () => {
           }
         >
           <div className="relative z-10">
-            <div className="flex flex-row items-end pt-20 sm:pt-24 md:pt-28">
+            <div className="flex flex-row items-end pt-28 sm:pt-32 md:pt-36 lg:pt-40">
               <motion.div
                 className="w-1/2 px-3 sm:px-6 lg:px-8 xl:px-12 pb-4 sm:pb-8 md:pb-12 lg:pb-16 flex flex-col items-center text-center justify-center"
                 initial={{ opacity: 0, y: 20 }}
@@ -56,7 +56,7 @@ const MedicalHero: React.FC = () => {
                 <motion.h1
                   className="font-bold text-primary leading-tight"
                   style={{
-                    fontSize: "clamp(1.1rem, 2.5vw + 0.5rem, 3.5rem)",
+                    fontSize: "clamp(1rem, 4vw + 0.25rem, 3.5rem)",
                     marginBottom: "clamp(0.15rem, 0.5vw, 0.5rem)",
                   }}
                   initial={{ opacity: 0, y: 20 }}
