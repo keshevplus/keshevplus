@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertContactSchema, languageSettingsSchema } from "@shared/schema";
 import { z } from "zod";
+import nodemailer from "nodemailer";
 
 const DEFAULT_LANGUAGE_SETTINGS = {
   enabled: false,
@@ -17,7 +18,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ success: false, message: result.error.message });
       }
+      
+      // Save to database (admin dashboard fallback)
       await storage.createContact(result.data);
+
+      // Attempt to send email
+      try {
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.EMAIL_USER || 'pluskeshev@gmail.com',
+            pass: process.env.EMAIL_PASS
+          }
+        });
+
+        const mailOptions = {
+          from: result.data.email || 'pluskeshev@gmail.com',
+          to: 'pluskeshev@gmail.com',
+          subject: `פנייה חדשה מהאתר - ${result.data.name}`,
+          text: `
+            שם: ${result.data.name}
+            טלפון: ${result.data.phone}
+            אימייל: ${result.data.email || 'לא צויין'}
+            הודעה: ${result.data.message}
+          `
+        };
+
+        if (process.env.EMAIL_PASS) {
+          await transporter.sendMail(mailOptions);
+        } else {
+          console.warn("EMAIL_PASS not set, skipping email delivery");
+        }
+      } catch (emailError) {
+        console.error("Email delivery failed, message saved to DB:", emailError);
+      }
+
       return res.json({ success: true, message: "Form submitted successfully" });
     } catch (error) {
       console.error("Contact form error:", error);

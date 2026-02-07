@@ -18,6 +18,7 @@ KeshevPlus is a multilingual website for an ADHD clinic specializing in diagnosi
 - **Database**: Neon Postgres via Drizzle ORM
 - **Schema**: Users table (auth) + Contacts table (contact form) + SiteSettings table (language config)
 - **i18n**: Custom translation system with 9 languages, admin-controlled via database settings
+- **Email Delivery**: Nodemailer integration for contact form submissions to pluskeshev@gmail.com
 
 ## Project Structure
 ```
