@@ -33,9 +33,19 @@ const EnhancedNavigation = () => {
     if (href === '#home') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      const element = document.querySelector(href);
+      const id = href.substring(1);
+      const element = document.getElementById(id);
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
+        const offset = 100; // Adjust for navbar height
+        const bodyRect = document.body.getBoundingClientRect().top;
+        const elementRect = element.getBoundingClientRect().top;
+        const elementPosition = elementRect - bodyRect;
+        const offsetPosition = elementPosition - offset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
       }
     }
     setIsOpen(false);
@@ -62,8 +72,8 @@ const EnhancedNavigation = () => {
             <img 
               src={logo} 
               alt={isRTL ? '\u05e7\u05e9\u05d1 \u05e4\u05dc\u05d5\u05e1' : 'Keshev Plus'}
-              className={`transition-all duration-300 ${
-                isScrolled ? 'h-20 md:h-24' : 'h-24 md:h-32'
+              className={`transition-all duration-300 object-contain ${
+                isScrolled ? 'h-24 md:h-28' : 'h-28 md:h-36'
               } w-auto`}
             />
           </motion.div>
