@@ -170,11 +170,11 @@
     text-size-adjust: 100%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
   }
 
   body {
     @apply bg-background text-foreground;
-    scroll-behavior: smooth;
     overflow-x: hidden;
     min-height: 100vh;
     min-height: 100dvh;
