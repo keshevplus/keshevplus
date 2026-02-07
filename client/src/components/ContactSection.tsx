@@ -203,6 +203,8 @@ const iconMap: Record<string, React.FC<{ className?: string }>> = {
   hours: Clock,
 };
 
+import ContactInfoList from './ContactInfoList';
+
 const ContactSection: React.FC = () => {
   const { t, language, isRTL } = useLanguage();
   const { toast } = useToast();
@@ -307,78 +309,7 @@ const ContactSection: React.FC = () => {
           viewport={{ once: true }}
           className="space-y-6"
         >
-          <div>
-            <h3 className="text-xl font-semibold text-primary mb-4">
-              {language === 'he' ? 'דרכי התקשרות' : 'Get in Touch'}
-            </h3>
-            <p className="text-muted-foreground leading-relaxed">
-              {language === 'he' 
-                ? 'ניתן לפנות אלינו בטלפון, במייל או להשאיר פרטים בטופס ונחזור אליכם בהקדם.'
-                : 'You can reach us by phone, email, or leave your details in the form and we\'ll contact you soon.'}
-            </p>
-          </div>
-
-          {/* Contact Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {contactInfo?.map((info, index) => {
-              const IconComponent = iconMap[info.type] || Phone;
-              
-              return (
-                <motion.div
-                  key={info.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                >
-                  <Card className="h-full border-border/50 hover:shadow-md transition-shadow bg-background">
-                    <CardContent className="p-4 sm:p-5">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-                          <IconComponent className="w-5 h-5 text-primary" aria-hidden="true" />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="font-medium text-sm text-muted-foreground mb-1">
-                            {info.label[language]}
-                          </h4>
-                          {info.type === 'phone' ? (
-                            <a 
-                              href={`tel:${info.value.replace(/-/g, '')}`}
-                              className="font-semibold text-primary hover:text-primary/80 transition-colors block"
-                              dir="ltr"
-                            >
-                              {info.value}
-                            </a>
-                          ) : info.type === 'email' ? (
-                            <a 
-                              href={`mailto:${info.value}`}
-                              className="font-semibold text-primary hover:text-primary/80 transition-colors block break-all"
-                              dir="ltr"
-                            >
-                              {info.value}
-                            </a>
-                          ) : info.type === 'address' ? (
-                            <a 
-                              href={`https://maps.google.com/?q=${encodeURIComponent(info.value)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-semibold text-foreground hover:text-primary transition-colors block"
-                            >
-                              {info.value}
-                            </a>
-                          ) : (
-                            <p className="font-semibold text-foreground">
-                              {info.value}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
-          </div>
+          <ContactInfoList contactInfo={contactInfo} language={language} iconMap={iconMap} />
 
           {/* Direct Call CTA - Prominent on mobile */}
           <motion.a
