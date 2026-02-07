@@ -93,7 +93,7 @@ shared/              - Shared types and schema
 - 2026-02-07: Static locale files updated with all component-used keys (hero, nav, contact, footer sections) for graceful fallback
 - 2026-02-07: AccessibilityWidget expanded - full 9-language translations, large cursor, stop animations, Israeli law accessibility statement
 - 2026-02-07: FAQ section merged into ADHDInfoSection - FAQ accordion as sub-section with #faq anchor preserved
-- 2026-02-07: QuestionnairesSection added - 4 ADHD screening questionnaires (Conners Parent/Teacher, ASRS Adult, Daily Functioning) with PDF/DOC download buttons, fully translated to 9 languages
+- 2026-02-07: QuestionnairesSection redesigned - 3 Vanderbilt questionnaires (Parent, Teacher, Self-Report) with actual PDF/DOCX files, Word/PDF icon download buttons, matching keshevplus.co.il/forms layout, fully translated to 9 languages
 - 2026-02-07: Directions modal updated with embedded Google Maps iframe showing clinic at יגאל אלון 94, תל אביב
 - 2026-02-07: Navigation restructured: Home → About → Services → ADHD (includes FAQ) → Questionnaires → Contact
 - 2026-02-07: Hero font sizes increased for desktop/laptop (larger clamp values)
