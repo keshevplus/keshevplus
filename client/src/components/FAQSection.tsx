@@ -49,10 +49,7 @@ const FAQSection: React.FC = () => {
     >
       <SectionHeader 
         title={t('nav.faq')} 
-        subtitle={language === 'he' 
-          ? '\u05de\u05e6\u05d0\u05d5 \u05ea\u05e9\u05d5\u05d1\u05d5\u05ea \u05dc\u05e9\u05d0\u05dc\u05d5\u05ea \u05d4\u05e0\u05e4\u05d5\u05e6\u05d5\u05ea \u05d1\u05d9\u05d5\u05ea\u05e8 \u05e2\u05dc \u05d0\u05d1\u05d7\u05d5\u05df \u05d5\u05d8\u05d9\u05e4\u05d5\u05dc \u05d1-ADHD'
-          : 'Find answers to the most common questions about ADHD diagnosis and treatment'
-        }
+        subtitle={t('faq.subtitle')}
         titleId="faq-heading"
       />
 
@@ -107,9 +104,7 @@ const FAQSection: React.FC = () => {
         viewport={{ once: true }}
       >
         <p className="text-base text-muted-foreground">
-          {language === 'he' 
-            ? '\u05dc\u05d0 \u05de\u05e6\u05d0\u05ea\u05dd \u05ea\u05e9\u05d5\u05d1\u05d4 \u05dc\u05e9\u05d0\u05dc\u05d4 \u05e9\u05dc\u05db\u05dd?' 
-            : "Didn't find the answer you're looking for?"}
+          {t('faq.no_answer_question')}
         </p>
         <a
           href="#contact"
@@ -125,7 +120,7 @@ const FAQSection: React.FC = () => {
             "min-h-[44px]"
           )}
         >
-          {language === 'he' ? '\u05e6\u05e8\u05d5 \u05d0\u05d9\u05ea\u05e0\u05d5 \u05e7\u05e9\u05e8' : 'Contact us'}
+          {t('faq.contact_us')}
         </a>
       </motion.div>
     </Section>

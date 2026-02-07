@@ -33,7 +33,7 @@ interface ContactModalProps {
 }
 
 const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
-  const { language, isRTL } = useLanguage();
+  const { t, language, isRTL } = useLanguage();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -84,8 +84,8 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
       if (response.success) {
         setIsSubmitted(true);
         toast({
-          title: language === 'he' ? 'הודעה נשלחה בהצלחה!' : 'Message sent successfully!',
-          description: language === 'he' ? 'נחזור אליכם בהקדם' : "We'll get back to you soon",
+          title: t('contact.success_title'),
+          description: t('contact.success_desc'),
         });
         setFormData({ name: '', phone: '', email: '', message: '' });
       } else {
@@ -93,8 +93,8 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
       }
     } catch (error) {
       toast({
-        title: language === 'he' ? 'שגיאה בשליחה' : 'Error sending message',
-        description: language === 'he' ? 'אנא נסו שוב' : 'Please try again',
+        title: t('contact.error_title'),
+        description: t('contact.error_desc'),
         variant: 'destructive',
       });
     } finally {
@@ -121,12 +121,10 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
         <DialogHeader>
           <DialogTitle className="text-xl text-primary flex items-center gap-2">
             <Mail className="w-5 h-5" />
-            {language === 'he' ? 'צרו קשר' : 'Contact Us'}
+            {t('nav.contact')}
           </DialogTitle>
           <DialogDescription>
-            {language === 'he'
-              ? 'השאירו פרטים ונחזור אליכם בהקדם האפשרי'
-              : "Leave your details and we'll get back to you as soon as possible"}
+            {t('contact.subtitle')}
           </DialogDescription>
         </DialogHeader>
 
@@ -138,10 +136,10 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
           >
             <CheckCircle className="w-16 h-16 text-primary mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2 text-foreground">
-              {language === 'he' ? 'תודה שפניתם אלינו!' : 'Thank you for contacting us!'}
+              {t('contact.thank_you')}
             </h3>
             <p className="text-muted-foreground">
-              {language === 'he' ? 'נחזור אליכם בהקדם האפשרי' : "We'll get back to you as soon as possible"}
+              {t('contact.will_reply')}
             </p>
             <AccessibleButton
               variant="outline"
@@ -156,7 +154,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
           <form onSubmit={handleSubmit} className="space-y-4 mt-2" noValidate>
             <div>
               <Label htmlFor="modal-name" className="text-sm font-medium text-foreground">
-                {language === 'he' ? 'שם מלא' : 'Full Name'} *
+                {t('contact.full_name')} *
               </Label>
               <Input
                 id="modal-name"
@@ -164,7 +162,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
                 type="text"
                 value={formData.name}
                 onChange={handleInputChange}
-                placeholder={language === 'he' ? 'הזינו שם מלא' : 'Enter your full name'}
+                placeholder={t('contact.name_placeholder')}
                 className={cn("mt-1", errors.name && "border-destructive")}
                 data-testid="input-modal-name"
               />
@@ -173,7 +171,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
 
             <div>
               <Label htmlFor="modal-phone" className="text-sm font-medium text-foreground">
-                {language === 'he' ? 'טלפון' : 'Phone'} *
+                {t('contact.phone_label')} *
               </Label>
               <Input
                 id="modal-phone"
@@ -191,7 +189,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
 
             <div>
               <Label htmlFor="modal-email" className="text-sm font-medium text-foreground">
-                {language === 'he' ? 'דוא"ל (אופציונלי)' : 'Email (optional)'}
+                {t('contact.email_optional')}
               </Label>
               <Input
                 id="modal-email"
@@ -209,14 +207,14 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
 
             <div>
               <Label htmlFor="modal-message" className="text-sm font-medium text-foreground">
-                {language === 'he' ? 'הודעה' : 'Message'} *
+                {t('contact.message')} *
               </Label>
               <Textarea
                 id="modal-message"
                 name="message"
                 value={formData.message}
                 onChange={handleInputChange}
-                placeholder={language === 'he' ? 'ספרו לנו איך נוכל לעזור' : 'Tell us how we can help'}
+                placeholder={t('contact.message_placeholder')}
                 rows={3}
                 className={cn("mt-1 resize-none", errors.message && "border-destructive")}
                 data-testid="input-modal-message"
@@ -233,7 +231,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
                 data-testid="button-modal-submit"
               >
                 <Send className="w-4 h-4" />
-                {language === 'he' ? 'שלחו הודעה' : 'Send Message'}
+                {t('contact.send_message')}
               </AccessibleButton>
 
               <a

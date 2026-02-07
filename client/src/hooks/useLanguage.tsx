@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 import {
   type SupportedLanguage,
   type LanguageInfo,
@@ -7,7 +7,7 @@ import {
   BILINGUAL_CODES,
   MULTILINGUAL_CODES,
   DEFAULT_LANGUAGE_SETTINGS,
-  getTranslation,
+  getTranslation as getStaticTranslation,
   getLanguageInfo,
   isRTL as checkRTL,
 } from "@/i18n/config";
@@ -25,10 +25,28 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
+const dbTranslationsCache: Record<string, Record<string, string>> = {};
+
+async function fetchDbTranslations(lang: string): Promise<Record<string, string>> {
+  if (dbTranslationsCache[lang]) return dbTranslationsCache[lang];
+  try {
+    const res = await fetch(`/api/translations?lang=${lang}`);
+    if (res.ok) {
+      const data = await res.json();
+      dbTranslationsCache[lang] = data;
+      return data;
+    }
+  } catch {}
+  return {};
+}
+
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const [settings, setSettings] = useState<LanguageSettings>(DEFAULT_LANGUAGE_SETTINGS);
   const [language, setLanguageState] = useState<SupportedLanguage>("he");
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [dbTranslations, setDbTranslations] = useState<Record<string, string>>({});
+  const [enFallback, setEnFallback] = useState<Record<string, string>>({});
+  const loadingRef = useRef<string | null>(null);
 
   useEffect(() => {
     fetch("/api/settings/language", { credentials: "include" })
@@ -55,7 +73,19 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
         if (saved) setLanguageState(saved);
       })
       .finally(() => setSettingsLoaded(true));
+
+    fetchDbTranslations("he").then(setEnFallback);
   }, []);
+
+  useEffect(() => {
+    if (loadingRef.current === language) return;
+    loadingRef.current = language;
+    fetchDbTranslations(language).then((data) => {
+      if (loadingRef.current === language) {
+        setDbTranslations(data);
+      }
+    });
+  }, [language]);
 
   useEffect(() => {
     if (!settingsLoaded) return;
@@ -76,9 +106,15 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
 
   const t = useCallback(
     (key: string): string => {
-      return getTranslation(language, key);
+      if (dbTranslations[key]) return dbTranslations[key];
+      if (enFallback[key]) {
+        const staticVal = getStaticTranslation(language, key);
+        if (staticVal !== key) return staticVal;
+        return enFallback[key];
+      }
+      return getStaticTranslation(language, key);
     },
-    [language]
+    [language, dbTranslations, enFallback]
   );
 
   const rtl = checkRTL(language);
@@ -119,6 +155,14 @@ function getAvailableLanguages(settings: LanguageSettings): LanguageInfo[] {
   }
   const codes = settings.mode === "bilingual" ? BILINGUAL_CODES : MULTILINGUAL_CODES;
   return ALL_LANGUAGES.filter((l) => codes.includes(l.code));
+}
+
+export function invalidateTranslationCache(lang?: string) {
+  if (lang) {
+    delete dbTranslationsCache[lang];
+  } else {
+    Object.keys(dbTranslationsCache).forEach(k => delete dbTranslationsCache[k]);
+  }
 }
 
 export const useLanguage = () => {

@@ -14,10 +14,7 @@ const MedicalHero: React.FC = () => {
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
   const [contactModalOpen, setContactModalOpen] = useState(false);
 
-  const typingTexts =
-    language === "he"
-      ? ["בילדים", "בבני נוער", "במבוגרים"]
-      : ["in Children", "in Teens", "in Adults"];
+  const typingTexts = [t("hero.typing_children"), t("hero.typing_teens"), t("hero.typing_adults")];
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -39,11 +36,7 @@ const MedicalHero: React.FC = () => {
           id="home"
           className="relative bg-background"
           dir={isRTL ? "rtl" : "ltr"}
-          aria-label={
-            language === "he"
-              ? "ברוכים הבאים לקשב פלוס"
-              : "Welcome to Keshev Plus"
-          }
+          aria-label={t("hero.welcome_line1") + " " + t("hero.welcome_line2")}
         >
           <div className="relative z-10">
             <div className="flex flex-row items-end pt-28 sm:pt-32 md:pt-36 lg:pt-40">
@@ -63,9 +56,9 @@ const MedicalHero: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
                 >
-                  {language === "he" ? "ברוכים הבאים למרפאת" : "Welcome to"}
+                  {t("hero.welcome_line1")}
                   <br />
-                  {language === "he" ? '"קשב פלוס"' : '"Keshev Plus" Clinic'}
+                  {t("hero.welcome_line2")}
                 </motion.h1>
 
                 {/* <motion.img
@@ -88,9 +81,7 @@ const MedicalHero: React.FC = () => {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.3 }}
                 >
-                  {language === "he"
-                    ? "מרפאה לאבחון וטיפןך של הפרעות קשב וריכוז"
-                    : 'Clinic for Diagnosis and Treatment of ADHD'}
+                  {t("hero.clinic_description")}
                 </motion.p>
 
                 <AnimatePresence mode="wait">
@@ -122,15 +113,9 @@ const MedicalHero: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.4 }}
                 >
-                  {language === "he" ? (
-                    <>
-                      ב"קשב פלוס" תקבלו אבחון מדויק
-                      <br />
-                      ותוכנית טיפול אישית
-                    </>
-                  ) : (
-                    'At "Keshev Plus" you will receive accurate diagnosis and a personalized treatment plan'
-                  )}
+                  {t("hero.accurate_diagnosis")}
+                  <br />
+                  {t("hero.personal_plan")}
                 </motion.p>
 
                 <motion.div
@@ -146,9 +131,7 @@ const MedicalHero: React.FC = () => {
                       marginBottom: "clamp(0.1rem, 0.3vw, 0.25rem)",
                     }}
                   >
-                    {language === "he"
-                      ? "הצעד הראשון מתחיל כאן"
-                      : "The first step starts here"}
+                    {t("hero.first_step")}
                   </p>
                   <p
                     className="text-muted-foreground"
@@ -156,9 +139,7 @@ const MedicalHero: React.FC = () => {
                       fontSize: "clamp(0.6rem, 1vw + 0.1rem, 1.1rem)",
                     }}
                   >
-                    {language === "he"
-                      ? "קבעו פגישת ייעוץ - בואו לגלות את הדרך להצלחה"
-                      : "Schedule a consultation - discover the path to success"}
+                    {t("hero.schedule_consultation")}
                   </p>
                 </motion.div>
 
@@ -175,9 +156,7 @@ const MedicalHero: React.FC = () => {
                     onClick={() => setContactModalOpen(true)}
                     data-testid="button-start-diagnosis"
                   >
-                    {language === "he"
-                      ? "התחל/י את האבחון עכשיו"
-                      : "Start Diagnosis Now"}
+                    {t("hero.start_now")}
                   </AccessibleButton>
 
                   <AccessibleButton
@@ -191,9 +170,7 @@ const MedicalHero: React.FC = () => {
                     }
                     data-testid="button-read-more"
                   >
-                    {language === "he"
-                      ? "קראו עוד עלינו"
-                      : "Read More About Us"}
+                    {t("hero.read_about_us")}
                   </AccessibleButton>
                 </motion.div>
               </motion.div>
@@ -206,11 +183,7 @@ const MedicalHero: React.FC = () => {
               >
                 <img
                   src={doctorHero}
-                  alt={
-                    language === "he"
-                      ? "רופאה מומחית באבחון ADHD"
-                      : "Expert ADHD specialist doctor"
-                  }
+                  alt={t("hero.doctor_alt")}
                   className="w-full max-h-[65vh] sm:max-h-[70vh] md:max-h-[75vh] h-auto object-contain object-bottom drop-shadow-xl block"
                   loading="eager"
                 />
@@ -232,7 +205,7 @@ const MedicalHero: React.FC = () => {
                 transition={{ duration: 0.5 }}
                 viewport={{ once: true }}
               >
-                {language === "he" ? "מוכנים להתחיל?" : "Ready to Start?"}
+                {t("hero.ready_to_start")}
               </motion.h2>
 
               <motion.p
@@ -242,9 +215,7 @@ const MedicalHero: React.FC = () => {
                 transition={{ duration: 0.5, delay: 0.1 }}
                 viewport={{ once: true }}
               >
-                {language === "he"
-                  ? "פנה/י אלינו היום כדי לקבוע את האבחון שלך ולקחת את הצעד הראשון לקראת חיים טובים יותר."
-                  : "Contact us today to schedule your diagnosis and take the first step towards a better life."}
+                {t("hero.ready_description")}
               </motion.p>
 
               <motion.div
@@ -259,7 +230,7 @@ const MedicalHero: React.FC = () => {
                   onClick={() => setContactModalOpen(true)}
                   data-testid="button-contact-cta"
                 >
-                  {language === "he" ? "צרו קשר עכשיו" : "Contact Us Now"}
+                  {t("hero.contact_us_now")}
                 </AccessibleButton>
               </motion.div>
             </div>

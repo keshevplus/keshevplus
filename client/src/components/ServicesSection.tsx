@@ -56,7 +56,7 @@ const ServicesSection: React.FC = () => {
       <div 
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8"
         role="list"
-        aria-label={language === 'he' ? '\u05e8\u05e9\u05d9\u05de\u05ea \u05d4\u05e9\u05d9\u05e8\u05d5\u05ea\u05d9\u05dd \u05e9\u05dc\u05e0\u05d5' : 'Our services list'}
+        aria-label={t('services.list_label')}
         data-testid="list-services"
       >
         {services?.map((service, index) => {

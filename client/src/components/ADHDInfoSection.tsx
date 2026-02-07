@@ -21,16 +21,11 @@ const ADHDInfoSection = () => {
     []
   );
 
-  const symptoms = language === 'he' ? [
-    { icon: Brain, title: 'קשיי ריכוז', desc: 'קושי בשמירה על קשב למשימות' },
-    { icon: Zap, title: 'היפראקטיביות', desc: 'תנועתיות מוגברת וחוסר מנוחה' },
-    { icon: Target, title: 'אימפולסיביות', desc: 'פעילות ללא מחשבה מוקדמת' },
-    { icon: Users, title: 'קשיים חברתיים', desc: 'קושי ביחסים בין אישיים' }
-  ] : [
-    { icon: Brain, title: 'Concentration Difficulties', desc: 'Difficulty maintaining attention to tasks' },
-    { icon: Zap, title: 'Hyperactivity', desc: 'Increased movement and restlessness' },
-    { icon: Target, title: 'Impulsivity', desc: 'Acting without prior thought' },
-    { icon: Users, title: 'Social Difficulties', desc: 'Challenges in interpersonal relationships' }
+  const symptoms = [
+    { icon: Brain, title: t('adhd.symptom1_title'), desc: t('adhd.symptom1_desc') },
+    { icon: Zap, title: t('adhd.symptom2_title'), desc: t('adhd.symptom2_desc') },
+    { icon: Target, title: t('adhd.symptom3_title'), desc: t('adhd.symptom3_desc') },
+    { icon: Users, title: t('adhd.symptom4_title'), desc: t('adhd.symptom4_desc') },
   ];
 
   return (
@@ -42,10 +37,7 @@ const ADHDInfoSection = () => {
     >
       <SectionHeader 
         title={t('nav.adhd')}
-        subtitle={language === 'he' 
-          ? 'ADHD היא הפרעה נוירו-התפתחותית הפוגעת ביכולת הריכוז, הקשב והשליטה בדחפים. ההפרעה מתחילה בגיל הילדות ויכולה להמשיך עד לבגרות.'
-          : 'ADHD is a neurodevelopmental disorder affecting concentration, attention and impulse control. The disorder begins in childhood and can continue into adulthood.'
-        }
+        subtitle={t('adhd.subtitle')}
         titleId="adhd-heading"
       />
 
@@ -82,13 +74,10 @@ const ADHDInfoSection = () => {
         viewport={{ once: true }}
       >
         <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-primary-foreground mb-3 sm:mb-4 md:mb-6">
-          {language === 'he' ? 'זכרו - ADHD ניתן לטיפול!' : 'Remember - ADHD is treatable!'}
+          {t('adhd.treatable_title')}
         </h3>
         <p className="text-primary-foreground/90 text-sm sm:text-base lg:text-lg leading-relaxed max-w-3xl mx-auto">
-          {language === 'he'
-            ? 'עם האבחון הנכון והטיפול המתאים, ניתן לשפר משמעותית את איכות החיים ולהגיע להישגים גבוהים בכל תחומי החיים.'
-            : 'With proper diagnosis and appropriate treatment, quality of life can be significantly improved and high achievements can be reached in all areas of life.'
-          }
+          {t('adhd.treatable_desc')}
         </p>
       </motion.div>
 

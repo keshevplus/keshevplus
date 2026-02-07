@@ -1,5 +1,6 @@
 import React from 'react';
 import { Phone } from 'lucide-react';
+import { useLanguage } from '@/hooks/useLanguage';
 
 interface ContactInfo {
   id: string;
@@ -15,10 +16,12 @@ interface ContactInfoListProps {
 }
 
 const ContactInfoList: React.FC<ContactInfoListProps> = ({ contactInfo, language, iconMap }) => {
+  const { t } = useLanguage();
+
   return (
     <div>
       <h3 className="text-xl font-semibold text-primary mb-4">
-        {language === 'he' ? 'דרכי התקשרות' : 'Get in Touch'}
+        {t('contact.title')}
       </h3>
       <div className="flex flex-col gap-6">
         {contactInfo?.map((info) => {

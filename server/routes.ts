@@ -1,9 +1,146 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSchema, languageSettingsSchema } from "@shared/schema";
+import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES } from "@shared/schema";
 import { z } from "zod";
 import nodemailer from "nodemailer";
+
+import en from "../client/src/i18n/locales/en";
+import he from "../client/src/i18n/locales/he";
+import fr from "../client/src/i18n/locales/fr";
+import es from "../client/src/i18n/locales/es";
+import de from "../client/src/i18n/locales/de";
+import ru from "../client/src/i18n/locales/ru";
+import am from "../client/src/i18n/locales/am";
+import ar from "../client/src/i18n/locales/ar";
+import yi from "../client/src/i18n/locales/yi";
+
+const additionalTranslations: Record<string, Record<string, string>> = {
+  he: {
+    "hero.welcome_line1": "ברוכים הבאים למרפאת",
+    "hero.welcome_line2": '"קשב פלוס"',
+    "hero.clinic_description": "מרפאה לאבחון וטיפול של הפרעות קשב וריכוז",
+    "hero.typing_children": "בילדים",
+    "hero.typing_teens": "בבני נוער",
+    "hero.typing_adults": "במבוגרים",
+    "hero.accurate_diagnosis": 'ב"קשב פלוס" תקבלו אבחון מדויק',
+    "hero.personal_plan": "ותוכנית טיפול אישית",
+    "hero.first_step": "הצעד הראשון מתחיל כאן",
+    "hero.schedule_consultation": "קבעו פגישת ייעוץ - בואו לגלות את הדרך להצלחה",
+    "hero.start_now": "התחל/י את האבחון עכשיו",
+    "hero.read_about_us": "קראו עוד עלינו",
+    "hero.ready_to_start": "מוכנים להתחיל?",
+    "hero.ready_description": "פנה/י אלינו היום כדי לקבוע את האבחון שלך ולקחת את הצעד הראשון לקראת חיים טובים יותר.",
+    "hero.contact_us_now": "צרו קשר עכשיו",
+    "hero.doctor_alt": "רופאה מומחית באבחון ADHD",
+    "nav.skip_to_content": "דלג לתוכן הראשי",
+    "nav.main_navigation": "ניווט ראשי",
+    "nav.go_home": "חזרה לדף הבית",
+    "nav.call_us": "התקשרו אלינו: 055-27-399-27",
+    "nav.close_menu": "סגור תפריט",
+    "nav.open_menu": "פתח תפריט",
+    "contact.subtitle": "השאירו פרטים ונחזור אליכם בהקדם האפשרי",
+    "contact.leave_details": "השאירו פרטים",
+    "contact.full_name": "שם מלא",
+    "contact.phone_label": "טלפון",
+    "contact.email_optional": 'דוא"ל (אופציונלי)',
+    "contact.message": "הודעה",
+    "contact.name_placeholder": "הכניסו את שמכם המלא",
+    "contact.message_placeholder": "ספרו לנו במה נוכל לעזור...",
+    "contact.sending": "שולח...",
+    "contact.send_message": "שליחת הודעה",
+    "contact.success_title": "הודעה נשלחה בהצלחה!",
+    "contact.success_desc": "נחזור אליכם בהקדם",
+    "contact.error_title": "שגיאה בשליחה",
+    "contact.error_desc": "אנא נסו שוב",
+    "contact.thank_you": "תודה שפניתם אלינו!",
+    "contact.will_reply": "נחזור אליכם בהקדם האפשרי",
+    "contact.send_another": "שליחת הודעה נוספת",
+    "contact.privacy_note": "המידע שלכם מאובטח ולא ישותף עם צדדים שלישיים",
+    "contact.call_now": "התקשרו עכשיו",
+    "contact.whatsapp": "שלחו הודעה בוואטסאפ",
+    "contact.whatsapp_message": "שלום, אשמח לקבל מידע על אבחון ADHD",
+    "contact.directions": "דרכי הגעה ואפשרויות חניה",
+    "contact.directions_desc": "מידע על הגעה למרפאה וחניה באזור",
+    "contact.clinic_address": "כתובת המרפאה",
+    "contact.address_line1": "יגאל אלון 94, תל אביב",
+    "contact.address_line2": "מגדלי אלון 1, קומה 12, משרד 1202",
+    "contact.parking_title": "חניה",
+    "contact.parking_desc": "ישנה חניה חינמית ברחוב ובסביבה. מומלץ להגיע מספר דקות לפני הפגישה לצורך מציאת חניה.",
+    "contact.transport_title": "תחבורה ציבורית",
+    "contact.transport_desc": "המרפאה נמצאת במרחק הליכה קצר מתחנת הרכבת באר שבע מרכז. קווי אוטובוס רבים עוברים בסמוך.",
+    "footer.clinic_desc": "מרפאה מובילה לאבחון וטיפול בהפרעות קשב וריכוז בילדים, בני נוער ומבוגרים.",
+    "footer.quick_links": "ניווט מהיר",
+    "footer.contact_info": "פרטי התקשרות",
+    "footer.follow_us": "עקבו אחרינו",
+    "footer.privacy_policy": "מדיניות פרטיות",
+    "footer.terms_of_use": "תנאי שימוש",
+    "footer.address": "יגאל אלון 94, תל אביב",
+    "footer.hours": "א'-ה' 09:00-19:00",
+  },
+  en: {
+    "hero.welcome_line1": "Welcome to",
+    "hero.welcome_line2": '"Keshev Plus" Clinic',
+    "hero.clinic_description": "Clinic for Diagnosis and Treatment of ADHD",
+    "hero.typing_children": "in Children",
+    "hero.typing_teens": "in Teens",
+    "hero.typing_adults": "in Adults",
+    "hero.accurate_diagnosis": 'At "Keshev Plus" you will receive accurate diagnosis',
+    "hero.personal_plan": "and a personalized treatment plan",
+    "hero.first_step": "The first step starts here",
+    "hero.schedule_consultation": "Schedule a consultation - discover the path to success",
+    "hero.start_now": "Start Diagnosis Now",
+    "hero.read_about_us": "Read More About Us",
+    "hero.ready_to_start": "Ready to Start?",
+    "hero.ready_description": "Contact us today to schedule your diagnosis and take the first step towards a better life.",
+    "hero.contact_us_now": "Contact Us Now",
+    "hero.doctor_alt": "Expert ADHD specialist doctor",
+    "nav.skip_to_content": "Skip to main content",
+    "nav.main_navigation": "Main navigation",
+    "nav.go_home": "Go to homepage",
+    "nav.call_us": "Call us: 055-27-399-27",
+    "nav.close_menu": "Close menu",
+    "nav.open_menu": "Open menu",
+    "contact.subtitle": "Leave your details and we'll get back to you as soon as possible",
+    "contact.leave_details": "Leave Your Details",
+    "contact.full_name": "Full Name",
+    "contact.phone_label": "Phone",
+    "contact.email_optional": "Email (optional)",
+    "contact.message": "Message",
+    "contact.name_placeholder": "Enter your full name",
+    "contact.message_placeholder": "Tell us how we can help...",
+    "contact.sending": "Sending...",
+    "contact.send_message": "Send Message",
+    "contact.success_title": "Message sent successfully!",
+    "contact.success_desc": "We'll get back to you soon",
+    "contact.error_title": "Error sending message",
+    "contact.error_desc": "Please try again",
+    "contact.thank_you": "Thank you for contacting us!",
+    "contact.will_reply": "We'll get back to you as soon as possible",
+    "contact.send_another": "Send another message",
+    "contact.privacy_note": "Your information is secure and will not be shared with third parties",
+    "contact.call_now": "Call Now",
+    "contact.whatsapp": "Message on WhatsApp",
+    "contact.whatsapp_message": "Hello, I would like information about ADHD diagnosis",
+    "contact.directions": "Directions & Parking",
+    "contact.directions_desc": "Information about arriving at the clinic and parking nearby",
+    "contact.clinic_address": "Clinic Address",
+    "contact.address_line1": "94 Yigal Alon St., Tel Aviv",
+    "contact.address_line2": "Alon Towers 1, Floor 12, Office 1202",
+    "contact.parking_title": "Parking",
+    "contact.parking_desc": "Free street parking is available in the area. We recommend arriving a few minutes early to find parking.",
+    "contact.transport_title": "Public Transport",
+    "contact.transport_desc": "The clinic is a short walk from Beer Sheva Central train station. Multiple bus lines pass nearby.",
+    "footer.clinic_desc": "Leading clinic for ADHD diagnosis and treatment in children, teens, and adults.",
+    "footer.quick_links": "Quick Links",
+    "footer.contact_info": "Contact Info",
+    "footer.follow_us": "Follow Us",
+    "footer.privacy_policy": "Privacy Policy",
+    "footer.terms_of_use": "Terms of Use",
+    "footer.address": "94 Yigal Alon St., Tel Aviv",
+    "footer.hours": "Sun-Thu 09:00-19:00",
+  },
+};
 
 const DEFAULT_LANGUAGE_SETTINGS = {
   enabled: false,
@@ -218,6 +355,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ error: "User not found" });
     }
     return res.json({ id: user.id, email: user.email, role: user.role });
+  });
+
+  app.get("/api/translations/keys", async (_req, res) => {
+    try {
+      const keys = await storage.getTranslationKeys();
+      return res.json(keys);
+    } catch (error) {
+      console.error("Error fetching translation keys:", error);
+      return res.status(500).json({ error: "Failed to fetch translation keys" });
+    }
+  });
+
+  app.get("/api/translations", async (req, res) => {
+    try {
+      const lang = req.query.lang as string | undefined;
+      if (lang) {
+        const translations = await storage.getTranslationsByLanguage(lang);
+        return res.json(translations);
+      }
+      const allTranslations = await storage.getAllTranslations();
+      const grouped: Record<string, Record<string, string>> = {};
+      for (const t of allTranslations) {
+        if (!grouped[t.key]) {
+          grouped[t.key] = {};
+        }
+        grouped[t.key][t.language] = t.value;
+      }
+      return res.json(grouped);
+    } catch (error) {
+      console.error("Error fetching translations:", error);
+      return res.status(500).json({ error: "Failed to fetch translations" });
+    }
+  });
+
+  app.put("/api/translations", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const result = upsertTranslationSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.message });
+      }
+
+      const translation = await storage.upsertTranslation(result.data.key, result.data.language, result.data.value);
+      return res.json(translation);
+    } catch (error) {
+      console.error("Error upserting translation:", error);
+      return res.status(500).json({ error: "Failed to upsert translation" });
+    }
+  });
+
+  app.put("/api/translations/bulk", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const result = bulkUpsertTranslationsSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.message });
+      }
+
+      const count = await storage.upsertTranslationsBulk(result.data);
+      return res.json({ count });
+    } catch (error) {
+      console.error("Error bulk upserting translations:", error);
+      return res.status(500).json({ error: "Failed to bulk upsert translations" });
+    }
+  });
+
+  app.delete("/api/translations/:key", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const key = decodeURIComponent(req.params.key);
+      const count = await storage.deleteTranslationKey(key);
+      return res.json({ deleted: count });
+    } catch (error) {
+      console.error("Error deleting translation key:", error);
+      return res.status(500).json({ error: "Failed to delete translation key" });
+    }
+  });
+
+  app.post("/api/translations/seed", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const locales: Record<string, Record<string, string>> = {
+        en, he, fr, es, de, ru, am, ar, yi,
+      };
+
+      const items: { key: string; language: string; value: string }[] = [];
+
+      for (const [lang, translations] of Object.entries(locales)) {
+        for (const [key, value] of Object.entries(translations)) {
+          items.push({ key, language: lang, value });
+        }
+      }
+
+      for (const [lang, extra] of Object.entries(additionalTranslations)) {
+        for (const [key, value] of Object.entries(extra)) {
+          items.push({ key, language: lang, value });
+        }
+      }
+
+      const count = await storage.upsertTranslationsBulk(items);
+      return res.json({ seeded: count });
+    } catch (error) {
+      console.error("Error seeding translations:", error);
+      return res.status(500).json({ error: "Failed to seed translations" });
+    }
   });
 
   const httpServer = createServer(app);

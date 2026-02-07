@@ -1,6 +1,6 @@
-import { users, contacts, siteSettings, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting } from "@shared/schema";
+import { users, contacts, siteSettings, translations, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -11,6 +11,12 @@ export interface IStorage {
   markContactRead(id: number): Promise<Contact | undefined>;
   getSetting(key: string): Promise<SiteSetting | undefined>;
   upsertSetting(key: string, value: unknown): Promise<SiteSetting>;
+  getTranslationsByLanguage(language: string): Promise<Record<string, string>>;
+  getAllTranslations(): Promise<Translation[]>;
+  upsertTranslation(key: string, language: string, value: string): Promise<Translation>;
+  upsertTranslationsBulk(items: InsertTranslation[]): Promise<number>;
+  deleteTranslationKey(key: string): Promise<number>;
+  getTranslationKeys(): Promise<string[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -73,6 +79,72 @@ export class DatabaseStorage implements IStorage {
       .values({ key, value } as any)
       .returning();
     return created;
+  }
+
+  async getTranslationsByLanguage(language: string): Promise<Record<string, string>> {
+    const rows = await db.select().from(translations).where(eq(translations.language, language));
+    const map: Record<string, string> = {};
+    for (const row of rows) {
+      map[row.key] = row.value;
+    }
+    return map;
+  }
+
+  async getAllTranslations(): Promise<Translation[]> {
+    return await db.select().from(translations).orderBy(translations.key, translations.language);
+  }
+
+  async upsertTranslation(key: string, language: string, value: string): Promise<Translation> {
+    const [existing] = await db
+      .select()
+      .from(translations)
+      .where(and(eq(translations.key, key), eq(translations.language, language)));
+
+    if (existing) {
+      const [updated] = await db
+        .update(translations)
+        .set({ value } as any)
+        .where(and(eq(translations.key, key), eq(translations.language, language)))
+        .returning();
+      return updated;
+    }
+
+    const [created] = await db
+      .insert(translations)
+      .values({ key, language, value } as any)
+      .returning();
+    return created;
+  }
+
+  async upsertTranslationsBulk(items: InsertTranslation[]): Promise<number> {
+    if (items.length === 0) return 0;
+    let count = 0;
+    const batchSize = 100;
+    for (let i = 0; i < items.length; i += batchSize) {
+      const batch = items.slice(i, i + batchSize);
+      await db
+        .insert(translations)
+        .values(batch as any)
+        .onConflictDoUpdate({
+          target: [translations.key, translations.language],
+          set: { value: sql`excluded.value` },
+        });
+      count += batch.length;
+    }
+    return count;
+  }
+
+  async deleteTranslationKey(key: string): Promise<number> {
+    const deleted = await db.delete(translations).where(eq(translations.key, key)).returning();
+    return deleted.length;
+  }
+
+  async getTranslationKeys(): Promise<string[]> {
+    const rows = await db
+      .selectDistinct({ key: translations.key })
+      .from(translations)
+      .orderBy(translations.key);
+    return rows.map((r) => r.key);
   }
 }
 

@@ -44,6 +44,7 @@ type ContactFormData = z.infer<typeof contactSchema>;
 
 // Arrival & Parking Modal Component
 const ArrivalParkingModal: React.FC<{ isRTL: boolean }> = ({ isRTL }) => {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   
   const clinicAddress = 'יגאל אלון 94, תל אביב';
@@ -68,7 +69,7 @@ const ArrivalParkingModal: React.FC<{ isRTL: boolean }> = ({ isRTL }) => {
         viewport={{ once: true }}
       >
         <Car className="w-5 h-5" aria-hidden="true" />
-        <span>{isRTL ? 'דרכי הגעה ואפשרויות חניה' : 'Directions & Parking'}</span>
+        <span>{t('contact.directions')}</span>
       </motion.button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -79,12 +80,10 @@ const ArrivalParkingModal: React.FC<{ isRTL: boolean }> = ({ isRTL }) => {
           <DialogHeader>
             <DialogTitle className="text-xl text-primary flex items-center gap-2">
               <Car className="w-5 h-5" />
-              {isRTL ? 'דרכי הגעה ואפשרויות חניה' : 'Directions & Parking'}
+              {t('contact.directions')}
             </DialogTitle>
             <DialogDescription>
-              {isRTL 
-                ? 'מידע על הגעה למרפאה וחניה באזור'
-                : 'Information about arriving at the clinic and parking nearby'}
+              {t('contact.directions_desc')}
             </DialogDescription>
           </DialogHeader>
 
@@ -96,13 +95,13 @@ const ArrivalParkingModal: React.FC<{ isRTL: boolean }> = ({ isRTL }) => {
               </div>
               <div>
                 <h4 className="font-semibold text-foreground mb-1">
-                  {isRTL ? 'כתובת המרפאה' : 'Clinic Address'}
+                  {t('contact.clinic_address')}
                 </h4>
                 <p className="text-muted-foreground text-sm">
-                  {isRTL ? 'יגאל אלון 94, תל אביב' : '94 Yigal Alon St., Tel Aviv'}
+                  {t('contact.address_line1')}
                   <br />
                   <span className="text-xs">
-                    {isRTL ? 'מגדלי אלון 1, קומה 12, משרד 1202' : 'Alon Towers 1, Floor 12, Office 1202'}
+                    {t('contact.address_line2')}
                   </span>
                 </p>
               </div>
@@ -115,12 +114,10 @@ const ArrivalParkingModal: React.FC<{ isRTL: boolean }> = ({ isRTL }) => {
               </div>
               <div>
                 <h4 className="font-semibold text-foreground mb-1">
-                  {isRTL ? 'חניה' : 'Parking'}
+                  {t('contact.parking_title')}
                 </h4>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  {isRTL 
-                    ? 'ישנה חניה חינמית ברחוב ובסביבה. מומלץ להגיע מספר דקות לפני הפגישה לצורך מציאת חניה.'
-                    : 'Free street parking is available in the area. We recommend arriving a few minutes early to find parking.'}
+                  {t('contact.parking_desc')}
                 </p>
               </div>
             </div>
@@ -132,12 +129,10 @@ const ArrivalParkingModal: React.FC<{ isRTL: boolean }> = ({ isRTL }) => {
               </div>
               <div>
                 <h4 className="font-semibold text-foreground mb-1">
-                  {isRTL ? 'תחבורה ציבורית' : 'Public Transport'}
+                  {t('contact.transport_title')}
                 </h4>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  {isRTL 
-                    ? 'המרפאה נמצאת במרחק הליכה קצר מתחנת הרכבת באר שבע מרכז. קווי אוטובוס רבים עוברים בסמוך.'
-                    : 'The clinic is a short walk from Beer Sheva Central train station. Multiple bus lines pass nearby.'}
+                  {t('contact.transport_desc')}
                 </p>
               </div>
             </div>
@@ -266,8 +261,8 @@ const ContactSection: React.FC = () => {
       if (response.success) {
         setIsSubmitted(true);
         toast({
-          title: language === 'he' ? 'הודעה נשלחה בהצלחה!' : 'Message sent successfully!',
-          description: language === 'he' ? 'נחזור אליכם בהקדם' : "We'll get back to you soon",
+          title: t('contact.success_title'),
+          description: t('contact.success_desc'),
         });
         setFormData({ name: '', phone: '', email: '', message: '' });
       } else {
@@ -275,8 +270,8 @@ const ContactSection: React.FC = () => {
       }
     } catch (error) {
       toast({
-        title: language === 'he' ? 'שגיאה בשליחה' : 'Error sending message',
-        description: language === 'he' ? 'אנא נסו שוב' : 'Please try again',
+        title: t('contact.error_title'),
+        description: t('contact.error_desc'),
         variant: 'destructive',
       });
     } finally {
@@ -293,10 +288,7 @@ const ContactSection: React.FC = () => {
     >
       <SectionHeader 
         title={t('nav.contact')} 
-        subtitle={language === 'he' 
-          ? 'השאירו פרטים ונחזור אליכם בהקדם האפשרי'
-          : "Leave your details and we'll get back to you as soon as possible"
-        }
+        subtitle={t('contact.subtitle')}
         titleId="contact-heading"
       />
 
@@ -329,7 +321,7 @@ const ContactSection: React.FC = () => {
             viewport={{ once: true }}
           >
             <Phone className="w-5 h-5" aria-hidden="true" />
-            <span>{language === 'he' ? 'התקשרו עכשיו' : 'Call Now'}</span>
+            <span>{t('contact.call_now')}</span>
           </motion.a>
 
           {/* WhatsApp CTA */}
@@ -353,7 +345,7 @@ const ContactSection: React.FC = () => {
             <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
             </svg>
-            <span>{language === 'he' ? 'שלחו הודעה בוואטסאפ' : 'Message on WhatsApp'}</span>
+            <span>{t('contact.whatsapp')}</span>
           </motion.a>
 
           {/* Arrival & Parking Button */}
@@ -370,7 +362,7 @@ const ContactSection: React.FC = () => {
           <Card className="border-border shadow-lg">
             <CardHeader className="pb-4">
               <CardTitle className="text-xl text-primary">
-                {language === 'he' ? 'השאירו פרטים' : 'Leave Your Details'}
+                {t('contact.leave_details')}
               </CardTitle>
             </CardHeader>
             
@@ -383,17 +375,17 @@ const ContactSection: React.FC = () => {
                 >
                   <CheckCircle className="w-16 h-16 text-primary mx-auto mb-4" />
                   <h3 className="text-xl font-semibold mb-2 text-foreground">
-                    {language === 'he' ? 'תודה שפניתם אלינו!' : 'Thank you for contacting us!'}
+                    {t('contact.thank_you')}
                   </h3>
                   <p className="text-muted-foreground">
-                    {language === 'he' ? 'נחזור אליכם בהקדם האפשרי' : "We'll get back to you as soon as possible"}
+                    {t('contact.will_reply')}
                   </p>
                   <AccessibleButton
                     variant="outline"
                     className="mt-6"
                     onClick={() => setIsSubmitted(false)}
                   >
-                    {language === 'he' ? 'שליחת הודעה נוספת' : 'Send another message'}
+                    {t('contact.send_another')}
                   </AccessibleButton>
                 </motion.div>
               ) : (
@@ -403,7 +395,7 @@ const ContactSection: React.FC = () => {
                     {/* Name Field */}
                     <div className="space-y-2">
                       <Label htmlFor="name" className="text-base font-medium">
-                        {language === 'he' ? 'שם מלא' : 'Full Name'} *
+                        {t('contact.full_name')} *
                       </Label>
                       <Input
                         id="name"
@@ -411,7 +403,7 @@ const ContactSection: React.FC = () => {
                         type="text"
                         value={formData.name}
                         onChange={handleInputChange}
-                        placeholder={language === 'he' ? 'הכניסו את שמכם המלא' : 'Enter your full name'}
+                        placeholder={t('contact.name_placeholder')}
                         required
                         aria-required="true"
                         aria-invalid={!!errors.name}
@@ -432,7 +424,7 @@ const ContactSection: React.FC = () => {
                     {/* Phone Field */}
                     <div className="space-y-2">
                       <Label htmlFor="phone" className="text-base font-medium">
-                        {language === 'he' ? 'טלפון' : 'Phone'} *
+                        {t('contact.phone_label')} *
                       </Label>
                       <Input
                         id="phone"
@@ -463,7 +455,7 @@ const ContactSection: React.FC = () => {
                   {/* Email Field - Optional */}
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-base font-medium">
-                      {language === 'he' ? 'דוא"ל (אופציונלי)' : 'Email (optional)'}
+                      {t('contact.email_optional')}
                     </Label>
                     <Input
                       id="email"
@@ -491,14 +483,14 @@ const ContactSection: React.FC = () => {
                   {/* Message Field */}
                   <div className="space-y-2">
                     <Label htmlFor="message" className="text-base font-medium">
-                      {language === 'he' ? 'הודעה' : 'Message'} *
+                      {t('contact.message')} *
                     </Label>
                     <Textarea
                       id="message"
                       name="message"
                       value={formData.message}
                       onChange={handleInputChange}
-                      placeholder={language === 'he' ? 'ספרו לנו במה נוכל לעזור...' : 'Tell us how we can help...'}
+                      placeholder={t('contact.message_placeholder')}
                       rows={4}
                       required
                       aria-required="true"
@@ -524,18 +516,16 @@ const ContactSection: React.FC = () => {
                     size="lg"
                     fullWidth
                     loading={isSubmitting}
-                    loadingText={language === 'he' ? 'שולח...' : 'Sending...'}
+                    loadingText={t('contact.sending')}
                     className="mt-6"
                     data-testid="button-submit-contact"
                   >
                     <Send className="w-5 h-5" aria-hidden="true" />
-                    {language === 'he' ? 'שליחת הודעה' : 'Send Message'}
+                    {t('contact.send_message')}
                   </AccessibleButton>
 
                   <p className="text-xs text-muted-foreground text-center mt-4">
-                    {language === 'he' 
-                      ? 'המידע שלכם מאובטח ולא ישותף עם צדדים שלישיים'
-                      : 'Your information is secure and will not be shared with third parties'}
+                    {t('contact.privacy_note')}
                   </p>
                 </form>
               )}

@@ -1,0 +1,197 @@
+דלג לתוכן הראשי
+קשב פלוס
+בית
+אודותינו
+שירותים
+מה זה ADHD?
+שאלונים
+יצירת קשר
+055-27-399-27
+
+🇮🇱
+עברית
+
+hero.welcome_line1
+hero.welcome_line2
+hero.clinic_description
+
+hero.typing_adults
+
+hero.accurate_diagnosis
+hero.personal_plan
+
+hero.first_step
+
+hero.schedule_consultation
+
+hero.start_now
+hero.read_about_us
+hero.doctor_alt
+hero.ready_to_start
+hero.ready_description
+
+hero.contact_us_now
+אודותינו
+מומחים באבחון וטיפול בהפרעות קשב וריכוז
+
+ד"ר איירין כוכב-רייפמן
+ד"ר איירין כוכב-רייפמן
+רופאה מומחית
+
+בעלת ניסיון עשיר באבחון של ילדים, מתבגרים ובוגרים. ליוותה מטופלים רבים במסע להגשמה אישית ותפקוד מיטבי.
+
+מומחית באבחון וטיפול ב-ADHD
+ניסיון של למעלה מ-15 שנה
+התמחות בילדים, נוער ומבוגרים
+"המשימה שלנו היא לספק אבחון מדויק ותוכניות טיפול מותאמות אישית, המאפשרים למטופלים שלנו להגיע למיצוי הפוטנציאל האישי שלהם."
+
+יחס אישי
+כל מטופל מקבל יחס אישי ומותאם לצרכיו הייחודיים
+
+מקצועיות
+צוות מומחים עם ניסיון רב ועדכון מתמיד
+
+דיסקרטיות
+שמירה על פרטיות מלאה וסביבה בטוחה
+
+השירותים שלנו
+אבחון מקיף
+אבחון מותאם אישית באמצעות כלים מתקדמים, ראיונות קליניים ומבחנים ממוחשבים
+
+התאמת טיפול תרופתי
+התאמת טיפול תרופתי אישי עם מעקב בטיחות מתמשך
+
+מבחן MOXO ממוחשב
+הערכה אובייקטיבית של תפקודי הקשב והריכוז
+
+ייעוץ ומעקב
+תמיכה מקצועית מתמשכת ומעקב אחר הטיפול
+
+הפניות לטיפולים משלימים
+הפניות לריפוי בעיסוק, טיפול רגשי ותמיכה פסיכולוגית
+
+תהליך האבחון
+1
+יצירת קשר
+פנייה ראשונית טלפונית או באמצעות הטופס באתר
+
+2
+פגישת היכרות
+שיחה ראשונית, איסוף היסטוריה רפואית ומילוי שאלונים
+
+3
+אבחון מקיף
+ביצוע מבחנים ממוחשבים והערכה קלינית מעמיקה
+
+4
+דוח ותוכנית טיפול
+קבלת דוח מפורט והמלצות לתוכנית טיפול אישית
+
+מה זה ADHD?
+adhd.subtitle
+
+adhd.symptom1_title
+adhd.symptom1_desc
+
+adhd.symptom2_title
+adhd.symptom2_desc
+
+adhd.symptom3_title
+adhd.symptom3_desc
+
+adhd.symptom4_title
+adhd.symptom4_desc
+
+adhd.treatable_title
+adhd.treatable_desc
+
+שאלות נפוצות
+תשובות לשאלות הנפוצות ביותר
+
+
+מהו ADHD?
+
+כמה זמן לוקח תהליך האבחון?
+
+האם האבחון מתאים לכל הגילאים?
+
+מה כלול בתוכנית הטיפול?
+
+האם יש צורך בהפניה מרופא?
+
+מה ההבדל בין ADD ל-ADHD?
+לא מצאתם תשובה? צרו איתנו קשר
+שאלונים
+שאלוני סקירה ואבחון ADHD להורדה
+
+שאלון Conners להורים
+שאלון לזיהוי תסמיני ADHD בילדים, למילוי על ידי ההורים
+
+הורדת PDF
+הורדת DOC
+שאלון Conners למורים
+שאלון לזיהוי תסמיני ADHD בסביבה הלימודית, למילוי על ידי המורה
+
+הורדת PDF
+הורדת DOC
+שאלון ASRS למבוגרים
+שאלון דיווח עצמי לאבחון ADHD במבוגרים
+
+הורדת PDF
+הורדת DOC
+שאלון תפקוד יומיומי
+שאלון להערכת תפקוד יומיומי והשפעת ADHD על חיי היומיום
+
+הורדת PDF
+הורדת DOC
+ניתן להוריד את השאלונים ולמלא אותם לפני הפגישה במרפאה
+
+יצירת קשר
+contact.subtitle
+
+צרו קשר
+טלפון
+055-27-399-27
+דוא"ל
+dr@keshevplus.co.il
+כתובת
+יגאל אלון 94, תל אביב (מגדלי אלון 1, קומה 12, משרד 1202)
+שעות פעילות
+א'-ה' 09:00-19:00
+
+contact.whatsapp
+
+contact.directions
+contact.leave_details
+contact.full_name *
+contact.name_placeholder
+contact.phone_label *
+050-000-0000
+contact.email_optional
+your@email.com
+contact.message *
+contact.message_placeholder
+contact.send_message
+contact.privacy_note
+
+Keshev Plus Logo
+footer.clinic_desc
+
+footer.quick_links
+אודותינו
+שירותים
+מה זה ADHD?
+שאלונים
+יצירת קשר
+footer.contact_info
+055-27-399-27
+dr@keshevplus.co.il
+footer.address
+footer.hours
+footer.follow_us
+WhatsApp
+© 2025 כל הזכויות שמורות לקשב פלוס
+
+footer.privacy_policy
+footer.terms_of_use
+
