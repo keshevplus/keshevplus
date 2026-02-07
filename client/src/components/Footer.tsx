@@ -145,7 +145,7 @@ const Footer: React.FC = () => {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 text-xs sm:text-sm text-primary-foreground/60">
-          <p>{t('footer.rights')}</p>
+          <p>{t('footer.rights').replace('2025', new Date().getFullYear().toString())}</p>
           <div className="flex gap-4">
             <a href="#" className="hover:text-primary-foreground transition-colors">
               {t('footer.privacy_policy')}
