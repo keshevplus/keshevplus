@@ -89,8 +89,8 @@ const MedicalHero: React.FC = () => {
                   transition={{ duration: 0.5, delay: 0.3 }}
                 >
                   {language === "he"
-                    ? 'ברוכים הבאים למרפאת "קשב פלוס"'
-                    : 'Welcome to "Keshev Plus" Clinic'}
+                    ? "מרפאה לאבחון וטיפןך של הפרעות קשב וריכוז"
+                    : 'Clinic for Diagnosis and Treatment of ADHD'}
                 </motion.p>
 
                 <AnimatePresence mode="wait">
