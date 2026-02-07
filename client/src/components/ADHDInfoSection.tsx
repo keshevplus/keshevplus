@@ -61,7 +61,7 @@ const ADHDInfoSection = () => {
             <Card className="h-full text-center shadow-md border-0 bg-background">
               <CardContent className="p-3 sm:p-4 md:p-6">
                 <div
-                  className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 mx-auto mb-2 sm:mb-3 md:mb-4 bg-gradient-primary rounded-xl sm:rounded-2xl flex items-center justify-center"
+                  className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 mx-auto mb-2 sm:mb-3 md:mb-4 green-section-bg rounded-xl sm:rounded-2xl flex items-center justify-center"
                   aria-hidden="true"
                 >
                   <symptom.icon className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-primary-foreground" />
@@ -75,7 +75,7 @@ const ADHDInfoSection = () => {
       </div>
 
       <motion.div
-        className="bg-gradient-primary rounded-xl sm:rounded-2xl lg:rounded-3xl p-5 sm:p-8 lg:p-12 text-center"
+        className="green-section-bg rounded-xl sm:rounded-2xl lg:rounded-3xl p-5 sm:p-8 lg:p-12 text-center"
         initial={{ opacity: 0, scale: 0.95 }}
         whileInView={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6 }}
