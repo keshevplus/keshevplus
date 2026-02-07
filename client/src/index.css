@@ -224,6 +224,16 @@
 }
 
 @layer components {
+  /* Green Section Background - consistent gradient for all green sections */
+  .green-section-bg {
+    background: linear-gradient(to bottom, #166534, #052e16);
+    color: white;
+  }
+  .dark .green-section-bg {
+    background: linear-gradient(to bottom, hsl(145 30% 28%), hsl(150 30% 10%));
+    color: white;
+  }
+
   /* Custom Utility Classes */
   .gradient-primary {
     background: var(--gradient-primary);

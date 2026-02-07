@@ -30,7 +30,7 @@ const Footer: React.FC = () => {
 
   return (
     <footer 
-      className="bg-primary text-primary-foreground"
+      className="green-section-bg"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">

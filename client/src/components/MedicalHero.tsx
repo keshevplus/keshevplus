@@ -219,7 +219,7 @@ const MedicalHero: React.FC = () => {
           </div>
 
           <section
-            className="relative z-10 bg-gradient-to-r from-primary to-primary/80 dark:from-primary/90 dark:to-primary/70 py-6 sm:py-10 md:py-14"
+            className="relative z-10 green-section-bg py-6 sm:py-10 md:py-14"
             dir={isRTL ? "rtl" : "ltr"}
             aria-labelledby="cta-heading"
           >

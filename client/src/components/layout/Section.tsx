@@ -26,9 +26,8 @@ interface SectionProps {
 const backgroundVariants = {
   default: "bg-background",
   muted: "bg-muted/30",
-  primary: "bg-primary text-primary-foreground",
-  gradient:
-    "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground",
+  primary: "green-section-bg",
+  gradient: "green-section-bg",
 };
 
 const spacingVariants = {
@@ -90,7 +89,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
 }) => {
   return (
     <div className={cn("mb-8 md:mb-12", className)}>
-      <div className="bg-primary -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-5 md:py-6">
+      <div className="green-section-bg -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-5 md:py-6">
         <div className="max-w-7xl mx-auto">
           <h2
             id={titleId}
