@@ -16,7 +16,7 @@ KeshevPlus is a multilingual website for an ADHD clinic specializing in diagnosi
 - **Frontend**: React + Vite + TailwindCSS + shadcn/ui (RTL/LTR layout)
 - **Backend**: Express.js with session-based auth
 - **Database**: Neon Postgres via Drizzle ORM
-- **Schema**: Users table (auth) + Contacts table (contact form) + SiteSettings table (language config) + Translations table (i18n)
+- **Schema**: Users table (auth) + Contacts table (contact form) + SiteSettings table (language config) + Translations table (i18n) + QuestionnaireSubmissions table (ADHD assessments)
 - **i18n**: Database-backed translation system with 9 languages, static locale file fallback, admin-editable via Translation Manager
 - **Email Delivery**: Nodemailer integration for contact form submissions to pluskeshev@gmail.com
 
@@ -55,6 +55,20 @@ shared/              - Shared types and schema
 - `PUT /api/translations/bulk` - Bulk upsert translations (admin)
 - `DELETE /api/translations/:key` - Delete translation key (admin)
 - `POST /api/translations/seed` - Seed DB from locale files (admin)
+- `POST /api/questionnaires/submit` - Submit questionnaire (public)
+- `GET /api/questionnaires` - List submissions (admin, ?type= filter)
+- `GET /api/questionnaires/stats` - Submission stats (admin)
+- `GET /api/questionnaires/:id` - Get single submission (admin)
+- `PATCH /api/questionnaires/:id/reviewed` - Mark as reviewed (admin)
+
+## Questionnaire System
+- **Types**: Parent, Teacher, Self-Report (Vanderbilt ADHD Assessment)
+- **Flow**: Registration (name/email/phone + child info) → Multi-section form → Scoring → Submit
+- **Storage**: JSONB answers + calculated scores in questionnaire_submissions table
+- **Admin View**: Filterable list with expand/collapse details, scores, individual answers, mark-as-reviewed
+- **Public Access**: Fill online at /questionnaire/:type, also PDF/Word downloads
+- **Scoring**: Automatic calculation of inattention, hyperactivity, combined scores
+- **Data**: questionnaire-data.ts contains all Vanderbilt questions in Hebrew/English
 
 ## Multilingual System
 - **Languages**: Hebrew (he), English (en), French (fr), Spanish (es), German (de), Russian (ru), Amharic (am), Arabic (ar), Yiddish (yi)
@@ -88,6 +102,8 @@ shared/              - Shared types and schema
 - **Toggle Location**: In navigation bar (both desktop and mobile)
 
 ## Recent Changes
+- 2026-02-07: Web-based questionnaire system - 3 Vanderbilt ADHD assessments (Parent/Teacher/Self-Report) with registration, multi-section forms, automatic scoring, JSONB storage, admin dashboard viewer with filtering and mark-as-reviewed
+- 2026-02-07: Content sections (About, Services, ADHD/FAQ) converted to translation key system using t() function for full multilingual support
 - 2026-02-07: Translation Manager admin UI - full CRUD for translations, search/filter by key/section/language, inline editing, seed from locale files, pagination
 - 2026-02-07: Database-backed i18n system - translations table, API routes, useLanguage hook with DB→static→English fallback chain
 - 2026-02-07: Static locale files updated with all component-used keys (hero, nav, contact, footer sections) for graceful fallback
