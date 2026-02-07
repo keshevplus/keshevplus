@@ -79,6 +79,9 @@ shared/              - Shared types and schema
 - **Toggle Location**: In navigation bar (both desktop and mobile)
 
 ## Recent Changes
+- 2026-02-07: Hero font sizes increased for desktop/laptop (larger clamp values)
+- 2026-02-07: AccessibilityWidget - floating blue button (bottom-left RTL) with text size, contrast, grayscale, link highlight, readable font
+- 2026-02-07: Dark mode green saturation reduced from 55% to 30% for softer appearance
 - 2026-02-06: Hero redesign to match keshevplus.co.il - logo in hero content, cycling audience text, exact Hebrew copy, 50/50 split layout
 - 2026-02-06: ContactModal component - popup contact form triggered from CTA buttons and nav "יצירת קשר" link
 - 2026-02-06: Dark mode implementation - ThemeProvider, semantic color tokens, brand-consistent dark theme
