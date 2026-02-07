@@ -47,8 +47,8 @@ const EnhancedNavigation = () => {
       animate={{ y: 0 }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled 
-          ? 'bg-background/95 backdrop-blur-md shadow-lg border-b border-border py-2' 
-          : 'bg-transparent py-6'
+          ? 'bg-background/95 backdrop-blur-md shadow-lg border-b border-border py-1' 
+          : 'bg-transparent py-4'
       }`}
       dir={dir}
     >
@@ -63,7 +63,7 @@ const EnhancedNavigation = () => {
               src={logo} 
               alt={isRTL ? '\u05e7\u05e9\u05d1 \u05e4\u05dc\u05d5\u05e1' : 'Keshev Plus'}
               className={`transition-all duration-300 ${
-                isScrolled ? 'h-16 md:h-18' : 'h-20 md:h-24'
+                isScrolled ? 'h-20 md:h-24' : 'h-24 md:h-32'
               } w-auto`}
             />
           </motion.div>
