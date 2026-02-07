@@ -74,7 +74,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
       })
       .finally(() => setSettingsLoaded(true));
 
-    fetchDbTranslations("he").then(setEnFallback);
+    fetchDbTranslations("en").then(setEnFallback);
   }, []);
 
   useEffect(() => {

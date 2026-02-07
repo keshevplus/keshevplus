@@ -16,8 +16,8 @@ KeshevPlus is a multilingual website for an ADHD clinic specializing in diagnosi
 - **Frontend**: React + Vite + TailwindCSS + shadcn/ui (RTL/LTR layout)
 - **Backend**: Express.js with session-based auth
 - **Database**: Neon Postgres via Drizzle ORM
-- **Schema**: Users table (auth) + Contacts table (contact form) + SiteSettings table (language config)
-- **i18n**: Custom translation system with 9 languages, admin-controlled via database settings
+- **Schema**: Users table (auth) + Contacts table (contact form) + SiteSettings table (language config) + Translations table (i18n)
+- **i18n**: Database-backed translation system with 9 languages, static locale file fallback, admin-editable via Translation Manager
 - **Email Delivery**: Nodemailer integration for contact form submissions to pluskeshev@gmail.com
 
 ## Project Structure
@@ -49,6 +49,12 @@ shared/              - Shared types and schema
 - `POST /api/firecrawl-scrape` - Firecrawl proxy
 - `GET /api/settings/language` - Get language settings (public)
 - `PUT /api/settings/language` - Update language settings (admin only)
+- `GET /api/translations` - Get all translations (grouped by key) or by language (?lang=xx)
+- `GET /api/translations/keys` - List all translation keys
+- `PUT /api/translations` - Upsert single translation (admin)
+- `PUT /api/translations/bulk` - Bulk upsert translations (admin)
+- `DELETE /api/translations/:key` - Delete translation key (admin)
+- `POST /api/translations/seed` - Seed DB from locale files (admin)
 
 ## Multilingual System
 - **Languages**: Hebrew (he), English (en), French (fr), Spanish (es), German (de), Russian (ru), Amharic (am), Arabic (ar), Yiddish (yi)
@@ -57,6 +63,8 @@ shared/              - Shared types and schema
 - **Admin Control**: Toggle on/off, select mode, set default language via Admin Dashboard
 - **Settings Storage**: `site_settings` table with JSONB value, key="language"
 - **Translation Keys**: `section.key` pattern (e.g., `nav.about`, `hero.title`)
+- **Fallback Chain**: DB translations → static locale files → English fallback → raw key
+- **Admin Translation Manager**: Search, filter, inline edit, delete keys, seed from locale files
 
 ## Running
 - `npm run dev` starts Express + Vite on port 5000
@@ -80,6 +88,9 @@ shared/              - Shared types and schema
 - **Toggle Location**: In navigation bar (both desktop and mobile)
 
 ## Recent Changes
+- 2026-02-07: Translation Manager admin UI - full CRUD for translations, search/filter by key/section/language, inline editing, seed from locale files, pagination
+- 2026-02-07: Database-backed i18n system - translations table, API routes, useLanguage hook with DB→static→English fallback chain
+- 2026-02-07: Static locale files updated with all component-used keys (hero, nav, contact, footer sections) for graceful fallback
 - 2026-02-07: AccessibilityWidget expanded - full 9-language translations, large cursor, stop animations, Israeli law accessibility statement
 - 2026-02-07: FAQ section merged into ADHDInfoSection - FAQ accordion as sub-section with #faq anchor preserved
 - 2026-02-07: QuestionnairesSection added - 4 ADHD screening questionnaires (Conners Parent/Teacher, ASRS Adult, Daily Functioning) with PDF/DOC download buttons, fully translated to 9 languages

@@ -9,6 +9,7 @@ import { LogOut, Users, FileText, Settings, BarChart3, Globe, Save } from 'lucid
 import { useToast } from '@/hooks/use-toast'
 import { apiRequest } from '@/lib/queryClient'
 import { ALL_LANGUAGES, type LanguageSettings, type SupportedLanguage, DEFAULT_LANGUAGE_SETTINGS, BILINGUAL_CODES, MULTILINGUAL_CODES } from '@/i18n/config'
+import TranslationManager from './TranslationManager'
 
 const AdminDashboard = () => {
   const { user, signOut } = useAuth()
@@ -235,6 +236,10 @@ const AdminDashboard = () => {
               </Button>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="mt-6">
+          <TranslationManager />
         </div>
       </main>
     </div>
