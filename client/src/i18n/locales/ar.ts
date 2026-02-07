@@ -54,6 +54,7 @@ const ar: Record<string, string> = {
   "faq.subtitle": "إجابات على الأسئلة الأكثر شيوعاً",
   "faq.no_answer": "لم تجد إجابة؟ تواصل معنا",
 
+  "services.process_steps": "\u062e\u0637\u0648\u0627\u062a \u0639\u0645\u0644\u064a\u062e \u0627\u0644\u062a\u0634\u062e\u064a\u0635",
   "footer.rights": "\u00a9 2025 \u062c\u0645\u064a\u0639 \u0627\u0644\u062d\u0642\u0648\u0642 \u0645\u062d\u0641\u0648\u0638\u0629 \u0644\u0640 Keshev Plus",
 
   "admin.dashboard": "\u0644\u0648\u062d\u0629 \u0627\u0644\u062a\u062d\u0643\u0645",

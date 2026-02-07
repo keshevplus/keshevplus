@@ -54,6 +54,7 @@ const ru: Record<string, string> = {
   "faq.subtitle": "Ответы на самые частые вопросы",
   "faq.no_answer": "Не нашли ответ? Свяжитесь с нами",
 
+  "services.process_steps": "\u042d\u0442\u0430\u043f\u044b \u043f\u0440\u043e\u0446\u0435\u0441\u0441\u0430 \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0438",
   "footer.rights": "\u00a9 2025 \u0412\u0441\u0435 \u043f\u0440\u0430\u0432\u0430 \u0437\u0430\u0449\u0438\u0449\u0435\u043d\u044b Keshev Plus",
 
   "admin.dashboard": "\u041f\u0430\u043d\u0435\u043b\u044c \u0443\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u044f",

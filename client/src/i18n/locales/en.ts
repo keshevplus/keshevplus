@@ -54,6 +54,7 @@ const en: Record<string, string> = {
   "faq.subtitle": "Answers to the most common questions",
   "faq.no_answer": "Didn't find your answer? Contact us",
 
+  "services.process_steps": "Diagnosis process steps",
   "footer.rights": "\u00a9 2025 All rights reserved to Keshev Plus",
 
   "admin.dashboard": "Admin Dashboard",

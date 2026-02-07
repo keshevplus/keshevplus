@@ -112,12 +112,12 @@ const ServicesSection: React.FC = () => {
           id="process-heading"
           className="text-xl sm:text-2xl font-bold text-center mb-8 sm:mb-12 text-foreground"
         >
-          {language === 'he' ? '\u05ea\u05d4\u05dc\u05d9\u05da \u05d4\u05d0\u05d1\u05d7\u05d5\u05df' : 'Diagnosis Process'}
+          {t('nav.process')}
         </h3>
         
         <ol 
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8"
-          aria-label={language === 'he' ? '\u05e9\u05dc\u05d1\u05d9 \u05ea\u05d4\u05dc\u05d9\u05da \u05d4\u05d0\u05d1\u05d7\u05d5\u05df' : 'Diagnosis process steps'}
+          aria-label={t('services.process_steps')}
         >
           {processSteps?.map((step, index) => (
             <motion.li
@@ -148,14 +148,6 @@ const ServicesSection: React.FC = () => {
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {step.description[language]}
               </p>
-              
-              {index < (processSteps?.length || 0) - 1 && (
-                <div 
-                  className="hidden lg:block absolute top-6 sm:top-7 left-full w-full h-0.5 bg-gradient-to-r from-primary to-primary/40 opacity-30"
-                  style={{ transform: isRTL ? 'scaleX(-1)' : 'none' }}
-                  aria-hidden="true"
-                />
-              )}
             </motion.li>
           ))}
         </ol>

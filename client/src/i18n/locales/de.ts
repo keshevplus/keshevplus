@@ -54,6 +54,7 @@ const de: Record<string, string> = {
   "faq.subtitle": "Antworten auf die häufigsten Fragen",
   "faq.no_answer": "Keine Antwort gefunden? Kontaktieren Sie uns",
 
+  "services.process_steps": "Schritte des Diagnoseprozesses",
   "footer.rights": "\u00a9 2025 Alle Rechte vorbehalten f\u00fcr Keshev Plus",
 
   "admin.dashboard": "Admin-Dashboard",

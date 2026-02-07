@@ -54,6 +54,7 @@ const yi: Record<string, string> = {
   "faq.subtitle": "ענטפֿערס אויף די מערסט פֿאַרשפּרייטע פֿראַגן",
   "faq.no_answer": "נישט געפֿונען אַן ענטפֿער? קאָנטאַקט אונדז",
 
+  "services.process_steps": "\u05d3\u05d9\u05d0\u05b7\u05d2\u05e0\u05d0\u05b8\u05d6 \u05e4\u05bc\u05e8\u05d0\u05b8\u05e6\u05e2\u05e1 \u05d8\u05e8\u05d9\u05d8",
   "footer.rights": "\u00a9 2025 \u05d0\u05b7\u05dc\u05e2 \u05e8\u05e2\u05db\u05d8\u05df \u05e8\u05e2\u05d6\u05e2\u05e8\u05d5\u05d5\u05d9\u05e8\u05d8 \u05e4\u05bf\u05d0\u05b7\u05e8 Keshev Plus",
 
   "admin.dashboard": "\u05d0\u05d3\u05de\u05d9\u05df \u05d3\u05d0\u05b7\u05e9\u05d1\u05d0\u05b8\u05e8\u05d3",

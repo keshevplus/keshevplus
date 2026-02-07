@@ -54,6 +54,7 @@ const am: Record<string, string> = {
   "faq.subtitle": "ለተለመዱ ጥያቄዎች መልሶች",
   "faq.no_answer": "መልስ አላገኙም? ያግኙን",
 
+  "services.process_steps": "\u12e8\u121d\u122d\u1218\u122b \u1202\u12f0\u1275 \u12a5\u122d\u121d\u1303\u12ce\u127d",
   "footer.rights": "\u00a9 2025 \u1201\u1209\u121d \u1218\u1265\u1276\u127d \u12e8\u1270\u1320\u1260\u1241 \u1293\u127d\u12c8 - Keshev Plus",
 
   "admin.dashboard": "\u12e8\u12a0\u1235\u1270\u12f3\u12f0\u122d \u12f3\u123d\u1266\u122d\u12f5",

@@ -54,6 +54,7 @@ const es: Record<string, string> = {
   "faq.subtitle": "Respuestas a las preguntas más comunes",
   "faq.no_answer": "¿No encontró respuesta? Contáctenos",
 
+  "services.process_steps": "Pasos del proceso de diagn\u00f3stico",
   "footer.rights": "\u00a9 2025 Todos los derechos reservados a Keshev Plus",
 
   "admin.dashboard": "Panel de administraci\u00f3n",

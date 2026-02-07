@@ -54,6 +54,7 @@ const he: Record<string, string> = {
   "faq.subtitle": "תשובות לשאלות הנפוצות ביותר",
   "faq.no_answer": "לא מצאתם תשובה? צרו איתנו קשר",
 
+  "services.process_steps": "\u05e9\u05dc\u05d1\u05d9 \u05ea\u05d4\u05dc\u05d9\u05da \u05d4\u05d0\u05d1\u05d7\u05d5\u05df",
   "footer.rights": "\u00a9 2025 \u05db\u05dc \u05d4\u05d6\u05db\u05d5\u05d9\u05d5\u05ea \u05e9\u05de\u05d5\u05e8\u05d5\u05ea \u05dc\u05e7\u05e9\u05d1 \u05e4\u05dc\u05d5\u05e1",
 
   "admin.dashboard": "\u05dc\u05d5\u05d7 \u05d1\u05e7\u05e8\u05d4",
