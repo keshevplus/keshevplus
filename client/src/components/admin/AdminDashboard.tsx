@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/AuthProvider'
+import { useLanguage } from '@/hooks/useLanguage'
+import { LanguageSelector } from '../LanguageSelector'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
@@ -14,6 +16,7 @@ import QuestionnaireSubmissions from './QuestionnaireSubmissions'
 
 const AdminDashboard = () => {
   const { user, signOut } = useAuth()
+  const { t } = useLanguage()
   const { toast } = useToast()
   const [langSettings, setLangSettings] = useState<LanguageSettings>(DEFAULT_LANGUAGE_SETTINGS)
   const [saving, setSaving] = useState(false)
@@ -59,14 +62,19 @@ const AdminDashboard = () => {
       <header className="bg-background/80 backdrop-blur-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div>
-              <h1 className="text-xl font-semibold">Admin Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Welcome back, {user?.email}</p>
+            <div className="flex items-center gap-4">
+              <div>
+                <h1 className="text-xl font-semibold">Admin Dashboard</h1>
+                <p className="text-sm text-muted-foreground">Welcome back, {user?.email}</p>
+              </div>
             </div>
-            <Button variant="outline" onClick={handleSignOut} data-testid="button-signout">
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
+            <div className="flex items-center gap-4">
+              <LanguageSelector />
+              <Button variant="outline" onClick={handleSignOut} data-testid="button-signout">
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
           </div>
         </div>
       </header>
