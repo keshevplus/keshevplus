@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Phone, Menu, X } from 'lucide-react';
+import { Phone, Menu, X, CalendarCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/hooks/useLanguage';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
+import { Link } from 'wouter';
 import logo from '@/assets/logo.png';
 
 const EnhancedNavigation = () => {
@@ -76,12 +77,12 @@ const EnhancedNavigation = () => {
             />
           </motion.div>
 
-          <div className="hidden lg:flex items-center gap-6">
+          <div className="hidden lg:flex items-center gap-2">
             {navItems.map((item) => (
               <motion.button
                 key={item.href}
                 onClick={() => scrollToSection(item.href)}
-                className={`font-bold transition-all duration-300 relative group text-base ${
+                className={`font-semibold transition-all duration-300 relative group text-sm whitespace-nowrap ${
                   isScrolled ? 'text-foreground/80 hover:text-primary' : 'text-foreground hover:text-primary drop-shadow-md'
                 }`}
                 whileHover={{ y: -2 }}
@@ -91,17 +92,18 @@ const EnhancedNavigation = () => {
               </motion.button>
             ))}
             
-            <a 
-              href="tel:055-27-399-27"
-              className={`flex items-center gap-2 font-bold px-6 py-2.5 rounded-full transition-colors ${
-                isScrolled 
-                  ? 'text-primary bg-primary/10 hover:bg-primary/20' 
-                  : 'text-white bg-primary hover:bg-primary/90 shadow-md'
-              }`}
-            >
-              <Phone className="w-5 h-5" />
-              <span className="text-base">055-27-399-27</span>
-            </a>
+            <Link href="/booking">
+              <Button
+                size="sm"
+                className={`flex items-center gap-1.5 font-bold rounded-full whitespace-nowrap ${
+                  isScrolled ? '' : 'shadow-md'
+                }`}
+                data-testid="button-nav-booking"
+              >
+                <CalendarCheck className="w-3.5 h-3.5" />
+                <span>{isRTL ? 'קביעת תור' : 'Book'}</span>
+              </Button>
+            </Link>
 
             <LanguageSelector />
             <ThemeToggle />
@@ -165,7 +167,13 @@ const EnhancedNavigation = () => {
                   </motion.button>
                 ))}
                 
-                <div className="border-t border-border pt-4 mt-4">
+                <div className="border-t border-border pt-4 mt-4 space-y-2">
+                  <Link href="/booking" onClick={() => setIsOpen(false)}>
+                    <Button className="w-full flex items-center justify-center gap-2" data-testid="button-mobile-booking">
+                      <CalendarCheck className="w-5 h-5" />
+                      <span>{isRTL ? 'קביעת תור' : 'Book Now'}</span>
+                    </Button>
+                  </Link>
                   <a 
                     href="tel:055-27-399-27"
                     className="flex items-center justify-center gap-2 text-primary font-semibold bg-primary/10 px-4 py-3 rounded-lg hover:bg-primary/20 transition-colors"

@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Phone, Menu, X } from 'lucide-react';
+import { Phone, Menu, X, CalendarCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/hooks/useLanguage';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { AccessibleButton } from '@/components/ui/accessible-button';
+import { Button } from '@/components/ui/button';
+import { Link } from 'wouter';
 import logo from '@/assets/logo.png';
 import { cn } from '@/lib/utils';
 
@@ -143,18 +145,29 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ onContactClick }) =
             </div>
 
             <div className="hidden lg:flex items-center gap-3">
+              <Link href="/booking">
+                <Button
+                  size="sm"
+                  className="flex items-center gap-1.5 font-bold rounded-full"
+                  data-testid="button-nav-booking"
+                >
+                  <CalendarCheck className="w-4 h-4" />
+                  <span>{isRTL ? 'קביעת תור' : 'Book Now'}</span>
+                </Button>
+              </Link>
+
               <a 
                 href="tel:055-27-399-27"
                 className={cn(
                   "flex items-center gap-2 text-primary font-semibold whitespace-nowrap",
-                  "bg-primary/10 px-5 py-2 rounded-full text-base lg:text-lg",
+                  "bg-primary/10 px-4 py-2 rounded-full text-sm",
                   "hover:bg-primary/20 transition-colors",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                   "min-h-[44px]"
                 )}
                 aria-label={isRTL ? 'התקשרו אלינו: 055-27-399-27' : 'Call us: 055-27-399-27'}
               >
-                <Phone className="w-5 h-5" aria-hidden="true" />
+                <Phone className="w-4 h-4" aria-hidden="true" />
                 <span>055-27-399-27</span>
               </a>
 
@@ -232,14 +245,23 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ onContactClick }) =
                     ))}
                   </div>
                   
-                  <div className="mt-4 pt-4 border-t border-border">
+                  <div className="mt-4 pt-4 border-t border-border space-y-2">
+                    <Link href="/booking" onClick={() => setIsOpen(false)}>
+                      <Button
+                        className="w-full flex items-center justify-center gap-2"
+                        data-testid="button-mobile-booking"
+                      >
+                        <CalendarCheck className="w-5 h-5" />
+                        <span>{isRTL ? 'קביעת תור' : 'Book Now'}</span>
+                      </Button>
+                    </Link>
                     <a 
                       href="tel:055-27-399-27"
                       className={cn(
                         "flex items-center justify-center gap-2",
                         "w-full py-3 rounded-md",
-                        "bg-primary text-primary-foreground font-medium",
-                        "hover:bg-primary/90 transition-colors",
+                        "bg-primary/10 text-primary font-medium",
+                        "hover:bg-primary/20 transition-colors",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                         "min-h-[48px]"
                       )}
