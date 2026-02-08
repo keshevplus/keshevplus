@@ -9,7 +9,7 @@ import { Database, Search, Save, Trash2, Upload, Languages, ChevronLeft, Chevron
 import { useToast } from '@/hooks/use-toast'
 import { apiRequest } from '@/lib/queryClient'
 import { ALL_LANGUAGES, type SupportedLanguage } from '@/i18n/config'
-import { invalidateTranslationCache } from '@/hooks/useLanguage'
+import { invalidateTranslationCache, useLanguage } from '@/hooks/useLanguage'
 
 const PAGE_SIZE = 20
 
@@ -20,6 +20,8 @@ interface TranslationRow {
 
 const TranslationManager = () => {
   const { toast } = useToast()
+  const { language } = useLanguage()
+  const isHe = language === 'he'
   const [allTranslations, setAllTranslations] = useState<Record<string, Record<string, string>>>({})
   const [loading, setLoading] = useState(true)
   const [seeding, setSeeding] = useState(false)
@@ -53,11 +55,18 @@ const TranslationManager = () => {
     try {
       const res = await apiRequest('POST', '/api/translations/seed')
       const data = await res.json()
-      toast({ title: 'Translations seeded', description: `${data.seeded} translation entries loaded into the database.` })
+      toast({
+        title: isHe ? 'תרגומים נטענו' : 'Translations seeded',
+        description: isHe ? `${data.seeded} רשומות תרגום נטענו למסד הנתונים.` : `${data.seeded} translation entries loaded into the database.`
+      })
       invalidateTranslationCache()
       await fetchTranslations()
     } catch {
-      toast({ title: 'Error', description: 'Failed to seed translations.', variant: 'destructive' })
+      toast({
+        title: isHe ? 'שגיאה' : 'Error',
+        description: isHe ? 'טעינת תרגומים נכשלה.' : 'Failed to seed translations.',
+        variant: 'destructive'
+      })
     } finally {
       setSeeding(false)
     }
@@ -138,7 +147,11 @@ const TranslationManager = () => {
       setEditingCell(null)
       setEditValue('')
     } catch {
-      toast({ title: 'Error', description: 'Failed to save translation.', variant: 'destructive' })
+      toast({
+        title: isHe ? 'שגיאה' : 'Error',
+        description: isHe ? 'שמירת התרגום נכשלה.' : 'Failed to save translation.',
+        variant: 'destructive'
+      })
     } finally {
       setSavingCell(false)
     }
@@ -153,9 +166,16 @@ const TranslationManager = () => {
         return next
       })
       invalidateTranslationCache()
-      toast({ title: 'Deleted', description: `Translation key "${key}" removed.` })
+      toast({
+        title: isHe ? 'נמחק' : 'Deleted',
+        description: isHe ? `מפתח תרגום "${key}" הוסר.` : `Translation key "${key}" removed.`
+      })
     } catch {
-      toast({ title: 'Error', description: 'Failed to delete translation key.', variant: 'destructive' })
+      toast({
+        title: isHe ? 'שגיאה' : 'Error',
+        description: isHe ? 'מחיקת מפתח התרגום נכשלה.' : 'Failed to delete translation key.',
+        variant: 'destructive'
+      })
     }
   }
 
@@ -167,10 +187,12 @@ const TranslationManager = () => {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Languages className="h-5 w-5 text-muted-foreground" />
-          <CardTitle>Translation Manager</CardTitle>
+          <CardTitle>{isHe ? 'ניהול תרגומים' : 'Translation Manager'}</CardTitle>
         </div>
         <CardDescription>
-          Manage all website translations from the database ({totalKeys} keys)
+          {isHe
+            ? `ניהול כל תרגומי האתר ממסד הנתונים (${totalKeys} מפתחות)`
+            : `Manage all website translations from the database (${totalKeys} keys)`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -178,11 +200,15 @@ const TranslationManager = () => {
           <div className="rounded-md bg-muted/50 p-4 text-center space-y-3">
             <Database className="h-8 w-8 mx-auto text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              No translations in the database yet. Seed them from the built-in locale files to get started.
+              {isHe
+                ? 'אין תרגומים במסד הנתונים עדיין. טענו אותם מקבצי השפה המובנים כדי להתחיל.'
+                : 'No translations in the database yet. Seed them from the built-in locale files to get started.'}
             </p>
             <Button onClick={handleSeed} disabled={seeding} data-testid="button-seed-translations">
               <Upload className="w-4 h-4 mr-2" />
-              {seeding ? 'Seeding...' : 'Seed Translations from Locale Files'}
+              {seeding
+                ? (isHe ? 'טוען...' : 'Seeding...')
+                : (isHe ? 'טעינת תרגומים מקבצי שפה' : 'Seed Translations from Locale Files')}
             </Button>
           </div>
         )}
@@ -191,12 +217,14 @@ const TranslationManager = () => {
           <>
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
-                <Label htmlFor="search-translations" className="sr-only">Search</Label>
+                <Label htmlFor="search-translations" className="sr-only">
+                  {isHe ? 'חיפוש' : 'Search'}
+                </Label>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="search-translations"
-                    placeholder="Search keys or values..."
+                    placeholder={isHe ? 'חיפוש מפתחות או ערכים...' : 'Search keys or values...'}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9"
@@ -206,10 +234,10 @@ const TranslationManager = () => {
               </div>
               <Select value={filterSection} onValueChange={setFilterSection}>
                 <SelectTrigger className="w-full sm:w-40" data-testid="select-filter-section">
-                  <SelectValue placeholder="Section" />
+                  <SelectValue placeholder={isHe ? 'מקטע' : 'Section'} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Sections</SelectItem>
+                  <SelectItem value="all">{isHe ? 'כל המקטעים' : 'All Sections'}</SelectItem>
                   {sections.map(s => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
@@ -217,10 +245,10 @@ const TranslationManager = () => {
               </Select>
               <Select value={filterLang} onValueChange={setFilterLang}>
                 <SelectTrigger className="w-full sm:w-40" data-testid="select-filter-lang">
-                  <SelectValue placeholder="Language" />
+                  <SelectValue placeholder={isHe ? 'שפה' : 'Language'} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Languages</SelectItem>
+                  <SelectItem value="all">{isHe ? 'כל השפות' : 'All Languages'}</SelectItem>
                   {ALL_LANGUAGES.map(l => (
                     <SelectItem key={l.code} value={l.code}>
                       {l.flag} {l.nativeName}
@@ -232,11 +260,15 @@ const TranslationManager = () => {
 
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <p className="text-xs text-muted-foreground">
-                Showing {filteredRows.length} of {totalKeys} keys
+                {isHe
+                  ? `מציג ${filteredRows.length} מתוך ${totalKeys} מפתחות`
+                  : `Showing ${filteredRows.length} of ${totalKeys} keys`}
               </p>
               <Button variant="outline" size="sm" onClick={handleSeed} disabled={seeding} data-testid="button-reseed">
                 <Upload className="w-3 h-3 mr-1" />
-                {seeding ? 'Seeding...' : 'Re-seed from Files'}
+                {seeding
+                  ? (isHe ? 'טוען...' : 'Seeding...')
+                  : (isHe ? 'טעינה מחדש מקבצים' : 'Re-seed from Files')}
               </Button>
             </div>
 
@@ -244,7 +276,7 @@ const TranslationManager = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/30">
-                    <th className="text-left p-2 font-medium min-w-[200px]">Key</th>
+                    <th className="text-left p-2 font-medium min-w-[200px]">{isHe ? 'מפתח' : 'Key'}</th>
                     {visibleLangs.map(lang => {
                       const info = ALL_LANGUAGES.find(l => l.code === lang)
                       return (
@@ -279,7 +311,7 @@ const TranslationManager = () => {
                                 <div className="flex gap-1">
                                   <Button size="sm" onClick={saveEdit} disabled={savingCell} data-testid={`button-save-${row.key}-${lang}`}>
                                     <Check className="w-3 h-3 mr-1" />
-                                    {savingCell ? '...' : 'Save'}
+                                    {savingCell ? '...' : (isHe ? 'שמור' : 'Save')}
                                   </Button>
                                   <Button size="sm" variant="outline" onClick={cancelEdit} data-testid={`button-cancel-${row.key}-${lang}`}>
                                     <X className="w-3 h-3" />
@@ -293,7 +325,7 @@ const TranslationManager = () => {
                                 data-testid={`cell-${row.key}-${lang}`}
                               >
                                 <span className="text-xs break-words">
-                                  {val || <span className="text-muted-foreground italic">empty</span>}
+                                  {val || <span className="text-muted-foreground italic">{isHe ? 'ריק' : 'empty'}</span>}
                                 </span>
                                 <Pencil className="w-3 h-3 text-muted-foreground invisible group-hover:visible inline ml-1" />
                               </div>
@@ -316,7 +348,7 @@ const TranslationManager = () => {
                   {pageRows.length === 0 && (
                     <tr>
                       <td colSpan={visibleLangs.length + 2} className="p-6 text-center text-muted-foreground text-sm">
-                        No translations match your filters
+                        {isHe ? 'אין תרגומים התואמים את הסינון' : 'No translations match your filters'}
                       </td>
                     </tr>
                   )}
@@ -336,7 +368,7 @@ const TranslationManager = () => {
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  Page {page + 1} of {totalPages}
+                  {isHe ? `עמוד ${page + 1} מתוך ${totalPages}` : `Page ${page + 1} of ${totalPages}`}
                 </span>
                 <Button
                   size="sm"

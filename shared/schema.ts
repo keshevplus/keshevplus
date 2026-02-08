@@ -63,11 +63,48 @@ export const smsVerifications = pgTable("sms_verifications", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const APPOINTMENT_STATUSES = ["pending", "confirmed", "cancelled", "completed"] as const;
+export type AppointmentStatus = typeof APPOINTMENT_STATUSES[number];
+
+export const appointments = pgTable("appointments", {
+  id: serial("id").primaryKey(),
+  clientName: text("client_name").notNull(),
+  clientEmail: text("client_email").notNull(),
+  clientPhone: text("client_phone").notNull(),
+  date: text("date").notNull(),
+  time: text("time").notNull(),
+  type: text("type").notNull().default("consultation"),
+  status: text("status").notNull().default("pending"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const clients = pgTable("clients", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const clientActivities = pgTable("client_activities", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  type: text("type").notNull(),
+  description: text("description").notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertContactSchema = createInsertSchema(contacts).omit({ id: true, createdAt: true, read: true });
 export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({ id: true });
 export const insertTranslationSchema = createInsertSchema(translations).omit({ id: true });
 export const insertQuestionnaireSubmissionSchema = createInsertSchema(questionnaireSubmissions).omit({ id: true, createdAt: true, reviewed: true });
+export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true, createdAt: true });
+export const insertClientSchema = createInsertSchema(clients).omit({ id: true, createdAt: true });
+export const insertClientActivitySchema = createInsertSchema(clientActivities).omit({ id: true, createdAt: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -80,6 +117,12 @@ export type InsertTranslation = z.infer<typeof insertTranslationSchema>;
 export type QuestionnaireSubmission = typeof questionnaireSubmissions.$inferSelect;
 export type InsertQuestionnaireSubmission = z.infer<typeof insertQuestionnaireSubmissionSchema>;
 export type SmsVerification = typeof smsVerifications.$inferSelect;
+export type Appointment = typeof appointments.$inferSelect;
+export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
+export type Client = typeof clients.$inferSelect;
+export type InsertClient = z.infer<typeof insertClientSchema>;
+export type ClientActivity = typeof clientActivities.$inferSelect;
+export type InsertClientActivity = z.infer<typeof insertClientActivitySchema>;
 
 export const SUPPORTED_LANGUAGES = ["he", "en", "fr", "es", "de", "ru", "am", "ar", "yi"] as const;
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];

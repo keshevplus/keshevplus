@@ -1,4 +1,4 @@
-import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification } from "@shared/schema";
+import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, lt } from "drizzle-orm";
 
@@ -25,6 +25,16 @@ export interface IStorage {
   createSmsVerification(phone: string, code: string, expiresAt: Date): Promise<SmsVerification>;
   verifySmsCode(phone: string, code: string): Promise<boolean>;
   cleanupExpiredVerifications(): Promise<void>;
+  createAppointment(appointment: InsertAppointment): Promise<Appointment>;
+  getAppointments(status?: string): Promise<Appointment[]>;
+  getAppointment(id: number): Promise<Appointment | undefined>;
+  updateAppointmentStatus(id: number, status: string): Promise<Appointment | undefined>;
+  createClient(client: InsertClient): Promise<Client>;
+  getClients(): Promise<Client[]>;
+  getClient(id: number): Promise<Client | undefined>;
+  updateClient(id: number, data: Partial<InsertClient>): Promise<Client | undefined>;
+  createClientActivity(activity: InsertClientActivity): Promise<ClientActivity>;
+  getClientActivities(clientId: number): Promise<ClientActivity[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -234,6 +244,66 @@ export class DatabaseStorage implements IStorage {
   async cleanupExpiredVerifications(): Promise<void> {
     const now = new Date();
     await db.delete(smsVerifications).where(lt(smsVerifications.expiresAt, now));
+  }
+
+  async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
+    const [created] = await db.insert(appointments).values(appointment as any).returning();
+    return created;
+  }
+
+  async getAppointments(status?: string): Promise<Appointment[]> {
+    if (status) {
+      return await db.select().from(appointments)
+        .where(eq(appointments.status, status))
+        .orderBy(desc(appointments.createdAt));
+    }
+    return await db.select().from(appointments).orderBy(desc(appointments.createdAt));
+  }
+
+  async getAppointment(id: number): Promise<Appointment | undefined> {
+    const [a] = await db.select().from(appointments).where(eq(appointments.id, id));
+    return a || undefined;
+  }
+
+  async updateAppointmentStatus(id: number, status: string): Promise<Appointment | undefined> {
+    const [updated] = await db.update(appointments)
+      .set({ status } as any)
+      .where(eq(appointments.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async createClient(client: InsertClient): Promise<Client> {
+    const [created] = await db.insert(clients).values(client as any).returning();
+    return created;
+  }
+
+  async getClients(): Promise<Client[]> {
+    return await db.select().from(clients).orderBy(desc(clients.createdAt));
+  }
+
+  async getClient(id: number): Promise<Client | undefined> {
+    const [c] = await db.select().from(clients).where(eq(clients.id, id));
+    return c || undefined;
+  }
+
+  async updateClient(id: number, data: Partial<InsertClient>): Promise<Client | undefined> {
+    const [updated] = await db.update(clients)
+      .set(data as any)
+      .where(eq(clients.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async createClientActivity(activity: InsertClientActivity): Promise<ClientActivity> {
+    const [created] = await db.insert(clientActivities).values(activity as any).returning();
+    return created;
+  }
+
+  async getClientActivities(clientId: number): Promise<ClientActivity[]> {
+    return await db.select().from(clientActivities)
+      .where(eq(clientActivities.clientId, clientId))
+      .orderBy(desc(clientActivities.createdAt));
   }
 }
 

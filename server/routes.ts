@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema } from "@shared/schema";
+import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, APPOINTMENT_STATUSES } from "@shared/schema";
 import { z } from "zod";
 import nodemailer from "nodemailer";
 
@@ -611,6 +611,166 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating questionnaire:", error);
       return res.status(500).json({ error: "Failed to update questionnaire" });
+    }
+  });
+
+  // ===== Appointment Routes =====
+  app.post("/api/appointments", async (req, res) => {
+    try {
+      const result = insertAppointmentSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ success: false, error: result.error.message });
+      }
+      const appointment = await storage.createAppointment(result.data);
+      return res.json({ success: true, appointment });
+    } catch (error) {
+      console.error("Appointment creation error:", error);
+      return res.status(500).json({ success: false, error: "Failed to create appointment" });
+    }
+  });
+
+  app.get("/api/appointments", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const status = req.query.status as string | undefined;
+      const list = await storage.getAppointments(status);
+      return res.json(list);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+      return res.status(500).json({ error: "Failed to fetch appointments" });
+    }
+  });
+
+  app.patch("/api/appointments/:id/status", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      if (!status || !APPOINTMENT_STATUSES.includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+      const updated = await storage.updateAppointmentStatus(id, status);
+      if (!updated) return res.status(404).json({ error: "Appointment not found" });
+      return res.json(updated);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update appointment" });
+    }
+  });
+
+  // ===== CRM Client Routes =====
+  app.post("/api/clients", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const result = insertClientSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.message });
+      }
+      const client = await storage.createClient(result.data);
+      return res.json(client);
+    } catch (error) {
+      console.error("Error creating client:", error);
+      return res.status(500).json({ error: "Failed to create client" });
+    }
+  });
+
+  app.get("/api/clients", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const list = await storage.getClients();
+      return res.json(list);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch clients" });
+    }
+  });
+
+  app.get("/api/clients/:id", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const client = await storage.getClient(id);
+      if (!client) return res.status(404).json({ error: "Client not found" });
+      return res.json(client);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch client" });
+    }
+  });
+
+  app.patch("/api/clients/:id", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const updated = await storage.updateClient(id, req.body);
+      if (!updated) return res.status(404).json({ error: "Client not found" });
+      return res.json(updated);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update client" });
+    }
+  });
+
+  // ===== CRM Activity Routes =====
+  app.post("/api/clients/:id/activities", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const clientId = parseInt(req.params.id);
+      const result = insertClientActivitySchema.safeParse({ ...req.body, clientId });
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.message });
+      }
+      const activity = await storage.createClientActivity(result.data);
+      return res.json(activity);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to create activity" });
+    }
+  });
+
+  app.get("/api/clients/:id/activities", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const clientId = parseInt(req.params.id);
+      const activities = await storage.getClientActivities(clientId);
+      return res.json(activities);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch activities" });
     }
   });
 

@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const QuestionnairePage = lazy(() => import("./pages/QuestionnairePage"));
+const BookingPage = lazy(() => import("./pages/BookingPage"));
 const NotFound = lazy(() => import("./pages/not-found"));
 
 function PageFallback() {
@@ -29,6 +30,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Index} />
         <Route path="/questionnaire/:type" component={QuestionnairePage} />
+        <Route path="/booking" component={BookingPage} />
         <Route path="/admin" component={AdminPage} />
         <Route component={NotFound} />
       </Switch>

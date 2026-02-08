@@ -13,10 +13,13 @@ import { apiRequest } from '@/lib/queryClient'
 import { ALL_LANGUAGES, type LanguageSettings, type SupportedLanguage, DEFAULT_LANGUAGE_SETTINGS, BILINGUAL_CODES, MULTILINGUAL_CODES } from '@/i18n/config'
 import TranslationManager from './TranslationManager'
 import QuestionnaireSubmissions from './QuestionnaireSubmissions'
+import AppointmentsManager from './AppointmentsManager'
+import ClientsManager from './ClientsManager'
 
 const AdminDashboard = () => {
   const { user, signOut } = useAuth()
-  const { t } = useLanguage()
+  const { language } = useLanguage()
+  const isHe = language === 'he'
   const { toast } = useToast()
   const [langSettings, setLangSettings] = useState<LanguageSettings>(DEFAULT_LANGUAGE_SETTINGS)
   const [saving, setSaving] = useState(false)
@@ -40,9 +43,16 @@ const AdminDashboard = () => {
     setSaving(true)
     try {
       await apiRequest('PUT', '/api/settings/language', langSettings)
-      toast({ title: 'Settings saved', description: 'Language settings have been updated successfully.' })
+      toast({
+        title: isHe ? 'ההגדרות נשמרו' : 'Settings saved',
+        description: isHe ? 'הגדרות השפה עודכנו בהצלחה.' : 'Language settings have been updated successfully.'
+      })
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to save language settings.', variant: 'destructive' })
+      toast({
+        title: isHe ? 'שגיאה' : 'Error',
+        description: isHe ? 'שמירת הגדרות השפה נכשלה.' : 'Failed to save language settings.',
+        variant: 'destructive'
+      })
     } finally {
       setSaving(false)
     }
@@ -64,15 +74,17 @@ const AdminDashboard = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-4">
               <div>
-                <h1 className="text-xl font-semibold">Admin Dashboard</h1>
-                <p className="text-sm text-muted-foreground">Welcome back, {user?.email}</p>
+                <h1 className="text-xl font-semibold">{isHe ? 'לוח בקרה' : 'Admin Dashboard'}</h1>
+                <p className="text-sm text-muted-foreground">
+                  {isHe ? `ברוך הבא, ${user?.email}` : `Welcome back, ${user?.email}`}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <LanguageSelector />
               <Button variant="outline" onClick={handleSignOut} data-testid="button-signout">
                 <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
+                {isHe ? 'התנתקות' : 'Sign Out'}
               </Button>
             </div>
           </div>
@@ -83,45 +95,45 @@ const AdminDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <CardTitle className="text-sm font-medium">{isHe ? 'סה"כ משתמשים' : 'Total Users'}</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground shrink-0" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold" data-testid="text-total-users">1,234</div>
-              <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+              <p className="text-xs text-muted-foreground">{isHe ? '+20.1% מהחודש שעבר' : '+20.1% from last month'}</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Appointments</CardTitle>
+              <CardTitle className="text-sm font-medium">{isHe ? 'פגישות' : 'Appointments'}</CardTitle>
               <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold" data-testid="text-appointments">56</div>
-              <p className="text-xs text-muted-foreground">+12% from last week</p>
+              <p className="text-xs text-muted-foreground">{isHe ? '+12% מהשבוע שעבר' : '+12% from last week'}</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium">{isHe ? 'הכנסות' : 'Revenue'}</CardTitle>
               <BarChart3 className="h-4 w-4 text-muted-foreground shrink-0" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold" data-testid="text-revenue">{"\u20aa"}45,231</div>
-              <p className="text-xs text-muted-foreground">+8.2% from last month</p>
+              <p className="text-xs text-muted-foreground">{isHe ? '+8.2% מהחודש שעבר' : '+8.2% from last month'}</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
+              <CardTitle className="text-sm font-medium">{isHe ? 'חיבורים פעילים' : 'Active Sessions'}</CardTitle>
               <Settings className="h-4 w-4 text-muted-foreground shrink-0" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold" data-testid="text-sessions">24</div>
-              <p className="text-xs text-muted-foreground">+3 from yesterday</p>
+              <p className="text-xs text-muted-foreground">{isHe ? '+3 מאתמול' : '+3 from yesterday'}</p>
             </CardContent>
           </Card>
         </div>
@@ -131,18 +143,18 @@ const AdminDashboard = () => {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Globe className="h-5 w-5 text-muted-foreground" />
-                <CardTitle>Language Settings</CardTitle>
+                <CardTitle>{isHe ? 'הגדרות שפה' : 'Language Settings'}</CardTitle>
               </div>
-              <CardDescription>Control the multilingual experience on your website</CardDescription>
+              <CardDescription>{isHe ? 'שליטה בחוויה הרב-לשונית באתר' : 'Control the multilingual experience on your website'}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between gap-4">
                 <div className="space-y-0.5">
                   <Label htmlFor="multilingual-toggle" className="text-sm font-medium">
-                    Multilingual Support
+                    {isHe ? 'תמיכה רב-לשונית' : 'Multilingual Support'}
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Show the language selector on the website
+                    {isHe ? 'הצגת בורר שפות באתר' : 'Show the language selector on the website'}
                   </p>
                 </div>
                 <Switch
@@ -158,7 +170,9 @@ const AdminDashboard = () => {
               {langSettings.enabled && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="language-mode" className="text-sm font-medium">Language Mode</Label>
+                    <Label htmlFor="language-mode" className="text-sm font-medium">
+                      {isHe ? 'מצב שפה' : 'Language Mode'}
+                    </Label>
                     <Select
                       value={langSettings.mode}
                       onValueChange={(value: 'bilingual' | 'multilingual') =>
@@ -170,17 +184,19 @@ const AdminDashboard = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="bilingual" data-testid="option-bilingual">
-                          Bilingual (Hebrew / English)
+                          {isHe ? 'דו-לשוני (עברית / אנגלית)' : 'Bilingual (Hebrew / English)'}
                         </SelectItem>
                         <SelectItem value="multilingual" data-testid="option-multilingual">
-                          Multilingual (All 9 languages)
+                          {isHe ? 'רב-לשוני (כל 9 השפות)' : 'Multilingual (All 9 languages)'}
                         </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="default-language" className="text-sm font-medium">Default Language</Label>
+                    <Label htmlFor="default-language" className="text-sm font-medium">
+                      {isHe ? 'שפת ברירת מחדל' : 'Default Language'}
+                    </Label>
                     <Select
                       value={langSettings.defaultLanguage}
                       onValueChange={(value: string) =>
@@ -206,8 +222,8 @@ const AdminDashboard = () => {
                   <div className="rounded-md bg-muted/50 p-3">
                     <p className="text-xs text-muted-foreground">
                       {langSettings.mode === 'bilingual'
-                        ? 'Users will be able to switch between Hebrew and English.'
-                        : 'Users will be able to choose from 9 languages: Hebrew, English, French, Spanish, German, Russian, Amharic, Arabic, and Yiddish.'}
+                        ? (isHe ? 'המשתמשים יוכלו לעבור בין עברית לאנגלית.' : 'Users will be able to switch between Hebrew and English.')
+                        : (isHe ? 'המשתמשים יוכלו לבחור מתוך 9 שפות: עברית, אנגלית, צרפתית, ספרדית, גרמנית, רוסית, אמהרית, ערבית ויידיש.' : 'Users will be able to choose from 9 languages: Hebrew, English, French, Spanish, German, Russian, Amharic, Arabic, and Yiddish.')}
                     </p>
                   </div>
                 </>
@@ -220,31 +236,41 @@ const AdminDashboard = () => {
                 data-testid="button-save-language"
               >
                 <Save className="w-4 h-4 mr-2" />
-                {saving ? 'Saving...' : 'Save Language Settings'}
+                {saving
+                  ? (isHe ? 'שומר...' : 'Saving...')
+                  : (isHe ? 'שמירת הגדרות שפה' : 'Save Language Settings')}
               </Button>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common administrative tasks</CardDescription>
+              <CardTitle>{isHe ? 'פעולות מהירות' : 'Quick Actions'}</CardTitle>
+              <CardDescription>{isHe ? 'משימות ניהול נפוצות' : 'Common administrative tasks'}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <Button className="w-full justify-start" data-testid="button-manage-users">
                 <Users className="w-4 h-4 mr-2" />
-                Manage Users
+                {isHe ? 'ניהול משתמשים' : 'Manage Users'}
               </Button>
               <Button variant="outline" className="w-full justify-start" data-testid="button-view-appointments">
                 <FileText className="w-4 h-4 mr-2" />
-                View Appointments
+                {isHe ? 'צפייה בפגישות' : 'View Appointments'}
               </Button>
               <Button variant="outline" className="w-full justify-start" data-testid="button-system-settings">
                 <Settings className="w-4 h-4 mr-2" />
-                System Settings
+                {isHe ? 'הגדרות מערכת' : 'System Settings'}
               </Button>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="mt-6">
+          <AppointmentsManager />
+        </div>
+
+        <div className="mt-6">
+          <ClientsManager />
         </div>
 
         <div className="mt-6">

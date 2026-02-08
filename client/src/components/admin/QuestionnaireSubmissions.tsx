@@ -9,6 +9,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { QUESTIONNAIRES } from "@/lib/questionnaire-data";
 import type { QuestionnaireSubmission } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/hooks/useLanguage";
 
 const TYPE_LABELS: Record<string, { he: string; en: string; color: string }> = {
   parent: { he: "שאלון להורים", en: "Parent", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
@@ -17,6 +18,8 @@ const TYPE_LABELS: Record<string, { he: string; en: string; color: string }> = {
 };
 
 const QuestionnaireSubmissions = () => {
+  const { language } = useLanguage();
+  const isHe = language === 'he';
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
@@ -66,35 +69,35 @@ const QuestionnaireSubmissions = () => {
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <ClipboardList className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Questionnaire Submissions</CardTitle>
+            <CardTitle>{isHe ? "שאלוני הערכה שהוגשו" : "Questionnaire Submissions"}</CardTitle>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             {stats && (
               <div className="flex items-center gap-2 text-sm">
                 <Badge variant="secondary" className="no-default-hover-elevate no-default-active-elevate">
-                  {stats.total} total
+                  {stats.total} {isHe ? 'סה"כ' : "total"}
                 </Badge>
                 {stats.unreviewed > 0 && (
                   <Badge variant="destructive" className="no-default-hover-elevate no-default-active-elevate">
-                    {stats.unreviewed} new
+                    {stats.unreviewed} {isHe ? "חדש" : "new"}
                   </Badge>
                 )}
               </div>
             )}
             <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="w-[180px]" data-testid="select-submission-filter">
-                <SelectValue placeholder="Filter by type" />
+                <SelectValue placeholder={isHe ? "סינון לפי סוג" : "Filter by type"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="parent">Parent</SelectItem>
-                <SelectItem value="teacher">Teacher</SelectItem>
-                <SelectItem value="self_report">Self-Report</SelectItem>
+                <SelectItem value="all">{isHe ? "כל הסוגים" : "All Types"}</SelectItem>
+                <SelectItem value="parent">{isHe ? "הורים" : "Parent"}</SelectItem>
+                <SelectItem value="teacher">{isHe ? "מורים" : "Teacher"}</SelectItem>
+                <SelectItem value="self_report">{isHe ? "דיווח עצמי" : "Self-Report"}</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
-        <CardDescription>View and manage questionnaire responses from clients</CardDescription>
+        <CardDescription>{isHe ? "צפייה וניהול תשובות שאלונים מלקוחות" : "View and manage questionnaire responses from clients"}</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -104,7 +107,7 @@ const QuestionnaireSubmissions = () => {
         ) : submissions.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <ClipboardList className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>No questionnaire submissions yet</p>
+            <p>{isHe ? "אין שאלונים שהוגשו עדיין" : "No questionnaire submissions yet"}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -131,18 +134,18 @@ const QuestionnaireSubmissions = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", typeInfo.color)}>
-                          {typeInfo.en}
+                          {isHe ? typeInfo.he : typeInfo.en}
                         </span>
                         {!sub.reviewed && (
                           <Badge variant="outline" className="text-xs no-default-hover-elevate no-default-active-elevate border-orange-300 text-orange-600 dark:text-orange-400">
                             <Clock className="w-3 h-3 mr-1" />
-                            New
+                            {isHe ? "חדש" : "New"}
                           </Badge>
                         )}
                         {sub.reviewed && (
                           <Badge variant="outline" className="text-xs no-default-hover-elevate no-default-active-elevate border-green-300 text-green-600 dark:text-green-400">
                             <CheckCircle className="w-3 h-3 mr-1" />
-                            Reviewed
+                            {isHe ? "נבדק" : "Reviewed"}
                           </Badge>
                         )}
                       </div>
@@ -173,25 +176,25 @@ const QuestionnaireSubmissions = () => {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         {sub.childName && (
                           <div>
-                            <p className="text-xs text-muted-foreground">Child Name</p>
+                            <p className="text-xs text-muted-foreground">{isHe ? "שם הילד/ה" : "Child Name"}</p>
                             <p className="font-medium text-sm">{sub.childName}</p>
                           </div>
                         )}
                         {sub.childAge && (
                           <div>
-                            <p className="text-xs text-muted-foreground">Child Age</p>
+                            <p className="text-xs text-muted-foreground">{isHe ? "גיל הילד/ה" : "Child Age"}</p>
                             <p className="font-medium text-sm">{sub.childAge}</p>
                           </div>
                         )}
                         {sub.childGender && (
                           <div>
-                            <p className="text-xs text-muted-foreground">Gender</p>
+                            <p className="text-xs text-muted-foreground">{isHe ? "מין" : "Gender"}</p>
                             <p className="font-medium text-sm capitalize">{sub.childGender}</p>
                           </div>
                         )}
                         {sub.relationship && (
                           <div>
-                            <p className="text-xs text-muted-foreground">Relationship</p>
+                            <p className="text-xs text-muted-foreground">{isHe ? "קרבה" : "Relationship"}</p>
                             <p className="font-medium text-sm capitalize">{sub.relationship}</p>
                           </div>
                         )}
@@ -199,7 +202,7 @@ const QuestionnaireSubmissions = () => {
 
                       {scores && (
                         <div>
-                          <h4 className="text-sm font-semibold mb-2">Scores</h4>
+                          <h4 className="text-sm font-semibold mb-2">{isHe ? "ציונים" : "Scores"}</h4>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             {Object.entries(scores).map(([key, value]) => (
                               <div key={key} className="bg-background rounded-md p-2 border text-center">
@@ -213,19 +216,19 @@ const QuestionnaireSubmissions = () => {
 
                       {answersMap && (
                         <div>
-                          <h4 className="text-sm font-semibold mb-2">Detailed Answers</h4>
+                          <h4 className="text-sm font-semibold mb-2">{isHe ? "תשובות מפורטות" : "Detailed Answers"}</h4>
                           <div className="max-h-[400px] overflow-y-auto">
                             {QUESTIONNAIRES[sub.type as keyof typeof QUESTIONNAIRES]?.sections.map((section) => (
                               <div key={section.id} className="mb-3">
                                 <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                                  {section.titleEn}
+                                  {isHe ? section.titleHe : section.titleEn}
                                 </h5>
                                 <div className="space-y-1">
                                   {section.questions.map((q) => {
                                     const val = answersMap[q.id];
                                     return (
                                       <div key={q.id} className="flex items-start gap-2 text-sm bg-background rounded p-2 border">
-                                        <span className="flex-1 text-foreground/80">{q.en}</span>
+                                        <span className="flex-1 text-foreground/80">{isHe ? q.he : q.en}</span>
                                         <Badge
                                           variant="secondary"
                                           className={cn(
@@ -248,7 +251,7 @@ const QuestionnaireSubmissions = () => {
 
                       {sub.notes && (
                         <div>
-                          <h4 className="text-sm font-semibold mb-1">Notes</h4>
+                          <h4 className="text-sm font-semibold mb-1">{isHe ? "הערות" : "Notes"}</h4>
                           <p className="text-sm text-muted-foreground bg-background rounded-md p-3 border">{sub.notes}</p>
                         </div>
                       )}
@@ -262,7 +265,7 @@ const QuestionnaireSubmissions = () => {
                             data-testid={`button-mark-reviewed-${sub.id}`}
                           >
                             <CheckCircle className="w-4 h-4 mr-2" />
-                            {markReviewed.isPending ? "Marking..." : "Mark as Reviewed"}
+                            {markReviewed.isPending ? (isHe ? "מסמן..." : "Marking...") : (isHe ? "סמן כנבדק" : "Mark as Reviewed")}
                           </Button>
                         )}
                       </div>
