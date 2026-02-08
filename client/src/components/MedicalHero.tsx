@@ -153,7 +153,14 @@ const MedicalHero: React.FC = () => {
                     variant="primary"
                     size="sm"
                     className="sm:size-md text-xs sm:text-sm md:text-base flex-1"
-                    onClick={() => setContactModalOpen(true)}
+                    onClick={() => {
+                      const el = document.getElementById("questionnaires");
+                      if (el) {
+                        const offset = 100;
+                        const top = el.getBoundingClientRect().top + window.scrollY - offset;
+                        window.scrollTo({ top, behavior: "smooth" });
+                      }
+                    }}
                     data-testid="button-start-diagnosis"
                   >
                     {t("hero.start_now")}
