@@ -16,9 +16,12 @@ KeshevPlus is a multilingual website for an ADHD clinic specializing in diagnosi
 - **Frontend**: React + Vite + TailwindCSS + shadcn/ui (RTL/LTR layout)
 - **Backend**: Express.js with session-based auth
 - **Database**: Neon Postgres via Drizzle ORM
-- **Schema**: Users table (auth) + Contacts table (contact form) + SiteSettings table (language config) + Translations table (i18n) + QuestionnaireSubmissions table (ADHD assessments)
+- **Schema**: Users, Contacts, SiteSettings, Translations, QuestionnaireSubmissions, Appointments, Clients, ClientActivities, Conversations, Messages tables
 - **i18n**: Database-backed translation system with 9 languages, static locale file fallback, admin-editable via Translation Manager
 - **Email Delivery**: Nodemailer integration for contact form submissions to pluskeshev@gmail.com
+- **AI Chat**: OpenAI-powered virtual assistant (gpt-4o-mini) via Replit AI Integrations, streaming SSE responses
+- **CRM**: Client management with activity logging (notes, calls, meetings, sales, emails)
+- **Appointments**: Booking system with status management (pending/confirmed/cancelled/completed)
 
 ## Project Structure
 ```
@@ -60,6 +63,15 @@ shared/              - Shared types and schema
 - `GET /api/questionnaires/stats` - Submission stats (admin)
 - `GET /api/questionnaires/:id` - Get single submission (admin)
 - `PATCH /api/questionnaires/:id/reviewed` - Mark as reviewed (admin)
+- `POST /api/appointments` - Create appointment (public)
+- `GET /api/appointments` - List appointments (admin)
+- `PATCH /api/appointments/:id/status` - Update appointment status (admin)
+- `POST /api/clients` - Create client (admin)
+- `GET /api/clients` - List clients (admin)
+- `PATCH /api/clients/:id` - Update client (admin)
+- `POST /api/clients/:id/activities` - Add client activity (admin)
+- `GET /api/clients/:id/activities` - Get client activities (admin)
+- `POST /api/chat` - AI chat assistant (public, streaming SSE)
 
 ## Questionnaire System
 - **Types**: Parent, Teacher, Self-Report (Vanderbilt ADHD Assessment)
@@ -101,7 +113,30 @@ shared/              - Shared types and schema
 - **Exceptions**: Third-party brand colors (WhatsApp #25D366, Waze #33CCFF, Google Maps #4285F4) remain hardcoded
 - **Toggle Location**: In navigation bar (both desktop and mobile)
 
+## AI Chat Widget
+- **Component**: `client/src/components/ChatWidget.tsx` - Floating chat bubble, opens into card-style chat window
+- **Backend**: `/api/chat` endpoint using OpenAI gpt-4o-mini via Replit AI Integrations
+- **Streaming**: Server-Sent Events (SSE) for real-time token streaming
+- **System Prompt**: Context-aware for clinic info (location, phone, services), language-adaptive (Hebrew/English)
+- **Features**: Message history, loading states, error handling, RTL/LTR support
+
+## Appointment System
+- **Schema**: `appointments` table (name, email, phone, date, time, type, status, notes)
+- **Public**: BookingPage at `/booking` with form validation
+- **Admin**: AppointmentsManager in admin dashboard with status badges (pending/confirmed/cancelled/completed)
+- **Status Flow**: pending → confirmed/cancelled, confirmed → completed
+
+## CRM System
+- **Schema**: `clients` table (master record) + `clientActivities` table (interactions)
+- **Activity Types**: note, call, meeting, sale, email
+- **Admin**: ClientsManager with expandable client details, inline activity logging, editable notes
+- **Data**: Name, email, phone, status (active/inactive/lead), notes, creation tracking
+
 ## Recent Changes
+- 2026-02-08: AI Chat Widget - OpenAI-powered virtual assistant with streaming responses, bilingual support
+- 2026-02-08: CRM system - client management with activity logging (notes, calls, meetings, sales, emails)
+- 2026-02-08: Appointment scheduling - public booking page + admin status management
+- 2026-02-08: Admin dashboard bilingual translation (Hebrew/English) for all admin components
 - 2026-02-07: Web-based questionnaire system - 3 Vanderbilt ADHD assessments (Parent/Teacher/Self-Report) with registration, multi-section forms, automatic scoring, JSONB storage, admin dashboard viewer with filtering and mark-as-reviewed
 - 2026-02-07: Content sections (About, Services, ADHD/FAQ) converted to translation key system using t() function for full multilingual support
 - 2026-02-07: Translation Manager admin UI - full CRUD for translations, search/filter by key/section/language, inline editing, seed from locale files, pagination

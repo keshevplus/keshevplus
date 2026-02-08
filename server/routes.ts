@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, APPOINTMENT_STATUSES } from "@shared/schema";
 import { z } from "zod";
 import nodemailer from "nodemailer";
+import OpenAI from "openai";
 
 import en from "../client/src/i18n/locales/en";
 import he from "../client/src/i18n/locales/he";
@@ -771,6 +772,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json(activities);
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch activities" });
+    }
+  });
+
+  // ===== AI Chat Widget Route =====
+  app.post("/api/chat", async (req, res) => {
+    try {
+      const { message, history = [], language = 'he' } = req.body;
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+
+      const openai = new OpenAI({
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      });
+
+      const systemPrompt = language === 'he'
+        ? `אתה עוזר וירטואלי של מרפאת "קשב פלוס" - מרפאה מובילה לאבחון וטיפול בהפרעות קשב וריכוז (ADHD) בילדים, בני נוער ומבוגרים. המרפאה נמצאת ביגאל אלון 94, תל אביב. טלפון: 055-27-399-27. ענה בעברית, בצורה מקצועית וחמה. עזור למבקרים להבין את תהליך האבחון, סוגי הטיפול, ולקבוע פגישה. אל תתן ייעוץ רפואי ספציפי - הפנה תמיד לפגישת ייעוץ.`
+        : `You are the virtual assistant for "Keshev Plus" clinic - a leading clinic for ADHD diagnosis and treatment in children, teens, and adults. The clinic is located at 94 Yigal Alon St., Tel Aviv. Phone: 055-27-399-27. Answer professionally and warmly. Help visitors understand the diagnosis process, treatment options, and schedule appointments. Never give specific medical advice - always refer to a consultation appointment.`;
+
+      const chatMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+        { role: 'system', content: systemPrompt },
+        ...history.map((m: any) => ({ role: m.role, content: m.content })),
+        { role: 'user', content: message },
+      ];
+
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      const stream = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: chatMessages,
+        stream: true,
+        max_tokens: 500,
+      });
+
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content || '';
+        if (content) {
+          res.write(`data: ${JSON.stringify({ content })}\n\n`);
+        }
+      }
+
+      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      res.end();
+    } catch (error) {
+      console.error("Chat error:", error);
+      if (res.headersSent) {
+        res.write(`data: ${JSON.stringify({ error: "Chat failed" })}\n\n`);
+        res.end();
+      } else {
+        res.status(500).json({ error: "Chat failed" });
+      }
     }
   });
 

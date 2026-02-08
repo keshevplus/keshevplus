@@ -142,3 +142,6 @@ export const upsertTranslationSchema = z.object({
 });
 
 export const bulkUpsertTranslationsSchema = z.array(upsertTranslationSchema);
+
+export { conversations, messages } from "./models/chat";
+export type { Conversation, InsertConversation, Message, InsertMessage } from "./models/chat";
