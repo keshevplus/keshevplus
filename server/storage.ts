@@ -1,6 +1,6 @@
-import { users, contacts, siteSettings, translations, questionnaireSubmissions, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission } from "@shared/schema";
+import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, lt } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -22,6 +22,9 @@ export interface IStorage {
   getQuestionnaireSubmission(id: number): Promise<QuestionnaireSubmission | undefined>;
   markQuestionnaireReviewed(id: number): Promise<QuestionnaireSubmission | undefined>;
   getQuestionnaireStats(): Promise<{ total: number; byType: Record<string, number>; unreviewed: number }>;
+  createSmsVerification(phone: string, code: string, expiresAt: Date): Promise<SmsVerification>;
+  verifySmsCode(phone: string, code: string): Promise<boolean>;
+  cleanupExpiredVerifications(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -194,6 +197,43 @@ export class DatabaseStorage implements IStorage {
       if (!sub.reviewed) unreviewed++;
     }
     return { total: all.length, byType, unreviewed };
+  }
+  async createSmsVerification(phone: string, code: string, expiresAt: Date): Promise<SmsVerification> {
+    const [created] = await db
+      .insert(smsVerifications)
+      .values({ phone, code, expiresAt } as any)
+      .returning();
+    return created;
+  }
+
+  async verifySmsCode(phone: string, code: string): Promise<boolean> {
+    const now = new Date();
+    const [record] = await db
+      .select()
+      .from(smsVerifications)
+      .where(
+        and(
+          eq(smsVerifications.phone, phone),
+          eq(smsVerifications.code, code),
+          eq(smsVerifications.verified, false)
+        )
+      )
+      .orderBy(desc(smsVerifications.createdAt))
+      .limit(1);
+
+    if (!record || record.expiresAt < now) return false;
+
+    await db
+      .update(smsVerifications)
+      .set({ verified: true } as any)
+      .where(eq(smsVerifications.id, record.id));
+
+    return true;
+  }
+
+  async cleanupExpiredVerifications(): Promise<void> {
+    const now = new Date();
+    await db.delete(smsVerifications).where(lt(smsVerifications.expiresAt, now));
   }
 }
 

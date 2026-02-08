@@ -54,6 +54,15 @@ export const questionnaireSubmissions = pgTable("questionnaire_submissions", {
   reviewed: boolean("reviewed").default(false).notNull(),
 });
 
+export const smsVerifications = pgTable("sms_verifications", {
+  id: serial("id").primaryKey(),
+  phone: text("phone").notNull(),
+  code: text("code").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  verified: boolean("verified").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertContactSchema = createInsertSchema(contacts).omit({ id: true, createdAt: true, read: true });
 export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({ id: true });
@@ -70,6 +79,7 @@ export type Translation = typeof translations.$inferSelect;
 export type InsertTranslation = z.infer<typeof insertTranslationSchema>;
 export type QuestionnaireSubmission = typeof questionnaireSubmissions.$inferSelect;
 export type InsertQuestionnaireSubmission = z.infer<typeof insertQuestionnaireSubmissionSchema>;
+export type SmsVerification = typeof smsVerifications.$inferSelect;
 
 export const SUPPORTED_LANGUAGES = ["he", "en", "fr", "es", "de", "ru", "am", "ar", "yi"] as const;
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
