@@ -73,11 +73,11 @@ const BookingPage = () => {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full text-center">
+      <div className="min-h-screen bg-primary/90 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full text-center bg-[#FFFDF5] border-none shadow-2xl">
           <CardContent className="pt-8 pb-8 space-y-4">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
-            <h2 className="text-2xl font-bold">
+            <CheckCircle className="h-16 w-16 text-primary mx-auto" />
+            <h2 className="text-2xl font-bold text-foreground">
               {isHe ? 'הפגישה נקבעה בהצלחה!' : 'Appointment Booked Successfully!'}
             </h2>
             <p className="text-muted-foreground">
@@ -100,23 +100,23 @@ const BookingPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20" dir={isHe ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen bg-primary/90" dir={isHe ? 'rtl' : 'ltr'}>
       <div className="max-w-2xl mx-auto px-4 py-12">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">
+          <h1 className="text-3xl font-bold mb-2 text-white">
             {isHe ? 'קביעת פגישה' : 'Book an Appointment'}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-white/80">
             {isHe
               ? 'מלאו את הפרטים ונחזור אליכם לאישור הפגישה'
               : 'Fill in your details and we will confirm your appointment'}
           </p>
         </div>
 
-        <Card>
+        <Card className="bg-[#FFFDF5] border-none shadow-2xl">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-foreground">
+              <Calendar className="h-5 w-5 text-primary" />
               {isHe ? 'פרטי הפגישה' : 'Appointment Details'}
             </CardTitle>
             <CardDescription>
@@ -134,6 +134,7 @@ const BookingPage = () => {
                     onChange={(e) => setForm(f => ({ ...f, clientName: e.target.value }))}
                     placeholder={isHe ? 'הכניסו את שמכם' : 'Enter your name'}
                     required
+                    className="bg-white dark:bg-white/90"
                     data-testid="input-booking-name"
                   />
                 </div>
@@ -146,6 +147,7 @@ const BookingPage = () => {
                     onChange={(e) => setForm(f => ({ ...f, clientPhone: e.target.value }))}
                     placeholder={isHe ? 'מספר הטלפון שלכם' : 'Your phone number'}
                     required
+                    className="bg-white dark:bg-white/90"
                     data-testid="input-booking-phone"
                   />
                 </div>
@@ -160,6 +162,7 @@ const BookingPage = () => {
                   onChange={(e) => setForm(f => ({ ...f, clientEmail: e.target.value }))}
                   placeholder={isHe ? 'כתובת הדוא"ל שלכם' : 'Your email address'}
                   required
+                  className="bg-white dark:bg-white/90"
                   data-testid="input-booking-email"
                 />
               </div>
@@ -167,7 +170,7 @@ const BookingPage = () => {
               <div className="space-y-2">
                 <Label htmlFor="type">{isHe ? 'סוג הפגישה' : 'Appointment Type'} *</Label>
                 <Select value={form.type} onValueChange={(v) => setForm(f => ({ ...f, type: v }))}>
-                  <SelectTrigger data-testid="select-booking-type">
+                  <SelectTrigger data-testid="select-booking-type" className="bg-white dark:bg-white/90">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -193,6 +196,7 @@ const BookingPage = () => {
                     min={today}
                     onChange={(e) => setForm(f => ({ ...f, date: e.target.value }))}
                     required
+                    className="bg-white dark:bg-white/90"
                     data-testid="input-booking-date"
                   />
                 </div>
@@ -202,7 +206,7 @@ const BookingPage = () => {
                     {isHe ? 'שעה' : 'Time'} *
                   </Label>
                   <Select value={form.time} onValueChange={(v) => setForm(f => ({ ...f, time: v }))}>
-                    <SelectTrigger data-testid="select-booking-time">
+                    <SelectTrigger data-testid="select-booking-time" className="bg-white dark:bg-white/90">
                       <SelectValue placeholder={isHe ? 'בחרו שעה' : 'Select time'} />
                     </SelectTrigger>
                     <SelectContent>
@@ -221,6 +225,7 @@ const BookingPage = () => {
                   value={form.notes}
                   onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
                   placeholder={isHe ? 'מידע נוסף שתרצו לשתף...' : 'Any additional information...'}
+                  className="bg-white dark:bg-white/90"
                   data-testid="textarea-booking-notes"
                 />
               </div>
@@ -236,7 +241,7 @@ const BookingPage = () => {
 
         <div className="text-center mt-6">
           <Link href="/">
-            <Button variant="outline" data-testid="button-back-home-form">
+            <Button variant="outline" className="bg-white/10 text-white border-white/30 hover:bg-white/20" data-testid="button-back-home-form">
               {isHe ? <ArrowRight className="w-4 h-4 ml-2" /> : <ArrowLeft className="w-4 h-4 mr-2" />}
               {isHe ? 'חזרה לדף הבית' : 'Back to Home'}
             </Button>
