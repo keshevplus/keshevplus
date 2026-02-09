@@ -1,7 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card } from '@/components/ui/card'
 import { MessageCircle, X, Send, Bot, User, ArrowRight } from 'lucide-react'
 import { useLanguage } from '@/hooks/useLanguage'
 import { useLocation } from 'wouter'
@@ -56,32 +55,17 @@ const ChatWidget = () => {
     return 'bar'
   })
   const [barVisible, setBarVisible] = useState(false)
-  const [viewportHeight, setViewportHeight] = useState<number | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const updateViewportHeight = useCallback(() => {
-    if (window.visualViewport) {
-      setViewportHeight(window.visualViewport.height)
-    }
-  }, [])
-
   useEffect(() => {
-    if (!open) {
-      setViewportHeight(null)
-      return
+    if (open) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
     }
-    const vv = window.visualViewport
-    if (vv) {
-      updateViewportHeight()
-      vv.addEventListener('resize', updateViewportHeight)
-      vv.addEventListener('scroll', updateViewportHeight)
-      return () => {
-        vv.removeEventListener('resize', updateViewportHeight)
-        vv.removeEventListener('scroll', updateViewportHeight)
-      }
-    }
-  }, [open, updateViewportHeight])
+    return () => { document.body.style.overflow = '' }
+  }, [open])
 
   useEffect(() => {
     try {
@@ -322,177 +306,165 @@ const ChatWidget = () => {
     )
   }
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640
-
-  const chatStyle: React.CSSProperties = isMobile && viewportHeight
-    ? {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 'auto',
-        width: '100%',
-        height: `${viewportHeight}px`,
-        maxHeight: `${viewportHeight}px`,
-      }
-    : { bottom: '5rem' }
-
   return (
-    <Card
-      className={cn(
-        "fixed z-[9998] flex flex-col shadow-xl",
-        "inset-0 w-full h-full rounded-none sm:rounded-md",
-        "sm:inset-auto sm:w-96 sm:h-[28rem] sm:bottom-20",
-        isRTL ? "sm:left-5" : "sm:right-5"
-      )}
-      style={chatStyle}
-      dir={isHe ? 'rtl' : 'ltr'}
+    <div
+      className="fixed inset-0 z-[9998] flex items-center justify-center p-4"
+      data-testid="chat-modal-overlay"
     >
-      <div className="flex items-center justify-between gap-2 p-3 border-b bg-primary text-primary-foreground rounded-t-md">
-        <div className="flex items-center gap-2">
-          <Bot className="h-5 w-5" />
-          <div className="flex flex-col">
-            <span className="font-medium text-sm">
-              {isHe ? 'עוזר וירטואלי - קשב פלוס' : 'KeshevPlus Assistant'}
-            </span>
-            {restoredVisitor && visitorInfo && (
-              <button
-                onClick={handleClearVisitor}
-                className="text-xs text-primary-foreground/70 hover:text-primary-foreground underline text-start"
-                data-testid="button-not-you"
-              >
-                {isHe ? `${visitorInfo.name} - לא אני` : `Not ${visitorInfo.name}?`}
-              </button>
-            )}
-          </div>
-        </div>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-7 w-7 text-primary-foreground hover:text-primary-foreground/80"
-          onClick={() => setOpen(false)}
-          data-testid="button-close-chat"
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {!visitorInfo ? (
-        <div className="flex-1 flex flex-col justify-center p-4 space-y-3">
-          <div className="text-center space-y-2 mb-2">
-            <Bot className="h-10 w-10 mx-auto text-primary/50" />
-            <p className="text-sm text-muted-foreground">
-              {isHe
-                ? 'לפני שנתחיל, אנא מלאו את הפרטים הבאים:'
-                : 'Before we start, please fill in your details:'}
-            </p>
-          </div>
-          <Input
-            value={infoForm.name}
-            onChange={(e) => setInfoForm(prev => ({ ...prev, name: e.target.value }))}
-            onKeyDown={handleInfoKeyDown}
-            placeholder={isHe ? 'שם מלא *' : 'Full name *'}
-            className="text-sm"
-            data-testid="input-chat-name"
-          />
-          <Input
-            value={infoForm.email}
-            onChange={(e) => setInfoForm(prev => ({ ...prev, email: e.target.value }))}
-            onKeyDown={handleInfoKeyDown}
-            placeholder={isHe ? 'אימייל *' : 'Email *'}
-            type="email"
-            className="text-sm"
-            data-testid="input-chat-email"
-          />
-          <Input
-            value={infoForm.phone}
-            onChange={(e) => setInfoForm(prev => ({ ...prev, phone: e.target.value }))}
-            onKeyDown={handleInfoKeyDown}
-            placeholder={isHe ? 'טלפון (אופציונלי)' : 'Phone (optional)'}
-            type="tel"
-            className="text-sm"
-            data-testid="input-chat-phone"
-          />
-          <Button
-            onClick={startConversation}
-            disabled={!infoForm.name.trim() || !infoForm.email.trim() || submittingInfo}
-            className="w-full"
-            data-testid="button-start-chat"
-          >
-            {submittingInfo
-              ? (isHe ? 'מתחיל...' : 'Starting...')
-              : (isHe ? 'התחל שיחה' : 'Start Chat')}
-            <ArrowRight className="h-4 w-4 ms-2" />
-          </Button>
-        </div>
-      ) : (
-        <>
-          <div className="flex-1 overflow-y-auto p-3 space-y-3">
-            {messages.length === 0 && (
-              <div className="text-center text-muted-foreground text-sm pt-8 space-y-2">
-                <Bot className="h-10 w-10 mx-auto text-primary/50" />
-                <p>
-                  {isHe
-                    ? `שלום ${visitorInfo.name}! אני העוזר הווירטואלי של קשב פלוס. איך אוכל לעזור לכם?`
-                    : `Hello ${visitorInfo.name}! I'm the KeshevPlus virtual assistant. How can I help you?`}
-                </p>
-              </div>
-            )}
-            {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                data-testid={`chat-message-${msg.role}-${i}`}
-              >
-                {msg.role === 'assistant' && (
-                  <div className="shrink-0 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Bot className="h-3 w-3 text-primary" />
-                  </div>
-                )}
-                <div
-                  className={`rounded-lg px-3 py-2 max-w-[75%] text-sm whitespace-pre-wrap ${
-                    msg.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
-                  }`}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={() => setOpen(false)}
+      />
+      <div
+        className={cn(
+          "relative z-10 bg-background rounded-xl shadow-2xl flex flex-col",
+          "w-full max-w-lg h-[85vh] max-h-[700px]"
+        )}
+        dir={isHe ? 'rtl' : 'ltr'}
+      >
+        <div className="flex items-center justify-between gap-2 p-4 border-b bg-primary text-primary-foreground rounded-t-xl">
+          <div className="flex items-center gap-2">
+            <Bot className="h-5 w-5" />
+            <div className="flex flex-col">
+              <span className="font-medium text-sm">
+                {isHe ? 'עוזר וירטואלי - קשב פלוס' : 'KeshevPlus Assistant'}
+              </span>
+              {restoredVisitor && visitorInfo && (
+                <button
+                  onClick={handleClearVisitor}
+                  className="text-xs text-primary-foreground/70 hover:text-primary-foreground underline text-start"
+                  data-testid="button-not-you"
                 >
-                  {msg.content || (loading && i === messages.length - 1 ? '...' : '')}
-                </div>
-                {msg.role === 'user' && (
-                  <div className="shrink-0 h-6 w-6 rounded-full bg-muted flex items-center justify-center">
-                    <User className="h-3 w-3 text-muted-foreground" />
-                  </div>
-                )}
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-
-          <div className="p-3 border-t">
-            <div className="flex gap-2">
-              <Input
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={isHe ? 'הקלידו הודעה...' : 'Type a message...'}
-                disabled={loading}
-                className="text-sm"
-                data-testid="input-chat-message"
-              />
-              <Button
-                size="icon"
-                onClick={sendMessage}
-                disabled={loading || !input.trim()}
-                data-testid="button-send-chat"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
+                  {isHe ? `${visitorInfo.name} - לא אני` : `Not ${visitorInfo.name}?`}
+                </button>
+              )}
             </div>
           </div>
-        </>
-      )}
-    </Card>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="text-primary-foreground hover:text-primary-foreground/80"
+            onClick={() => setOpen(false)}
+            data-testid="button-close-chat"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {!visitorInfo ? (
+          <div className="flex-1 flex flex-col justify-center p-6 space-y-3">
+            <div className="text-center space-y-2 mb-2">
+              <Bot className="h-12 w-12 mx-auto text-primary/50" />
+              <p className="text-sm text-muted-foreground">
+                {isHe
+                  ? 'לפני שנתחיל, אנא מלאו את הפרטים הבאים:'
+                  : 'Before we start, please fill in your details:'}
+              </p>
+            </div>
+            <Input
+              value={infoForm.name}
+              onChange={(e) => setInfoForm(prev => ({ ...prev, name: e.target.value }))}
+              onKeyDown={handleInfoKeyDown}
+              placeholder={isHe ? 'שם מלא *' : 'Full name *'}
+              data-testid="input-chat-name"
+            />
+            <Input
+              value={infoForm.email}
+              onChange={(e) => setInfoForm(prev => ({ ...prev, email: e.target.value }))}
+              onKeyDown={handleInfoKeyDown}
+              placeholder={isHe ? 'אימייל *' : 'Email *'}
+              type="email"
+              data-testid="input-chat-email"
+            />
+            <Input
+              value={infoForm.phone}
+              onChange={(e) => setInfoForm(prev => ({ ...prev, phone: e.target.value }))}
+              onKeyDown={handleInfoKeyDown}
+              placeholder={isHe ? 'טלפון (אופציונלי)' : 'Phone (optional)'}
+              type="tel"
+              data-testid="input-chat-phone"
+            />
+            <Button
+              onClick={startConversation}
+              disabled={!infoForm.name.trim() || !infoForm.email.trim() || submittingInfo}
+              className="w-full"
+              data-testid="button-start-chat"
+            >
+              {submittingInfo
+                ? (isHe ? 'מתחיל...' : 'Starting...')
+                : (isHe ? 'התחל שיחה' : 'Start Chat')}
+              <ArrowRight className="h-4 w-4 ms-2" />
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {messages.length === 0 && (
+                <div className="text-center text-muted-foreground text-sm pt-8 space-y-2">
+                  <Bot className="h-12 w-12 mx-auto text-primary/50" />
+                  <p>
+                    {isHe
+                      ? `שלום ${visitorInfo.name}! אני העוזר הווירטואלי של קשב פלוס. איך אוכל לעזור לכם?`
+                      : `Hello ${visitorInfo.name}! I'm the KeshevPlus virtual assistant. How can I help you?`}
+                  </p>
+                </div>
+              )}
+              {messages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  data-testid={`chat-message-${msg.role}-${i}`}
+                >
+                  {msg.role === 'assistant' && (
+                    <div className="shrink-0 h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Bot className="h-4 w-4 text-primary" />
+                    </div>
+                  )}
+                  <div
+                    className={cn(
+                      "rounded-lg px-3 py-2 max-w-[80%] text-sm whitespace-pre-wrap",
+                      msg.role === 'user'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted'
+                    )}
+                  >
+                    {msg.content || (loading && i === messages.length - 1 ? '...' : '')}
+                  </div>
+                  {msg.role === 'user' && (
+                    <div className="shrink-0 h-7 w-7 rounded-full bg-muted flex items-center justify-center">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <div className="p-4 border-t">
+              <div className="flex gap-2">
+                <Input
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={isHe ? 'הקלידו הודעה...' : 'Type a message...'}
+                  disabled={loading}
+                  data-testid="input-chat-message"
+                />
+                <Button
+                  size="icon"
+                  onClick={sendMessage}
+                  disabled={loading || !input.trim()}
+                  data-testid="button-send-chat"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   )
 }
 
