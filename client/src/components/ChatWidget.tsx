@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { MessageCircle, X, Send, Bot, User, ArrowRight } from 'lucide-react'
 import { useLanguage } from '@/hooks/useLanguage'
+import { cn } from '@/lib/utils'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -16,8 +17,10 @@ interface VisitorInfo {
   phone: string
 }
 
+type BubbleState = 'bar' | 'icon' | 'hidden'
+
 const ChatWidget = () => {
-  const { language } = useLanguage()
+  const { language, isRTL } = useLanguage()
   const isHe = language === 'he'
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -27,8 +30,21 @@ const ChatWidget = () => {
   const [visitorInfo, setVisitorInfo] = useState<VisitorInfo | null>(null)
   const [infoForm, setInfoForm] = useState<VisitorInfo>({ name: '', email: '', phone: '' })
   const [submittingInfo, setSubmittingInfo] = useState(false)
+  const [bubbleState, setBubbleState] = useState<BubbleState>(() => {
+    try {
+      const saved = localStorage.getItem('kp_chat_bubble')
+      if (saved === 'icon' || saved === 'hidden') return saved
+    } catch {}
+    return 'bar'
+  })
+  const [barVisible, setBarVisible] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setBarVisible(true), 800)
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -39,6 +55,16 @@ const ChatWidget = () => {
       inputRef.current.focus()
     }
   }, [open, visitorInfo])
+
+  const handleDismiss = () => {
+    if (bubbleState === 'bar') {
+      setBubbleState('icon')
+      try { localStorage.setItem('kp_chat_bubble', 'icon') } catch {}
+    } else if (bubbleState === 'icon') {
+      setBubbleState('hidden')
+      try { localStorage.setItem('kp_chat_bubble', 'hidden') } catch {}
+    }
+  }
 
   const startConversation = async () => {
     if (!infoForm.name.trim() || !infoForm.email.trim()) return
@@ -146,21 +172,91 @@ const ChatWidget = () => {
     }
   }
 
+  if (bubbleState === 'hidden' && !open) return null
+
   if (!open) {
     return (
-      <Button
-        size="icon"
-        className="fixed bottom-20 right-4 z-50 h-14 w-14 rounded-full shadow-lg"
-        onClick={() => setOpen(true)}
-        data-testid="button-open-chat"
+      <div
+        className={cn(
+          "fixed bottom-5 z-[9998] flex items-center gap-0",
+          isRTL ? "left-20 flex-row" : "right-5 flex-row"
+        )}
+        style={{
+          transition: 'opacity 0.3s ease, transform 0.3s ease',
+          opacity: barVisible ? 1 : 0,
+          transform: barVisible ? 'translateY(0)' : 'translateY(12px)',
+        }}
       >
-        <MessageCircle className="h-6 w-6" />
-      </Button>
+        {bubbleState === 'bar' && (
+          <div
+            className={cn(
+              "flex items-center gap-2 bg-background border border-border rounded-full py-2 px-4 shadow-md cursor-pointer",
+              "transition-all duration-300",
+              isRTL ? "ml-[-8px] pl-6" : "mr-[-8px] pr-6"
+            )}
+            onClick={() => setOpen(true)}
+            data-testid="chat-attention-bar"
+          >
+            <span className="text-sm font-medium text-foreground whitespace-nowrap">
+              {isHe ? 'איך אוכל לעזור?' : 'How can I help?'}
+            </span>
+            <button
+              onClick={(e) => { e.stopPropagation(); handleDismiss() }}
+              className="shrink-0 text-muted-foreground hover:text-foreground transition-colors p-0.5"
+              aria-label={isHe ? 'סגור' : 'Close'}
+              data-testid="button-close-chat-bar"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+
+        <div className="relative">
+          <button
+            onClick={() => setOpen(true)}
+            className={cn(
+              "relative z-10 h-14 w-14 rounded-full flex items-center justify-center",
+              "bg-[#F97316] border-2 border-[#16a34a]",
+              "shadow-[0_2px_12px_rgba(249,115,22,0.35)]",
+              "transition-colors duration-200",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F97316] focus-visible:ring-offset-2"
+            )}
+            aria-label={isHe ? 'פתח צ׳אט' : 'Open chat'}
+            data-testid="button-open-chat"
+          >
+            <MessageCircle className="h-6 w-6 text-white" />
+          </button>
+
+          {bubbleState === 'icon' && (
+            <button
+              onClick={(e) => { e.stopPropagation(); handleDismiss() }}
+              className={cn(
+                "absolute -top-1 z-20 h-5 w-5 rounded-full",
+                "bg-muted border border-border",
+                "flex items-center justify-center",
+                "text-muted-foreground hover:text-foreground transition-colors",
+                isRTL ? "-right-1" : "-right-1"
+              )}
+              aria-label={isHe ? 'הסתר צ׳אט' : 'Hide chat'}
+              data-testid="button-hide-chat-icon"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      </div>
     )
   }
 
   return (
-    <Card className="fixed bottom-20 right-4 z-50 w-80 sm:w-96 h-[28rem] flex flex-col shadow-xl" dir={isHe ? 'rtl' : 'ltr'}>
+    <Card
+      className={cn(
+        "fixed z-[9998] w-80 sm:w-96 h-[28rem] flex flex-col shadow-xl",
+        isRTL ? "left-5" : "right-5"
+      )}
+      style={{ bottom: '5rem' }}
+      dir={isHe ? 'rtl' : 'ltr'}
+    >
       <div className="flex items-center justify-between gap-2 p-3 border-b bg-primary text-primary-foreground rounded-t-md">
         <div className="flex items-center gap-2">
           <Bot className="h-5 w-5" />
