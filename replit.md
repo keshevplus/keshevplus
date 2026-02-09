@@ -18,7 +18,7 @@ The application is a full-stack project built with a React frontend (Vite, Tailw
 - **AI Chat Widget:** OpenAI-powered virtual assistant (gpt-4o-mini) with streaming SSE responses, conversation storage, and admin review.
 - **Questionnaire System:** Web-based Vanderbilt ADHD assessments (Parent, Teacher, Self-Report) with automatic scoring, JSONB storage of answers, and an admin interface for submissions.
 - **Appointment System:** Public booking page with status management (pending/confirmed/cancelled/completed) by administrators. Limits one active appointment per child.
-- **CRM System:** Unified visitor/client system that auto-registers clients from any form submission. Includes client activity logging (notes, calls, meetings, sales, emails) and a comprehensive admin ClientsManager.
+- **Lead/Client System:** Visitors leaving details via any form are auto-registered as LEADS (not clients). Admin manually converts leads to clients. Includes activity logging (notes, calls, meetings, sales, emails) and admin ClientsManager with lead/client status badges and conversion toggle.
 - **Email Notifications:** Configurable email notifications for contact forms, appointments, and questionnaires via Nodemailer.
 - **UI/UX:** TailwindCSS and shadcn/ui are used for a modern, responsive design with full RTL/LTR support. Dark mode is implemented with brand-consistent color palettes.
 - **Performance:** Optimized with code-splitting, lazy loading of components, and dependency cleanup.
@@ -30,7 +30,7 @@ The application is a full-stack project built with a React frontend (Vite, Tailw
 - `Translations`: Stores all localized text for the multilingual system.
 - `QuestionnaireSubmissions`: Stores questionnaire responses and scores.
 - `Appointments`: Manages appointment details and statuses.
-- `Clients`: Unified client records, automatically created from various interactions.
+- `Clients`: Lead/client records (status: lead/client), automatically created as leads from form submissions, manually converted to clients by admin.
 - `ClientActivities`: Logs interactions with clients within the CRM.
 - `Conversations`: Stores AI chat dialogues.
 - `Messages`: Stores individual messages within conversations.

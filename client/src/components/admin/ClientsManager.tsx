@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Plus, Save, ChevronDown, ChevronUp, Phone, Mail, StickyNote, PhoneCall, Calendar, DollarSign, MailOpen, MessageCircle, FileText, ClipboardList, UserCheck } from "lucide-react";
+import { Users, Plus, Save, ChevronDown, ChevronUp, Phone, Mail, StickyNote, PhoneCall, Calendar, DollarSign, MailOpen, MessageCircle, FileText, ClipboardList, UserCheck, ArrowRightLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
 import { apiRequest } from "@/lib/queryClient";
@@ -64,7 +64,7 @@ const ClientsManager = () => {
       const data = await res.json();
       setClients(data);
     } catch {
-      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "טעינת לקוחות נכשלה" : "Failed to load clients", variant: "destructive" });
+      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "טעינת נתונים נכשלה" : "Failed to load data", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -114,7 +114,7 @@ const ClientsManager = () => {
 
   const handleAddClient = async () => {
     if (!newName.trim()) {
-      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "שם הלקוח נדרש" : "Client name is required", variant: "destructive" });
+      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "שם נדרש" : "Name is required", variant: "destructive" });
       return;
     }
     try {
@@ -124,7 +124,7 @@ const ClientsManager = () => {
         phone: newPhone.trim() || null,
         notes: newNotes.trim() || null,
       });
-      toast({ title: isHe ? "הלקוח נוסף" : "Client added", description: isHe ? "הלקוח נוסף בהצלחה" : "Client has been added successfully" });
+      toast({ title: isHe ? "הליד נוסף" : "Lead added", description: isHe ? "הליד נוסף בהצלחה" : "Lead has been added successfully" });
       setNewName("");
       setNewEmail("");
       setNewPhone("");
@@ -132,7 +132,7 @@ const ClientsManager = () => {
       setShowAddForm(false);
       fetchClients();
     } catch {
-      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "הוספת לקוח נכשלה" : "Failed to add client", variant: "destructive" });
+      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "הוספת ליד נכשלה" : "Failed to add lead", variant: "destructive" });
     }
   };
 
@@ -143,6 +143,22 @@ const ClientsManager = () => {
       fetchClients();
     } catch {
       toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "שמירת ההערות נכשלה" : "Failed to save notes", variant: "destructive" });
+    }
+  };
+
+  const handleToggleStatus = async (client: Client) => {
+    const newStatus = client.status === 'client' ? 'lead' : 'client';
+    try {
+      await apiRequest("PATCH", `/api/clients/${client.id}`, { status: newStatus });
+      toast({
+        title: isHe ? "סטטוס עודכן" : "Status Updated",
+        description: newStatus === 'client'
+          ? (isHe ? "הליד הומר ללקוח בהצלחה" : "Lead converted to client successfully")
+          : (isHe ? "הלקוח הוחזר לסטטוס ליד" : "Client reverted to lead status"),
+      });
+      fetchClients();
+    } catch {
+      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "עדכון סטטוס נכשל" : "Failed to update status", variant: "destructive" });
     }
   };
 
@@ -240,7 +256,7 @@ const ClientsManager = () => {
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>{isHe ? "ניהול מבקרים ולקוחות" : "Visitors & Clients"}</CardTitle>
+            <CardTitle>{isHe ? "לידים ולקוחות" : "Leads & Clients"}</CardTitle>
           </div>
           <Button
             variant="outline"
@@ -248,15 +264,15 @@ const ClientsManager = () => {
             data-testid="button-toggle-add-client"
           >
             {showAddForm ? <ChevronUp className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            <span className="ml-1">{isHe ? (showAddForm ? "סגור" : "לקוח חדש") : (showAddForm ? "Close" : "New Client")}</span>
+            <span className="ml-1">{isHe ? (showAddForm ? "סגור" : "ליד חדש") : (showAddForm ? "Close" : "New Lead")}</span>
           </Button>
         </div>
-        <CardDescription>{isHe ? "כל המבקרים שנרשמו דרך טפסים, צ'אט, תורים ושאלונים" : "All visitors registered via forms, chat, appointments, and questionnaires"}</CardDescription>
+        <CardDescription>{isHe ? "מבקרים שהשאירו פרטים נרשמים כלידים. המרה ללקוח מתבצעת ידנית." : "Visitors who leave details are registered as leads. Conversion to client is done manually."}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {showAddForm && (
           <div className="border rounded-lg p-4 space-y-3" data-testid="add-client-form">
-            <h3 className="font-semibold text-sm">{isHe ? "הוספת לקוח חדש" : "Add New Client"}</h3>
+            <h3 className="font-semibold text-sm">{isHe ? "הוספת ליד חדש" : "Add New Lead"}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label htmlFor="client-name">{isHe ? "שם *" : "Name *"}</Label>
@@ -264,7 +280,7 @@ const ClientsManager = () => {
                   id="client-name"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder={isHe ? "שם הלקוח" : "Client name"}
+                  placeholder={isHe ? "שם" : "Name"}
                   data-testid="input-client-name"
                 />
               </div>
@@ -302,7 +318,7 @@ const ClientsManager = () => {
             </div>
             <Button onClick={handleAddClient} data-testid="button-add-client">
               <Plus className="w-4 h-4" />
-              <span className="ml-1">{isHe ? "הוסף לקוח" : "Add Client"}</span>
+              <span className="ml-1">{isHe ? "הוסף ליד" : "Add Lead"}</span>
             </Button>
           </div>
         )}
@@ -314,7 +330,7 @@ const ClientsManager = () => {
         ) : clients.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground" data-testid="empty-clients">
             <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>{isHe ? "אין לקוחות להצגה" : "No clients to display"}</p>
+            <p>{isHe ? "אין לידים או לקוחות להצגה" : "No leads or clients to display"}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -358,6 +374,13 @@ const ClientsManager = () => {
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
+                        <Badge
+                          variant="secondary"
+                          className={`no-default-hover-elevate no-default-active-elevate text-xs ${client.status === 'client' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'}`}
+                          data-testid={`badge-status-type-${client.id}`}
+                        >
+                          {client.status === 'client' ? (isHe ? "לקוח" : "Client") : (isHe ? "ליד" : "Lead")}
+                        </Badge>
                         <Badge
                           variant="secondary"
                           className="no-default-hover-elevate no-default-active-elevate text-xs"
@@ -478,8 +501,33 @@ const ClientsManager = () => {
                         </div>
                       )}
 
+                      <div className="flex items-center gap-3 flex-wrap border rounded-md p-3 bg-background">
+                        <span className="text-sm font-medium">
+                          {isHe ? "סטטוס:" : "Status:"}
+                        </span>
+                        <Badge
+                          variant="secondary"
+                          className={`no-default-hover-elevate no-default-active-elevate ${client.status === 'client' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'}`}
+                        >
+                          {client.status === 'client' ? (isHe ? "לקוח" : "Client") : (isHe ? "ליד" : "Lead")}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant={client.status === 'client' ? "outline" : "default"}
+                          onClick={(e) => { e.stopPropagation(); handleToggleStatus(client); }}
+                          data-testid={`button-convert-${client.id}`}
+                        >
+                          <ArrowRightLeft className="w-4 h-4" />
+                          <span className="ml-1">
+                            {client.status === 'client'
+                              ? (isHe ? "החזר לליד" : "Revert to Lead")
+                              : (isHe ? "המר ללקוח" : "Convert to Client")}
+                          </span>
+                        </Button>
+                      </div>
+
                       <div className="space-y-2">
-                        <Label>{isHe ? "הערות לקוח" : "Client Notes"}</Label>
+                        <Label>{isHe ? "הערות" : "Notes"}</Label>
                         <Textarea
                           value={editNotes}
                           onChange={(e) => setEditNotes(e.target.value)}

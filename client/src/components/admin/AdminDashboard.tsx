@@ -76,7 +76,7 @@ const AdminDashboard = () => {
     { value: 'overview', icon: BarChart3, he: 'סקירה כללית', en: 'Overview' },
     { value: 'contacts', icon: Inbox, he: 'פניות באתר', en: 'Contacts' },
     { value: 'appointments', icon: Calendar, he: 'פגישות', en: 'Appointments' },
-    { value: 'clients', icon: Users, he: 'לקוחות', en: 'Clients' },
+    { value: 'clients', icon: Users, he: 'לידים ולקוחות', en: 'Leads & Clients' },
     { value: 'conversations', icon: MessageCircle, he: 'שיחות צ׳אט', en: 'Conversations' },
     { value: 'questionnaires', icon: ClipboardList, he: 'שאלונים', en: 'Questionnaires' },
     { value: 'translations', icon: Languages, he: 'תרגומים', en: 'Translations' },
@@ -147,11 +147,11 @@ const AdminDashboard = () => {
 
               <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('clients')} data-testid="card-total-users">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{isHe ? 'לקוחות' : 'Clients'}</CardTitle>
+                  <CardTitle className="text-sm font-medium">{isHe ? 'לידים ולקוחות' : 'Leads & Clients'}</CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground shrink-0" />
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xs text-muted-foreground">{isHe ? 'ניהול לקוחות ופעילויות' : 'Manage clients & activities'}</p>
+                  <p className="text-xs text-muted-foreground">{isHe ? 'ניהול לידים ולקוחות' : 'Manage leads & clients'}</p>
                 </CardContent>
               </Card>
 
