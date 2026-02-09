@@ -23,14 +23,9 @@ const AppointmentsManager = () => {
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
+  const queryUrl = statusFilter === "all" ? "/api/appointments" : `/api/appointments?status=${statusFilter}`;
   const { data: appointments = [], isLoading } = useQuery<Appointment[]>({
-    queryKey: ["/api/appointments", statusFilter],
-    queryFn: async () => {
-      const url = statusFilter === "all" ? "/api/appointments" : `/api/appointments?status=${statusFilter}`;
-      const res = await fetch(url, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
-    },
+    queryKey: [queryUrl],
   });
 
   const updateStatus = useMutation({
@@ -38,7 +33,10 @@ const AppointmentsManager = () => {
       await apiRequest("PATCH", `/api/appointments/${id}/status`, { status });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      queryClient.invalidateQueries({ predicate: (query) => {
+        const key = query.queryKey[0];
+        return typeof key === "string" && key.startsWith("/api/appointments");
+      }});
       toast({
         title: isHe ? "הסטטוס עודכן" : "Status updated",
         description: isHe ? "סטטוס הפגישה עודכן בהצלחה." : "Appointment status has been updated successfully.",

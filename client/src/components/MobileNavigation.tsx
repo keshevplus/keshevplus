@@ -106,11 +106,16 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
         animate={{ y: 0 }}
         role="navigation"
         aria-label={isRTL ? "ניווט ראשי" : "Main navigation"}
+        style={{
+          paddingTop: isScrolled ? '4px' : '24px',
+          paddingBottom: isScrolled ? '4px' : '24px',
+          transition: 'padding 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s, box-shadow 0.3s',
+        }}
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+          "fixed top-0 left-0 right-0 z-50",
           isScrolled
-            ? "bg-background/95 backdrop-blur-md shadow-md py-1"
-            : "bg-background/80 backdrop-blur-sm py-6",
+            ? "bg-background/95 backdrop-blur-md shadow-md"
+            : "bg-background/80 backdrop-blur-sm",
         )}
         dir={dir}
       >
@@ -124,9 +129,12 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               <img
                 src={logo}
                 alt={isRTL ? "קשב פלוס" : "Keshev Plus"}
+                style={{
+                  height: isScrolled ? '40px' : '80px',
+                  transition: 'height 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
                 className={cn(
-                  "w-auto transition-all duration-300",
-                  isScrolled ? "h-12 sm:h-16" : "h-18 sm:h-16 md:h-20 lg:h-24",
+                  "w-auto",
                 )}
               />
             </button>

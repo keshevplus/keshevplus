@@ -241,7 +241,7 @@ const BookingPage = () => {
 
         <div className="text-center mt-6">
           <Link href="/">
-            <Button variant="outline" className="bg-white/10 text-white border-white/30 hover:bg-white/20" data-testid="button-back-home-form">
+            <Button variant="outline" className="bg-white/10 text-white border-white/30" data-testid="button-back-home-form">
               {isHe ? <ArrowRight className="w-4 h-4 ml-2" /> : <ArrowLeft className="w-4 h-4 mr-2" />}
               {isHe ? 'חזרה לדף הבית' : 'Back to Home'}
             </Button>
