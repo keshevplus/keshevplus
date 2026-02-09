@@ -20,6 +20,7 @@ KeshevPlus is a multilingual website for an ADHD clinic specializing in the diag
 - **Feb 2026:** Lead/client distinction: visitors auto-registered as leads, manual conversion toggle
 - **Feb 2026:** Chatbot graceful error handling for AI service unavailability
 - **Feb 2026:** Added Italian (it) language support - now 10 languages total
+- **Feb 2026:** Added Visual Editor - iframe-based WYSIWYG content editor in admin dashboard for editing site text visually
 
 ## System Architecture
 The application is a full-stack project built with a React frontend (Vite, TailwindCSS, shadcn/ui) and an Express.js backend. It uses Neon Postgres via Drizzle ORM for data persistence.
@@ -68,4 +69,5 @@ The application is a full-stack project built with a React frontend (Vite, Tailw
 - `client/src/components/CookiesBanner.tsx` - Israeli law-compliant cookies disclaimer
 - `client/src/components/ChatWidget.tsx` - AI chat with persistent visitor recognition
 - `client/src/components/admin/ClientsManager.tsx` - CRM with timestamped activity logging
+- `client/src/components/admin/VisualEditor.tsx` - WYSIWYG visual content editor with iframe preview
 - `client/src/components/admin/AdminDashboard.tsx` - Admin overview dashboard

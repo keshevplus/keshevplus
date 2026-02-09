@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle } from 'lucide-react'
+import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { apiRequest } from '@/lib/queryClient'
 import { ALL_LANGUAGES, type LanguageSettings, type SupportedLanguage, DEFAULT_LANGUAGE_SETTINGS, BILINGUAL_CODES, MULTILINGUAL_CODES } from '@/i18n/config'
@@ -19,6 +19,7 @@ import ClientsManager from './ClientsManager'
 import ContactsManager from './ContactsManager'
 import ConversationsManager from './ConversationsManager'
 import EmailNotificationSettings from './EmailNotificationSettings'
+import VisualEditor from './VisualEditor'
 
 const AdminDashboard = () => {
   const { user, signOut } = useAuth()
@@ -79,6 +80,7 @@ const AdminDashboard = () => {
     { value: 'clients', icon: Users, he: 'לידים ולקוחות', en: 'Leads & Clients' },
     { value: 'conversations', icon: MessageCircle, he: 'שיחות צ׳אט', en: 'Conversations' },
     { value: 'questionnaires', icon: ClipboardList, he: 'שאלונים', en: 'Questionnaires' },
+    { value: 'visual-editor', icon: Eye, he: 'עורך ויזואלי', en: 'Visual Editor' },
     { value: 'translations', icon: Languages, he: 'תרגומים', en: 'Translations' },
     { value: 'settings', icon: Settings, he: 'הגדרות', en: 'Settings' },
   ]
@@ -212,6 +214,10 @@ const AdminDashboard = () => {
             <QuestionnaireSubmissions />
           </TabsContent>
 
+          <TabsContent value="visual-editor" className="mt-0">
+            <VisualEditor />
+          </TabsContent>
+
           <TabsContent value="translations" className="mt-0">
             <TranslationManager />
           </TabsContent>
@@ -266,7 +272,7 @@ const AdminDashboard = () => {
                               {isHe ? 'דו-לשוני (עברית / אנגלית)' : 'Bilingual (Hebrew / English)'}
                             </SelectItem>
                             <SelectItem value="multilingual" data-testid="option-multilingual">
-                              {isHe ? 'רב-לשוני (כל 9 השפות)' : 'Multilingual (All 9 languages)'}
+                              {isHe ? 'רב-לשוני (כל 10 השפות)' : 'Multilingual (All 10 languages)'}
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -302,7 +308,7 @@ const AdminDashboard = () => {
                         <p className="text-xs text-muted-foreground">
                           {langSettings.mode === 'bilingual'
                             ? (isHe ? 'המשתמשים יוכלו לעבור בין עברית לאנגלית.' : 'Users will be able to switch between Hebrew and English.')
-                            : (isHe ? 'המשתמשים יוכלו לבחור מתוך 9 שפות: עברית, אנגלית, צרפתית, ספרדית, גרמנית, רוסית, אמהרית, ערבית ויידיש.' : 'Users will be able to choose from 9 languages: Hebrew, English, French, Spanish, German, Russian, Amharic, Arabic, and Yiddish.')}
+                            : (isHe ? 'המשתמשים יוכלו לבחור מתוך 10 שפות: עברית, אנגלית, צרפתית, ספרדית, גרמנית, רוסית, אמהרית, ערבית, יידיש ואיטלקית.' : 'Users will be able to choose from 10 languages: Hebrew, English, French, Spanish, German, Russian, Amharic, Arabic, Yiddish, and Italian.')}
                         </p>
                       </div>
                     </>
