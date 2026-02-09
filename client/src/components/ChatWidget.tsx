@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -56,8 +56,32 @@ const ChatWidget = () => {
     return 'bar'
   })
   const [barVisible, setBarVisible] = useState(false)
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const updateViewportHeight = useCallback(() => {
+    if (window.visualViewport) {
+      setViewportHeight(window.visualViewport.height)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!open) {
+      setViewportHeight(null)
+      return
+    }
+    const vv = window.visualViewport
+    if (vv) {
+      updateViewportHeight()
+      vv.addEventListener('resize', updateViewportHeight)
+      vv.addEventListener('scroll', updateViewportHeight)
+      return () => {
+        vv.removeEventListener('resize', updateViewportHeight)
+        vv.removeEventListener('scroll', updateViewportHeight)
+      }
+    }
+  }, [open, updateViewportHeight])
 
   useEffect(() => {
     try {
@@ -298,13 +322,30 @@ const ChatWidget = () => {
     )
   }
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640
+
+  const chatStyle: React.CSSProperties = isMobile && viewportHeight
+    ? {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 'auto',
+        width: '100%',
+        height: `${viewportHeight}px`,
+        maxHeight: `${viewportHeight}px`,
+      }
+    : { bottom: '5rem' }
+
   return (
     <Card
       className={cn(
-        "fixed z-[9998] w-80 sm:w-96 h-[28rem] flex flex-col shadow-xl",
-        isRTL ? "left-5" : "right-5"
+        "fixed z-[9998] flex flex-col shadow-xl",
+        "inset-0 w-full h-full rounded-none sm:rounded-md",
+        "sm:inset-auto sm:w-96 sm:h-[28rem] sm:bottom-20",
+        isRTL ? "sm:left-5" : "sm:right-5"
       )}
-      style={{ bottom: '5rem' }}
+      style={chatStyle}
       dir={isHe ? 'rtl' : 'ltr'}
     >
       <div className="flex items-center justify-between gap-2 p-3 border-b bg-primary text-primary-foreground rounded-t-md">
