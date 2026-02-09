@@ -956,7 +956,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         model: 'gpt-4o-mini',
         messages: chatMessages,
         stream: true,
-        max_tokens: 500,
+        max_completion_tokens: 500,
       });
 
       let fullAssistantResponse = '';
