@@ -129,7 +129,7 @@ const MedicalHero: React.FC = () => {
                   <p
                     className="font-semibold text-foreground"
                     style={{
-                      fontSize: "clamp(0.9rem, 2vw, 1.5rem)",
+                      fontSize: "clamp(1.05rem, 2.6vw, 1.8rem)",
                       marginBottom: "clamp(0.1rem, 0.3vw, 0.25rem)",
                     }}
                   >
@@ -138,7 +138,7 @@ const MedicalHero: React.FC = () => {
                   <p
                     className="text-muted-foreground"
                     style={{
-                      fontSize: "clamp(0.8rem, 1.6vw, 1.25rem)",
+                      fontSize: "clamp(0.9rem, 2.1vw, 1.5rem)",
                     }}
                   >
                     {t("hero.schedule_consultation")}
