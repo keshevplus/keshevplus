@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { MessageCircle, X, Send, Bot, User, ArrowRight } from 'lucide-react'
 import { useLanguage } from '@/hooks/useLanguage'
+import { useLocation } from 'wouter'
 import { cn } from '@/lib/utils'
 
 interface ChatMessage {
@@ -17,11 +18,12 @@ interface VisitorInfo {
   phone: string
 }
 
-type BubbleState = 'bar' | 'icon' | 'hidden'
+type BubbleState = 'bar' | 'icon'
 
 const ChatWidget = () => {
   const { language, isRTL } = useLanguage()
   const isHe = language === 'he'
+  const [location] = useLocation()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -33,7 +35,7 @@ const ChatWidget = () => {
   const [bubbleState, setBubbleState] = useState<BubbleState>(() => {
     try {
       const saved = localStorage.getItem('kp_chat_bubble')
-      if (saved === 'icon' || saved === 'hidden') return saved
+      if (saved === 'icon') return saved
     } catch {}
     return 'bar'
   })
@@ -60,9 +62,6 @@ const ChatWidget = () => {
     if (bubbleState === 'bar') {
       setBubbleState('icon')
       try { localStorage.setItem('kp_chat_bubble', 'icon') } catch {}
-    } else if (bubbleState === 'icon') {
-      setBubbleState('hidden')
-      try { localStorage.setItem('kp_chat_bubble', 'hidden') } catch {}
     }
   }
 
@@ -172,7 +171,7 @@ const ChatWidget = () => {
     }
   }
 
-  if (bubbleState === 'hidden' && !open) return null
+  if (location.startsWith('/admin')) return null
 
   if (!open) {
     return (
@@ -227,22 +226,6 @@ const ChatWidget = () => {
             <MessageCircle className="h-6 w-6 text-white" />
           </button>
 
-          {bubbleState === 'icon' && (
-            <button
-              onClick={(e) => { e.stopPropagation(); handleDismiss() }}
-              className={cn(
-                "absolute -top-1 z-20 h-5 w-5 rounded-full",
-                "bg-muted border border-border",
-                "flex items-center justify-center",
-                "text-muted-foreground hover:text-foreground transition-colors",
-                isRTL ? "-right-1" : "-right-1"
-              )}
-              aria-label={isHe ? 'הסתר צ׳אט' : 'Hide chat'}
-              data-testid="button-hide-chat-icon"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          )}
         </div>
       </div>
     )
