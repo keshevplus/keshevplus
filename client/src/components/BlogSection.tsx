@@ -5,83 +5,83 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+const featuredPost = {
+  id: 1,
+  title: "The Future of Web Development: Trends to Watch in 2024",
+  excerpt: "Exploring the emerging technologies and methodologies that are shaping the future of web development, from AI-powered tools to advanced frameworks.",
+  content: "The web development landscape is constantly evolving, and 2024 promises to bring exciting new developments that will reshape how we build digital experiences...",
+  image: "https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=400&fit=crop",
+  category: "Technology",
+  publishDate: "2024-01-15",
+  readTime: "8 min read",
+  author: "John Doe",
+  likes: 142,
+  comments: 23,
+  featured: true,
+};
+
+const blogPosts = [
+  {
+    id: 2,
+    title: "Mastering React Performance Optimization",
+    excerpt: "Essential techniques and best practices for optimizing React applications and improving user experience.",
+    image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=250&fit=crop",
+    category: "React",
+    publishDate: "2024-01-10",
+    readTime: "6 min read",
+    likes: 89,
+    comments: 15,
+  },
+  {
+    id: 3,
+    title: "Building Accessible Web Applications",
+    excerpt: "A comprehensive guide to creating inclusive digital experiences that work for everyone.",
+    image: "https://images.unsplash.com/photo-1559028006-448665bd7c7f?w=400&h=250&fit=crop",
+    category: "Accessibility",
+    publishDate: "2024-01-05",
+    readTime: "5 min read",
+    likes: 67,
+    comments: 12,
+  },
+  {
+    id: 4,
+    title: "CSS Grid vs Flexbox: When to Use What",
+    excerpt: "Understanding the differences and use cases for CSS Grid and Flexbox layout systems.",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=250&fit=crop",
+    category: "CSS",
+    publishDate: "2023-12-28",
+    readTime: "4 min read",
+    likes: 94,
+    comments: 18,
+  },
+  {
+    id: 5,
+    title: "The Art of Code Review",
+    excerpt: "Best practices for conducting effective code reviews that improve code quality and team collaboration.",
+    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=250&fit=crop",
+    category: "Best Practices",
+    publishDate: "2023-12-20",
+    readTime: "7 min read",
+    likes: 76,
+    comments: 9,
+  },
+];
+
+const categories = ["All", "Technology", "React", "CSS", "Accessibility", "Best Practices"];
+
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 const BlogSection = () => {
   const [ref, inView] = useInView({
     triggerOnce: true,
     threshold: 0.1,
   });
-
-  const featuredPost = {
-    id: 1,
-    title: "The Future of Web Development: Trends to Watch in 2024",
-    excerpt: "Exploring the emerging technologies and methodologies that are shaping the future of web development, from AI-powered tools to advanced frameworks.",
-    content: "The web development landscape is constantly evolving, and 2024 promises to bring exciting new developments that will reshape how we build digital experiences...",
-    image: "https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&h=400&fit=crop",
-    category: "Technology",
-    publishDate: "2024-01-15",
-    readTime: "8 min read",
-    author: "John Doe",
-    likes: 142,
-    comments: 23,
-    featured: true
-  };
-
-  const blogPosts = [
-    {
-      id: 2,
-      title: "Mastering React Performance Optimization",
-      excerpt: "Essential techniques and best practices for optimizing React applications and improving user experience.",
-      image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=250&fit=crop",
-      category: "React",
-      publishDate: "2024-01-10",
-      readTime: "6 min read",
-      likes: 89,
-      comments: 15
-    },
-    {
-      id: 3,
-      title: "Building Accessible Web Applications",
-      excerpt: "A comprehensive guide to creating inclusive digital experiences that work for everyone.",
-      image: "https://images.unsplash.com/photo-1559028006-448665bd7c7f?w=400&h=250&fit=crop",
-      category: "Accessibility",
-      publishDate: "2024-01-05",
-      readTime: "5 min read",
-      likes: 67,
-      comments: 12
-    },
-    {
-      id: 4,
-      title: "CSS Grid vs Flexbox: When to Use What",
-      excerpt: "Understanding the differences and use cases for CSS Grid and Flexbox layout systems.",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=250&fit=crop",
-      category: "CSS",
-      publishDate: "2023-12-28",
-      readTime: "4 min read",
-      likes: 94,
-      comments: 18
-    },
-    {
-      id: 5,
-      title: "The Art of Code Review",
-      excerpt: "Best practices for conducting effective code reviews that improve code quality and team collaboration.",
-      image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=250&fit=crop",
-      category: "Best Practices",
-      publishDate: "2023-12-20",
-      readTime: "7 min read",
-      likes: 76,
-      comments: 9
-    }
-  ];
-
-  const categories = ["All", "Technology", "React", "CSS", "Accessibility", "Best Practices"];
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
 
   return (
     <section id="blog" className="py-20 bg-background">
