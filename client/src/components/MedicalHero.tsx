@@ -42,7 +42,7 @@ const MedicalHero: React.FC = () => {
           aria-label={t("hero.welcome_line1") + " " + t("hero.welcome_line2")}
         >
           <div className="relative z-10">
-            <div className="flex flex-col sm:flex-row sm:items-end pt-24 sm:pt-32 md:pt-36 lg:pt-40">
+            <div className="flex flex-col sm:flex-row sm:items-end pt-32 sm:pt-40 md:pt-44 lg:pt-48">
               <motion.div
                 className="w-full sm:w-1/2 px-5 sm:px-6 lg:px-4 xl:px-6 pt-4 pb-6 sm:pb-8 md:pb-12 lg:pb-16 flex flex-col items-center text-center justify-center"
                 initial={{ opacity: 0, y: 20 }}
