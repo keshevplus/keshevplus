@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { LogOut, Users, FileText, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, MessageSquare } from 'lucide-react'
+import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { apiRequest } from '@/lib/queryClient'
 import { ALL_LANGUAGES, type LanguageSettings, type SupportedLanguage, DEFAULT_LANGUAGE_SETTINGS, BILINGUAL_CODES, MULTILINGUAL_CODES } from '@/i18n/config'
@@ -16,6 +16,8 @@ import TranslationManager from './TranslationManager'
 import QuestionnaireSubmissions from './QuestionnaireSubmissions'
 import AppointmentsManager from './AppointmentsManager'
 import ClientsManager from './ClientsManager'
+import ContactsManager from './ContactsManager'
+import EmailNotificationSettings from './EmailNotificationSettings'
 
 const AdminDashboard = () => {
   const { user, signOut } = useAuth()
@@ -71,6 +73,7 @@ const AdminDashboard = () => {
 
   const tabs = [
     { value: 'overview', icon: BarChart3, he: 'סקירה כללית', en: 'Overview' },
+    { value: 'contacts', icon: Inbox, he: 'פניות באתר', en: 'Contacts' },
     { value: 'appointments', icon: Calendar, he: 'פגישות', en: 'Appointments' },
     { value: 'clients', icon: Users, he: 'לקוחות', en: 'Clients' },
     { value: 'questionnaires', icon: ClipboardList, he: 'שאלונים', en: 'Questionnaires' },
@@ -119,14 +122,14 @@ const AdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6 mt-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('clients')} data-testid="card-total-users">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('contacts')} data-testid="card-contacts">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{isHe ? 'לקוחות' : 'Clients'}</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <CardTitle className="text-sm font-medium">{isHe ? 'פניות באתר' : 'Contacts'}</CardTitle>
+                  <Inbox className="h-4 w-4 text-muted-foreground shrink-0" />
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xs text-muted-foreground">{isHe ? 'ניהול לקוחות ופעילויות' : 'Manage clients & activities'}</p>
+                  <p className="text-xs text-muted-foreground">{isHe ? 'צפייה בפניות מהאתר' : 'View contact submissions'}</p>
                 </CardContent>
               </Card>
 
@@ -137,6 +140,16 @@ const AdminDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-xs text-muted-foreground">{isHe ? 'צפייה וניהול פגישות' : 'View & manage appointments'}</p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('clients')} data-testid="card-total-users">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{isHe ? 'לקוחות' : 'Clients'}</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">{isHe ? 'ניהול לקוחות ופעילויות' : 'Manage clients & activities'}</p>
                 </CardContent>
               </Card>
 
@@ -156,15 +169,19 @@ const AdminDashboard = () => {
                   <Settings className="h-4 w-4 text-muted-foreground shrink-0" />
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xs text-muted-foreground">{isHe ? 'שפה ותרגומים' : 'Language & translations'}</p>
+                  <p className="text-xs text-muted-foreground">{isHe ? 'שפה והתראות' : 'Language & notifications'}</p>
                 </CardContent>
               </Card>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ContactsManager />
               <AppointmentsManager />
-              <ClientsManager />
             </div>
+          </TabsContent>
+
+          <TabsContent value="contacts" className="mt-0">
+            <ContactsManager />
           </TabsContent>
 
           <TabsContent value="appointments" className="mt-0">
@@ -184,109 +201,113 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6 mt-0">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Globe className="h-5 w-5 text-muted-foreground" />
-                  <CardTitle>{isHe ? 'הגדרות שפה' : 'Language Settings'}</CardTitle>
-                </div>
-                <CardDescription>{isHe ? 'שליטה בחוויה הרב-לשונית באתר' : 'Control the multilingual experience on your website'}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="multilingual-toggle" className="text-sm font-medium">
-                      {isHe ? 'תמיכה רב-לשונית' : 'Multilingual Support'}
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      {isHe ? 'הצגת בורר שפות באתר' : 'Show the language selector on the website'}
-                    </p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-5 w-5 text-muted-foreground" />
+                    <CardTitle>{isHe ? 'הגדרות שפה' : 'Language Settings'}</CardTitle>
                   </div>
-                  <Switch
-                    id="multilingual-toggle"
-                    checked={langSettings.enabled}
-                    onCheckedChange={(checked) =>
-                      setLangSettings(prev => ({ ...prev, enabled: checked }))
-                    }
-                    data-testid="switch-multilingual"
-                  />
-                </div>
-
-                {langSettings.enabled && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="language-mode" className="text-sm font-medium">
-                        {isHe ? 'מצב שפה' : 'Language Mode'}
+                  <CardDescription>{isHe ? 'שליטה בחוויה הרב-לשונית באתר' : 'Control the multilingual experience on your website'}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="multilingual-toggle" className="text-sm font-medium">
+                        {isHe ? 'תמיכה רב-לשונית' : 'Multilingual Support'}
                       </Label>
-                      <Select
-                        value={langSettings.mode}
-                        onValueChange={(value: 'bilingual' | 'multilingual') =>
-                          setLangSettings(prev => ({ ...prev, mode: value }))
-                        }
-                      >
-                        <SelectTrigger id="language-mode" data-testid="select-language-mode">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="bilingual" data-testid="option-bilingual">
-                            {isHe ? 'דו-לשוני (עברית / אנגלית)' : 'Bilingual (Hebrew / English)'}
-                          </SelectItem>
-                          <SelectItem value="multilingual" data-testid="option-multilingual">
-                            {isHe ? 'רב-לשוני (כל 9 השפות)' : 'Multilingual (All 9 languages)'}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="default-language" className="text-sm font-medium">
-                        {isHe ? 'שפת ברירת מחדל' : 'Default Language'}
-                      </Label>
-                      <Select
-                        value={langSettings.defaultLanguage}
-                        onValueChange={(value: string) =>
-                          setLangSettings(prev => ({ ...prev, defaultLanguage: value as SupportedLanguage }))
-                        }
-                      >
-                        <SelectTrigger id="default-language" data-testid="select-default-language">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableForDefault.map(lang => (
-                            <SelectItem key={lang.code} value={lang.code} data-testid={`option-default-${lang.code}`}>
-                              <span className="flex items-center gap-2">
-                                <span role="img" aria-hidden="true">{lang.flag}</span>
-                                <span>{lang.nativeName}</span>
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="rounded-md bg-muted/50 p-3">
                       <p className="text-xs text-muted-foreground">
-                        {langSettings.mode === 'bilingual'
-                          ? (isHe ? 'המשתמשים יוכלו לעבור בין עברית לאנגלית.' : 'Users will be able to switch between Hebrew and English.')
-                          : (isHe ? 'המשתמשים יוכלו לבחור מתוך 9 שפות: עברית, אנגלית, צרפתית, ספרדית, גרמנית, רוסית, אמהרית, ערבית ויידיש.' : 'Users will be able to choose from 9 languages: Hebrew, English, French, Spanish, German, Russian, Amharic, Arabic, and Yiddish.')}
+                        {isHe ? 'הצגת בורר שפות באתר' : 'Show the language selector on the website'}
                       </p>
                     </div>
-                  </>
-                )}
+                    <Switch
+                      id="multilingual-toggle"
+                      checked={langSettings.enabled}
+                      onCheckedChange={(checked) =>
+                        setLangSettings(prev => ({ ...prev, enabled: checked }))
+                      }
+                      data-testid="switch-multilingual"
+                    />
+                  </div>
 
-                <Button
-                  onClick={handleSaveLanguageSettings}
-                  disabled={saving || !loaded}
-                  className="w-full"
-                  data-testid="button-save-language"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {saving
-                    ? (isHe ? 'שומר...' : 'Saving...')
-                    : (isHe ? 'שמירת הגדרות שפה' : 'Save Language Settings')}
-                </Button>
-              </CardContent>
-            </Card>
+                  {langSettings.enabled && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="language-mode" className="text-sm font-medium">
+                          {isHe ? 'מצב שפה' : 'Language Mode'}
+                        </Label>
+                        <Select
+                          value={langSettings.mode}
+                          onValueChange={(value: 'bilingual' | 'multilingual') =>
+                            setLangSettings(prev => ({ ...prev, mode: value }))
+                          }
+                        >
+                          <SelectTrigger id="language-mode" data-testid="select-language-mode">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="bilingual" data-testid="option-bilingual">
+                              {isHe ? 'דו-לשוני (עברית / אנגלית)' : 'Bilingual (Hebrew / English)'}
+                            </SelectItem>
+                            <SelectItem value="multilingual" data-testid="option-multilingual">
+                              {isHe ? 'רב-לשוני (כל 9 השפות)' : 'Multilingual (All 9 languages)'}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="default-language" className="text-sm font-medium">
+                          {isHe ? 'שפת ברירת מחדל' : 'Default Language'}
+                        </Label>
+                        <Select
+                          value={langSettings.defaultLanguage}
+                          onValueChange={(value: string) =>
+                            setLangSettings(prev => ({ ...prev, defaultLanguage: value as SupportedLanguage }))
+                          }
+                        >
+                          <SelectTrigger id="default-language" data-testid="select-default-language">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableForDefault.map(lang => (
+                              <SelectItem key={lang.code} value={lang.code} data-testid={`option-default-${lang.code}`}>
+                                <span className="flex items-center gap-2">
+                                  <span role="img" aria-hidden="true">{lang.flag}</span>
+                                  <span>{lang.nativeName}</span>
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="rounded-md bg-muted/50 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          {langSettings.mode === 'bilingual'
+                            ? (isHe ? 'המשתמשים יוכלו לעבור בין עברית לאנגלית.' : 'Users will be able to switch between Hebrew and English.')
+                            : (isHe ? 'המשתמשים יוכלו לבחור מתוך 9 שפות: עברית, אנגלית, צרפתית, ספרדית, גרמנית, רוסית, אמהרית, ערבית ויידיש.' : 'Users will be able to choose from 9 languages: Hebrew, English, French, Spanish, German, Russian, Amharic, Arabic, and Yiddish.')}
+                        </p>
+                      </div>
+                    </>
+                  )}
+
+                  <Button
+                    onClick={handleSaveLanguageSettings}
+                    disabled={saving || !loaded}
+                    className="w-full"
+                    data-testid="button-save-language"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {saving
+                      ? (isHe ? 'שומר...' : 'Saving...')
+                      : (isHe ? 'שמירת הגדרות שפה' : 'Save Language Settings')}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <EmailNotificationSettings />
+            </div>
           </TabsContent>
         </Tabs>
       </main>

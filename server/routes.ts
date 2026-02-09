@@ -149,6 +149,46 @@ const DEFAULT_LANGUAGE_SETTINGS = {
   defaultLanguage: "he",
 };
 
+const DEFAULT_EMAIL_NOTIFICATION_SETTINGS = {
+  contactForm: true,
+  appointments: true,
+  questionnaires: true,
+};
+
+type EmailNotificationSettings = typeof DEFAULT_EMAIL_NOTIFICATION_SETTINGS;
+
+async function getEmailNotificationSettings(): Promise<EmailNotificationSettings> {
+  try {
+    const setting = await storage.getSetting("emailNotifications");
+    if (setting) return setting.value as EmailNotificationSettings;
+  } catch {}
+  return DEFAULT_EMAIL_NOTIFICATION_SETTINGS;
+}
+
+async function sendNotificationEmail(subject: string, body: string): Promise<void> {
+  if (!process.env.EMAIL_PASS) {
+    console.warn("EMAIL_PASS not set, skipping email delivery");
+    return;
+  }
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER || 'pluskeshev@gmail.com',
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER || 'pluskeshev@gmail.com',
+      to: 'pluskeshev@gmail.com',
+      subject,
+      text: body,
+    });
+  } catch (emailError) {
+    console.error("Email delivery failed:", emailError);
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/contact", async (req, res) => {
     try {
@@ -157,38 +197,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, message: result.error.message });
       }
       
-      // Save to database (admin dashboard fallback)
       await storage.createContact(result.data);
 
-      // Attempt to send email
-      try {
-        const transporter = nodemailer.createTransport({
-          service: 'gmail',
-          auth: {
-            user: process.env.EMAIL_USER || 'pluskeshev@gmail.com',
-            pass: process.env.EMAIL_PASS
-          }
-        });
-
-        const mailOptions = {
-          from: result.data.email || 'pluskeshev@gmail.com',
-          to: 'pluskeshev@gmail.com',
-          subject: `פנייה חדשה מהאתר - ${result.data.name}`,
-          text: `
-            שם: ${result.data.name}
-            טלפון: ${result.data.phone}
-            אימייל: ${result.data.email || 'לא צויין'}
-            הודעה: ${result.data.message}
-          `
-        };
-
-        if (process.env.EMAIL_PASS) {
-          await transporter.sendMail(mailOptions);
-        } else {
-          console.warn("EMAIL_PASS not set, skipping email delivery");
-        }
-      } catch (emailError) {
-        console.error("Email delivery failed, message saved to DB:", emailError);
+      const notifSettings = await getEmailNotificationSettings();
+      if (notifSettings.contactForm) {
+        await sendNotificationEmail(
+          `פנייה חדשה מהאתר - ${result.data.name}`,
+          `שם: ${result.data.name}\nטלפון: ${result.data.phone}\nאימייל: ${result.data.email || 'לא צויין'}\nהודעה: ${result.data.message}`
+        );
       }
 
       return res.json({ success: true, message: "Form submitted successfully" });
@@ -200,6 +216,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/contacts", async (req, res) => {
     try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
       const contacts = await storage.getContacts();
       return res.json(contacts);
     } catch (error) {
@@ -210,6 +232,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/contacts/:id/read", async (req, res) => {
     try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
       const id = parseInt(req.params.id);
       const contact = await storage.markContactRead(id);
       if (!contact) {
@@ -255,6 +283,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error saving language settings:", error);
       return res.status(500).json({ error: "Failed to save settings" });
+    }
+  });
+
+  app.get("/api/settings/email-notifications", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const settings = await getEmailNotificationSettings();
+      return res.json(settings);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch notification settings" });
+    }
+  });
+
+  app.put("/api/settings/email-notifications", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { contactForm, appointments, questionnaires } = req.body;
+      const value = {
+        contactForm: contactForm !== false,
+        appointments: appointments !== false,
+        questionnaires: questionnaires !== false,
+      };
+      const setting = await storage.upsertSetting("emailNotifications", value);
+      return res.json(setting.value);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to save notification settings" });
     }
   });
 
@@ -517,6 +582,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const submission = await storage.createQuestionnaireSubmission(result.data as any);
+
+      const notifSettings = await getEmailNotificationSettings();
+      if (notifSettings.questionnaires) {
+        const typeNames: Record<string, string> = { parent: 'הורה', teacher: 'מורה', self_report: 'דיווח עצמי' };
+        await sendNotificationEmail(
+          `שאלון חדש הוגש - ${typeNames[result.data.type] || result.data.type}`,
+          `סוג שאלון: ${typeNames[result.data.type] || result.data.type}\nשם: ${result.data.respondentName}\nטלפון: ${result.data.respondentPhone}\nאימייל: ${result.data.respondentEmail}\nשם הילד: ${result.data.childName || 'לא צויין'}`
+        );
+      }
+
       return res.json({ success: true, id: submission.id });
     } catch (error) {
       console.error("Questionnaire submission error:", error);
@@ -623,6 +698,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, error: result.error.message });
       }
       const appointment = await storage.createAppointment(result.data);
+
+      const notifSettings = await getEmailNotificationSettings();
+      if (notifSettings.appointments) {
+        await sendNotificationEmail(
+          `פגישה חדשה נקבעה - ${result.data.clientName}`,
+          `שם: ${result.data.clientName}\nטלפון: ${result.data.clientPhone}\nאימייל: ${result.data.clientEmail}\nתאריך: ${result.data.date}\nשעה: ${result.data.time}\nסוג: ${result.data.type || 'consultation'}\nהערות: ${result.data.notes || 'אין'}`
+        );
+      }
+
       return res.json({ success: true, appointment });
     } catch (error) {
       console.error("Appointment creation error:", error);

@@ -18,7 +18,7 @@ KeshevPlus is a multilingual website for an ADHD clinic specializing in diagnosi
 - **Database**: Neon Postgres via Drizzle ORM
 - **Schema**: Users, Contacts, SiteSettings, Translations, QuestionnaireSubmissions, Appointments, Clients, ClientActivities, Conversations, Messages tables
 - **i18n**: Database-backed translation system with 9 languages, static locale file fallback, admin-editable via Translation Manager
-- **Email Delivery**: Nodemailer integration for contact form submissions to pluskeshev@gmail.com
+- **Email Delivery**: Nodemailer with configurable notifications (contact forms, appointments, questionnaires) via admin toggles
 - **AI Chat**: OpenAI-powered virtual assistant (gpt-4o-mini) via Replit AI Integrations, streaming SSE responses
 - **CRM**: Client management with activity logging (notes, calls, meetings, sales, emails)
 - **Appointments**: Booking system with status management (pending/confirmed/cancelled/completed)
@@ -49,6 +49,8 @@ shared/              - Shared types and schema
 - `POST /api/contact` - Contact form submission
 - `GET /api/contacts` - List contacts (admin)
 - `PATCH /api/contacts/:id/read` - Mark contact as read
+- `GET /api/settings/email-notifications` - Get email notification settings (admin)
+- `PUT /api/settings/email-notifications` - Update email notification settings (admin)
 - `POST /api/firecrawl-scrape` - Firecrawl proxy
 - `GET /api/settings/language` - Get language settings (public)
 - `PUT /api/settings/language` - Update language settings (admin only)
@@ -133,6 +135,10 @@ shared/              - Shared types and schema
 - **Data**: Name, email, phone, status (active/inactive/lead), notes, creation tracking
 
 ## Recent Changes
+- 2026-02-09: Contact submissions manager (פניות באתר) - admin tab to view/manage contact form submissions with read/unread status
+- 2026-02-09: Email notification settings - admin toggles to enable/disable email notifications for contacts, appointments, questionnaires
+- 2026-02-09: Email notifications for appointments and questionnaires - sends email when new appointment scheduled or questionnaire submitted
+- 2026-02-09: Admin dashboard restructured with 7 tabs: Overview, Contacts, Appointments, Clients, Questionnaires, Translations, Settings
 - 2026-02-08: AI Chat Widget - OpenAI-powered virtual assistant with streaming responses, bilingual support
 - 2026-02-08: CRM system - client management with activity logging (notes, calls, meetings, sales, emails)
 - 2026-02-08: Appointment scheduling - public booking page + admin status management
