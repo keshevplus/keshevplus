@@ -7,8 +7,9 @@ import ru from "./locales/ru";
 import am from "./locales/am";
 import ar from "./locales/ar";
 import yi from "./locales/yi";
+import it from "./locales/it";
 
-export type SupportedLanguage = "he" | "en" | "fr" | "es" | "de" | "ru" | "am" | "ar" | "yi";
+export type SupportedLanguage = "he" | "en" | "fr" | "es" | "de" | "ru" | "am" | "ar" | "yi" | "it";
 
 export interface LanguageInfo {
   code: SupportedLanguage;
@@ -27,10 +28,11 @@ export const ALL_LANGUAGES: LanguageInfo[] = [
   { code: "am", nativeName: "\u12a0\u121b\u122d\u129b", flag: "\ud83c\uddea\ud83c\uddf9", dir: "ltr" },
   { code: "ar", nativeName: "\u0627\u0644\u0639\u0631\u0628\u064a\u0629", flag: "\ud83c\uddf8\ud83c\udde6", dir: "rtl" },
   { code: "yi", nativeName: "\u05d9\u05d9\u05b4\u05d3\u05d9\u05e9", flag: "\ud83c\uddee\ud83c\uddf1", dir: "rtl" },
+  { code: "it", nativeName: "Italiano", flag: "\ud83c\uddee\ud83c\uddf9", dir: "ltr" },
 ];
 
 export const BILINGUAL_CODES: SupportedLanguage[] = ["he", "en"];
-export const MULTILINGUAL_CODES: SupportedLanguage[] = ["he", "en", "fr", "es", "de", "ru", "am", "ar", "yi"];
+export const MULTILINGUAL_CODES: SupportedLanguage[] = ["he", "en", "fr", "es", "de", "ru", "am", "ar", "yi", "it"];
 
 const translationMap: Record<SupportedLanguage, Record<string, string>> = {
   en,
@@ -42,6 +44,7 @@ const translationMap: Record<SupportedLanguage, Record<string, string>> = {
   am,
   ar,
   yi,
+  it,
 };
 
 export function getTranslation(lang: SupportedLanguage, key: string): string {

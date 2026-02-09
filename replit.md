@@ -19,12 +19,13 @@ KeshevPlus is a multilingual website for an ADHD clinic specializing in the diag
 - **Feb 2026:** Chat widget always visible (no dismiss to hidden), hidden on admin pages
 - **Feb 2026:** Lead/client distinction: visitors auto-registered as leads, manual conversion toggle
 - **Feb 2026:** Chatbot graceful error handling for AI service unavailability
+- **Feb 2026:** Added Italian (it) language support - now 10 languages total
 
 ## System Architecture
 The application is a full-stack project built with a React frontend (Vite, TailwindCSS, shadcn/ui) and an Express.js backend. It uses Neon Postgres via Drizzle ORM for data persistence.
 
 **Key Features:**
-- **Multilingual Support (i18n):** Database-backed translation system for 9 languages (he, en, fr, es, de, ru, am, ar, yi), with RTL/LTR layout handling. Translations are admin-editable, with static locale file fallback.
+- **Multilingual Support (i18n):** Database-backed translation system for 10 languages (he, en, fr, es, de, ru, am, ar, yi, it), with RTL/LTR layout handling. Translations are admin-editable, with static locale file fallback.
 - **User Authentication:** Session-based authentication for secure access.
 - **Contact Management:** Contact forms with database persistence and admin review capabilities.
 - **AI Chat Widget:** OpenAI-powered virtual assistant (gpt-4o-mini via Replit AI Integrations) with streaming SSE responses, conversation storage, admin review, and graceful fallback when AI service is unavailable.
