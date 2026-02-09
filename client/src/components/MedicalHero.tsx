@@ -43,13 +43,23 @@ const MedicalHero: React.FC = () => {
           aria-label={t("hero.welcome_line1") + " " + t("hero.welcome_line2")}
         >
           <div className="relative z-10">
-            <div className="flex flex-row items-end pt-28 sm:pt-32 md:pt-36 lg:pt-40">
+            <div className="flex flex-col sm:flex-row sm:items-end pt-20 sm:pt-32 md:pt-36 lg:pt-40">
               <motion.div
-                className="w-1/2 px-3 sm:px-6 lg:px-4 xl:px-6 pb-4 sm:pb-8 md:pb-12 lg:pb-16 flex flex-col items-center text-center justify-center"
+                className="w-full sm:w-1/2 px-5 sm:px-6 lg:px-4 xl:px-6 pt-4 pb-6 sm:pb-8 md:pb-12 lg:pb-16 flex flex-col items-center text-center justify-center"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.1 }}
               >
+                <motion.img
+                  src={logo}
+                  alt={language === 'he' ? 'קשב פלוס' : 'Keshev Plus'}
+                  className="w-auto mx-auto sm:hidden"
+                  style={{ height: '64px', marginBottom: '0.75rem' }}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.15 }}
+                />
+
                 <motion.h1
                   className="font-bold text-primary leading-tight"
                   style={{
@@ -62,16 +72,6 @@ const MedicalHero: React.FC = () => {
                 >
                   {t("hero.welcome_line1")} {t("hero.welcome_line2")}
                 </motion.h1>
-
-                {/* <motion.img
-                  src={logo}
-                  alt={language === 'he' ? 'קשב פלוס' : 'Keshev Plus'}
-                  className="w-auto mx-auto"
-                  style={{ height: 'clamp(40px, 8vw + 10px, 100px)', marginBottom: 'clamp(0.25rem, 0.8vw, 0.75rem)' }}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.25 }}
-                /> */}
 
                 <motion.p
                   className="text-foreground leading-relaxed"
@@ -186,7 +186,7 @@ const MedicalHero: React.FC = () => {
               </motion.div>
 
               <motion.div
-                className="w-1/2 self-end flex items-end justify-center"
+                className="w-full sm:w-1/2 self-end flex items-end justify-center"
                 initial={{ opacity: 0, x: isRTL ? -30 : 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
@@ -194,7 +194,7 @@ const MedicalHero: React.FC = () => {
                 <img
                   src={doctorHero}
                   alt={t("hero.doctor_alt")}
-                  className="w-full max-h-[65vh] sm:max-h-[70vh] md:max-h-[75vh] h-auto object-contain object-bottom drop-shadow-xl block"
+                  className="w-full max-h-[50vh] sm:max-h-[70vh] md:max-h-[75vh] h-auto object-contain object-bottom drop-shadow-xl block"
                   loading="eager"
                 />
               </motion.div>
