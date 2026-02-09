@@ -32,8 +32,8 @@ const backgroundVariants = {
 
 const spacingVariants = {
   sm: "py-8 md:py-12",
-  md: "py-12 md:py-16 lg:py-20",
-  lg: "py-16 md:py-20 lg:py-24",
+  md: "py-10 md:py-12 lg:py-16",
+  lg: "py-12 md:py-16 lg:py-20",
 };
 
 export const Section: React.FC<SectionProps> = ({

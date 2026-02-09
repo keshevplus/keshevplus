@@ -6,7 +6,7 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AccessibleButton } from "@/components/ui/accessible-button";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import BookingModal from "@/components/BookingModal";
 import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +23,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   onContactClick,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [bookingOpen, setBookingOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const { t, isRTL, dir } = useLanguage();
 
@@ -157,16 +158,15 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
             </div>
 
             <div className="hidden lg:flex items-center gap-3">
-              <Link href="/booking">
-                <Button
-                  size="sm"
-                  className="flex items-center gap-1.5 font-bold rounded-full"
-                  data-testid="button-nav-booking"
-                >
-                  <CalendarCheck className="w-4 h-4" />
-                  <span>{isRTL ? "קביעת תור" : "Book Now"}</span>
-                </Button>
-              </Link>
+              <Button
+                size="sm"
+                className="flex items-center gap-1.5 font-bold rounded-full"
+                data-testid="button-nav-booking"
+                onClick={() => setBookingOpen(true)}
+              >
+                <CalendarCheck className="w-4 h-4" />
+                <span>{isRTL ? "קביעת תור" : "Book Now"}</span>
+              </Button>
 
               <a
                 href="tel:055-27-399-27"
@@ -267,15 +267,14 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   </div>
 
                   <div className="mt-4 pt-4 border-t border-border space-y-2">
-                    <Link href="/booking" onClick={() => setIsOpen(false)}>
                       <Button
                         className="w-full flex items-center justify-center gap-2"
                         data-testid="button-mobile-booking"
+                        onClick={() => { setIsOpen(false); setBookingOpen(true); }}
                       >
                         <CalendarCheck className="w-5 h-5" />
                         <span>{isRTL ? "קביעת תור" : "Book Now"}</span>
                       </Button>
-                    </Link>
                     <a
                       href="tel:055-27-399-27"
                       className={cn(
@@ -297,6 +296,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
           )}
         </AnimatePresence>
       </motion.nav>
+      <BookingModal open={bookingOpen} onOpenChange={setBookingOpen} />
     </>
   );
 };
