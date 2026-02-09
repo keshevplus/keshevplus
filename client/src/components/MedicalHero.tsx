@@ -51,18 +51,16 @@ const MedicalHero: React.FC = () => {
                 transition={{ duration: 0.6, delay: 0.1 }}
               >
                 <motion.h1
-                  className="font-bold text-primary leading-tight"
+                  className="font-bold text-primary leading-tight whitespace-nowrap"
                   style={{
-                    fontSize: "clamp(1rem, 4vw + 0.25rem, 3.5rem)",
+                    fontSize: "clamp(0.7rem, 2.6vw, 3rem)",
                     marginBottom: "clamp(0.15rem, 0.5vw, 0.5rem)",
                   }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
                 >
-                  {t("hero.welcome_line1")}
-                  <br />
-                  {t("hero.welcome_line2")}
+                  {t("hero.welcome_line1")} {t("hero.welcome_line2")}
                 </motion.h1>
 
                 {/* <motion.img
