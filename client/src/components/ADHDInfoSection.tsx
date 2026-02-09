@@ -1,46 +1,58 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Brain, Target, Zap, Users } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { useLanguage } from '@/hooks/useLanguage';
-import { Section, SectionHeader } from '@/components/layout/Section';
+import React from "react";
+import { motion } from "framer-motion";
+import { Brain, Target, Zap, Users } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { useLanguage } from "@/hooks/useLanguage";
+import { Section, SectionHeader } from "@/components/layout/Section";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/ui/accordion';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/accordion";
+import { cn } from "@/lib/utils";
 
 const symptomData = [
-  { icon: Brain, titleKey: 'adhd.symptom1_title', descKey: 'adhd.symptom1_desc' },
-  { icon: Zap, titleKey: 'adhd.symptom2_title', descKey: 'adhd.symptom2_desc' },
-  { icon: Target, titleKey: 'adhd.symptom3_title', descKey: 'adhd.symptom3_desc' },
-  { icon: Users, titleKey: 'adhd.symptom4_title', descKey: 'adhd.symptom4_desc' },
+  {
+    icon: Brain,
+    titleKey: "adhd.symptom1_title",
+    descKey: "adhd.symptom1_desc",
+  },
+  { icon: Zap, titleKey: "adhd.symptom2_title", descKey: "adhd.symptom2_desc" },
+  {
+    icon: Target,
+    titleKey: "adhd.symptom3_title",
+    descKey: "adhd.symptom3_desc",
+  },
+  {
+    icon: Users,
+    titleKey: "adhd.symptom4_title",
+    descKey: "adhd.symptom4_desc",
+  },
 ];
 
 const faqData = [
-  { id: 'faq1', questionKey: 'faq.q1', answerKey: 'faq.a1' },
-  { id: 'faq2', questionKey: 'faq.q2', answerKey: 'faq.a2' },
-  { id: 'faq3', questionKey: 'faq.q3', answerKey: 'faq.a3' },
-  { id: 'faq4', questionKey: 'faq.q4', answerKey: 'faq.a4' },
-  { id: 'faq5', questionKey: 'faq.q5', answerKey: 'faq.a5' },
-  { id: 'faq6', questionKey: 'faq.q6', answerKey: 'faq.a6' },
+  { id: "faq1", questionKey: "faq.q1", answerKey: "faq.a1" },
+  { id: "faq2", questionKey: "faq.q2", answerKey: "faq.a2" },
+  { id: "faq3", questionKey: "faq.q3", answerKey: "faq.a3" },
+  { id: "faq4", questionKey: "faq.q4", answerKey: "faq.a4" },
+  { id: "faq5", questionKey: "faq.q5", answerKey: "faq.a5" },
+  { id: "faq6", questionKey: "faq.q6", answerKey: "faq.a6" },
 ];
 
 const ADHDInfoSection = () => {
   const { t, isRTL } = useLanguage();
 
   return (
-    <Section 
-      id="adhd" 
-      background="muted" 
-      dir={isRTL ? 'rtl' : 'ltr'}
+    <Section
+      id="adhd"
+      background="muted"
+      dir={isRTL ? "rtl" : "ltr"}
       aria-labelledby="adhd-heading"
     >
-      <SectionHeader 
-        title={t('nav.adhd')}
-        subtitle={t('adhd.subtitle')}
+      <SectionHeader
+        title={t("nav.adhd")}
+        subtitle={t("adhd.subtitle")}
         titleId="adhd-heading"
       />
 
@@ -61,8 +73,18 @@ const ADHDInfoSection = () => {
                 >
                   <symptom.icon className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-primary-foreground" />
                 </div>
-                <h3 className="font-bold text-sm sm:text-base md:text-lg mb-1 sm:mb-2" data-testid={`text-symptom-title-${index}`}>{t(symptom.titleKey)}</h3>
-                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed" data-testid={`text-symptom-desc-${index}`}>{t(symptom.descKey)}</p>
+                <h3
+                  className="font-bold text-sm sm:text-base md:text-lg mb-1 sm:mb-2"
+                  data-testid={`text-symptom-title-${index}`}
+                >
+                  {t(symptom.titleKey)}
+                </h3>
+                <p
+                  className="text-muted-foreground text-xs sm:text-sm leading-relaxed"
+                  data-testid={`text-symptom-desc-${index}`}
+                >
+                  {t(symptom.descKey)}
+                </p>
               </CardContent>
             </Card>
           </motion.div>
@@ -76,11 +98,17 @@ const ADHDInfoSection = () => {
         transition={{ duration: 0.6 }}
         viewport={{ once: true }}
       >
-        <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-primary-foreground mb-3 sm:mb-4 md:mb-6" data-testid="text-treatable-title">
-          {t('adhd.treatable_title')}
+        <h3
+          className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-primary-foreground mb-3 sm:mb-4 md:mb-6"
+          data-testid="text-treatable-title"
+        >
+          {t("adhd.treatable_title")}
         </h3>
-        <p className="text-primary-foreground/90 text-sm sm:text-base lg:text-lg leading-relaxed max-w-3xl mx-auto" data-testid="text-treatable-desc">
-          {t('adhd.treatable_desc')}
+        <p
+          className="text-primary-foreground/90 text-sm sm:text-base lg:text-lg leading-relaxed max-w-3xl mx-auto"
+          data-testid="text-treatable-desc"
+        >
+          {t("adhd.treatable_desc")}
         </p>
       </motion.div>
 
@@ -93,10 +121,10 @@ const ADHDInfoSection = () => {
           viewport={{ once: true }}
         >
           <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4">
-            {t('faq.title')}
+            {t("faq.title")}
           </h3>
           <p className="text-muted-foreground text-sm sm:text-base lg:text-lg max-w-2xl mx-auto">
-            {t('faq.subtitle')}
+            {t("faq.subtitle")}
           </p>
         </motion.div>
 
@@ -107,7 +135,11 @@ const ADHDInfoSection = () => {
           transition={{ duration: 0.5 }}
           viewport={{ once: true }}
         >
-          <Accordion type="single" collapsible className="space-y-3 sm:space-y-4">
+          <Accordion
+            type="single"
+            collapsible
+            className="space-y-3 sm:space-y-4"
+          >
             {faqData.map((faq) => (
               <AccordionItem
                 key={faq.id}
@@ -115,7 +147,7 @@ const ADHDInfoSection = () => {
                 className={cn(
                   "bg-card rounded-lg border border-border",
                   "shadow-sm hover:shadow-md transition-shadow",
-                  "overflow-hidden"
+                  "overflow-hidden",
                 )}
               >
                 <AccordionTrigger
@@ -125,16 +157,22 @@ const ADHDInfoSection = () => {
                     "min-h-[56px] sm:min-h-[64px]",
                     "[&>svg]:w-5 [&>svg]:h-5 [&>svg]:shrink-0",
                     "[&>svg]:ml-4 [&>svg]:text-primary",
-                    isRTL && "[&>svg]:ml-0 [&>svg]:mr-4"
+                    isRTL && "[&>svg]:ml-0 [&>svg]:mr-4",
                   )}
                 >
-                  <span className="text-base sm:text-lg font-medium text-foreground leading-snug pr-4" data-testid={`text-faq-question-${faq.id}`}>
+                  <span
+                    className="text-base sm:text-lg font-medium text-foreground leading-snug pr-4"
+                    data-testid={`text-faq-question-${faq.id}`}
+                  >
                     {t(faq.questionKey)}
                   </span>
                 </AccordionTrigger>
-                
+
                 <AccordionContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed" data-testid={`text-faq-answer-${faq.id}`}>
+                  <p
+                    className="text-sm sm:text-base text-muted-foreground leading-relaxed"
+                    data-testid={`text-faq-answer-${faq.id}`}
+                  >
                     {t(faq.answerKey)}
                   </p>
                 </AccordionContent>
@@ -154,18 +192,20 @@ const ADHDInfoSection = () => {
             href="#contact"
             onClick={(e) => {
               e.preventDefault();
-              document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
+              document
+                .getElementById("contact")
+                ?.scrollIntoView({ behavior: "smooth" });
             }}
             className={cn(
               "inline-flex items-center justify-center mt-2 text-primary font-medium",
               "underline underline-offset-4",
               "hover:text-primary/80 transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-              "min-h-[44px]"
+              "min-h-[44px]",
             )}
             data-testid="link-contact-from-faq"
           >
-            {t('faq.no_answer')}
+            {t("faq.no_answer")}
           </a>
         </motion.div>
       </div>
