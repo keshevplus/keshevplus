@@ -76,8 +76,8 @@ const MedicalHero: React.FC = () => {
                 <motion.p
                   className="text-foreground leading-relaxed"
                   style={{
-                    fontSize: "clamp(0.7rem, 1.2vw + 0.15rem, 1.35rem)",
-                    marginBottom: "clamp(0.1rem, 0.3vw, 0.25rem)",
+                    fontSize: "clamp(0.9rem, 2.2vw, 1.6rem)",
+                    marginBottom: "clamp(0.15rem, 0.4vw, 0.4rem)",
                   }}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -91,7 +91,7 @@ const MedicalHero: React.FC = () => {
                     key={currentTextIndex}
                     className="font-bold text-primary"
                     style={{
-                      fontSize: "clamp(0.9rem, 2vw + 0.2rem, 2rem)",
+                      fontSize: "clamp(1rem, 3vw, 2.4rem)",
                       marginBottom: "clamp(0.15rem, 0.5vw, 0.5rem)",
                     }}
                     initial={{ opacity: 0, y: 10 }}
@@ -108,7 +108,7 @@ const MedicalHero: React.FC = () => {
                 <motion.p
                   className="text-muted-foreground leading-relaxed"
                   style={{
-                    fontSize: "clamp(0.65rem, 1.1vw + 0.1rem, 1.2rem)",
+                    fontSize: "clamp(0.85rem, 1.8vw, 1.4rem)",
                     marginBottom: "clamp(0.25rem, 0.8vw, 0.75rem)",
                   }}
                   initial={{ opacity: 0, y: 15 }}
@@ -129,7 +129,7 @@ const MedicalHero: React.FC = () => {
                   <p
                     className="font-semibold text-foreground"
                     style={{
-                      fontSize: "clamp(0.7rem, 1.2vw + 0.1rem, 1.35rem)",
+                      fontSize: "clamp(0.9rem, 2vw, 1.5rem)",
                       marginBottom: "clamp(0.1rem, 0.3vw, 0.25rem)",
                     }}
                   >
@@ -138,7 +138,7 @@ const MedicalHero: React.FC = () => {
                   <p
                     className="text-muted-foreground"
                     style={{
-                      fontSize: "clamp(0.6rem, 1vw + 0.1rem, 1.1rem)",
+                      fontSize: "clamp(0.8rem, 1.6vw, 1.25rem)",
                     }}
                   >
                     {t("hero.schedule_consultation")}
@@ -153,8 +153,7 @@ const MedicalHero: React.FC = () => {
                 >
                   <AccessibleButton
                     variant="primary"
-                    size="sm"
-                    className="sm:size-md text-xs sm:text-sm md:text-base flex-1"
+                    className="text-sm sm:text-base md:text-lg flex-1"
                     onClick={() => {
                       const el = document.getElementById("questionnaires");
                       if (el) {
@@ -173,8 +172,7 @@ const MedicalHero: React.FC = () => {
 
                   <AccessibleButton
                     variant="secondary"
-                    size="sm"
-                    className="sm:size-md text-xs sm:text-sm md:text-base flex-1"
+                    className="text-sm sm:text-base md:text-lg flex-1"
                     onClick={() =>
                       document
                         .getElementById("about")
