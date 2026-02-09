@@ -942,9 +942,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ];
 
       if (conversationId) {
-        const conv = await storage.getConversation(conversationId);
-        if (conv) {
-          await storage.addMessage({ conversationId, role: 'user', content: message });
+        try {
+          const conv = await storage.getConversation(conversationId);
+          if (conv) {
+            await storage.addMessage({ conversationId, role: 'user', content: message });
+          }
+        } catch (msgErr) {
+          console.error("Failed to save user message:", msgErr);
         }
       }
 
@@ -978,10 +982,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat error:", error);
+      const isAuthError = error?.status === 401 || error?.message?.includes('401');
+      const fallbackMsg = req.body.language === 'he'
+        ? 'שירות הצ\'אט אינו זמין כרגע. ניתן ליצור קשר עם המרפאה בטלפון 055-27-399-27 או דרך טופס יצירת הקשר באתר.'
+        : 'Chat service is currently unavailable. Please contact the clinic at 055-27-399-27 or use the contact form on the website.';
+
       if (res.headersSent) {
-        res.write(`data: ${JSON.stringify({ error: "Chat failed" })}\n\n`);
+        res.write(`data: ${JSON.stringify({ content: fallbackMsg })}\n\n`);
+        res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+        res.end();
+      } else if (isAuthError) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.write(`data: ${JSON.stringify({ content: fallbackMsg })}\n\n`);
+        res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
         res.end();
       } else {
         res.status(500).json({ error: "Chat failed" });

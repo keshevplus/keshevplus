@@ -12,6 +12,7 @@ import Index from "./pages/Index";
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const QuestionnairePage = lazy(() => import("./pages/QuestionnairePage"));
 const NotFound = lazy(() => import("./pages/not-found"));
+const CookiesBanner = lazy(() => import("@/components/CookiesBanner"));
 
 function PageFallback() {
   return (
@@ -45,6 +46,9 @@ const App = () => (
         <AccessibilityWidget />
         <ChatWidget />
         <Toaster />
+        <Suspense fallback={null}>
+          <CookiesBanner />
+        </Suspense>
       </TooltipProvider>
     </QueryClientProvider>
   </ThemeProvider>

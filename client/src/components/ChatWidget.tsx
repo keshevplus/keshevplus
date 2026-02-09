@@ -20,6 +20,21 @@ interface VisitorInfo {
 
 type BubbleState = 'bar' | 'icon'
 
+const VISITOR_STORAGE_KEY = 'kp_visitor_info'
+const VISITOR_COOKIE_NAME = 'kp_visitor'
+
+function setVisitorCookie(info: VisitorInfo) {
+  try {
+    const value = encodeURIComponent(JSON.stringify(info))
+    const maxAge = 90 * 24 * 60 * 60
+    document.cookie = `${VISITOR_COOKIE_NAME}=${value}; path=/; max-age=${maxAge}; SameSite=Lax`
+  } catch {}
+}
+
+function clearVisitorCookie() {
+  document.cookie = `${VISITOR_COOKIE_NAME}=; path=/; max-age=0`
+}
+
 const ChatWidget = () => {
   const { language, isRTL } = useLanguage()
   const isHe = language === 'he'
@@ -32,6 +47,7 @@ const ChatWidget = () => {
   const [visitorInfo, setVisitorInfo] = useState<VisitorInfo | null>(null)
   const [infoForm, setInfoForm] = useState<VisitorInfo>({ name: '', email: '', phone: '' })
   const [submittingInfo, setSubmittingInfo] = useState(false)
+  const [restoredVisitor, setRestoredVisitor] = useState(false)
   const [bubbleState, setBubbleState] = useState<BubbleState>(() => {
     try {
       const saved = localStorage.getItem('kp_chat_bubble')
@@ -42,6 +58,40 @@ const ChatWidget = () => {
   const [barVisible, setBarVisible] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(VISITOR_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored) as VisitorInfo
+        if (parsed.name && parsed.email) {
+          setInfoForm(parsed)
+          setRestoredVisitor(true)
+          setVisitorInfo(parsed)
+          setVisitorCookie(parsed)
+          fetch('/api/conversations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              visitorName: parsed.name.trim(),
+              visitorEmail: parsed.email.trim(),
+              visitorPhone: parsed.phone?.trim() || '',
+            }),
+          })
+            .then(res => {
+              if (res.ok) return res.json()
+              return null
+            })
+            .then(conversation => {
+              if (conversation) {
+                setConversationId(conversation.id)
+              }
+            })
+            .catch(() => {})
+        }
+      }
+    } catch {}
+  }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => setBarVisible(true), 800)
@@ -65,6 +115,18 @@ const ChatWidget = () => {
     }
   }
 
+  const handleClearVisitor = () => {
+    try {
+      localStorage.removeItem(VISITOR_STORAGE_KEY)
+      clearVisitorCookie()
+    } catch {}
+    setVisitorInfo(null)
+    setRestoredVisitor(false)
+    setInfoForm({ name: '', email: '', phone: '' })
+    setConversationId(null)
+    setMessages([])
+  }
+
   const startConversation = async () => {
     if (!infoForm.name.trim() || !infoForm.email.trim()) return
     setSubmittingInfo(true)
@@ -82,6 +144,11 @@ const ChatWidget = () => {
       const conversation = await res.json()
       setConversationId(conversation.id)
       setVisitorInfo(infoForm)
+      try {
+        localStorage.setItem(VISITOR_STORAGE_KEY, JSON.stringify(infoForm))
+        setVisitorCookie(infoForm)
+        setRestoredVisitor(true)
+      } catch {}
     } catch {
       setVisitorInfo(infoForm)
     } finally {
@@ -243,9 +310,20 @@ const ChatWidget = () => {
       <div className="flex items-center justify-between gap-2 p-3 border-b bg-primary text-primary-foreground rounded-t-md">
         <div className="flex items-center gap-2">
           <Bot className="h-5 w-5" />
-          <span className="font-medium text-sm">
-            {isHe ? 'עוזר וירטואלי - קשב פלוס' : 'KeshevPlus Assistant'}
-          </span>
+          <div className="flex flex-col">
+            <span className="font-medium text-sm">
+              {isHe ? 'עוזר וירטואלי - קשב פלוס' : 'KeshevPlus Assistant'}
+            </span>
+            {restoredVisitor && visitorInfo && (
+              <button
+                onClick={handleClearVisitor}
+                className="text-xs text-primary-foreground/70 hover:text-primary-foreground underline text-start"
+                data-testid="button-not-you"
+              >
+                {isHe ? `${visitorInfo.name} - לא אני` : `Not ${visitorInfo.name}?`}
+              </button>
+            )}
+          </div>
         </div>
         <Button
           size="icon"

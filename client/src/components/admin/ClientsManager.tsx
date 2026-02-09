@@ -56,6 +56,7 @@ const ClientsManager = () => {
   const [editNotes, setEditNotes] = useState("");
   const [activityType, setActivityType] = useState("note");
   const [activityDesc, setActivityDesc] = useState("");
+  const [activityMeta, setActivityMeta] = useState("");
 
   const fetchClients = async () => {
     try {
@@ -164,14 +165,18 @@ const ClientsManager = () => {
 
   const handleAddActivity = async (clientId: number) => {
     if (!activityDesc.trim()) return;
+    const fullDescription = activityMeta.trim()
+      ? `${activityDesc.trim()} [${activityMeta.trim()}]`
+      : activityDesc.trim();
     try {
       await apiRequest("POST", `/api/clients/${clientId}/activities`, {
         clientId,
         type: activityType,
-        description: activityDesc.trim(),
+        description: fullDescription,
       });
       toast({ title: isHe ? "פעילות נוספה" : "Activity added", description: isHe ? "הפעילות נוספה בהצלחה" : "Activity has been added successfully" });
       setActivityDesc("");
+      setActivityMeta("");
       setActivityType("note");
       fetchActivities(clientId);
     } catch {
@@ -184,6 +189,20 @@ const ClientsManager = () => {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const formatDateTime = (date: string | Date) => {
+    const d = new Date(date);
+    return d.toLocaleString(isHe ? "he-IL" : "en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
     });
   };
 
@@ -545,7 +564,12 @@ const ClientsManager = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <h4 className="text-sm font-semibold">{isHe ? "הוסף פעילות" : "Add Activity"}</h4>
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <h4 className="text-sm font-semibold">{isHe ? "הוסף פעילות" : "Add Activity"}</h4>
+                          <span className="text-xs text-muted-foreground" data-testid={`text-current-time-${client.id}`}>
+                            {formatDateTime(new Date())}
+                          </span>
+                        </div>
                         <div className="flex items-end gap-2 flex-wrap">
                           <div className="space-y-1">
                             <Label>{isHe ? "סוג" : "Type"}</Label>
@@ -564,11 +588,23 @@ const ClientsManager = () => {
                           </div>
                           <div className="flex-1 min-w-[200px] space-y-1">
                             <Label>{isHe ? "תיאור" : "Description"}</Label>
-                            <Input
+                            <Textarea
                               value={activityDesc}
                               onChange={(e) => setActivityDesc(e.target.value)}
                               placeholder={isHe ? "תיאור הפעילות" : "Activity description"}
+                              className="min-h-[60px]"
                               data-testid={`input-activity-desc-${client.id}`}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-end gap-2 flex-wrap">
+                          <div className="flex-1 min-w-[200px] space-y-1">
+                            <Label>{isHe ? "נוסף על ידי (אופציונלי)" : "Added by (optional)"}</Label>
+                            <Input
+                              value={activityMeta}
+                              onChange={(e) => setActivityMeta(e.target.value)}
+                              placeholder={isHe ? "שם המוסיף / הערות מטא" : "Name of admin / meta notes"}
+                              data-testid={`input-activity-meta-${client.id}`}
                             />
                           </div>
                           <Button
@@ -613,7 +649,7 @@ const ClientsManager = () => {
                                   </Badge>
                                   <span className="flex-1">{activity.description}</span>
                                   <span className="text-xs text-muted-foreground shrink-0">
-                                    {formatDate(activity.createdAt)}
+                                    {formatDateTime(activity.createdAt)}
                                   </span>
                                 </div>
                               );

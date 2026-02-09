@@ -7,6 +7,18 @@ KeshevPlus is a multilingual website for an ADHD clinic specializing in the diag
 - Hebrew RTL website
 - Clean, professional medical clinic design
 - Dark mode support with brand-consistent colors
+- Visitors are LEADS, not clients. Only manually converted to clients by admin.
+- Persistent user recognition via cookies/localStorage
+- Israeli law compliance for cookies disclaimer
+
+## Recent Changes
+- **Feb 2026:** Added cookies disclaimer banner compliant with Israeli Privacy Protection Act
+- **Feb 2026:** Implemented persistent visitor recognition - returning visitors auto-recognized via localStorage/cookies
+- **Feb 2026:** Enhanced CRM with full timestamps (date+time+seconds) on admin activity entries
+- **Feb 2026:** Added metadata/notes field for admin activity documentation ("Added by" field)
+- **Feb 2026:** Chat widget always visible (no dismiss to hidden), hidden on admin pages
+- **Feb 2026:** Lead/client distinction: visitors auto-registered as leads, manual conversion toggle
+- **Feb 2026:** Chatbot graceful error handling for AI service unavailability
 
 ## System Architecture
 The application is a full-stack project built with a React frontend (Vite, TailwindCSS, shadcn/ui) and an Express.js backend. It uses Neon Postgres via Drizzle ORM for data persistence.
@@ -15,13 +27,16 @@ The application is a full-stack project built with a React frontend (Vite, Tailw
 - **Multilingual Support (i18n):** Database-backed translation system for 9 languages (he, en, fr, es, de, ru, am, ar, yi), with RTL/LTR layout handling. Translations are admin-editable, with static locale file fallback.
 - **User Authentication:** Session-based authentication for secure access.
 - **Contact Management:** Contact forms with database persistence and admin review capabilities.
-- **AI Chat Widget:** OpenAI-powered virtual assistant (gpt-4o-mini) with streaming SSE responses, conversation storage, and admin review.
+- **AI Chat Widget:** OpenAI-powered virtual assistant (gpt-4o-mini via Replit AI Integrations) with streaming SSE responses, conversation storage, admin review, and graceful fallback when AI service is unavailable.
 - **Questionnaire System:** Web-based Vanderbilt ADHD assessments (Parent, Teacher, Self-Report) with automatic scoring, JSONB storage of answers, and an admin interface for submissions.
 - **Appointment System:** Public booking page with status management (pending/confirmed/cancelled/completed) by administrators. Limits one active appointment per child.
-- **Lead/Client System:** Visitors leaving details via any form are auto-registered as LEADS (not clients). Admin manually converts leads to clients. Includes activity logging (notes, calls, meetings, sales, emails) and admin ClientsManager with lead/client status badges and conversion toggle.
+- **Lead/Client System:** Visitors leaving details via any form are auto-registered as LEADS (not clients). Admin manually converts leads to clients. Includes activity logging (notes, calls, meetings, sales, emails) with full timestamps and admin ClientsManager with lead/client status badges and conversion toggle.
+- **CRM Activity Tracking:** Timestamped admin documentation with date+time+seconds, activity types (note, call, meeting, sale, email), and metadata ("Added by") field.
+- **Persistent Visitor Recognition:** Returning visitors are auto-recognized via localStorage and cookies (90-day expiry). Chat widget auto-populates visitor info for returning users.
+- **Cookies Disclaimer:** Israeli law-compliant cookies banner with accept/decline, expandable info section.
 - **Email Notifications:** Configurable email notifications for contact forms, appointments, and questionnaires via Nodemailer.
 - **UI/UX:** TailwindCSS and shadcn/ui are used for a modern, responsive design with full RTL/LTR support. Dark mode is implemented with brand-consistent color palettes.
-- **Performance:** Optimized with code-splitting, lazy loading of components, and dependency cleanup.
+- **Performance:** Optimized with code-splitting, lazy loading of components (including CookiesBanner), and dependency cleanup.
 
 **Database Schema Highlights:**
 - `Users`: For authentication.
@@ -31,8 +46,8 @@ The application is a full-stack project built with a React frontend (Vite, Tailw
 - `QuestionnaireSubmissions`: Stores questionnaire responses and scores.
 - `Appointments`: Manages appointment details and statuses.
 - `Clients`: Lead/client records (status: lead/client), automatically created as leads from form submissions, manually converted to clients by admin.
-- `ClientActivities`: Logs interactions with clients within the CRM.
-- `Conversations`: Stores AI chat dialogues.
+- `ClientActivities`: Logs interactions with clients within the CRM. Includes type, description, metadata, and auto-timestamped createdAt.
+- `Conversations`: Stores AI chat dialogues with visitor info.
 - `Messages`: Stores individual messages within conversations.
 
 ## External Dependencies
@@ -44,6 +59,12 @@ The application is a full-stack project built with a React frontend (Vite, Tailw
 - **TailwindCSS:** Utility-first CSS framework.
 - **shadcn/ui:** UI component library.
 - **Nodemailer:** For sending emails.
-- **OpenAI (via Replit AI Integrations):** Powers the AI chat assistant (gpt-4o-mini).
+- **OpenAI (via Replit AI Integrations):** Powers the AI chat assistant (gpt-4o-mini). Uses AI_INTEGRATIONS_OPENAI_API_KEY and AI_INTEGRATIONS_OPENAI_BASE_URL env vars.
 - **Firecrawl:** Used via a proxy endpoint for web scraping.
 - **Google Maps:** Embedded for clinic directions.
+
+## Key Components
+- `client/src/components/CookiesBanner.tsx` - Israeli law-compliant cookies disclaimer
+- `client/src/components/ChatWidget.tsx` - AI chat with persistent visitor recognition
+- `client/src/components/admin/ClientsManager.tsx` - CRM with timestamped activity logging
+- `client/src/components/admin/AdminDashboard.tsx` - Admin overview dashboard
