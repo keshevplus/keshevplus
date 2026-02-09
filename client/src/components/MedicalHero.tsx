@@ -153,7 +153,7 @@ const MedicalHero: React.FC = () => {
                 >
                   <AccessibleButton
                     variant="primary"
-                    className="text-sm sm:text-base md:text-lg flex-1"
+                    className="text-sm sm:text-base md:text-lg py-3 sm:py-4 flex-1"
                     onClick={() => {
                       const el = document.getElementById("questionnaires");
                       if (el) {
@@ -172,7 +172,7 @@ const MedicalHero: React.FC = () => {
 
                   <AccessibleButton
                     variant="secondary"
-                    className="text-sm sm:text-base md:text-lg flex-1"
+                    className="text-sm sm:text-base md:text-lg py-3 sm:py-4 flex-1"
                     onClick={() =>
                       document
                         .getElementById("about")
