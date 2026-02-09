@@ -51,9 +51,9 @@ const MedicalHero: React.FC = () => {
                 transition={{ duration: 0.6, delay: 0.1 }}
               >
                 <motion.h1
-                  className="font-bold text-primary leading-tight whitespace-nowrap"
+                  className="font-bold text-primary leading-tight"
                   style={{
-                    fontSize: "clamp(0.7rem, 2.6vw, 3rem)",
+                    fontSize: "clamp(1.1rem, 4vw, 3rem)",
                     marginBottom: "clamp(0.15rem, 0.5vw, 0.5rem)",
                   }}
                   initial={{ opacity: 0, y: 20 }}
