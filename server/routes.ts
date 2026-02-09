@@ -862,7 +862,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===== AI Chat Widget Route =====
   app.post("/api/chat", async (req, res) => {
     try {
-      const { message, history = [], language = 'he' } = req.body;
+      const { message, history = [], language = 'he', conversationId } = req.body;
       if (!message) {
         return res.status(400).json({ error: "Message is required" });
       }
@@ -882,6 +882,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { role: 'user', content: message },
       ];
 
+      if (conversationId) {
+        const conv = await storage.getConversation(conversationId);
+        if (conv) {
+          await storage.addMessage({ conversationId, role: 'user', content: message });
+        }
+      }
+
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
@@ -893,10 +900,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         max_tokens: 500,
       });
 
+      let fullAssistantResponse = '';
+
       for await (const chunk of stream) {
         const content = chunk.choices[0]?.delta?.content || '';
         if (content) {
+          fullAssistantResponse += content;
           res.write(`data: ${JSON.stringify({ content })}\n\n`);
+        }
+      }
+
+      if (conversationId && fullAssistantResponse) {
+        const conv = await storage.getConversation(conversationId);
+        if (conv) {
+          await storage.addMessage({ conversationId, role: 'assistant', content: fullAssistantResponse });
         }
       }
 
@@ -910,6 +927,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ error: "Chat failed" });
       }
+    }
+  });
+
+  // ===== Conversation Routes =====
+  const createConversationSchema = z.object({
+    visitorName: z.string().min(1, "Name is required"),
+    visitorEmail: z.string().email("Valid email is required"),
+    visitorPhone: z.string().optional().default(''),
+    title: z.string().optional(),
+  });
+
+  app.post("/api/conversations", async (req, res) => {
+    try {
+      const result = createConversationSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.message });
+      }
+      const { visitorName, visitorEmail, visitorPhone, title } = result.data;
+      const conversation = await storage.createConversation({
+        visitorName,
+        visitorEmail,
+        visitorPhone: visitorPhone || '',
+        title: title || `${visitorName} - ${new Date().toLocaleDateString('he-IL')}`,
+      });
+      return res.json(conversation);
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      return res.status(500).json({ error: "Failed to create conversation" });
+    }
+  });
+
+  app.get("/api/conversations", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const list = await storage.getConversations();
+      return res.json(list);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch conversations" });
+    }
+  });
+
+  app.get("/api/conversations/:id/messages", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const msgs = await storage.getMessages(id);
+      return res.json(msgs);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+
+  app.patch("/api/conversations/:id/reviewed", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const updated = await storage.markConversationReviewed(id);
+      if (!updated) return res.status(404).json({ error: "Conversation not found" });
+      return res.json(updated);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update conversation" });
     }
   });
 

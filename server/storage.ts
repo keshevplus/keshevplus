@@ -1,4 +1,4 @@
-import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity } from "@shared/schema";
+import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, conversations, messages, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type Conversation, type InsertConversation, type Message, type InsertMessage } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, lt } from "drizzle-orm";
 
@@ -35,6 +35,12 @@ export interface IStorage {
   updateClient(id: number, data: Partial<InsertClient>): Promise<Client | undefined>;
   createClientActivity(activity: InsertClientActivity): Promise<ClientActivity>;
   getClientActivities(clientId: number): Promise<ClientActivity[]>;
+  createConversation(conversation: InsertConversation): Promise<Conversation>;
+  getConversations(): Promise<Conversation[]>;
+  getConversation(id: number): Promise<Conversation | undefined>;
+  markConversationReviewed(id: number): Promise<Conversation | undefined>;
+  addMessage(message: InsertMessage): Promise<Message>;
+  getMessages(conversationId: number): Promise<Message[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -304,6 +310,39 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(clientActivities)
       .where(eq(clientActivities.clientId, clientId))
       .orderBy(desc(clientActivities.createdAt));
+  }
+
+  async createConversation(conversation: InsertConversation): Promise<Conversation> {
+    const [created] = await db.insert(conversations).values(conversation as any).returning();
+    return created;
+  }
+
+  async getConversations(): Promise<Conversation[]> {
+    return await db.select().from(conversations).orderBy(desc(conversations.createdAt));
+  }
+
+  async getConversation(id: number): Promise<Conversation | undefined> {
+    const [c] = await db.select().from(conversations).where(eq(conversations.id, id));
+    return c || undefined;
+  }
+
+  async markConversationReviewed(id: number): Promise<Conversation | undefined> {
+    const [updated] = await db.update(conversations)
+      .set({ reviewed: true } as any)
+      .where(eq(conversations.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async addMessage(message: InsertMessage): Promise<Message> {
+    const [created] = await db.insert(messages).values(message as any).returning();
+    return created;
+  }
+
+  async getMessages(conversationId: number): Promise<Message[]> {
+    return await db.select().from(messages)
+      .where(eq(messages.conversationId, conversationId))
+      .orderBy(messages.createdAt);
   }
 }
 

@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell } from 'lucide-react'
+import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { apiRequest } from '@/lib/queryClient'
 import { ALL_LANGUAGES, type LanguageSettings, type SupportedLanguage, DEFAULT_LANGUAGE_SETTINGS, BILINGUAL_CODES, MULTILINGUAL_CODES } from '@/i18n/config'
@@ -17,6 +17,7 @@ import QuestionnaireSubmissions from './QuestionnaireSubmissions'
 import AppointmentsManager from './AppointmentsManager'
 import ClientsManager from './ClientsManager'
 import ContactsManager from './ContactsManager'
+import ConversationsManager from './ConversationsManager'
 import EmailNotificationSettings from './EmailNotificationSettings'
 
 const AdminDashboard = () => {
@@ -76,6 +77,7 @@ const AdminDashboard = () => {
     { value: 'contacts', icon: Inbox, he: 'פניות באתר', en: 'Contacts' },
     { value: 'appointments', icon: Calendar, he: 'פגישות', en: 'Appointments' },
     { value: 'clients', icon: Users, he: 'לקוחות', en: 'Clients' },
+    { value: 'conversations', icon: MessageCircle, he: 'שיחות צ׳אט', en: 'Conversations' },
     { value: 'questionnaires', icon: ClipboardList, he: 'שאלונים', en: 'Questionnaires' },
     { value: 'translations', icon: Languages, he: 'תרגומים', en: 'Translations' },
     { value: 'settings', icon: Settings, he: 'הגדרות', en: 'Settings' },
@@ -122,7 +124,7 @@ const AdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6 mt-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('contacts')} data-testid="card-contacts">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{isHe ? 'פניות באתר' : 'Contacts'}</CardTitle>
@@ -150,6 +152,16 @@ const AdminDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-xs text-muted-foreground">{isHe ? 'ניהול לקוחות ופעילויות' : 'Manage clients & activities'}</p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('conversations')} data-testid="card-conversations">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{isHe ? 'שיחות צ׳אט' : 'Conversations'}</CardTitle>
+                  <MessageCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">{isHe ? 'צפייה בשיחות צ׳אט' : 'View chat conversations'}</p>
                 </CardContent>
               </Card>
 
@@ -190,6 +202,10 @@ const AdminDashboard = () => {
 
           <TabsContent value="clients" className="mt-0">
             <ClientsManager />
+          </TabsContent>
+
+          <TabsContent value="conversations" className="mt-0">
+            <ConversationsManager />
           </TabsContent>
 
           <TabsContent value="questionnaires" className="mt-0">
