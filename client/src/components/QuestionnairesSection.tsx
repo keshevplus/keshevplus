@@ -1,13 +1,17 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Users, User, Monitor } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/hooks/useLanguage';
 import { Section, SectionHeader } from '@/components/layout/Section';
-import { Link } from 'wouter';
+import QuestionnaireModal from './QuestionnaireModal';
+import type { QuestionnaireType } from '@/lib/questionnaire-data';
 
 const QuestionnairesSection = () => {
   const { t, isRTL } = useLanguage();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState<QuestionnaireType>('parent');
 
   const questionnaires = [
     {
@@ -15,7 +19,7 @@ const QuestionnairesSection = () => {
       title: t('questionnaires.parent_form'),
       description: t('questionnaires.parent_form_desc'),
       id: 'parent-form',
-      onlineType: 'parent',
+      onlineType: 'parent' as QuestionnaireType,
       pdf: '/docs/vanderbilt_parent_form.pdf',
       docx: '/docs/vanderbilt_parent_form.docx',
     },
@@ -24,7 +28,7 @@ const QuestionnairesSection = () => {
       title: t('questionnaires.teacher_form'),
       description: t('questionnaires.teacher_form_desc'),
       id: 'teacher-form',
-      onlineType: 'teacher',
+      onlineType: 'teacher' as QuestionnaireType,
       pdf: '/docs/vanderbilt_teacher_form.pdf',
       docx: '/docs/vanderbilt_teacher_form.docx',
     },
@@ -33,11 +37,16 @@ const QuestionnairesSection = () => {
       title: t('questionnaires.self_report'),
       description: t('questionnaires.self_report_desc'),
       id: 'self-report',
-      onlineType: 'self_report',
+      onlineType: 'self_report' as QuestionnaireType,
       pdf: '/docs/vanderbilt_self_form.pdf',
       docx: '/docs/vanderbilt_self_form.docx',
     },
   ];
+
+  const handleOpenQuestionnaire = (type: QuestionnaireType) => {
+    setSelectedType(type);
+    setModalOpen(true);
+  };
 
   return (
     <Section
@@ -72,12 +81,14 @@ const QuestionnairesSection = () => {
                 <h3 className="font-bold text-base sm:text-lg mb-2" data-testid={`text-title-${item.id}`}>{item.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed mb-4" data-testid={`text-desc-${item.id}`}>{item.description}</p>
 
-                <Link href={`/questionnaire/${item.onlineType}`}>
-                  <Button className="w-full mb-4" data-testid={`button-fill-online-${item.id}`}>
-                    <Monitor className="w-4 h-4 mr-2" />
-                    {t('questionnaires.fill_online')}
-                  </Button>
-                </Link>
+                <Button
+                  className="w-full mb-4"
+                  onClick={() => handleOpenQuestionnaire(item.onlineType)}
+                  data-testid={`button-fill-online-${item.id}`}
+                >
+                  <Monitor className="w-4 h-4 mr-2" />
+                  {t('questionnaires.fill_online')}
+                </Button>
 
                 <p className="text-sm font-medium text-foreground mb-3" data-testid={`text-download-label-${item.id}`}>{t('questionnaires.download_files')}</p>
 
@@ -130,6 +141,12 @@ const QuestionnairesSection = () => {
       >
         {t('questionnaires.note')}
       </motion.p>
+
+      <QuestionnaireModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        type={selectedType}
+      />
     </Section>
   );
 };
