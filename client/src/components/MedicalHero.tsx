@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Phone } from "lucide-react";
 import doctorHero from "@/assets/doctor-hero.png";
-import logo from "@/assets/logo.png";
 import { useLanguage } from "@/hooks/useLanguage";
 import MobileNavigation from "./MobileNavigation";
 import ContactModal from "./ContactModal";
@@ -50,16 +49,6 @@ const MedicalHero: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.1 }}
               >
-                <motion.img
-                  src={logo}
-                  alt={language === 'he' ? 'קשב פלוס' : 'Keshev Plus'}
-                  className="w-auto mx-auto sm:hidden"
-                  style={{ height: '64px', marginBottom: '0.75rem' }}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.15 }}
-                />
-
                 <motion.h1
                   className="font-bold text-primary leading-tight"
                   style={{
