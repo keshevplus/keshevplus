@@ -199,6 +199,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.createContact(result.data);
 
+      if (result.data.email) {
+        try {
+          await storage.upsertClientByEmail({
+            name: result.data.name,
+            email: result.data.email,
+            phone: result.data.phone,
+            source: 'contact_form',
+          });
+        } catch (e) { console.error("Auto-register client error:", e); }
+      }
+
       const notifSettings = await getEmailNotificationSettings();
       if (notifSettings.contactForm) {
         await sendNotificationEmail(
@@ -583,6 +594,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const submission = await storage.createQuestionnaireSubmission(result.data as any);
 
+      try {
+        await storage.upsertClientByEmail({
+          name: result.data.respondentName,
+          email: result.data.respondentEmail,
+          phone: result.data.respondentPhone,
+          source: 'questionnaire',
+          childName: result.data.childName || undefined,
+        });
+      } catch (e) { console.error("Auto-register client error:", e); }
+
       const notifSettings = await getEmailNotificationSettings();
       if (notifSettings.questionnaires) {
         const typeNames: Record<string, string> = { parent: 'הורה', teacher: 'מורה', self_report: 'דיווח עצמי' };
@@ -697,6 +718,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ success: false, error: result.error.message });
       }
+
+      const childName = result.data.childName || '';
+      if (childName && result.data.clientEmail) {
+        const existing = await storage.getActiveAppointmentForChild(result.data.clientEmail, childName);
+        if (existing) {
+          return res.status(400).json({ 
+            success: false, 
+            error: "כבר קיים תור פעיל עבור ילד זה. ניתן לקבוע תור חדש רק לאחר השלמת או ביטול התור הקיים." 
+          });
+        }
+      }
+
+      try {
+        await storage.upsertClientByEmail({
+          name: result.data.clientName,
+          email: result.data.clientEmail,
+          phone: result.data.clientPhone,
+          source: 'appointment',
+          childName: childName || undefined,
+        });
+      } catch (e) { console.error("Auto-register client error:", e); }
+
       const appointment = await storage.createAppointment(result.data);
 
       const notifSettings = await getEmailNotificationSettings();
@@ -819,6 +862,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json(updated);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update client" });
+    }
+  });
+
+  app.get("/api/clients/:id/interactions", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const interactions = await storage.getClientInteractions(id);
+      return res.json(interactions);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch interactions" });
     }
   });
 
@@ -951,6 +1010,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         visitorPhone: visitorPhone || '',
         title: title || `${visitorName} - ${new Date().toLocaleDateString('he-IL')}`,
       });
+
+      try {
+        await storage.upsertClientByEmail({
+          name: visitorName,
+          email: visitorEmail,
+          phone: visitorPhone || undefined,
+          source: 'chat',
+        });
+      } catch (e) { console.error("Auto-register client error:", e); }
+
       return res.json(conversation);
     } catch (error) {
       console.error("Error creating conversation:", error);

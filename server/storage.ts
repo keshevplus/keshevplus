@@ -35,6 +35,10 @@ export interface IStorage {
   updateClient(id: number, data: Partial<InsertClient>): Promise<Client | undefined>;
   createClientActivity(activity: InsertClientActivity): Promise<ClientActivity>;
   getClientActivities(clientId: number): Promise<ClientActivity[]>;
+  upsertClientByEmail(data: { name: string; email: string; phone?: string; source: string; childName?: string }): Promise<Client>;
+  getClientByEmail(email: string): Promise<Client | undefined>;
+  getClientInteractions(clientId: number): Promise<{ contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[] }>;
+  getActiveAppointmentForChild(email: string, childName: string): Promise<Appointment | undefined>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   getConversations(): Promise<Conversation[]>;
   getConversation(id: number): Promise<Conversation | undefined>;
@@ -310,6 +314,57 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(clientActivities)
       .where(eq(clientActivities.clientId, clientId))
       .orderBy(desc(clientActivities.createdAt));
+  }
+
+  async upsertClientByEmail(data: { name: string; email: string; phone?: string; source: string; childName?: string }): Promise<Client> {
+    const existing = await this.getClientByEmail(data.email);
+    if (existing) {
+      const updates: Record<string, any> = {};
+      if (data.phone && !existing.phone) updates.phone = data.phone;
+      if (data.childName && !existing.childName) updates.childName = data.childName;
+      if (Object.keys(updates).length > 0) {
+        const [updated] = await db.update(clients).set(updates).where(eq(clients.id, existing.id)).returning();
+        return updated;
+      }
+      return existing;
+    }
+    const [created] = await db.insert(clients).values({
+      name: data.name,
+      email: data.email,
+      phone: data.phone || null,
+      status: 'lead',
+      source: data.source,
+      childName: data.childName || null,
+    } as any).returning();
+    return created;
+  }
+
+  async getClientByEmail(email: string): Promise<Client | undefined> {
+    const [c] = await db.select().from(clients).where(eq(clients.email, email));
+    return c || undefined;
+  }
+
+  async getClientInteractions(clientId: number): Promise<{ contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[] }> {
+    const client = await this.getClient(clientId);
+    if (!client || !client.email) {
+      return { contacts: [], appointments: [], questionnaires: [], conversations: [] };
+    }
+    const email = client.email;
+    const clientContacts = await db.select().from(contacts).where(eq(contacts.email, email)).orderBy(desc(contacts.createdAt));
+    const clientAppointments = await db.select().from(appointments).where(eq(appointments.clientEmail, email)).orderBy(desc(appointments.createdAt));
+    const clientQuestionnaires = await db.select().from(questionnaireSubmissions).where(eq(questionnaireSubmissions.respondentEmail, email)).orderBy(desc(questionnaireSubmissions.createdAt));
+    const clientConversations = await db.select().from(conversations).where(eq(conversations.visitorEmail, email)).orderBy(desc(conversations.createdAt));
+    return { contacts: clientContacts, appointments: clientAppointments, questionnaires: clientQuestionnaires, conversations: clientConversations };
+  }
+
+  async getActiveAppointmentForChild(email: string, childName: string): Promise<Appointment | undefined> {
+    const allAppts = await db.select().from(appointments)
+      .where(eq(appointments.clientEmail, email))
+      .orderBy(desc(appointments.createdAt));
+    return allAppts.find(a => 
+      (a.status === 'pending' || a.status === 'confirmed') && 
+      a.childName?.toLowerCase() === childName.toLowerCase()
+    );
   }
 
   async createConversation(conversation: InsertConversation): Promise<Conversation> {

@@ -141,6 +141,25 @@ const Footer: React.FC = () => {
         </div>
       </div>
 
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-4">
+        <div className="flex items-center justify-center gap-3 py-4 border-t border-primary-foreground/10">
+          <div className="flex items-center gap-2 bg-primary-foreground/5 rounded-lg px-4 py-2" data-testid="badge-moxo-certification">
+            <svg className="h-6 w-6 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 12l2 2 4-4" />
+              <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z" />
+            </svg>
+            <div className="flex flex-col">
+              <span className="text-primary-foreground font-semibold text-sm">
+                {isRTL ? 'מוסמכי Moxo' : 'Moxo Certified'}
+              </span>
+              <span className="text-primary-foreground/60 text-xs">
+                {isRTL ? 'אבחון ADHD ממוחשב' : 'Computerized ADHD Assessment'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <Separator className="bg-primary-foreground/20" />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">

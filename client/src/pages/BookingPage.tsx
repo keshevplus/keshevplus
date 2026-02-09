@@ -34,6 +34,7 @@ const BookingPage = () => {
     clientName: '',
     clientEmail: '',
     clientPhone: '',
+    childName: '',
     date: '',
     time: '',
     type: 'consultation',
@@ -58,10 +59,11 @@ const BookingPage = () => {
         title: isHe ? 'הפגישה נקבעה!' : 'Appointment Booked!',
         description: isHe ? 'נחזור אליכם לאישור בהקדם' : 'We will confirm your appointment shortly',
       })
-    } catch {
+    } catch (err: any) {
+      const msg = err?.message || '';
       toast({
         title: isHe ? 'שגיאה' : 'Error',
-        description: isHe ? 'קביעת הפגישה נכשלה. נסו שוב.' : 'Failed to book appointment. Please try again.',
+        description: msg.includes('תור פעיל') ? msg : (isHe ? 'קביעת הפגישה נכשלה. נסו שוב.' : 'Failed to book appointment. Please try again.'),
         variant: 'destructive',
       })
     } finally {
@@ -164,6 +166,18 @@ const BookingPage = () => {
                   required
                   className="bg-white dark:bg-white/90"
                   data-testid="input-booking-email"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="childName">{isHe ? 'שם הילד/ה' : 'Child Name'}</Label>
+                <Input
+                  id="childName"
+                  value={form.childName}
+                  onChange={(e) => setForm(f => ({ ...f, childName: e.target.value }))}
+                  placeholder={isHe ? 'שם הילד/ה (אם רלוונטי)' : 'Child name (if applicable)'}
+                  className="bg-white dark:bg-white/90"
+                  data-testid="input-booking-child-name"
                 />
               </div>
 

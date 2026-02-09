@@ -71,6 +71,7 @@ export const appointments = pgTable("appointments", {
   clientName: text("client_name").notNull(),
   clientEmail: text("client_email").notNull(),
   clientPhone: text("client_phone").notNull(),
+  childName: text("child_name"),
   date: text("date").notNull(),
   time: text("time").notNull(),
   type: text("type").notNull().default("consultation"),
@@ -85,6 +86,9 @@ export const clients = pgTable("clients", {
   email: text("email"),
   phone: text("phone"),
   notes: text("notes"),
+  status: text("status").notNull().default("lead"),
+  source: text("source").notNull().default("manual"),
+  childName: text("child_name"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

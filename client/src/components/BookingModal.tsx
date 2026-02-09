@@ -37,6 +37,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
     clientName: '',
     clientEmail: '',
     clientPhone: '',
+    childName: '',
     date: '',
     time: '',
     type: 'consultation',
@@ -61,10 +62,11 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
         title: isHe ? 'הפגישה נקבעה!' : 'Appointment Booked!',
         description: isHe ? 'נחזור אליכם לאישור בהקדם' : 'We will confirm your appointment shortly',
       })
-    } catch {
+    } catch (err: any) {
+      const msg = err?.message || '';
       toast({
         title: isHe ? 'שגיאה' : 'Error',
-        description: isHe ? 'קביעת הפגישה נכשלה. נסו שוב.' : 'Failed to book appointment. Please try again.',
+        description: msg.includes('תור פעיל') ? msg : (isHe ? 'קביעת הפגישה נכשלה. נסו שוב.' : 'Failed to book appointment. Please try again.'),
         variant: 'destructive',
       })
     } finally {
@@ -80,6 +82,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
         clientName: '',
         clientEmail: '',
         clientPhone: '',
+        childName: '',
         date: '',
         time: '',
         type: 'consultation',
@@ -180,6 +183,17 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
                   placeholder={isHe ? 'כתובת הדוא"ל שלכם' : 'Your email address'}
                   required
                   data-testid="input-booking-email"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="booking-child">{isHe ? 'שם הילד/ה' : 'Child Name'}</Label>
+                <Input
+                  id="booking-child"
+                  value={form.childName}
+                  onChange={(e) => setForm(f => ({ ...f, childName: e.target.value }))}
+                  placeholder={isHe ? 'שם הילד/ה (אם רלוונטי)' : 'Child name (if applicable)'}
+                  data-testid="input-booking-child-name"
                 />
               </div>
 

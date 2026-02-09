@@ -6,11 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Plus, Save, ChevronDown, ChevronUp, Phone, Mail, StickyNote, PhoneCall, Calendar, DollarSign, MailOpen } from "lucide-react";
+import { Users, Plus, Save, ChevronDown, ChevronUp, Phone, Mail, StickyNote, PhoneCall, Calendar, DollarSign, MailOpen, MessageCircle, FileText, ClipboardList, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
 import { apiRequest } from "@/lib/queryClient";
-import type { Client, ClientActivity } from "@shared/schema";
+import type { Client, ClientActivity, Contact, Appointment, QuestionnaireSubmission, Conversation } from "@shared/schema";
+
+interface ClientInteractions {
+  contacts: Contact[];
+  appointments: Appointment[];
+  questionnaires: QuestionnaireSubmission[];
+  conversations: Conversation[];
+}
 
 const ACTIVITY_TYPES: Record<string, { he: string; en: string; color: string; icon: typeof StickyNote }> = {
   note: { he: "הערה", en: "Note", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300", icon: StickyNote },
@@ -18,6 +25,14 @@ const ACTIVITY_TYPES: Record<string, { he: string; en: string; color: string; ic
   meeting: { he: "פגישה", en: "Meeting", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300", icon: Calendar },
   sale: { he: "מכירה", en: "Sale", color: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300", icon: DollarSign },
   email: { he: 'דוא"ל', en: "Email", color: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300", icon: MailOpen },
+};
+
+const SOURCE_LABELS: Record<string, { he: string; en: string }> = {
+  contact_form: { he: "טופס יצירת קשר", en: "Contact Form" },
+  appointment: { he: "קביעת תור", en: "Appointment" },
+  questionnaire: { he: "שאלון", en: "Questionnaire" },
+  chat: { he: "צ'אט", en: "Chat" },
+  manual: { he: "ידני", en: "Manual" },
 };
 
 const ClientsManager = () => {
@@ -29,6 +44,7 @@ const ClientsManager = () => {
   const [loading, setLoading] = useState(true);
   const [expandedClientId, setExpandedClientId] = useState<number | null>(null);
   const [activities, setActivities] = useState<ClientActivity[]>([]);
+  const [interactions, setInteractions] = useState<ClientInteractions | null>(null);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -68,6 +84,17 @@ const ClientsManager = () => {
     }
   };
 
+  const fetchInteractions = async (clientId: number) => {
+    try {
+      const res = await fetch(`/api/clients/${clientId}/interactions`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch interactions");
+      const data = await res.json();
+      setInteractions(data);
+    } catch {
+      setInteractions(null);
+    }
+  };
+
   useEffect(() => {
     fetchClients();
   }, []);
@@ -76,11 +103,13 @@ const ClientsManager = () => {
     if (expandedClientId === client.id) {
       setExpandedClientId(null);
       setActivities([]);
+      setInteractions(null);
       return;
     }
     setExpandedClientId(client.id);
     setEditNotes(client.notes || "");
     fetchActivities(client.id);
+    fetchInteractions(client.id);
   };
 
   const handleAddClient = async () => {
@@ -142,24 +171,87 @@ const ClientsManager = () => {
     });
   };
 
+  const getStatusBadges = (client: Client, inter: ClientInteractions | null) => {
+    const badges: { label: string; variant: string; icon: typeof Mail }[] = [];
+
+    if (inter && inter.contacts.length > 0) {
+      badges.push({
+        label: isHe ? "פנייה" : "Contacted",
+        variant: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+        icon: Mail,
+      });
+    }
+
+    if (inter && inter.appointments.length > 0) {
+      const active = inter.appointments.find(a => a.status === 'pending' || a.status === 'confirmed');
+      if (active) {
+        badges.push({
+          label: isHe ? "תור פעיל" : "Appointment",
+          variant: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+          icon: Calendar,
+        });
+      } else {
+        badges.push({
+          label: isHe ? "תור קודם" : "Past Appt",
+          variant: "bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400",
+          icon: Calendar,
+        });
+      }
+    }
+
+    if (inter && inter.questionnaires.length > 0) {
+      badges.push({
+        label: isHe ? "שאלון" : "Questionnaire",
+        variant: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+        icon: ClipboardList,
+      });
+    }
+
+    if (inter && inter.conversations.length > 0) {
+      badges.push({
+        label: isHe ? "צ'אט" : "Chat",
+        variant: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+        icon: MessageCircle,
+      });
+    }
+
+    return badges;
+  };
+
+  const [clientInteractionsMap, setClientInteractionsMap] = useState<Record<number, ClientInteractions>>({});
+
+  useEffect(() => {
+    if (clients.length > 0) {
+      clients.forEach(async (client) => {
+        try {
+          const res = await fetch(`/api/clients/${client.id}/interactions`, { credentials: "include" });
+          if (res.ok) {
+            const data = await res.json();
+            setClientInteractionsMap(prev => ({ ...prev, [client.id]: data }));
+          }
+        } catch {}
+      });
+    }
+  }, [clients]);
+
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>{isHe ? "ניהול לקוחות" : "Client Manager"}</CardTitle>
+            <CardTitle>{isHe ? "ניהול מבקרים ולקוחות" : "Visitors & Clients"}</CardTitle>
           </div>
           <Button
             variant="outline"
             onClick={() => setShowAddForm(!showAddForm)}
             data-testid="button-toggle-add-client"
           >
-            {showAddForm ? (isHe ? <ChevronUp className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />) : <Plus className="w-4 h-4" />}
+            {showAddForm ? <ChevronUp className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             <span className="ml-1">{isHe ? (showAddForm ? "סגור" : "לקוח חדש") : (showAddForm ? "Close" : "New Client")}</span>
           </Button>
         </div>
-        <CardDescription>{isHe ? "ניהול לקוחות ומעקב פעילויות" : "Manage clients and track activities"}</CardDescription>
+        <CardDescription>{isHe ? "כל המבקרים שנרשמו דרך טפסים, צ'אט, תורים ושאלונים" : "All visitors registered via forms, chat, appointments, and questionnaires"}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {showAddForm && (
@@ -228,6 +320,9 @@ const ClientsManager = () => {
           <div className="space-y-3">
             {clients.map((client) => {
               const isExpanded = expandedClientId === client.id;
+              const clientInter = clientInteractionsMap[client.id] || null;
+              const statusBadges = getStatusBadges(client, clientInter);
+              const sourceLabel = SOURCE_LABELS[client.source || 'manual'];
 
               return (
                 <div
@@ -241,7 +336,7 @@ const ClientsManager = () => {
                     data-testid={`button-expand-client-${client.id}`}
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-4 flex-wrap text-sm">
+                      <div className="flex items-center gap-3 flex-wrap text-sm mb-1">
                         <span className="font-medium">{client.name}</span>
                         {client.email && (
                           <span className="text-muted-foreground flex items-center gap-1">
@@ -255,8 +350,36 @@ const ClientsManager = () => {
                             {client.phone}
                           </span>
                         )}
-                        <span className="text-muted-foreground flex items-center gap-1">
-                          <Calendar className="w-3.5 h-3.5" />
+                        {(client as any).childName && (
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <UserCheck className="w-3.5 h-3.5" />
+                            {(client as any).childName}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge
+                          variant="secondary"
+                          className="no-default-hover-elevate no-default-active-elevate text-xs"
+                          data-testid={`badge-source-${client.id}`}
+                        >
+                          {isHe ? sourceLabel?.he : sourceLabel?.en}
+                        </Badge>
+                        {statusBadges.map((badge, i) => {
+                          const Icon = badge.icon;
+                          return (
+                            <Badge
+                              key={i}
+                              variant="secondary"
+                              className={`no-default-hover-elevate no-default-active-elevate text-xs ${badge.variant}`}
+                              data-testid={`badge-status-${client.id}-${i}`}
+                            >
+                              <Icon className="w-3 h-3 mr-1" />
+                              {badge.label}
+                            </Badge>
+                          );
+                        })}
+                        <span className="text-xs text-muted-foreground">
                           {formatDate(client.createdAt)}
                         </span>
                       </div>
@@ -270,6 +393,91 @@ const ClientsManager = () => {
 
                   {isExpanded && (
                     <div className="border-t p-4 space-y-4 bg-muted/20">
+                      {interactions && (
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-semibold flex items-center gap-2">
+                            <FileText className="w-4 h-4" />
+                            {isHe ? "היסטוריית אינטראקציות" : "Interaction History"}
+                          </h4>
+                          
+                          {interactions.contacts.length > 0 && (
+                            <div className="space-y-1">
+                              <p className="text-xs font-medium text-muted-foreground">{isHe ? "פניות" : "Contact Forms"}</p>
+                              {interactions.contacts.map((c) => (
+                                <div key={c.id} className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border">
+                                  <Badge variant="secondary" className="no-default-hover-elevate no-default-active-elevate shrink-0 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs">
+                                    <Mail className="w-3 h-3 mr-1" />
+                                    {isHe ? "פנייה" : "Contact"}
+                                  </Badge>
+                                  <span className="flex-1 truncate">{c.message}</span>
+                                  <span className="text-xs text-muted-foreground shrink-0">{formatDate(c.createdAt)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {interactions.appointments.length > 0 && (
+                            <div className="space-y-1">
+                              <p className="text-xs font-medium text-muted-foreground">{isHe ? "תורים" : "Appointments"}</p>
+                              {interactions.appointments.map((a) => (
+                                <div key={a.id} className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border">
+                                  <Badge variant="secondary" className={`no-default-hover-elevate no-default-active-elevate shrink-0 text-xs ${a.status === 'confirmed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : a.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : a.status === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400'}`}>
+                                    <Calendar className="w-3 h-3 mr-1" />
+                                    {a.status === 'pending' ? (isHe ? 'ממתין' : 'Pending') : a.status === 'confirmed' ? (isHe ? 'מאושר' : 'Confirmed') : a.status === 'cancelled' ? (isHe ? 'בוטל' : 'Cancelled') : (isHe ? 'הושלם' : 'Completed')}
+                                  </Badge>
+                                  <span className="flex-1">{a.date} {a.time} - {a.type}</span>
+                                  <span className="text-xs text-muted-foreground shrink-0">{formatDate(a.createdAt)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {interactions.questionnaires.length > 0 && (
+                            <div className="space-y-1">
+                              <p className="text-xs font-medium text-muted-foreground">{isHe ? "שאלונים" : "Questionnaires"}</p>
+                              {interactions.questionnaires.map((q) => {
+                                const typeNames: Record<string, { he: string; en: string }> = {
+                                  parent: { he: "הורה", en: "Parent" },
+                                  teacher: { he: "מורה", en: "Teacher" },
+                                  self_report: { he: "דיווח עצמי", en: "Self-Report" },
+                                };
+                                const tn = typeNames[q.type] || { he: q.type, en: q.type };
+                                return (
+                                  <div key={q.id} className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border">
+                                    <Badge variant="secondary" className="no-default-hover-elevate no-default-active-elevate shrink-0 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 text-xs">
+                                      <ClipboardList className="w-3 h-3 mr-1" />
+                                      {isHe ? tn.he : tn.en}
+                                    </Badge>
+                                    <span className="flex-1">{q.childName ? `${isHe ? 'ילד' : 'Child'}: ${q.childName}` : ''}</span>
+                                    <span className="text-xs text-muted-foreground shrink-0">{formatDate(q.createdAt)}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {interactions.conversations.length > 0 && (
+                            <div className="space-y-1">
+                              <p className="text-xs font-medium text-muted-foreground">{isHe ? "שיחות צ'אט" : "Chat Conversations"}</p>
+                              {interactions.conversations.map((conv) => (
+                                <div key={conv.id} className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border">
+                                  <Badge variant="secondary" className="no-default-hover-elevate no-default-active-elevate shrink-0 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 text-xs">
+                                    <MessageCircle className="w-3 h-3 mr-1" />
+                                    {isHe ? "צ'אט" : "Chat"}
+                                  </Badge>
+                                  <span className="flex-1">{conv.title}</span>
+                                  <span className="text-xs text-muted-foreground shrink-0">{formatDate(conv.createdAt)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {interactions.contacts.length === 0 && interactions.appointments.length === 0 && interactions.questionnaires.length === 0 && interactions.conversations.length === 0 && (
+                            <p className="text-sm text-muted-foreground">{isHe ? "אין אינטראקציות מתועדות" : "No recorded interactions"}</p>
+                          )}
+                        </div>
+                      )}
+
                       <div className="space-y-2">
                         <Label>{isHe ? "הערות לקוח" : "Client Notes"}</Label>
                         <Textarea
