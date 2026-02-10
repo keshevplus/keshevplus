@@ -7,10 +7,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users, Plus, Save, ChevronDown, ChevronUp, Phone, Mail, StickyNote, PhoneCall, Calendar, DollarSign, MailOpen, MessageCircle, FileText, ClipboardList, UserCheck, ArrowRightLeft } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
 import { apiRequest } from "@/lib/queryClient";
 import type { Client, ClientActivity, Contact, Appointment, QuestionnaireSubmission, Conversation } from "@shared/schema";
+
+function formatWhatsAppUrl(phone: string, message?: string) {
+  const cleaned = phone.replace(/[^0-9+]/g, '').replace(/^0/, '972')
+  const params = message ? `?text=${encodeURIComponent(message)}` : ''
+  return `https://wa.me/${cleaned}${params}`
+}
 
 interface ClientInteractions {
   contacts: Contact[];
@@ -383,6 +390,16 @@ const ClientsManager = () => {
                           <span className="text-muted-foreground flex items-center gap-1">
                             <Phone className="w-3.5 h-3.5" />
                             {client.phone}
+                            <a
+                              href={formatWhatsAppUrl(client.phone, isHe ? `שלום ${client.name}, פונה אליך מקשב פלוס` : `Hi ${client.name}, reaching out from KeshevPlus`)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[#25D366] hover:underline flex items-center gap-0.5 ms-1"
+                              onClick={(e) => e.stopPropagation()}
+                              data-testid={`link-whatsapp-client-${client.id}`}
+                            >
+                              <SiWhatsapp className="w-3.5 h-3.5" />
+                            </a>
                           </span>
                         )}
                         {(client as any).childName && (

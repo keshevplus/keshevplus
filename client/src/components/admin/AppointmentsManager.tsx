@@ -5,10 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Clock, Phone, Mail, User } from "lucide-react";
+import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Appointment } from "@shared/schema";
+
+function formatWhatsAppUrl(phone: string, message?: string) {
+  const cleaned = phone.replace(/[^0-9+]/g, '').replace(/^0/, '972')
+  const params = message ? `?text=${encodeURIComponent(message)}` : ''
+  return `https://wa.me/${cleaned}${params}`
+}
 
 const STATUS_CONFIG: Record<string, { he: string; en: string; color: string }> = {
   pending: { he: "ממתינה", en: "Pending", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" },
@@ -163,6 +170,18 @@ const AppointmentsManager = () => {
                       <Phone className="w-3.5 h-3.5" />
                       {appointment.clientPhone}
                     </span>
+                    {appointment.clientPhone && (
+                      <a
+                        href={formatWhatsAppUrl(appointment.clientPhone, isHe ? `שלום ${appointment.clientName}, פונה אליך מקשב פלוס בנוגע לפגישה שלך` : `Hi ${appointment.clientName}, reaching out from KeshevPlus regarding your appointment`)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[#25D366] hover:underline"
+                        data-testid={`link-whatsapp-appointment-${appointment.id}`}
+                      >
+                        <SiWhatsapp className="w-3.5 h-3.5" />
+                        <span className="text-xs">WhatsApp</span>
+                      </a>
+                    )}
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5" />
                       {formatDate(appointment.date)}

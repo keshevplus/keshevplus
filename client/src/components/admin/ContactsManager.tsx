@@ -5,8 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Mail, Phone, User, Clock, Eye, EyeOff, ChevronDown, ChevronUp, Inbox } from 'lucide-react'
+import { SiWhatsapp } from 'react-icons/si'
 import { apiRequest, queryClient } from '@/lib/queryClient'
 import type { Contact } from '@shared/schema'
+
+function formatWhatsAppUrl(phone: string, message?: string) {
+  const cleaned = phone.replace(/[^0-9+]/g, '').replace(/^0/, '972')
+  const params = message ? `?text=${encodeURIComponent(message)}` : ''
+  return `https://wa.me/${cleaned}${params}`
+}
 
 export default function ContactsManager() {
   const { language } = useLanguage()
@@ -143,18 +150,33 @@ export default function ContactsManager() {
                         <p className="text-sm whitespace-pre-wrap">{contact.message}</p>
                       </div>
 
-                      {!contact.read && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => markReadMutation.mutate(contact.id)}
-                          disabled={markReadMutation.isPending}
-                          data-testid={`button-mark-read-${contact.id}`}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          {isHe ? 'סמן כנקרא' : 'Mark as Read'}
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {contact.phone && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            asChild
+                            data-testid={`button-whatsapp-contact-${contact.id}`}
+                          >
+                            <a href={formatWhatsAppUrl(contact.phone, isHe ? `שלום ${contact.name}, פונה אליך מקשב פלוס` : `Hi ${contact.name}, reaching out from KeshevPlus`)} target="_blank" rel="noopener noreferrer">
+                              <SiWhatsapp className="h-4 w-4 mr-1 text-[#25D366]" />
+                              WhatsApp
+                            </a>
+                          </Button>
+                        )}
+                        {!contact.read && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => markReadMutation.mutate(contact.id)}
+                            disabled={markReadMutation.isPending}
+                            data-testid={`button-mark-read-${contact.id}`}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            {isHe ? 'סמן כנקרא' : 'Mark as Read'}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

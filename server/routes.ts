@@ -230,6 +230,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/admin/badge-counts", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const counts = await storage.getAdminBadgeCounts();
+      return res.json(counts);
+    } catch (error) {
+      console.error("Error fetching badge counts:", error);
+      return res.status(500).json({ error: "Failed to fetch badge counts" });
+    }
+  });
+
   app.get("/api/contacts", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;

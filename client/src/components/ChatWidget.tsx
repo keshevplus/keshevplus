@@ -2,9 +2,12 @@ import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MessageCircle, X, Send, Bot, User, ArrowRight } from 'lucide-react'
+import { SiWhatsapp } from 'react-icons/si'
 import { useLanguage } from '@/hooks/useLanguage'
 import { useLocation } from 'wouter'
 import { cn } from '@/lib/utils'
+
+const CLINIC_WHATSAPP = '972552739927'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -249,6 +252,7 @@ const ChatWidget = () => {
   if (location.startsWith('/admin')) return null
 
   if (!open) {
+    const whatsAppUrl = `https://wa.me/${CLINIC_WHATSAPP}?text=${encodeURIComponent(isHe ? 'שלום, אשמח לקבל מידע על אבחון ADHD' : 'Hello, I would like information about ADHD diagnosis')}`
     return (
       <div
         className={cn(
@@ -285,7 +289,23 @@ const ChatWidget = () => {
           </div>
         )}
 
-        <div className="relative">
+        <div className="flex flex-col gap-2 items-center">
+          <a
+            href={whatsAppUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              "h-11 w-11 rounded-full flex items-center justify-center",
+              "bg-[#25D366] border-2 border-[#128C7E]",
+              "shadow-[0_2px_8px_rgba(37,211,102,0.35)]",
+              "transition-transform duration-200 hover:scale-105",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2"
+            )}
+            aria-label="WhatsApp"
+            data-testid="button-open-whatsapp"
+          >
+            <SiWhatsapp className="h-5 w-5 text-white" />
+          </a>
           <button
             onClick={() => setOpen(true)}
             className={cn(
@@ -300,7 +320,6 @@ const ChatWidget = () => {
           >
             <MessageCircle className="h-6 w-6 text-white" />
           </button>
-
         </div>
       </div>
     )

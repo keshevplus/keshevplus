@@ -40,6 +40,7 @@ export interface IStorage {
   getClientByEmail(email: string): Promise<Client | undefined>;
   getClientInteractions(clientId: number): Promise<{ contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[] }>;
   getActiveAppointmentForChild(email: string, childName: string): Promise<Appointment | undefined>;
+  getAdminBadgeCounts(): Promise<{ unreadContacts: number; pendingAppointments: number; unreviewedQuestionnaires: number; unreviewedConversations: number; newLeads: number }>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   getConversations(): Promise<Conversation[]>;
   getConversation(id: number): Promise<Conversation | undefined>;
@@ -373,6 +374,21 @@ export class DatabaseStorage implements IStorage {
       (a.status === 'pending' || a.status === 'confirmed') && 
       a.childName?.toLowerCase() === childName.toLowerCase()
     );
+  }
+
+  async getAdminBadgeCounts(): Promise<{ unreadContacts: number; pendingAppointments: number; unreviewedQuestionnaires: number; unreviewedConversations: number; newLeads: number }> {
+    const [contactsResult] = await db.select({ count: sql<number>`count(*)::int` }).from(contacts).where(eq(contacts.read, false));
+    const [appointmentsResult] = await db.select({ count: sql<number>`count(*)::int` }).from(appointments).where(eq(appointments.status, 'pending'));
+    const [questionnairesResult] = await db.select({ count: sql<number>`count(*)::int` }).from(questionnaireSubmissions).where(eq(questionnaireSubmissions.reviewed, false));
+    const [conversationsResult] = await db.select({ count: sql<number>`count(*)::int` }).from(conversations).where(eq(conversations.reviewed, false));
+    const [leadsResult] = await db.select({ count: sql<number>`count(*)::int` }).from(clients).where(eq(clients.status, 'lead'));
+    return {
+      unreadContacts: contactsResult?.count ?? 0,
+      pendingAppointments: appointmentsResult?.count ?? 0,
+      unreviewedQuestionnaires: questionnairesResult?.count ?? 0,
+      unreviewedConversations: conversationsResult?.count ?? 0,
+      newLeads: leadsResult?.count ?? 0,
+    };
   }
 
   async createConversation(conversation: InsertConversation): Promise<Conversation> {

@@ -12,6 +12,9 @@ KeshevPlus is a multilingual website for an ADHD clinic specializing in the diag
 - Israeli law compliance for cookies disclaimer
 
 ## Recent Changes
+- **Feb 2026:** Added admin badge notifications (unread contacts, pending appointments, unreviewed items) on dashboard tabs and overview cards with auto-refresh
+- **Feb 2026:** Integrated WhatsApp quick-action buttons in admin contacts, clients, and appointments managers
+- **Feb 2026:** Added WhatsApp floating button next to chat widget for direct clinic communication
 - **Feb 2026:** Added owner role with admin-equivalent permissions, first-login password change, seed script, and E2E testing pipeline
 - **Feb 2026:** Added cookies disclaimer banner compliant with Israeli Privacy Protection Act
 - **Feb 2026:** Implemented persistent visitor recognition - returning visitors auto-recognized via localStorage/cookies

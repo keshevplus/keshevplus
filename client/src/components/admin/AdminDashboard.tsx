@@ -4,12 +4,14 @@ import { useLanguage } from '@/hooks/useLanguage'
 import { LanguageSelector } from '../LanguageSelector'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useQuery } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/queryClient'
 import { ALL_LANGUAGES, type LanguageSettings, type SupportedLanguage, DEFAULT_LANGUAGE_SETTINGS, BILINGUAL_CODES, MULTILINGUAL_CODES } from '@/i18n/config'
 import TranslationManager from './TranslationManager'
@@ -30,6 +32,29 @@ const AdminDashboard = () => {
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
+
+  interface BadgeCounts {
+    unreadContacts: number
+    pendingAppointments: number
+    unreviewedQuestionnaires: number
+    unreviewedConversations: number
+    newLeads: number
+  }
+
+  const { data: badgeCounts } = useQuery<BadgeCounts>({
+    queryKey: ['/api/admin/badge-counts'],
+    refetchInterval: 30000,
+  })
+
+  const tabBadgeMap: Record<string, number> = {
+    contacts: badgeCounts?.unreadContacts ?? 0,
+    appointments: badgeCounts?.pendingAppointments ?? 0,
+    clients: badgeCounts?.newLeads ?? 0,
+    conversations: badgeCounts?.unreviewedConversations ?? 0,
+    questionnaires: badgeCounts?.unreviewedQuestionnaires ?? 0,
+  }
+
+  const totalBadges = Object.values(tabBadgeMap).reduce((a, b) => a + b, 0)
 
   useEffect(() => {
     fetch('/api/settings/language', { credentials: 'include' })
@@ -99,6 +124,12 @@ const AdminDashboard = () => {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
+              {totalBadges > 0 && (
+                <div className="flex items-center gap-1.5" data-testid="header-notifications">
+                  <Bell className="h-4 w-4 text-muted-foreground" />
+                  <Badge variant="destructive" data-testid="badge-total">{totalBadges}</Badge>
+                </div>
+              )}
               <LanguageSelector />
               <Button variant="outline" onClick={handleSignOut} data-testid="button-signout">
                 <LogOut className="w-4 h-4 mr-2" />
@@ -112,17 +143,25 @@ const AdminDashboard = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} dir={isHe ? 'rtl' : 'ltr'}>
           <TabsList className="w-full justify-start gap-1 overflow-x-auto flex-nowrap bg-muted/50 p-1 mb-6 h-auto flex-wrap">
-            {tabs.map(tab => (
-              <TabsTrigger
-                key={tab.value}
-                value={tab.value}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm whitespace-nowrap"
-                data-testid={`tab-${tab.value}`}
-              >
-                <tab.icon className="h-4 w-4" />
-                <span className="hidden sm:inline">{isHe ? tab.he : tab.en}</span>
-              </TabsTrigger>
-            ))}
+            {tabs.map(tab => {
+              const count = tabBadgeMap[tab.value] ?? 0
+              return (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm whitespace-nowrap relative"
+                  data-testid={`tab-${tab.value}`}
+                >
+                  <tab.icon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{isHe ? tab.he : tab.en}</span>
+                  {count > 0 && (
+                    <Badge variant="destructive" className="text-[10px] leading-none px-1.5 py-0.5 min-w-[18px] text-center" data-testid={`badge-tab-${tab.value}`}>
+                      {count}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              )
+            })}
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6 mt-0">
@@ -130,7 +169,12 @@ const AdminDashboard = () => {
               <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('contacts')} data-testid="card-contacts">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{isHe ? 'פניות באתר' : 'Contacts'}</CardTitle>
-                  <Inbox className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="flex items-center gap-2">
+                    {(badgeCounts?.unreadContacts ?? 0) > 0 && (
+                      <Badge variant="destructive" data-testid="badge-card-contacts">{badgeCounts!.unreadContacts} {isHe ? 'חדשות' : 'new'}</Badge>
+                    )}
+                    <Inbox className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <p className="text-xs text-muted-foreground">{isHe ? 'צפייה בפניות מהאתר' : 'View contact submissions'}</p>
@@ -140,7 +184,12 @@ const AdminDashboard = () => {
               <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('appointments')} data-testid="card-appointments">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{isHe ? 'פגישות' : 'Appointments'}</CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="flex items-center gap-2">
+                    {(badgeCounts?.pendingAppointments ?? 0) > 0 && (
+                      <Badge variant="destructive" data-testid="badge-card-appointments">{badgeCounts!.pendingAppointments} {isHe ? 'ממתינות' : 'pending'}</Badge>
+                    )}
+                    <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <p className="text-xs text-muted-foreground">{isHe ? 'צפייה וניהול פגישות' : 'View & manage appointments'}</p>
@@ -150,7 +199,12 @@ const AdminDashboard = () => {
               <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('clients')} data-testid="card-total-users">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{isHe ? 'לידים ולקוחות' : 'Leads & Clients'}</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="flex items-center gap-2">
+                    {(badgeCounts?.newLeads ?? 0) > 0 && (
+                      <Badge variant="destructive" data-testid="badge-card-leads">{badgeCounts!.newLeads} {isHe ? 'לידים' : 'leads'}</Badge>
+                    )}
+                    <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <p className="text-xs text-muted-foreground">{isHe ? 'ניהול לידים ולקוחות' : 'Manage leads & clients'}</p>
@@ -160,7 +214,12 @@ const AdminDashboard = () => {
               <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('conversations')} data-testid="card-conversations">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{isHe ? 'שיחות צ׳אט' : 'Conversations'}</CardTitle>
-                  <MessageCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="flex items-center gap-2">
+                    {(badgeCounts?.unreviewedConversations ?? 0) > 0 && (
+                      <Badge variant="destructive" data-testid="badge-card-conversations">{badgeCounts!.unreviewedConversations} {isHe ? 'חדשות' : 'new'}</Badge>
+                    )}
+                    <MessageCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <p className="text-xs text-muted-foreground">{isHe ? 'צפייה בשיחות צ׳אט' : 'View chat conversations'}</p>
@@ -170,7 +229,12 @@ const AdminDashboard = () => {
               <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('questionnaires')} data-testid="card-questionnaires">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{isHe ? 'שאלונים' : 'Questionnaires'}</CardTitle>
-                  <ClipboardList className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="flex items-center gap-2">
+                    {(badgeCounts?.unreviewedQuestionnaires ?? 0) > 0 && (
+                      <Badge variant="destructive" data-testid="badge-card-questionnaires">{badgeCounts!.unreviewedQuestionnaires} {isHe ? 'חדשים' : 'new'}</Badge>
+                    )}
+                    <ClipboardList className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <p className="text-xs text-muted-foreground">{isHe ? 'צפייה בהגשות שאלונים' : 'View questionnaire submissions'}</p>
