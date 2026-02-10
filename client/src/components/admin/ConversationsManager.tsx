@@ -5,7 +5,7 @@ import { useLanguage } from '@/hooks/useLanguage'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { MessageCircle, Mail, Phone, User, ChevronDown, ChevronUp, CheckCircle, Bot } from 'lucide-react'
+import { MessageCircle, Mail, Phone, User, ChevronDown, ChevronUp, CheckCircle, Bot, Trash2 } from 'lucide-react'
 
 interface Conversation {
   id: number
@@ -43,6 +43,14 @@ const ConversationsManager = () => {
     mutationFn: (id: number) => apiRequest('PATCH', `/api/conversations/${id}/reviewed`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiRequest('DELETE', `/api/conversations/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
+      setExpandedId(null)
     },
   })
 
@@ -160,18 +168,35 @@ const ConversationsManager = () => {
                           ))
                         )}
                       </div>
-                      {!conv.reviewed && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {!conv.reviewed && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => markReviewed.mutate(conv.id)}
+                            disabled={markReviewed.isPending}
+                            data-testid={`button-review-${conv.id}`}
+                          >
+                            <CheckCircle className="h-4 w-4 me-1" />
+                            {isHe ? 'סמן כנקרא' : 'Mark as Reviewed'}
+                          </Button>
+                        )}
                         <Button
-                          variant="outline"
                           size="sm"
-                          onClick={() => markReviewed.mutate(conv.id)}
-                          disabled={markReviewed.isPending}
-                          data-testid={`button-review-${conv.id}`}
+                          variant="outline"
+                          className="text-destructive border-destructive/30"
+                          onClick={() => {
+                            if (window.confirm(isHe ? `למחוק את השיחה עם ${conv.visitorName}?` : `Delete conversation with ${conv.visitorName}?`)) {
+                              deleteMutation.mutate(conv.id)
+                            }
+                          }}
+                          disabled={deleteMutation.isPending}
+                          data-testid={`button-delete-conversation-${conv.id}`}
                         >
-                          <CheckCircle className="h-4 w-4 me-1" />
-                          {isHe ? 'סמן כנקרא' : 'Mark as Reviewed'}
+                          <Trash2 className="h-4 w-4 me-1" />
+                          {isHe ? 'מחק' : 'Delete'}
                         </Button>
-                      )}
+                      </div>
                     </div>
                   )}
                 </div>

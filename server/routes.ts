@@ -281,6 +281,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/contacts/:id", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteContact(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to delete contact" });
+    }
+  });
+
   app.get("/api/settings/language", async (_req, res) => {
     try {
       const setting = await storage.getSetting("language");
@@ -1143,6 +1162,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json(updated);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update conversation" });
+    }
+  });
+
+  app.delete("/api/conversations/:id", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteConversation(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to delete conversation" });
     }
   });
 

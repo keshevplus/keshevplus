@@ -4,7 +4,7 @@ import { useLanguage } from '@/hooks/useLanguage'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Mail, Phone, User, Clock, Eye, EyeOff, ChevronDown, ChevronUp, Inbox } from 'lucide-react'
+import { Mail, Phone, User, Clock, Eye, EyeOff, ChevronDown, ChevronUp, Inbox, Trash2 } from 'lucide-react'
 import { SiWhatsapp } from 'react-icons/si'
 import { apiRequest, queryClient } from '@/lib/queryClient'
 import type { Contact } from '@shared/schema'
@@ -28,6 +28,14 @@ export default function ContactsManager() {
     mutationFn: (id: number) => apiRequest('PATCH', `/api/contacts/${id}/read`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/contacts'] })
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiRequest('DELETE', `/api/contacts/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] })
+      setExpandedId(null)
     },
   })
 
@@ -176,6 +184,21 @@ export default function ContactsManager() {
                             {isHe ? 'סמן כנקרא' : 'Mark as Read'}
                           </Button>
                         )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive border-destructive/30"
+                          onClick={() => {
+                            if (window.confirm(isHe ? `למחוק את הפנייה מ-${contact.name}?` : `Delete submission from ${contact.name}?`)) {
+                              deleteMutation.mutate(contact.id)
+                            }
+                          }}
+                          disabled={deleteMutation.isPending}
+                          data-testid={`button-delete-contact-${contact.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          {isHe ? 'מחק' : 'Delete'}
+                        </Button>
                       </div>
                     </div>
                   )}

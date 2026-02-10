@@ -47,6 +47,8 @@ export interface IStorage {
   markConversationReviewed(id: number): Promise<Conversation | undefined>;
   addMessage(message: InsertMessage): Promise<Message>;
   getMessages(conversationId: number): Promise<Message[]>;
+  deleteContact(id: number): Promise<boolean>;
+  deleteConversation(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -422,6 +424,16 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(messages)
       .where(eq(messages.conversationId, conversationId))
       .orderBy(messages.createdAt);
+  }
+
+  async deleteContact(id: number): Promise<boolean> {
+    const result = await db.delete(contacts).where(eq(contacts.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async deleteConversation(id: number): Promise<boolean> {
+    const result = await db.delete(conversations).where(eq(conversations.id, id)).returning();
+    return result.length > 0;
   }
 }
 
