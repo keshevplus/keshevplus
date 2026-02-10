@@ -1,0 +1,69 @@
+name: End-to-End Testing for CI/CD
+
+# This GitHub Actions workflow defines an example continuous integration and
+# continuous deployment pipeline that runs end‑to‑end tests whenever code is
+# pushed to or opened as a pull request against the `main` branch.  It sets
+# up a Node.js environment, installs dependencies, seeds a test database with a
+# new `owner` role (mirroring the permissions of the existing `admin` role),
+# and creates a test user.  The first login for this user must trigger a
+# forced password change.  After seeding, it executes the end‑to‑end test
+# suite.  Adjust the commands and scripts to match your project structure.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      # The test user's credentials.  These values are referenced by your
+      # seeding script and test code.  In a production project you should
+      # supply these via GitHub secrets instead of hard coding them.
+      TEST_OWNER_EMAIL: "dr@keshevplus.co.il"
+      TEST_OWNER_PASSWORD: "12345678"
+      # Optional: URL of the application under test.  Defaults to
+      # localhost:3000 if not provided.
+      TEST_APP_URL: ${{ secrets.TEST_APP_URL }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+
+      - name: Install dependencies
+        run: |
+          npm ci
+
+      - name: Run database migrations
+        # Modify this command to run your database migrations.  If you are
+        # using Docker Compose or a different migration tool, replace it
+        # accordingly.  Remove this step if your app does not need
+        # migrations.
+        run: |
+          npm run migrate
+
+      - name: Seed test data (create owner role and test user)
+        # This step executes a custom script which clones the `admin` role
+        # permissions into a new `owner` role, creates a user with the
+        # provided credentials, and flags the account for a forced
+        # password change on first login.  Create this script in your
+        # repository (e.g. `scripts/seed-owner-role.js`) and ensure it
+        # returns a non‑zero exit code on failure.
+        run: |
+          node scripts/seed-owner-role.js
+
+      - name: Run end‑to‑end tests
+        # Adjust this command to match the test runner you are using.  For
+        # instance, Playwright: `npx playwright install && npm run test:e2e`
+        # or Cypress: `npx cypress run`.  The test suite should exercise
+        # logging in with the test user, require a password change, and
+        # verify that the `owner` role has admin‑equivalent permissions.
+        run: |
+          npm run test:e2e

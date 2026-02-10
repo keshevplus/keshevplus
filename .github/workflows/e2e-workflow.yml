@@ -1,0 +1,91 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL || 'dr@keshevplus.co.il' }}
+  TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD || '12345678' }}
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: keshevplus_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run database migrations
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/keshevplus_test
+        run: npm run db:push
+
+      - name: Seed owner role and test user
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/keshevplus_test
+          OWNER_EMAIL: ${{ env.TEST_USER_EMAIL }}
+          OWNER_PASSWORD: ${{ env.TEST_USER_PASSWORD }}
+        run: node scripts/seed-owner-role.js
+
+      - name: Build application
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/keshevplus_test
+        run: npm run build
+
+      - name: Start application
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/keshevplus_test
+          NODE_ENV: test
+          PORT: 5000
+        run: |
+          npm start &
+          sleep 5
+
+      - name: Run E2E tests
+        env:
+          BASE_URL: http://localhost:5000
+          TEST_USER_EMAIL: ${{ env.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ env.TEST_USER_PASSWORD }}
+        run: npx playwright test e2e/ --reporter=list
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7

@@ -7,6 +7,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   role: text("role").notNull().default("user"),
+  mustChangePassword: boolean("must_change_password").notNull().default(false),
 });
 
 export const contacts = pgTable("contacts", {

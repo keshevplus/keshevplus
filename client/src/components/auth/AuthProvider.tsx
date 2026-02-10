@@ -4,6 +4,7 @@ interface AuthUser {
   id: number;
   email: string;
   role: string;
+  mustChangePassword?: boolean;
 }
 
 interface AuthContextType {
@@ -11,6 +12,7 @@ interface AuthContextType {
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: any }>
   isAdmin: boolean
 }
 
@@ -28,7 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const isAdmin = user?.role === 'admin' || user?.email === 'admin@keshevplus.co.il'
+  const isAdmin = user?.role === 'admin' || user?.role === 'owner' || user?.email === 'admin@keshevplus.co.il'
 
   useEffect(() => {
     fetch('/api/auth/me', { credentials: 'include' })
@@ -68,11 +70,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null)
   }
 
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+        credentials: 'include',
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        return { error: { message: data.error || 'Failed to change password' } }
+      }
+      setUser(prev => prev ? { ...prev, mustChangePassword: false } : null)
+      return { error: null }
+    } catch (err) {
+      return { error: { message: 'Network error' } }
+    }
+  }
+
   const value = {
     user,
     loading,
     signIn,
     signOut,
+    changePassword,
     isAdmin,
   }
 

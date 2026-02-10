@@ -6,6 +6,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserPassword(id: number, hashedPassword: string): Promise<void>;
   createContact(contact: InsertContact): Promise<Contact>;
   getContacts(): Promise<Contact[]>;
   markContactRead(id: number): Promise<Contact | undefined>;
@@ -64,6 +65,13 @@ export class DatabaseStorage implements IStorage {
       .values(insertUser as any)
       .returning();
     return user;
+  }
+
+  async updateUserPassword(id: number, hashedPassword: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ password: hashedPassword, mustChangePassword: false } as any)
+      .where(eq(users.id, id));
   }
 
   async createContact(insertContact: InsertContact): Promise<Contact> {

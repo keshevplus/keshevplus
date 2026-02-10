@@ -189,6 +189,11 @@ async function sendNotificationEmail(subject: string, body: string): Promise<voi
   }
 }
 
+function hasAdminAccess(user: { role: string; email: string } | undefined | null): boolean {
+  if (!user) return false;
+  return user.role === "admin" || user.role === "owner" || user.email === "admin@keshevplus.co.il";
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/contact", async (req, res) => {
     try {
@@ -230,7 +235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const contacts = await storage.getContacts();
@@ -246,7 +251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
@@ -280,7 +285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -302,7 +307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const settings = await getEmailNotificationSettings();
@@ -317,7 +322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -409,7 +414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       (req.session as any).userId = user.id;
-      return res.json({ id: user.id, email: user.email, role: user.role });
+      return res.json({ id: user.id, email: user.email, role: user.role, mustChangePassword: user.mustChangePassword });
     } catch (error) {
       console.error("Login error:", error);
       return res.status(500).json({ error: "Login failed" });
@@ -431,7 +436,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!user) {
       return res.status(401).json({ error: "User not found" });
     }
-    return res.json({ id: user.id, email: user.email, role: user.role });
+    return res.json({ id: user.id, email: user.email, role: user.role, mustChangePassword: user.mustChangePassword });
+  });
+
+  app.post("/api/auth/change-password", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Current and new password are required" });
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: "New password must be at least 6 characters" });
+      }
+
+      const bcrypt = await import("bcryptjs");
+      const compare = bcrypt.default?.compare || bcrypt.compare;
+      const valid = await compare(currentPassword, user.password);
+      if (!valid) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+
+      const hash = bcrypt.default?.hash || bcrypt.hash;
+      const hashedPassword = await hash(newPassword, 10);
+      await storage.updateUserPassword(userId, hashedPassword);
+
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Change password error:", error);
+      return res.status(500).json({ error: "Failed to change password" });
+    }
   });
 
   app.get("/api/translations/keys", async (_req, res) => {
@@ -473,7 +511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -497,7 +535,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -521,7 +559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -541,7 +579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -627,7 +665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -647,7 +685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -666,7 +704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -692,7 +730,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Not authenticated" });
       }
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
 
@@ -762,7 +800,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const status = req.query.status as string | undefined;
@@ -779,7 +817,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
@@ -801,7 +839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const result = insertClientSchema.safeParse(req.body);
@@ -821,7 +859,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const list = await storage.getClients();
@@ -836,7 +874,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
@@ -853,7 +891,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
@@ -870,7 +908,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
@@ -887,7 +925,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const clientId = parseInt(req.params.id);
@@ -907,7 +945,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const clientId = parseInt(req.params.id);
@@ -1049,7 +1087,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const list = await storage.getConversations();
@@ -1064,7 +1102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
@@ -1080,7 +1118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!user || (user.role !== "admin" && user.email !== "admin@keshevplus.co.il")) {
+      if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
