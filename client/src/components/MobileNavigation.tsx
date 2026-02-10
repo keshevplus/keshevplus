@@ -113,18 +113,18 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
           transition: 'padding 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s, box-shadow 0.3s',
         }}
         className={cn(
-          "fixed top-0 left-0 right-0 z-50",
+          "fixed top-0 left-0 right-0 z-50 overflow-visible",
           isScrolled
             ? "bg-background/95 backdrop-blur-md shadow-md"
             : "bg-background/80 backdrop-blur-sm",
         )}
         dir={dir}
       >
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-4 sm:px-6 overflow-visible">
+          <div className="flex items-center justify-between overflow-visible">
             <button
               onClick={() => scrollToSection("#home")}
-              className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md"
+              className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md overflow-visible"
               aria-label={isRTL ? "חזרה לדף הבית" : "Go to homepage"}
             >
               <img
@@ -132,10 +132,11 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 alt={isRTL ? "קשב פלוס" : "Keshev Plus"}
                 style={{
                   height: isScrolled ? '40px' : '80px',
-                  transition: 'height 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transition: 'height 0.4s cubic-bezier(0.4, 0, 0.2, 1), margin 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
                 className={cn(
-                  "w-auto",
+                  "w-auto nav-logo",
+                  isScrolled ? 'nav-logo-scrolled' : 'nav-logo-unscrolled',
                 )}
               />
             </button>
