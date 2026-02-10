@@ -379,10 +379,3 @@
   scroll-behavior: auto !important;
 }
 
-@media (min-width: 1024px) {
-  .nav-logo.nav-logo-unscrolled {
-    height: 9rem !important;
-    margin-top: -2rem;
-    margin-bottom: -2rem;
-  }
-}

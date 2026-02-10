@@ -24,8 +24,17 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const isScrolled = scrollProgress > 0.1;
   const { t, isRTL, dir } = useLanguage();
+
+  useEffect(() => {
+    const checkDesktop = () => setIsDesktop(window.innerWidth >= 1024);
+    checkDesktop();
+    window.addEventListener("resize", checkDesktop, { passive: true });
+    return () => window.removeEventListener("resize", checkDesktop);
+  }, []);
 
   const navItems: NavItem[] = [
     { href: "#home", label: t("nav.home") },
@@ -38,7 +47,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      const progress = Math.min(1, Math.max(0, window.scrollY / 150));
+      setScrollProgress(progress);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -108,9 +118,9 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
         role="navigation"
         aria-label={isRTL ? "ניווט ראשי" : "Main navigation"}
         style={{
-          paddingTop: isScrolled ? '4px' : '24px',
-          paddingBottom: isScrolled ? '4px' : '24px',
-          transition: 'padding 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s, box-shadow 0.3s',
+          paddingTop: `${24 - scrollProgress * 20}px`,
+          paddingBottom: `${24 - scrollProgress * 20}px`,
+          transition: 'background-color 0.3s, box-shadow 0.3s',
         }}
         className={cn(
           "fixed top-0 left-0 right-0 z-50 overflow-visible",
@@ -131,13 +141,13 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 src={logo}
                 alt={isRTL ? "קשב פלוס" : "Keshev Plus"}
                 style={{
-                  height: isScrolled ? '40px' : '80px',
-                  transition: 'height 0.4s cubic-bezier(0.4, 0, 0.2, 1), margin 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  height: isDesktop
+                    ? `${144 - scrollProgress * 104}px`
+                    : `${80 - scrollProgress * 40}px`,
+                  marginTop: isDesktop ? `${-32 + scrollProgress * 32}px` : undefined,
+                  marginBottom: isDesktop ? `${-32 + scrollProgress * 32}px` : undefined,
                 }}
-                className={cn(
-                  "w-auto nav-logo",
-                  isScrolled ? 'nav-logo-scrolled' : 'nav-logo-unscrolled',
-                )}
+                className="w-auto nav-logo"
               />
             </button>
 
