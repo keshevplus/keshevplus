@@ -145,6 +145,10 @@ const BlogSection = () => {
                   src={featuredPost.image}
                   alt={featuredPost.title}
                   className="w-full h-64 lg:h-full object-cover transition-smooth group-hover:scale-105"
+                  loading="lazy"
+                  width="800"
+                  height="400"
+                  decoding="async"
                 />
                 <div className="absolute top-4 left-4">
                   <Badge className="gradient-primary text-primary-foreground font-medium">
@@ -218,6 +222,10 @@ const BlogSection = () => {
                       src={post.image}
                       alt={post.title}
                       className="w-full h-48 object-cover transition-smooth group-hover:scale-110"
+                      loading="lazy"
+                      width="400"
+                      height="250"
+                      decoding="async"
                     />
                     <div className="absolute top-4 left-4">
                       <Badge variant="secondary" className="gradient-card border-0 backdrop-blur-sm">

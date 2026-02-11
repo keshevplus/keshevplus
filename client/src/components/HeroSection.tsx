@@ -69,6 +69,10 @@ const HeroSection = () => {
                 src={professionalHeadshot}
                 alt="Professional headshot"
                 className="w-full h-full object-cover rounded-full shadow-strong hover-glow transition-smooth"
+                loading="lazy"
+                width="192"
+                height="192"
+                decoding="async"
               />
               <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-primary/20 to-accent/20" />
             </div>

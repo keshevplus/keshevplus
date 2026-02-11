@@ -42,6 +42,9 @@ const Footer: React.FC = () => {
               alt="Keshev Plus Logo" 
               className="h-16 w-auto brightness-0 invert"
               loading="lazy"
+              width="150"
+              height="64"
+              decoding="async"
             />
             <p className="text-primary-foreground/80 text-sm leading-relaxed">
               {t('footer.clinic_desc')}

@@ -50,6 +50,9 @@ const AboutSection: React.FC = () => {
               alt={t('about.doctor_alt')}
               className="relative rounded-lg sm:rounded-xl shadow-xl w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto object-cover aspect-[4/5]"
               loading="lazy"
+              width="400"
+              height="500"
+              decoding="async"
             />
           </div>
         </motion.div>

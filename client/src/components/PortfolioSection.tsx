@@ -138,6 +138,10 @@ const PortfolioSection = () => {
                     src={project.image}
                     alt={project.title}
                     className="w-full h-64 object-cover transition-smooth group-hover:scale-110"
+                    loading="lazy"
+                    width="600"
+                    height="400"
+                    decoding="async"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-smooth" />
                   
@@ -227,6 +231,10 @@ const PortfolioSection = () => {
                       src={project.image}
                       alt={project.title}
                       className="w-full h-48 object-cover transition-smooth group-hover:scale-105"
+                      loading="lazy"
+                      width="400"
+                      height="300"
+                      decoding="async"
                     />
                     <div className="absolute top-4 right-4 flex gap-2">
                       <Button

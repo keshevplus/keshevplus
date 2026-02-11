@@ -188,6 +188,9 @@ const MedicalHero: React.FC = () => {
                   alt={t("hero.doctor_alt")}
                   className="w-full max-h-[50vh] sm:max-h-[75vh] md:max-h-[85vh] lg:max-h-[90vh] h-auto object-contain object-bottom drop-shadow-2xl block scale-105 sm:scale-110 origin-bottom"
                   loading="eager"
+                  fetchPriority="high"
+                  width="800"
+                  height="1000"
                 />
               </motion.div>
             </div>
