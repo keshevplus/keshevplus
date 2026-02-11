@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, Phone, Mail, User } from "lucide-react";
+import { Calendar, Clock, Phone, Mail, User, Trash2, Filter } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -58,6 +58,19 @@ const AppointmentsManager = () => {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/appointments/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [queryUrl] });
+      toast({
+        title: isHe ? "הפגישה נמחקה" : "Appointment deleted",
+        description: isHe ? "הפגישה נמחקה בהצלחה." : "Appointment has been deleted successfully.",
+      });
+    },
+  });
+
   const formatDate = (date: string) => {
     const d = new Date(date);
     return d.toLocaleString(isHe ? "he-IL" : "en-US", {
@@ -78,18 +91,22 @@ const AppointmentsManager = () => {
             <Calendar className="h-5 w-5 text-muted-foreground" />
             <CardTitle>{isHe ? "ניהול פגישות" : "Appointment Manager"}</CardTitle>
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]" data-testid="select-appointment-filter">
-              <SelectValue placeholder={isHe ? "סינון לפי סטטוס" : "Filter by status"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" data-testid="filter-all">{isHe ? "הכל" : "All"}</SelectItem>
-              <SelectItem value="pending" data-testid="filter-pending">{isHe ? "ממתינות" : "Pending"}</SelectItem>
-              <SelectItem value="confirmed" data-testid="filter-confirmed">{isHe ? "מאושרות" : "Confirmed"}</SelectItem>
-              <SelectItem value="cancelled" data-testid="filter-cancelled">{isHe ? "בוטלו" : "Cancelled"}</SelectItem>
-              <SelectItem value="completed" data-testid="filter-completed">{isHe ? "הושלמו" : "Completed"}</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[150px] h-8 text-xs" data-testid="select-appointment-filter">
+                <div className="flex items-center gap-1.5">
+                  <Filter className="h-3.5 w-3.5" />
+                  <SelectValue placeholder={isHe ? "סינון" : "Filter"} />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{isHe ? "הכל" : "All"}</SelectItem>
+                {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                  <SelectItem key={key} value={key}>{isHe ? config.he : config.en}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <CardDescription>{isHe ? "צפייה וניהול פגישות עם לקוחות" : "View and manage client appointments"}</CardDescription>
       </CardHeader>
@@ -129,39 +146,35 @@ const AppointmentsManager = () => {
                       </Badge>
                     </div>
                     <div className="flex items-center gap-1 flex-wrap">
-                      {appointment.status !== "confirmed" && appointment.status !== "completed" && appointment.status !== "cancelled" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateStatus.mutate({ id: appointment.id, status: "confirmed" })}
-                          disabled={updateStatus.isPending}
-                          data-testid={`button-confirm-${appointment.id}`}
-                        >
-                          {isHe ? "אישור" : "Confirm"}
-                        </Button>
-                      )}
-                      {appointment.status !== "completed" && appointment.status !== "cancelled" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateStatus.mutate({ id: appointment.id, status: "completed" })}
-                          disabled={updateStatus.isPending}
-                          data-testid={`button-complete-${appointment.id}`}
-                        >
-                          {isHe ? "השלמה" : "Complete"}
-                        </Button>
-                      )}
-                      {appointment.status !== "cancelled" && appointment.status !== "completed" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateStatus.mutate({ id: appointment.id, status: "cancelled" })}
-                          disabled={updateStatus.isPending}
-                          data-testid={`button-cancel-${appointment.id}`}
-                        >
-                          {isHe ? "ביטול" : "Cancel"}
-                        </Button>
-                      )}
+                      <Select 
+                        value={appointment.status} 
+                        onValueChange={(status) => updateStatus.mutate({ id: appointment.id, status })}
+                      >
+                        <SelectTrigger className="h-8 text-xs w-[110px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                            <SelectItem key={key} value={key} className="text-xs">
+                              {isHe ? config.he : config.en}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive border-destructive/30"
+                        onClick={() => {
+                          if (window.confirm(isHe ? `למחוק את הפגישה עם ${appointment.clientName}?` : `Delete appointment with ${appointment.clientName}?`)) {
+                            deleteMutation.mutate(appointment.id)
+                          }
+                        }}
+                        disabled={deleteMutation.isPending}
+                        data-testid={`button-delete-appt-${appointment.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 flex-wrap text-sm text-muted-foreground">

@@ -255,7 +255,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
       const contacts = await storage.getContacts();
-      return res.json(contacts);
+      const status = req.query.status as string | undefined;
+      const filtered = status && status !== "all" 
+        ? contacts.filter(c => c.status === status)
+        : contacts;
+      return res.json(filtered);
     } catch (error) {
       console.error("Error fetching contacts:", error);
       return res.status(500).json({ error: "Failed to fetch contacts" });
@@ -278,6 +282,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json(contact);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update contact" });
+    }
+  });
+
+  app.patch("/api/contacts/:id/status", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      const contact = await storage.updateContactStatus(id, status);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      return res.json(contact);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update contact status" });
     }
   });
 
@@ -724,11 +748,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const type = req.query.type as string | undefined;
-      const submissions = await storage.getQuestionnaireSubmissions(type);
+      const status = req.query.status as string | undefined;
+      let submissions = await storage.getQuestionnaireSubmissions(type && type !== 'all' ? type : undefined);
+      if (status && status !== "all") {
+        submissions = submissions.filter(s => s.status === status);
+      }
       return res.json(submissions);
     } catch (error) {
       console.error("Error fetching questionnaires:", error);
       return res.status(500).json({ error: "Failed to fetch questionnaires" });
+    }
+  });
+
+  app.patch("/api/questionnaires/:id/status", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      const submission = await storage.updateQuestionnaireStatus(id, status);
+      if (!submission) {
+        return res.status(404).json({ error: "Questionnaire not found" });
+      }
+      return res.json(submission);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update questionnaire status" });
+    }
+  });
+
+  app.delete("/api/questionnaires/:id", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteQuestionnaire(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Questionnaire not found" });
+      }
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to delete questionnaire" });
+    }
+  });
+
+  app.delete("/api/appointments/:id", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteAppointment(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Appointment not found" });
+      }
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to delete appointment" });
     }
   });
 

@@ -1,14 +1,23 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Mail, Phone, User, Clock, Eye, EyeOff, ChevronDown, ChevronUp, Inbox, Trash2 } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Mail, Phone, User, Clock, Eye, EyeOff, ChevronDown, ChevronUp, Inbox, Trash2, Filter } from 'lucide-react'
 import { SiWhatsapp } from 'react-icons/si'
 import { apiRequest, queryClient } from '@/lib/queryClient'
+import { cn } from '@/lib/utils'
 import type { Contact } from '@shared/schema'
+
+const STATUS_CONFIG: Record<string, { he: string; en: string; color: string }> = {
+  new: { he: "חדש", en: "New", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
+  in_progress: { he: "בטיפול", en: "In Progress", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" },
+  follow_up: { he: "מעקב", en: "Follow Up", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" },
+  closed: { he: "סגור", en: "Closed", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300" },
+};
 
 function formatWhatsAppUrl(phone: string, message?: string) {
   const cleaned = phone.replace(/[^0-9+]/g, '').replace(/^0/, '972')
@@ -22,9 +31,24 @@ export default function ContactsManager() {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [selectMode, setSelectMode] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<string>("all")
 
   const { data: contacts = [], isLoading } = useQuery<Contact[]>({
-    queryKey: ['/api/contacts'],
+    queryKey: ['/api/contacts', statusFilter],
+    queryFn: async () => {
+      const url = statusFilter === 'all' ? '/api/contacts' : `/api/contacts?status=${statusFilter}`;
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch');
+      return res.json();
+    }
+  })
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) => 
+      apiRequest('PATCH', `/api/contacts/${id}/status`, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] })
+    },
   })
 
   const markReadMutation = useMutation({
@@ -107,6 +131,20 @@ export default function ContactsManager() {
                 {unreadCount} {isHe ? 'חדשות' : 'new'}
               </Badge>
             )}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[140px] h-8 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <Filter className="h-3.5 w-3.5" />
+                  <SelectValue />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{isHe ? 'כל הסטטוסים' : 'All Statuses'}</SelectItem>
+                {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                  <SelectItem key={key} value={key}>{isHe ? config.he : config.en}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {contacts.length > 0 && (
               <Button
                 variant="outline"
@@ -161,12 +199,13 @@ export default function ContactsManager() {
           </p>
         ) : contacts.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
-            {isHe ? 'אין פניות עדיין' : 'No submissions yet'}
+            {isHe ? 'אין פניות להצגה' : 'No submissions to display'}
           </p>
         ) : (
           <div className="space-y-2">
             {contacts.map((contact) => {
               const isExpanded = expandedId === contact.id
+              const statusInfo = STATUS_CONFIG[contact.status] || STATUS_CONFIG.new
               return (
                 <div
                   key={contact.id}
@@ -185,12 +224,12 @@ export default function ContactsManager() {
                         />
                       </div>
                     )}
-                    <button
-                      className="w-full flex items-center justify-between gap-3 p-3 text-start flex-1"
-                      onClick={() => setExpandedId(isExpanded ? null : contact.id)}
-                      data-testid={`button-toggle-contact-${contact.id}`}
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-3 p-3 flex-1">
+                      <button
+                        className="flex-1 text-start flex items-center gap-3 min-w-0"
+                        onClick={() => setExpandedId(isExpanded ? null : contact.id)}
+                        data-testid={`button-toggle-contact-${contact.id}`}
+                      >
                         {!contact.read ? (
                           <EyeOff className="h-4 w-4 text-primary shrink-0" />
                         ) : (
@@ -201,6 +240,9 @@ export default function ContactsManager() {
                             <span className={`text-sm font-medium truncate ${!contact.read ? 'text-primary' : ''}`}>
                               {contact.name}
                             </span>
+                            <Badge variant="secondary" className={cn("text-[10px] px-1.5 py-0 leading-none", statusInfo.color)}>
+                              {isHe ? statusInfo.he : statusInfo.en}
+                            </Badge>
                             {!contact.read && (
                               <Badge variant="secondary" className="text-xs">
                                 {isHe ? 'חדש' : 'New'}
@@ -211,18 +253,35 @@ export default function ContactsManager() {
                             {contact.message.substring(0, 80)}{contact.message.length > 80 ? '...' : ''}
                           </p>
                         </div>
-                      </div>
+                      </button>
                       <div className="flex items-center gap-2 shrink-0">
+                        <Select 
+                          value={contact.status} 
+                          onValueChange={(status) => updateStatusMutation.mutate({ id: contact.id, status })}
+                        >
+                          <SelectTrigger className="h-7 text-[10px] w-[90px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                              <SelectItem key={key} value={key} className="text-xs">
+                                {isHe ? config.he : config.en}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <span className="text-xs text-muted-foreground hidden sm:inline">
                           {formatDate(contact.createdAt)}
                         </span>
-                        {isExpanded ? (
-                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                        )}
+                        <button onClick={() => setExpandedId(isExpanded ? null : contact.id)}>
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </button>
                       </div>
-                    </button>
+                    </div>
                   </div>
 
                   {isExpanded && (

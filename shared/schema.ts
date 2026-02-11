@@ -10,6 +10,9 @@ export const users = pgTable("users", {
   mustChangePassword: boolean("must_change_password").notNull().default(false),
 });
 
+export const CONTACT_STATUSES = ["new", "in_progress", "closed", "follow_up"] as const;
+export type ContactStatus = typeof CONTACT_STATUSES[number];
+
 export const contacts = pgTable("contacts", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -18,6 +21,7 @@ export const contacts = pgTable("contacts", {
   message: text("message").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   read: boolean("read").default(false).notNull(),
+  status: text("status").notNull().default("new"),
 });
 
 export const siteSettings = pgTable("site_settings", {
@@ -38,6 +42,9 @@ export const translations = pgTable("translations", {
 export const QUESTIONNAIRE_TYPES = ["parent", "teacher", "self_report"] as const;
 export type QuestionnaireType = typeof QUESTIONNAIRE_TYPES[number];
 
+export const QUESTIONNAIRE_STATUSES = ["new", "reviewed", "archived"] as const;
+export type QuestionnaireStatus = typeof QUESTIONNAIRE_STATUSES[number];
+
 export const questionnaireSubmissions = pgTable("questionnaire_submissions", {
   id: serial("id").primaryKey(),
   type: text("type").notNull(),
@@ -53,6 +60,7 @@ export const questionnaireSubmissions = pgTable("questionnaire_submissions", {
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   reviewed: boolean("reviewed").default(false).notNull(),
+  status: text("status").notNull().default("new"),
 });
 
 export const smsVerifications = pgTable("sms_verifications", {

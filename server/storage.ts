@@ -53,6 +53,12 @@ export interface IStorage {
   bulkDeleteContacts(ids: number[]): Promise<number>;
   bulkDeleteConversations(ids: number[]): Promise<number>;
   bulkDeleteClients(ids: number[]): Promise<number>;
+  updateContactStatus(id: number, status: string): Promise<Contact | undefined>;
+  updateQuestionnaireStatus(id: number, status: string): Promise<QuestionnaireSubmission | undefined>;
+  deleteAppointment(id: number): Promise<boolean>;
+  deleteQuestionnaire(id: number): Promise<boolean>;
+  bulkDeleteAppointments(ids: number[]): Promise<number>;
+  bulkDeleteQuestionnaires(ids: number[]): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -463,6 +469,38 @@ export class DatabaseStorage implements IStorage {
     if (ids.length === 0) return 0;
     await db.delete(clientActivities).where(inArray(clientActivities.clientId, ids));
     const result = await db.delete(clients).where(inArray(clients.id, ids)).returning();
+    return result.length;
+  }
+
+  async updateContactStatus(id: number, status: string): Promise<Contact | undefined> {
+    const [updated] = await db.update(contacts).set({ status }).where(eq(contacts.id, id)).returning();
+    return updated;
+  }
+
+  async updateQuestionnaireStatus(id: number, status: string): Promise<QuestionnaireSubmission | undefined> {
+    const [updated] = await db.update(questionnaireSubmissions).set({ status }).where(eq(questionnaireSubmissions.id, id)).returning();
+    return updated;
+  }
+
+  async deleteAppointment(id: number): Promise<boolean> {
+    const result = await db.delete(appointments).where(eq(appointments.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async deleteQuestionnaire(id: number): Promise<boolean> {
+    const result = await db.delete(questionnaireSubmissions).where(eq(questionnaireSubmissions.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async bulkDeleteAppointments(ids: number[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const result = await db.delete(appointments).where(inArray(appointments.id, ids)).returning();
+    return result.length;
+  }
+
+  async bulkDeleteQuestionnaires(ids: number[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const result = await db.delete(questionnaireSubmissions).where(inArray(questionnaireSubmissions.id, ids)).returning();
     return result.length;
   }
 }
