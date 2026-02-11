@@ -5,6 +5,16 @@ import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, b
 import { z } from "zod";
 import nodemailer from "nodemailer";
 import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
+
+// This is using Replit's AI Integrations service, which provides Gemini-compatible API access without requiring your own Gemini API key.
+const geminiAi = new GoogleGenAI({
+  apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
+  httpOptions: {
+    apiVersion: "",
+    baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL,
+  },
+});
 
 import en from "../client/src/i18n/locales/en";
 import he from "../client/src/i18n/locales/he";
@@ -1154,20 +1164,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
 
-      const stream = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: chatMessages,
-        stream: true,
-        max_completion_tokens: 500,
-      });
-
       let fullAssistantResponse = '';
 
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || '';
-        if (content) {
-          fullAssistantResponse += content;
-          res.write(`data: ${JSON.stringify({ content })}\n\n`);
+      try {
+        const stream = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: chatMessages,
+          stream: true,
+          max_completion_tokens: 500,
+        });
+
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content || '';
+          if (content) {
+            fullAssistantResponse += content;
+            res.write(`data: ${JSON.stringify({ content })}\n\n`);
+          }
+        }
+      } catch (openaiError: any) {
+        console.error("OpenAI failed, falling back to Gemini:", openaiError);
+        try {
+          const model = geminiAi.getGenerativeModel({ model: "gemini-1.5-flash" });
+          const chatHistory = history.map((m: any) => ({
+            role: m.role === "assistant" ? "model" : "user",
+            parts: [{ text: m.content }],
+          }));
+
+          const chat = model.startChat({
+            history: chatHistory,
+          });
+
+          // Gemini doesn't support a separate system message in startChat like OpenAI, 
+          // so we prepend it to the first message if history is empty, or just use sendMessageStream.
+          // For simplicity and to maintain instructions, we use the system instruction if supported by the model config.
+          const result = await model.generateContentStream({
+            contents: [
+              { role: 'user', parts: [{ text: `Instructions: ${systemPrompt}\n\nUser Message: ${message}` }] }
+            ]
+          });
+
+          for await (const chunk of result.stream) {
+            const chunkText = chunk.text();
+            if (chunkText) {
+              fullAssistantResponse += chunkText;
+              res.write(`data: ${JSON.stringify({ content: chunkText })}\n\n`);
+            }
+          }
+        } catch (geminiError) {
+          console.error("Both OpenAI and Gemini failed:", geminiError);
+          const errorMsg = language === 'he'
+            ? 'שירות הצ\'אט אינו זמין כרגע. ניתן ליצור קשר עם המרפאה בטלפון 055-27-399-27 או דרך טופס יצירת הקשר באתר.'
+            : 'Chat service is currently unavailable. Please contact the clinic at 055-27-399-27 or use the contact form on the website.';
+          res.write(`data: ${JSON.stringify({ content: errorMsg })}\n\n`);
         }
       }
 
