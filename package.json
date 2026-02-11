@@ -52,7 +52,7 @@
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.462.0",
     "nodemailer": "^8.0.1",
-    "openai": "^6.18.0",
+    "openai": "^6.21.0",
     "p-limit": "^7.3.0",
     "p-retry": "^7.1.1",
     "pg": "^8.13.1",
