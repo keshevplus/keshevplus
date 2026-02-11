@@ -80,25 +80,6 @@ const ChatWidget = () => {
           setRestoredVisitor(true)
           setVisitorInfo(parsed)
           setVisitorCookie(parsed)
-          fetch('/api/conversations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              visitorName: parsed.name.trim(),
-              visitorEmail: parsed.email.trim(),
-              visitorPhone: parsed.phone?.trim() || '',
-            }),
-          })
-            .then(res => {
-              if (res.ok) return res.json()
-              return null
-            })
-            .then(conversation => {
-              if (conversation) {
-                setConversationId(conversation.id)
-              }
-            })
-            .catch(() => {})
         }
       }
     } catch {}
@@ -176,6 +157,30 @@ const ChatWidget = () => {
     setLoading(true)
 
     try {
+      let currentConversationId = conversationId;
+
+      // If no conversation ID yet (returning visitor who hasn't sent a message this session)
+      if (!currentConversationId && visitorInfo) {
+        try {
+          const convRes = await fetch('/api/conversations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              visitorName: visitorInfo.name.trim(),
+              visitorEmail: visitorInfo.email.trim(),
+              visitorPhone: visitorInfo.phone?.trim() || '',
+            }),
+          });
+          if (convRes.ok) {
+            const conversation = await convRes.json();
+            currentConversationId = conversation.id;
+            setConversationId(currentConversationId);
+          }
+        } catch (e) {
+          console.error("Failed to auto-create conversation on first message:", e);
+        }
+      }
+
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -183,7 +188,7 @@ const ChatWidget = () => {
           message: text,
           history: messages,
           language,
-          conversationId,
+          conversationId: currentConversationId,
         }),
       })
 
@@ -249,7 +254,15 @@ const ChatWidget = () => {
     }
   }
 
-  if (location.startsWith('/admin')) return null
+  const isInIframe = () => {
+    try {
+      return window.self !== window.top;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  if (location.startsWith('/admin') || isInIframe()) return null
 
   if (!open) {
     const whatsAppUrl = `https://wa.me/${CLINIC_WHATSAPP}?text=${encodeURIComponent(isHe ? 'שלום, אשמח לקבל מידע על אבחון ADHD' : 'Hello, I would like information about ADHD diagnosis')}`
