@@ -1,73 +1,39 @@
-# Welcome to your Lovable project
+# KeshevPlus - ADHD Clinic Website
 
-## Project info
+KeshevPlus is a comprehensive, multilingual platform for a specialized ADHD clinic. It provides a professional online presence with advanced features for patient engagement, administrative management, and clinical assessment.
 
-**URL**: https://lovable.dev/projects/c5daf673-7c86-464e-b424-cba64d7afe6c
+## 🚀 Features
 
-## How can I edit this code?
+- **Multilingual Support**: Fully localized in 10 languages (Hebrew, English, French, Spanish, German, Russian, Amharic, Arabic, Yiddish, Italian) with automatic RTL/LTR handling.
+- **AI Chat Assistant**: OpenAI-powered virtual assistant (GPT-4o-mini) providing 24/7 support with graceful fallback and lead generation.
+- **Interactive Questionnaires**: Web-based Vanderbilt ADHD assessment forms (Parent, Teacher, Self-Report) with automatic scoring and admin review.
+- **Appointment Scheduling**: Streamlined booking system with real-time availability and administrative status management.
+- **Unified CRM & Lead System**: Automatic lead creation from all interactions, manual client conversion, and detailed activity logging with full timestamps.
+- **Visual Content Editor**: Integrated WYSIWYG editor allowing administrators to update site text visually via an iframe preview.
+- **Admin Dashboard**: Real-time notifications, badge counts, and integrated WhatsApp communication for efficient clinic management.
+- **Privacy & Compliance**: Israeli law-compliant cookies disclaimer and secure, session-based authentication.
 
-There are several ways of editing your application.
+## 🛠️ Technology Stack
 
-**Use Lovable**
+- **Frontend**: React (Vite), TailwindCSS, shadcn/ui, TanStack Query, Framer Motion.
+- **Backend**: Express.js (Node.js).
+- **Database**: Neon Postgres with Drizzle ORM.
+- **AI**: OpenAI via Replit AI Integrations.
+- **Communication**: Nodemailer (Email), WhatsApp integration.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/c5daf673-7c86-464e-b424-cba64d7afe6c) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## 💻 Development Setup
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Install dependencies
+npm install
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server (Frontend on port 5000)
 npm run dev
+
+# Database schema sync
+npm run db:push
 ```
 
-**Edit a file directly in GitHub**
+## 📄 License
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/c5daf673-7c86-464e-b424-cba64d7afe6c) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Proprietary - KeshevPlus ADHD Clinic.
