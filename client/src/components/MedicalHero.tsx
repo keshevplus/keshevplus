@@ -42,10 +42,10 @@ const MedicalHero: React.FC = () => {
           aria-label={t("hero.welcome_line1") + " " + t("hero.welcome_line2")}
         >
           <div className="relative z-10">
-            <div className="container mx-auto px-4 sm:px-6 flex flex-col sm:flex-row sm:items-end pt-32 sm:pt-40 md:pt-44 lg:pt-48">
+            <div className="container mx-auto px-4 sm:px-6 flex flex-col sm:flex-row sm:items-end pt-32 sm:pt-40 md:pt-44 lg:pt-48 gap-8 lg:gap-12">
               <motion.div
                 className={cn(
-                  "w-full sm:w-1/2 pt-4 pb-6 sm:pb-8 md:pb-12 lg:pb-16 flex flex-col",
+                  "w-full sm:w-[45%] pt-4 pb-6 sm:pb-8 md:pb-12 lg:pb-16 flex flex-col",
                   "items-center text-center sm:items-start sm:text-start"
                 )}
                 initial={{ opacity: 0, y: 20 }}
@@ -178,7 +178,7 @@ const MedicalHero: React.FC = () => {
               </motion.div>
 
               <motion.div
-                className="w-full sm:w-1/2 self-end flex items-end justify-center"
+                className="w-full sm:w-[55%] self-end flex items-end justify-center"
                 initial={{ opacity: 0, x: isRTL ? -30 : 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
@@ -186,7 +186,7 @@ const MedicalHero: React.FC = () => {
                 <img
                   src={doctorHero}
                   alt={t("hero.doctor_alt")}
-                  className="w-full max-h-[50vh] sm:max-h-[70vh] md:max-h-[75vh] h-auto object-contain object-bottom drop-shadow-xl block"
+                  className="w-full max-h-[50vh] sm:max-h-[75vh] md:max-h-[85vh] lg:max-h-[90vh] h-auto object-contain object-bottom drop-shadow-2xl block scale-105 sm:scale-110 origin-bottom"
                   loading="eager"
                 />
               </motion.div>
