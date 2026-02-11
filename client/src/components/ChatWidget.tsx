@@ -60,6 +60,26 @@ const ChatWidget = () => {
   const [barVisible, setBarVisible] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!window.visualViewport) return
+
+    const handleResize = () => {
+      setViewportHeight(window.visualViewport?.height || null)
+    }
+
+    window.visualViewport.addEventListener('resize', handleResize)
+    window.visualViewport.addEventListener('scroll', handleResize)
+    
+    // Initial height
+    handleResize()
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleResize)
+      window.visualViewport?.removeEventListener('scroll', handleResize)
+    }
+  }, [])
 
   useEffect(() => {
     if (open) {
@@ -352,6 +372,16 @@ const ChatWidget = () => {
           "relative z-10 bg-background rounded-xl shadow-2xl flex flex-col",
           "w-full max-w-lg h-[85vh] max-h-[700px]"
         )}
+        style={viewportHeight ? { 
+          height: `${viewportHeight}px`,
+          maxHeight: '100dvh',
+          borderRadius: viewportHeight < 500 ? '0' : undefined,
+          margin: viewportHeight < 500 ? '0' : undefined,
+          position: viewportHeight < 500 ? 'fixed' : 'relative',
+          top: viewportHeight < 500 ? '0' : undefined,
+          left: viewportHeight < 500 ? '0' : undefined,
+          width: viewportHeight < 500 ? '100%' : undefined
+        } : {}}
         dir={isHe ? 'rtl' : 'ltr'}
       >
         <div className="flex items-center justify-between gap-2 p-4 border-b bg-primary text-primary-foreground rounded-t-xl">
