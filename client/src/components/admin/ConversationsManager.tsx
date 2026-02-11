@@ -238,14 +238,14 @@ const ConversationsManager = () => {
                             {isHe ? 'אין הודעות בשיחה זו' : 'No messages in this conversation'}
                           </p>
                         ) : (
-                          expandedMessages.map(msg => (
+                          expandedMessages.map(message => (
                             <div
-                              key={msg.id}
-                              className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
-                              data-testid={`msg-${msg.id}`}
+                              key={message.id}
+                              className={`flex flex-col gap-1 ${message.role === 'user' ? 'items-end' : 'items-start'}`}
+                              data-testid={`msg-${message.id}`}
                             >
-                              <div className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                {msg.role === 'assistant' ? (
+                              <div className={`flex gap-2 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                                {message.role === 'assistant' ? (
                                   <div className="shrink-0 h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center mt-1">
                                     <Bot className="h-3 w-3 text-primary" />
                                   </div>
@@ -256,16 +256,16 @@ const ConversationsManager = () => {
                                 )}
                                 <div
                                   className={`rounded-lg px-3 py-1.5 max-w-[90%] text-xs whitespace-pre-wrap ${
-                                    msg.role === 'user'
+                                    message.role === 'user'
                                       ? 'bg-primary text-primary-foreground'
                                       : 'bg-background border shadow-sm'
                                   }`}
                                 >
-                                  {msg.content}
+                                  {message.content}
                                 </div>
                               </div>
                               <span className="text-[10px] text-muted-foreground px-7">
-                                {new Date(msg.createdAt).toLocaleString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                {new Date(message.createdAt).toLocaleString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                               </span>
                             </div>
                           ))

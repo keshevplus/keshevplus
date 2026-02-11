@@ -211,13 +211,15 @@ export default function VisualEditor() {
     }
 
     const clickHandler = (e: MouseEvent) => {
-      if (!editModeRef.current) return
       const target = e.target as HTMLElement
       const editableEl = target.closest('[data-i18n-key]') as HTMLElement | null
-      if (!editableEl) return
-
+      
+      // Always prevent default to stop link navigation or form submissions in preview
       e.preventDefault()
       e.stopPropagation()
+
+      if (!editModeRef.current) return
+      if (!editableEl) return
 
       doc.querySelectorAll('[data-i18n-editing]').forEach((el) => {
         (el as HTMLElement).removeAttribute('data-i18n-editing')
