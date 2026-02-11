@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { useLanguage } from '@/hooks/useLanguage'
 import { LanguageSelector } from '../LanguageSelector'
+import { ThemeToggle } from '../ThemeToggle'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -131,6 +132,7 @@ const AdminDashboard = () => {
                 </div>
               )}
               <LanguageSelector />
+              <ThemeToggle />
               <Button variant="outline" onClick={handleSignOut} data-testid="button-signout">
                 <LogOut className="w-4 h-4 mr-2" />
                 {isHe ? 'התנתקות' : 'Sign Out'}
