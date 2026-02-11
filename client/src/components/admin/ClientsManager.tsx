@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Plus, Save, ChevronDown, ChevronUp, Phone, Mail, StickyNote, PhoneCall, Calendar, DollarSign, MailOpen, MessageCircle, FileText, ClipboardList, UserCheck, ArrowRightLeft } from "lucide-react";
+import { Users, Plus, Save, ChevronDown, ChevronUp, Phone, Mail, StickyNote, PhoneCall, Calendar, DollarSign, MailOpen, MessageCircle, FileText, ClipboardList, UserCheck, ArrowRightLeft, Trash2 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -26,6 +27,12 @@ interface ClientInteractions {
   conversations: Conversation[];
 }
 
+interface GroupedInteraction {
+  type: 'contact' | 'appointment' | 'questionnaire' | 'conversation';
+  date: Date;
+  item: Contact | Appointment | QuestionnaireSubmission | Conversation;
+}
+
 const ACTIVITY_TYPES: Record<string, { he: string; en: string; color: string; icon: typeof StickyNote }> = {
   note: { he: "הערה", en: "Note", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300", icon: StickyNote },
   call: { he: "שיחה", en: "Call", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300", icon: PhoneCall },
@@ -42,6 +49,43 @@ const SOURCE_LABELS: Record<string, { he: string; en: string }> = {
   manual: { he: "ידני", en: "Manual" },
 };
 
+const INTERACTION_CONFIG = {
+  contact: {
+    he: "פנייה",
+    en: "Contact",
+    color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+    icon: Mail,
+  },
+  appointment: {
+    he: "תור",
+    en: "Appointment",
+    color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+    icon: Calendar,
+  },
+  questionnaire: {
+    he: "שאלון",
+    en: "Questionnaire",
+    color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+    icon: ClipboardList,
+  },
+  conversation: {
+    he: "צ'אט",
+    en: "Chat",
+    color: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+    icon: MessageCircle,
+  },
+};
+
+function groupInteractions(inter: ClientInteractions): GroupedInteraction[] {
+  const items: GroupedInteraction[] = [];
+  inter.contacts.forEach(c => items.push({ type: 'contact', date: new Date(c.createdAt), item: c }));
+  inter.appointments.forEach(a => items.push({ type: 'appointment', date: new Date(a.createdAt), item: a }));
+  inter.questionnaires.forEach(q => items.push({ type: 'questionnaire', date: new Date(q.createdAt), item: q }));
+  inter.conversations.forEach(cv => items.push({ type: 'conversation', date: new Date(cv.createdAt), item: cv }));
+  items.sort((a, b) => b.date.getTime() - a.date.getTime());
+  return items;
+}
+
 const ClientsManager = () => {
   const { language } = useLanguage();
   const isHe = language === "he";
@@ -54,6 +98,8 @@ const ClientsManager = () => {
   const [interactions, setInteractions] = useState<ClientInteractions | null>(null);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [selectMode, setSelectMode] = useState(false);
 
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -191,6 +237,41 @@ const ClientsManager = () => {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    const msg = isHe
+      ? `למחוק ${selectedIds.size} לידים/לקוחות?`
+      : `Delete ${selectedIds.size} leads/clients?`;
+    if (!window.confirm(msg)) return;
+    try {
+      await apiRequest("POST", "/api/clients/bulk-delete", { ids: Array.from(selectedIds) });
+      toast({ title: isHe ? "נמחקו" : "Deleted", description: isHe ? `${selectedIds.size} רשומות נמחקו` : `${selectedIds.size} records deleted` });
+      setSelectedIds(new Set());
+      setSelectMode(false);
+      setExpandedClientId(null);
+      fetchClients();
+    } catch {
+      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "מחיקה נכשלה" : "Failed to delete", variant: "destructive" });
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === clients.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(clients.map(c => c.id)));
+    }
+  };
+
   const formatDate = (date: string | Date) => {
     return new Date(date).toLocaleDateString(isHe ? "he-IL" : "en-US", {
       year: "numeric",
@@ -276,6 +357,77 @@ const ClientsManager = () => {
     }
   }, [clients]);
 
+  const renderInteractionItem = (gi: GroupedInteraction) => {
+    const config = INTERACTION_CONFIG[gi.type];
+    const Icon = config.icon;
+
+    if (gi.type === 'contact') {
+      const c = gi.item as Contact;
+      return (
+        <div key={`contact-${c.id}`} className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border">
+          <Badge variant="secondary" className={`no-default-hover-elevate no-default-active-elevate shrink-0 text-xs ${config.color}`}>
+            <Icon className="w-3 h-3 mr-1" />
+            {isHe ? config.he : config.en}
+          </Badge>
+          <span className="flex-1 truncate">{c.message}</span>
+          <span className="text-xs text-muted-foreground shrink-0">{formatDate(c.createdAt)}</span>
+        </div>
+      );
+    }
+
+    if (gi.type === 'appointment') {
+      const a = gi.item as Appointment;
+      const statusColor = a.status === 'confirmed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : a.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : a.status === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400';
+      const statusLabel = a.status === 'pending' ? (isHe ? 'ממתין' : 'Pending') : a.status === 'confirmed' ? (isHe ? 'מאושר' : 'Confirmed') : a.status === 'cancelled' ? (isHe ? 'בוטל' : 'Cancelled') : (isHe ? 'הושלם' : 'Completed');
+      return (
+        <div key={`appt-${a.id}`} className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border">
+          <Badge variant="secondary" className={`no-default-hover-elevate no-default-active-elevate shrink-0 text-xs ${statusColor}`}>
+            <Icon className="w-3 h-3 mr-1" />
+            {statusLabel}
+          </Badge>
+          <span className="flex-1">{a.date} {a.time} - {a.type}</span>
+          <span className="text-xs text-muted-foreground shrink-0">{formatDate(a.createdAt)}</span>
+        </div>
+      );
+    }
+
+    if (gi.type === 'questionnaire') {
+      const q = gi.item as QuestionnaireSubmission;
+      const typeNames: Record<string, { he: string; en: string }> = {
+        parent: { he: "הורה", en: "Parent" },
+        teacher: { he: "מורה", en: "Teacher" },
+        self_report: { he: "דיווח עצמי", en: "Self-Report" },
+      };
+      const tn = typeNames[q.type] || { he: q.type, en: q.type };
+      return (
+        <div key={`quest-${q.id}`} className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border">
+          <Badge variant="secondary" className={`no-default-hover-elevate no-default-active-elevate shrink-0 text-xs ${config.color}`}>
+            <Icon className="w-3 h-3 mr-1" />
+            {isHe ? tn.he : tn.en}
+          </Badge>
+          <span className="flex-1">{q.childName ? `${isHe ? 'ילד' : 'Child'}: ${q.childName}` : ''}</span>
+          <span className="text-xs text-muted-foreground shrink-0">{formatDate(q.createdAt)}</span>
+        </div>
+      );
+    }
+
+    if (gi.type === 'conversation') {
+      const conv = gi.item as Conversation;
+      return (
+        <div key={`conv-${conv.id}`} className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border">
+          <Badge variant="secondary" className={`no-default-hover-elevate no-default-active-elevate shrink-0 text-xs ${config.color}`}>
+            <Icon className="w-3 h-3 mr-1" />
+            {isHe ? config.he : config.en}
+          </Badge>
+          <span className="flex-1">{conv.title}</span>
+          <span className="text-xs text-muted-foreground shrink-0">{formatDate(conv.createdAt)}</span>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -284,14 +436,29 @@ const ClientsManager = () => {
             <Users className="h-5 w-5 text-muted-foreground" />
             <CardTitle>{isHe ? "לידים ולקוחות" : "Leads & Clients"}</CardTitle>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => setShowAddForm(!showAddForm)}
-            data-testid="button-toggle-add-client"
-          >
-            {showAddForm ? <ChevronUp className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            <span className="ml-1">{isHe ? (showAddForm ? "סגור" : "ליד חדש") : (showAddForm ? "Close" : "New Lead")}</span>
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {clients.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectMode(!selectMode);
+                  if (selectMode) setSelectedIds(new Set());
+                }}
+                data-testid="button-toggle-select-clients"
+              >
+                {selectMode ? (isHe ? 'ביטול' : 'Cancel') : (isHe ? 'בחירה מרובה' : 'Multi-Select')}
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => setShowAddForm(!showAddForm)}
+              data-testid="button-toggle-add-client"
+            >
+              {showAddForm ? <ChevronUp className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              <span className="ml-1">{isHe ? (showAddForm ? "סגור" : "ליד חדש") : (showAddForm ? "Close" : "New Lead")}</span>
+            </Button>
+          </div>
         </div>
         <CardDescription>{isHe ? "מבקרים שהשאירו פרטים נרשמים כלידים. המרה ללקוח מתבצעת ידנית." : "Visitors who leave details are registered as leads. Conversion to client is done manually."}</CardDescription>
       </CardHeader>
@@ -349,6 +516,36 @@ const ClientsManager = () => {
           </div>
         )}
 
+        {selectMode && clients.length > 0 && (
+          <div className="flex items-center gap-3 p-2 border rounded-md bg-muted/30 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedIds.size === clients.length && clients.length > 0}
+                onCheckedChange={toggleSelectAll}
+                data-testid="checkbox-select-all-clients"
+              />
+              <span className="text-sm">
+                {isHe ? 'בחר הכל' : 'Select All'}
+              </span>
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {selectedIds.size} {isHe ? 'נבחרו' : 'selected'}
+            </span>
+            {selectedIds.size > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive border-destructive/30"
+                onClick={handleBulkDelete}
+                data-testid="button-bulk-delete-clients"
+              >
+                <Trash2 className="h-4 w-4 me-1" />
+                {isHe ? `מחק (${selectedIds.size})` : `Delete (${selectedIds.size})`}
+              </Button>
+            )}
+          </div>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -369,86 +566,97 @@ const ClientsManager = () => {
               return (
                 <div
                   key={client.id}
-                  className="border rounded-lg"
+                  className={`border rounded-lg ${selectedIds.has(client.id) ? 'ring-2 ring-primary/40' : ''}`}
                   data-testid={`client-${client.id}`}
                 >
-                  <button
-                    onClick={() => handleExpand(client)}
-                    className="w-full text-left p-4 flex items-center gap-3 hover:bg-muted/50 transition-colors"
-                    data-testid={`button-expand-client-${client.id}`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 flex-wrap text-sm mb-1">
-                        <span className="font-medium">{client.name}</span>
-                        {client.email && (
-                          <span className="text-muted-foreground flex items-center gap-1">
-                            <Mail className="w-3.5 h-3.5" />
-                            {client.email}
-                          </span>
-                        )}
-                        {client.phone && (
-                          <span className="text-muted-foreground flex items-center gap-1">
-                            <Phone className="w-3.5 h-3.5" />
-                            {client.phone}
-                            <a
-                              href={formatWhatsAppUrl(client.phone, isHe ? `שלום ${client.name}, פונה אליך מקשב פלוס` : `Hi ${client.name}, reaching out from KeshevPlus`)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[#25D366] hover:underline flex items-center gap-0.5 ms-1"
-                              onClick={(e) => e.stopPropagation()}
-                              data-testid={`link-whatsapp-client-${client.id}`}
-                            >
-                              <SiWhatsapp className="w-3.5 h-3.5" />
-                            </a>
-                          </span>
-                        )}
-                        {(client as any).childName && (
-                          <span className="text-muted-foreground flex items-center gap-1">
-                            <UserCheck className="w-3.5 h-3.5" />
-                            {(client as any).childName}
-                          </span>
-                        )}
+                  <div className="flex items-center gap-2">
+                    {selectMode && (
+                      <div className="ps-3">
+                        <Checkbox
+                          checked={selectedIds.has(client.id)}
+                          onCheckedChange={() => toggleSelect(client.id)}
+                          data-testid={`checkbox-client-${client.id}`}
+                        />
                       </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge
-                          variant="secondary"
-                          className={`no-default-hover-elevate no-default-active-elevate text-xs ${client.status === 'client' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'}`}
-                          data-testid={`badge-status-type-${client.id}`}
-                        >
-                          {client.status === 'client' ? (isHe ? "לקוח" : "Client") : (isHe ? "ליד" : "Lead")}
-                        </Badge>
-                        <Badge
-                          variant="secondary"
-                          className="no-default-hover-elevate no-default-active-elevate text-xs"
-                          data-testid={`badge-source-${client.id}`}
-                        >
-                          {isHe ? sourceLabel?.he : sourceLabel?.en}
-                        </Badge>
-                        {statusBadges.map((badge, i) => {
-                          const Icon = badge.icon;
-                          return (
-                            <Badge
-                              key={i}
-                              variant="secondary"
-                              className={`no-default-hover-elevate no-default-active-elevate text-xs ${badge.variant}`}
-                              data-testid={`badge-status-${client.id}-${i}`}
-                            >
-                              <Icon className="w-3 h-3 mr-1" />
-                              {badge.label}
-                            </Badge>
-                          );
-                        })}
-                        <span className="text-xs text-muted-foreground">
-                          {formatDate(client.createdAt)}
-                        </span>
-                      </div>
-                    </div>
-                    {isExpanded ? (
-                      <ChevronUp className="w-5 h-5 text-muted-foreground shrink-0" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
                     )}
-                  </button>
+                    <button
+                      onClick={() => handleExpand(client)}
+                      className="w-full text-left p-4 flex items-center gap-3 hover:bg-muted/50 transition-colors flex-1"
+                      data-testid={`button-expand-client-${client.id}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 flex-wrap text-sm mb-1">
+                          <span className="font-medium">{client.name}</span>
+                          {client.email && (
+                            <span className="text-muted-foreground flex items-center gap-1">
+                              <Mail className="w-3.5 h-3.5" />
+                              {client.email}
+                            </span>
+                          )}
+                          {client.phone && (
+                            <span className="text-muted-foreground flex items-center gap-1">
+                              <Phone className="w-3.5 h-3.5" />
+                              {client.phone}
+                              <a
+                                href={formatWhatsAppUrl(client.phone, isHe ? `שלום ${client.name}, פונה אליך מקשב פלוס` : `Hi ${client.name}, reaching out from KeshevPlus`)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#25D366] hover:underline flex items-center gap-0.5 ms-1"
+                                onClick={(e) => e.stopPropagation()}
+                                data-testid={`link-whatsapp-client-${client.id}`}
+                              >
+                                <SiWhatsapp className="w-3.5 h-3.5" />
+                              </a>
+                            </span>
+                          )}
+                          {(client as any).childName && (
+                            <span className="text-muted-foreground flex items-center gap-1">
+                              <UserCheck className="w-3.5 h-3.5" />
+                              {(client as any).childName}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge
+                            variant="secondary"
+                            className={`no-default-hover-elevate no-default-active-elevate text-xs ${client.status === 'client' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'}`}
+                            data-testid={`badge-status-type-${client.id}`}
+                          >
+                            {client.status === 'client' ? (isHe ? "לקוח" : "Client") : (isHe ? "ליד" : "Lead")}
+                          </Badge>
+                          <Badge
+                            variant="secondary"
+                            className="no-default-hover-elevate no-default-active-elevate text-xs"
+                            data-testid={`badge-source-${client.id}`}
+                          >
+                            {isHe ? sourceLabel?.he : sourceLabel?.en}
+                          </Badge>
+                          {statusBadges.map((badge, i) => {
+                            const Icon = badge.icon;
+                            return (
+                              <Badge
+                                key={i}
+                                variant="secondary"
+                                className={`no-default-hover-elevate no-default-active-elevate text-xs ${badge.variant}`}
+                                data-testid={`badge-status-${client.id}-${i}`}
+                              >
+                                <Icon className="w-3 h-3 mr-1" />
+                                {badge.label}
+                              </Badge>
+                            );
+                          })}
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(client.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronUp className="w-5 h-5 text-muted-foreground shrink-0" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
+                      )}
+                    </button>
+                  </div>
 
                   {isExpanded && (
                     <div className="border-t p-4 space-y-4 bg-muted/20">
@@ -458,82 +666,20 @@ const ClientsManager = () => {
                             <FileText className="w-4 h-4" />
                             {isHe ? "היסטוריית אינטראקציות" : "Interaction History"}
                           </h4>
-                          
-                          {interactions.contacts.length > 0 && (
-                            <div className="space-y-1">
-                              <p className="text-xs font-medium text-muted-foreground">{isHe ? "פניות" : "Contact Forms"}</p>
-                              {interactions.contacts.map((c) => (
-                                <div key={c.id} className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border">
-                                  <Badge variant="secondary" className="no-default-hover-elevate no-default-active-elevate shrink-0 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs">
-                                    <Mail className="w-3 h-3 mr-1" />
-                                    {isHe ? "פנייה" : "Contact"}
-                                  </Badge>
-                                  <span className="flex-1 truncate">{c.message}</span>
-                                  <span className="text-xs text-muted-foreground shrink-0">{formatDate(c.createdAt)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
 
-                          {interactions.appointments.length > 0 && (
-                            <div className="space-y-1">
-                              <p className="text-xs font-medium text-muted-foreground">{isHe ? "תורים" : "Appointments"}</p>
-                              {interactions.appointments.map((a) => (
-                                <div key={a.id} className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border">
-                                  <Badge variant="secondary" className={`no-default-hover-elevate no-default-active-elevate shrink-0 text-xs ${a.status === 'confirmed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : a.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : a.status === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400'}`}>
-                                    <Calendar className="w-3 h-3 mr-1" />
-                                    {a.status === 'pending' ? (isHe ? 'ממתין' : 'Pending') : a.status === 'confirmed' ? (isHe ? 'מאושר' : 'Confirmed') : a.status === 'cancelled' ? (isHe ? 'בוטל' : 'Cancelled') : (isHe ? 'הושלם' : 'Completed')}
-                                  </Badge>
-                                  <span className="flex-1">{a.date} {a.time} - {a.type}</span>
-                                  <span className="text-xs text-muted-foreground shrink-0">{formatDate(a.createdAt)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {interactions.questionnaires.length > 0 && (
-                            <div className="space-y-1">
-                              <p className="text-xs font-medium text-muted-foreground">{isHe ? "שאלונים" : "Questionnaires"}</p>
-                              {interactions.questionnaires.map((q) => {
-                                const typeNames: Record<string, { he: string; en: string }> = {
-                                  parent: { he: "הורה", en: "Parent" },
-                                  teacher: { he: "מורה", en: "Teacher" },
-                                  self_report: { he: "דיווח עצמי", en: "Self-Report" },
-                                };
-                                const tn = typeNames[q.type] || { he: q.type, en: q.type };
-                                return (
-                                  <div key={q.id} className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border">
-                                    <Badge variant="secondary" className="no-default-hover-elevate no-default-active-elevate shrink-0 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 text-xs">
-                                      <ClipboardList className="w-3 h-3 mr-1" />
-                                      {isHe ? tn.he : tn.en}
-                                    </Badge>
-                                    <span className="flex-1">{q.childName ? `${isHe ? 'ילד' : 'Child'}: ${q.childName}` : ''}</span>
-                                    <span className="text-xs text-muted-foreground shrink-0">{formatDate(q.createdAt)}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-
-                          {interactions.conversations.length > 0 && (
-                            <div className="space-y-1">
-                              <p className="text-xs font-medium text-muted-foreground">{isHe ? "שיחות צ'אט" : "Chat Conversations"}</p>
-                              {interactions.conversations.map((conv) => (
-                                <div key={conv.id} className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border">
-                                  <Badge variant="secondary" className="no-default-hover-elevate no-default-active-elevate shrink-0 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 text-xs">
-                                    <MessageCircle className="w-3 h-3 mr-1" />
-                                    {isHe ? "צ'אט" : "Chat"}
-                                  </Badge>
-                                  <span className="flex-1">{conv.title}</span>
-                                  <span className="text-xs text-muted-foreground shrink-0">{formatDate(conv.createdAt)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {interactions.contacts.length === 0 && interactions.appointments.length === 0 && interactions.questionnaires.length === 0 && interactions.conversations.length === 0 && (
-                            <p className="text-sm text-muted-foreground">{isHe ? "אין אינטראקציות מתועדות" : "No recorded interactions"}</p>
-                          )}
+                          {(() => {
+                            const grouped = groupInteractions(interactions);
+                            if (grouped.length === 0) {
+                              return (
+                                <p className="text-sm text-muted-foreground">{isHe ? "אין אינטראקציות מתועדות" : "No recorded interactions"}</p>
+                              );
+                            }
+                            return (
+                              <div className="space-y-1">
+                                {grouped.map(gi => renderInteractionItem(gi))}
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
 

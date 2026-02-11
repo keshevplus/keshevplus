@@ -4,6 +4,7 @@ import { useLanguage } from '@/hooks/useLanguage'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Mail, Phone, User, Clock, Eye, EyeOff, ChevronDown, ChevronUp, Inbox, Trash2 } from 'lucide-react'
 import { SiWhatsapp } from 'react-icons/si'
 import { apiRequest, queryClient } from '@/lib/queryClient'
@@ -19,6 +20,8 @@ export default function ContactsManager() {
   const { language } = useLanguage()
   const isHe = language === 'he'
   const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [selectMode, setSelectMode] = useState(false)
 
   const { data: contacts = [], isLoading } = useQuery<Contact[]>({
     queryKey: ['/api/contacts'],
@@ -39,7 +42,44 @@ export default function ContactsManager() {
     },
   })
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: number[]) => apiRequest('POST', '/api/contacts/bulk-delete', { ids }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] })
+      setSelectedIds(new Set())
+      setSelectMode(false)
+      setExpandedId(null)
+    },
+  })
+
   const unreadCount = contacts.filter(c => !c.read).length
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === contacts.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(contacts.map(c => c.id)))
+    }
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedIds.size === 0) return
+    const msg = isHe
+      ? `למחוק ${selectedIds.size} פניות?`
+      : `Delete ${selectedIds.size} submissions?`
+    if (window.confirm(msg)) {
+      bulkDeleteMutation.mutate(Array.from(selectedIds))
+    }
+  }
 
   const formatDate = (dateStr: string | Date) => {
     const d = new Date(dateStr)
@@ -60,14 +100,60 @@ export default function ContactsManager() {
             <Inbox className="h-5 w-5 text-muted-foreground" />
             <CardTitle>{isHe ? 'פניות באתר' : 'Contact Submissions'}</CardTitle>
           </div>
-          {unreadCount > 0 && (
-            <Badge variant="destructive" data-testid="badge-unread-count">
-              {unreadCount} {isHe ? 'חדשות' : 'new'}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            {unreadCount > 0 && (
+              <Badge variant="destructive" data-testid="badge-unread-count">
+                {unreadCount} {isHe ? 'חדשות' : 'new'}
+              </Badge>
+            )}
+            {contacts.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectMode(!selectMode)
+                  if (selectMode) setSelectedIds(new Set())
+                }}
+                data-testid="button-toggle-select-contacts"
+              >
+                {selectMode ? (isHe ? 'ביטול' : 'Cancel') : (isHe ? 'בחירה מרובה' : 'Multi-Select')}
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
+        {selectMode && contacts.length > 0 && (
+          <div className="flex items-center gap-3 mb-3 p-2 border rounded-md bg-muted/30 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedIds.size === contacts.length && contacts.length > 0}
+                onCheckedChange={toggleSelectAll}
+                data-testid="checkbox-select-all-contacts"
+              />
+              <span className="text-sm">
+                {isHe ? 'בחר הכל' : 'Select All'}
+              </span>
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {selectedIds.size} {isHe ? 'נבחרו' : 'selected'}
+            </span>
+            {selectedIds.size > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive border-destructive/30"
+                onClick={handleBulkDelete}
+                disabled={bulkDeleteMutation.isPending}
+                data-testid="button-bulk-delete-contacts"
+              >
+                <Trash2 className="h-4 w-4 me-1" />
+                {isHe ? `מחק (${selectedIds.size})` : `Delete (${selectedIds.size})`}
+              </Button>
+            )}
+          </div>
+        )}
+
         {isLoading ? (
           <p className="text-sm text-muted-foreground text-center py-8">
             {isHe ? 'טוען...' : 'Loading...'}
@@ -85,47 +171,58 @@ export default function ContactsManager() {
                   key={contact.id}
                   className={`border rounded-md transition-colors ${
                     !contact.read ? 'bg-primary/5 border-primary/20' : ''
-                  }`}
+                  } ${selectedIds.has(contact.id) ? 'ring-2 ring-primary/40' : ''}`}
                   data-testid={`contact-row-${contact.id}`}
                 >
-                  <button
-                    className="w-full flex items-center justify-between gap-3 p-3 text-start"
-                    onClick={() => setExpandedId(isExpanded ? null : contact.id)}
-                    data-testid={`button-toggle-contact-${contact.id}`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {!contact.read ? (
-                        <EyeOff className="h-4 w-4 text-primary shrink-0" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground shrink-0" />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-sm font-medium truncate ${!contact.read ? 'text-primary' : ''}`}>
-                            {contact.name}
-                          </span>
-                          {!contact.read && (
-                            <Badge variant="secondary" className="text-xs">
-                              {isHe ? 'חדש' : 'New'}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {contact.message.substring(0, 80)}{contact.message.length > 80 ? '...' : ''}
-                        </p>
+                  <div className="flex items-center gap-2">
+                    {selectMode && (
+                      <div className="ps-3">
+                        <Checkbox
+                          checked={selectedIds.has(contact.id)}
+                          onCheckedChange={() => toggleSelect(contact.id)}
+                          data-testid={`checkbox-contact-${contact.id}`}
+                        />
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs text-muted-foreground hidden sm:inline">
-                        {formatDate(contact.createdAt)}
-                      </span>
-                      {isExpanded ? (
-                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </div>
-                  </button>
+                    )}
+                    <button
+                      className="w-full flex items-center justify-between gap-3 p-3 text-start flex-1"
+                      onClick={() => setExpandedId(isExpanded ? null : contact.id)}
+                      data-testid={`button-toggle-contact-${contact.id}`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {!contact.read ? (
+                          <EyeOff className="h-4 w-4 text-primary shrink-0" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground shrink-0" />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-sm font-medium truncate ${!contact.read ? 'text-primary' : ''}`}>
+                              {contact.name}
+                            </span>
+                            {!contact.read && (
+                              <Badge variant="secondary" className="text-xs">
+                                {isHe ? 'חדש' : 'New'}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {contact.message.substring(0, 80)}{contact.message.length > 80 ? '...' : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs text-muted-foreground hidden sm:inline">
+                          {formatDate(contact.createdAt)}
+                        </span>
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
+                    </button>
+                  </div>
 
                   {isExpanded && (
                     <div className="px-3 pb-3 pt-0 border-t space-y-3">

@@ -5,6 +5,7 @@ import { useLanguage } from '@/hooks/useLanguage'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { MessageCircle, Mail, Phone, User, ChevronDown, ChevronUp, CheckCircle, Bot, Trash2 } from 'lucide-react'
 
 interface Conversation {
@@ -29,6 +30,8 @@ const ConversationsManager = () => {
   const { language } = useLanguage()
   const isHe = language === 'he'
   const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [selectMode, setSelectMode] = useState(false)
 
   const { data: conversations = [], isLoading } = useQuery<Conversation[]>({
     queryKey: ['/api/conversations'],
@@ -54,7 +57,44 @@ const ConversationsManager = () => {
     },
   })
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: number[]) => apiRequest('POST', '/api/conversations/bulk-delete', { ids }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
+      setSelectedIds(new Set())
+      setSelectMode(false)
+      setExpandedId(null)
+    },
+  })
+
   const unreviewedCount = conversations.filter(c => !c.reviewed).length
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === conversations.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(conversations.map(c => c.id)))
+    }
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedIds.size === 0) return
+    const msg = isHe
+      ? `למחוק ${selectedIds.size} שיחות?`
+      : `Delete ${selectedIds.size} conversations?`
+    if (window.confirm(msg)) {
+      bulkDeleteMutation.mutate(Array.from(selectedIds))
+    }
+  }
 
   if (isLoading) {
     return (
@@ -69,7 +109,7 @@ const ConversationsManager = () => {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-muted-foreground" />
             <CardTitle>
@@ -79,9 +119,53 @@ const ConversationsManager = () => {
               )}
             </CardTitle>
           </div>
+          {conversations.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectMode(!selectMode)
+                if (selectMode) setSelectedIds(new Set())
+              }}
+              data-testid="button-toggle-select-conversations"
+            >
+              {selectMode ? (isHe ? 'ביטול' : 'Cancel') : (isHe ? 'בחירה מרובה' : 'Multi-Select')}
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>
+        {selectMode && conversations.length > 0 && (
+          <div className="flex items-center gap-3 mb-3 p-2 border rounded-md bg-muted/30 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedIds.size === conversations.length && conversations.length > 0}
+                onCheckedChange={toggleSelectAll}
+                data-testid="checkbox-select-all-conversations"
+              />
+              <span className="text-sm">
+                {isHe ? 'בחר הכל' : 'Select All'}
+              </span>
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {selectedIds.size} {isHe ? 'נבחרו' : 'selected'}
+            </span>
+            {selectedIds.size > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive border-destructive/30"
+                onClick={handleBulkDelete}
+                disabled={bulkDeleteMutation.isPending}
+                data-testid="button-bulk-delete-conversations"
+              >
+                <Trash2 className="h-4 w-4 me-1" />
+                {isHe ? `מחק (${selectedIds.size})` : `Delete (${selectedIds.size})`}
+              </Button>
+            )}
+          </div>
+        )}
+
         {conversations.length === 0 ? (
           <p className="text-center text-muted-foreground text-sm py-8">
             {isHe ? 'אין שיחות עדיין' : 'No conversations yet'}
@@ -91,43 +175,58 @@ const ConversationsManager = () => {
             {conversations.map(conv => {
               const isExpanded = expandedId === conv.id
               return (
-                <div key={conv.id} className="border rounded-md overflow-visible" data-testid={`conversation-${conv.id}`}>
-                  <div
-                    className="flex items-center justify-between gap-2 p-3 cursor-pointer hover-elevate"
-                    onClick={() => setExpandedId(isExpanded ? null : conv.id)}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1 flex-wrap">
-                      <div className="shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="h-4 w-4 text-primary" />
+                <div
+                  key={conv.id}
+                  className={`border rounded-md overflow-visible ${selectedIds.has(conv.id) ? 'ring-2 ring-primary/40' : ''}`}
+                  data-testid={`conversation-${conv.id}`}
+                >
+                  <div className="flex items-center gap-2">
+                    {selectMode && (
+                      <div className="ps-3">
+                        <Checkbox
+                          checked={selectedIds.has(conv.id)}
+                          onCheckedChange={() => toggleSelect(conv.id)}
+                          data-testid={`checkbox-conversation-${conv.id}`}
+                        />
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-sm">{conv.visitorName}</span>
-                          {!conv.reviewed && (
-                            <Badge variant="default" className="text-xs">
-                              {isHe ? 'חדש' : 'New'}
-                            </Badge>
-                          )}
+                    )}
+                    <div
+                      className="flex items-center justify-between gap-2 p-3 cursor-pointer hover-elevate flex-1"
+                      onClick={() => setExpandedId(isExpanded ? null : conv.id)}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1 flex-wrap">
+                        <div className="shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <User className="h-4 w-4 text-primary" />
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                          <span className="flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            {conv.visitorEmail}
-                          </span>
-                          {conv.visitorPhone && (
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium text-sm">{conv.visitorName}</span>
+                            {!conv.reviewed && (
+                              <Badge variant="default" className="text-xs">
+                                {isHe ? 'חדש' : 'New'}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                             <span className="flex items-center gap-1">
-                              <Phone className="h-3 w-3" />
-                              {conv.visitorPhone}
+                              <Mail className="h-3 w-3" />
+                              {conv.visitorEmail}
                             </span>
-                          )}
+                            {conv.visitorPhone && (
+                              <span className="flex items-center gap-1">
+                                <Phone className="h-3 w-3" />
+                                {conv.visitorPhone}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(conv.createdAt).toLocaleDateString('he-IL')}
-                      </span>
-                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(conv.createdAt).toLocaleDateString('he-IL')}
+                        </span>
+                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </div>
                     </div>
                   </div>
 
