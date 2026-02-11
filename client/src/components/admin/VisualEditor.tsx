@@ -8,6 +8,7 @@ import { useLanguage } from '@/hooks/useLanguage'
 import { apiRequest } from '@/lib/queryClient'
 import { invalidateTranslationCache } from '@/hooks/useLanguage'
 import { ALL_LANGUAGES, type SupportedLanguage } from '@/i18n/config'
+import { cn } from '@/lib/utils'
 import {
   Eye,
   Pencil,
@@ -24,6 +25,8 @@ import {
   MousePointer,
   Check,
   AlertCircle,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react'
 
 interface PendingEdit {
@@ -57,6 +60,7 @@ export default function VisualEditor() {
   const [iframeLoaded, setIframeLoaded] = useState(false)
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [highlightedCount, setHighlightedCount] = useState(0)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const pendingEditsRef = useRef<PendingEdit[]>([])
   const editModeRef = useRef(false)
   const translationMapRef = useRef<Record<string, string>>({})
@@ -73,6 +77,17 @@ export default function VisualEditor() {
   useEffect(() => {
     translationMapRef.current = translationMap
   }, [translationMap])
+
+  // Handle ESC for fullscreen exit
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false)
+      }
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [isFullscreen])
 
   const fetchTranslations = useCallback(async (lang: string) => {
     try {
@@ -342,7 +357,7 @@ export default function VisualEditor() {
     } catch {
       toast({
         title: isHe ? 'שגיאה' : 'Error',
-        description: isHe ? 'שמירת התרגומים נכשלה' : 'Failed to save translations',
+        description: isHe ? 'שמירת התרגומים נכשלה' : 'Failed to load translations',
         variant: 'destructive',
       })
     } finally {
@@ -376,9 +391,12 @@ export default function VisualEditor() {
   const iframeSrc = `/?_t=${Date.now()}`
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader className="pb-3">
+    <div className={cn(
+      "space-y-4",
+      isFullscreen && "fixed inset-0 z-[1000] bg-background p-4 flex flex-col h-screen overflow-hidden"
+    )}>
+      <Card className={cn(isFullscreen && "flex-1 flex flex-col h-full border-none shadow-none")}>
+        <CardHeader className="pb-3 shrink-0">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2">
               <Eye className="h-5 w-5 text-muted-foreground" />
@@ -421,12 +439,21 @@ export default function VisualEditor() {
                   </>
                 )}
               </Button>
+
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                data-testid="button-toggle-fullscreen"
+              >
+                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
+        <CardContent className={cn("space-y-3", isFullscreen && "flex-1 flex flex-col overflow-hidden")}>
+          <div className="flex items-center justify-between gap-2 flex-wrap shrink-0">
             <div className="flex items-center gap-1">
               <Button
                 size="icon"
@@ -499,7 +526,7 @@ export default function VisualEditor() {
           </div>
 
           {editMode && (
-            <div className="rounded-md bg-muted/50 p-3 text-sm text-muted-foreground flex items-start gap-2">
+            <div className="rounded-md bg-muted/50 p-3 text-sm text-muted-foreground flex items-start gap-2 shrink-0">
               <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
               <span>
                 {isHe
@@ -510,8 +537,11 @@ export default function VisualEditor() {
           )}
 
           <div
-            className="border rounded-md overflow-hidden bg-white dark:bg-neutral-900 flex justify-center"
-            style={{ minHeight: '600px' }}
+            className={cn(
+              "border rounded-md overflow-hidden bg-white dark:bg-neutral-900 flex justify-center",
+              !isFullscreen && "min-height-[600px]",
+              isFullscreen && "flex-1"
+            )}
           >
             <iframe
               ref={iframeRef}
@@ -520,7 +550,7 @@ export default function VisualEditor() {
               style={{
                 width: VIEWPORT_WIDTHS[viewport],
                 maxWidth: '100%',
-                height: '75vh',
+                height: isFullscreen ? '100%' : '75vh',
                 border: 'none',
                 transition: 'width 0.3s ease',
               }}
@@ -532,7 +562,7 @@ export default function VisualEditor() {
       </Card>
 
       {pendingEdits.length > 0 && (
-        <Card>
+        <Card className={cn(isFullscreen && "fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-2xl z-[1001] shadow-2xl")}>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
@@ -544,6 +574,7 @@ export default function VisualEditor() {
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={handleDiscardAll}
                   data-testid="button-discard-all"
                 >
@@ -551,6 +582,7 @@ export default function VisualEditor() {
                   {isHe ? 'בטל הכל' : 'Discard All'}
                 </Button>
                 <Button
+                  size="sm"
                   onClick={handleSaveAll}
                   disabled={saving}
                   data-testid="button-save-all-edits"
@@ -563,36 +595,38 @@ export default function VisualEditor() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {pendingEdits.map((edit) => (
-                <div
-                  key={edit.key}
-                  className="flex items-start gap-3 p-3 rounded-md bg-muted/30 text-sm"
-                  data-testid={`pending-edit-${edit.key}`}
-                >
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <Badge variant="outline" className="text-xs font-mono">
-                      {edit.key}
-                    </Badge>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className="line-through truncate max-w-[200px]">{edit.oldValue}</span>
-                      <Check className="h-3 w-3 text-green-600 shrink-0" />
-                      <span className="truncate max-w-[200px] text-foreground font-medium">{edit.newValue}</span>
-                    </div>
-                  </div>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => handleRemoveEdit(edit.key)}
-                    data-testid={`button-remove-edit-${edit.key}`}
+          {!isFullscreen && (
+            <CardContent>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {pendingEdits.map((edit) => (
+                  <div
+                    key={edit.key}
+                    className="flex items-start gap-3 p-3 rounded-md bg-muted/30 text-sm"
+                    data-testid={`pending-edit-${edit.key}`}
                   >
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </CardContent>
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <Badge variant="outline" className="text-xs font-mono">
+                        {edit.key}
+                      </Badge>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="line-through truncate max-w-[200px]">{edit.oldValue}</span>
+                        <Check className="h-3 w-3 text-green-600 shrink-0" />
+                        <span className="truncate max-w-[200px] text-foreground font-medium">{edit.newValue}</span>
+                      </div>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleRemoveEdit(edit.key)}
+                      data-testid={`button-remove-edit-${edit.key}`}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          )}
         </Card>
       )}
     </div>
