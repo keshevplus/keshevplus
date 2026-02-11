@@ -281,6 +281,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/contacts/bulk-delete", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: "IDs array is required" });
+      }
+      const count = await storage.bulkDeleteContacts(ids.map(Number));
+      return res.json({ success: true, deleted: count });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to bulk delete contacts" });
+    }
+  });
+
   app.delete("/api/contacts/:id", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
@@ -889,6 +908,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/clients/bulk-delete", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: "IDs array is required" });
+      }
+      const count = await storage.bulkDeleteClients(ids.map(Number));
+      return res.json({ success: true, deleted: count });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to bulk delete clients" });
+    }
+  });
+
   app.get("/api/clients", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
@@ -1163,6 +1201,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json(updated);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update conversation" });
+    }
+  });
+
+  app.post("/api/conversations/bulk-delete", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: "IDs array is required" });
+      }
+      const count = await storage.bulkDeleteConversations(ids.map(Number));
+      return res.json({ success: true, deleted: count });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to bulk delete conversations" });
     }
   });
 

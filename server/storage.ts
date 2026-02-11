@@ -1,6 +1,6 @@
 import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, conversations, messages, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type Conversation, type InsertConversation, type Message, type InsertMessage } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, lt } from "drizzle-orm";
+import { eq, desc, and, sql, lt, inArray } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -49,6 +49,10 @@ export interface IStorage {
   getMessages(conversationId: number): Promise<Message[]>;
   deleteContact(id: number): Promise<boolean>;
   deleteConversation(id: number): Promise<boolean>;
+  deleteClient(id: number): Promise<boolean>;
+  bulkDeleteContacts(ids: number[]): Promise<number>;
+  bulkDeleteConversations(ids: number[]): Promise<number>;
+  bulkDeleteClients(ids: number[]): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -434,6 +438,32 @@ export class DatabaseStorage implements IStorage {
   async deleteConversation(id: number): Promise<boolean> {
     const result = await db.delete(conversations).where(eq(conversations.id, id)).returning();
     return result.length > 0;
+  }
+
+  async deleteClient(id: number): Promise<boolean> {
+    await db.delete(clientActivities).where(eq(clientActivities.clientId, id));
+    const result = await db.delete(clients).where(eq(clients.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async bulkDeleteContacts(ids: number[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const result = await db.delete(contacts).where(inArray(contacts.id, ids)).returning();
+    return result.length;
+  }
+
+  async bulkDeleteConversations(ids: number[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    await db.delete(messages).where(inArray(messages.conversationId, ids));
+    const result = await db.delete(conversations).where(inArray(conversations.id, ids)).returning();
+    return result.length;
+  }
+
+  async bulkDeleteClients(ids: number[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    await db.delete(clientActivities).where(inArray(clientActivities.clientId, ids));
+    const result = await db.delete(clients).where(inArray(clients.id, ids)).returning();
+    return result.length;
   }
 }
 
