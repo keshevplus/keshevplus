@@ -232,7 +232,7 @@ const ConversationsManager = () => {
 
                   {isExpanded && (
                     <div className="border-t p-3 space-y-3">
-                      <div className="max-h-64 overflow-y-auto space-y-2 bg-muted/30 rounded-md p-3">
+                      <div className="max-h-[500px] overflow-y-auto space-y-4 bg-muted/30 rounded-md p-4">
                         {expandedMessages.length === 0 ? (
                           <p className="text-center text-muted-foreground text-xs py-4">
                             {isHe ? 'אין הודעות בשיחה זו' : 'No messages in this conversation'}
@@ -241,28 +241,32 @@ const ConversationsManager = () => {
                           expandedMessages.map(msg => (
                             <div
                               key={msg.id}
-                              className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                              className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
                               data-testid={`msg-${msg.id}`}
                             >
-                              {msg.role === 'assistant' && (
-                                <div className="shrink-0 h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center mt-1">
-                                  <Bot className="h-3 w-3 text-primary" />
+                              <div className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                                {msg.role === 'assistant' ? (
+                                  <div className="shrink-0 h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center mt-1">
+                                    <Bot className="h-3 w-3 text-primary" />
+                                  </div>
+                                ) : (
+                                  <div className="shrink-0 h-5 w-5 rounded-full bg-muted flex items-center justify-center mt-1">
+                                    <User className="h-3 w-3 text-muted-foreground" />
+                                  </div>
+                                )}
+                                <div
+                                  className={`rounded-lg px-3 py-1.5 max-w-[90%] text-xs whitespace-pre-wrap ${
+                                    msg.role === 'user'
+                                      ? 'bg-primary text-primary-foreground'
+                                      : 'bg-background border shadow-sm'
+                                  }`}
+                                >
+                                  {msg.content}
                                 </div>
-                              )}
-                              <div
-                                className={`rounded-lg px-3 py-1.5 max-w-[80%] text-xs whitespace-pre-wrap ${
-                                  msg.role === 'user'
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-background border'
-                                }`}
-                              >
-                                {msg.content}
                               </div>
-                              {msg.role === 'user' && (
-                                <div className="shrink-0 h-5 w-5 rounded-full bg-muted flex items-center justify-center mt-1">
-                                  <User className="h-3 w-3 text-muted-foreground" />
-                                </div>
-                              )}
+                              <span className="text-[10px] text-muted-foreground px-7">
+                                {new Date(msg.createdAt).toLocaleString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                              </span>
                             </div>
                           ))
                         )}
