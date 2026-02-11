@@ -1184,7 +1184,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (openaiError: any) {
         console.error("OpenAI failed, falling back to Gemini:", openaiError);
         try {
-          const model = geminiAi.getGenerativeModel({ model: "gemini-1.5-flash" });
+          // Fix Gemini model instantiation - some versions use getGenerativeModel on the instance
+          const model = (geminiAi as any).getGenerativeModel ? (geminiAi as any).getGenerativeModel({ model: "gemini-1.5-flash" }) : (geminiAi as any).models.get("gemini-1.5-flash");
           const chatHistory = history.map((m: any) => ({
             role: m.role === "assistant" ? "model" : "user",
             parts: [{ text: m.content }],
