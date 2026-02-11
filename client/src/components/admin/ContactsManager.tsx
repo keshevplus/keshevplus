@@ -83,12 +83,13 @@ export default function ContactsManager() {
 
   const formatDate = (dateStr: string | Date) => {
     const d = new Date(dateStr)
-    return d.toLocaleDateString(isHe ? 'he-IL' : 'en-US', {
+    return d.toLocaleString(isHe ? 'he-IL' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      second: '2-digit',
     })
   }
 

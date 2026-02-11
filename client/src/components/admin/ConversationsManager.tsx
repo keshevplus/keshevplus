@@ -223,7 +223,7 @@ const ConversationsManager = () => {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="text-xs text-muted-foreground">
-                          {new Date(conv.createdAt).toLocaleDateString('he-IL')}
+                          {new Date(conv.createdAt).toLocaleString('he-IL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         </span>
                         {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       </div>
