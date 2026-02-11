@@ -226,8 +226,8 @@ const ChatWidget = () => {
         {
           role: 'assistant',
           content: isHe
-            ? 'מצטער, אירעה שגיאה. אנא נסו שוב.'
-            : 'Sorry, an error occurred. Please try again.',
+            ? 'שירות הצ\'אט אינו זמין כרגע. ניתן ליצור קשר עם המרפאה בטלפון 055-27-399-27 או דרך טופס יצירת הקשר באתר.'
+            : 'Chat service is currently unavailable. Please contact the clinic at 055-27-399-27 or use the contact form on the website.',
         },
       ])
     } finally {
