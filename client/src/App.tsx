@@ -30,6 +30,7 @@ function Router() {
     <Suspense fallback={<PageFallback />}>
       <Switch>
         <Route path="/" component={Index} />
+        <Route path="/demo" component={Index} />
         <Route path="/questionnaire/:type" component={QuestionnairePage} />
         <Route path="/admin" component={AdminPage} />
         <Route component={NotFound} />

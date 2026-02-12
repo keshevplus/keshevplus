@@ -1,0 +1,104 @@
+Prompt for Replit (With Full Context & Diffs)
+Create a duplicated version of the existing SPA and make it accessible at the route /demo.
+CRITICAL REQUIREMENTS:
+The /demo route must render an exact duplicate of the current production SPA.
+ALL existing text content must remain 100% identical.
+ALL structure, layout, sections, order, and hierarchy must remain identical.
+DO NOT rewrite, shorten, simplify, reformat, optimize, or improve any content.
+DO NOT remove or add new text.
+DO NOT alter headings, punctuation, spelling, or formatting.
+DO NOT translate or rephrase anything.
+The root route / must remain unchanged and fully functional.
+/demo must behave identically including scrolling, animations, forms, and downloads.
+Reuse the same components — do NOT manually duplicate code blocks.
+Ensure direct navigation to /demo works (no refresh 404 issues).
+Keep all metadata, SEO tags, and head content unchanged.
+IMPORTANT: Below is the current content structure. The /demo version must contain ALL of this content exactly as-is, in the same order.
+Keshev Plus - ADHD Diagnosis & Treatment
+דלג לתוכן הראשי
+ברוכים הבאים למרפאת "קשב פלוס"
+מרפאה לאבחון וטיפול של הפרעות קשב וריכוז
+בבני נוער
+ב"קשב פלוס" תקבלו אבחון מדויק ותוכנית טיפול אישית
+הצעד הראשון מתחיל כאן
+קבעו פגישת ייעוץ - בואו לגלות את הדרך להצלחה
+רופאה מומחית באבחון ADHD
+מוכנים להתחיל?
+פנה/י אלינו היום כדי לקבוע את האבחון שלך ולקחת את הצעד הראשון לקראת חיים טובים יותר.
+אודותינו
+מומחים באבחון וטיפול בהפרעות קשב וריכוז
+ד"ר איירין כוכב-רייפמן
+ד"ר איירין כוכב-רייפמן
+רופאה מומחית
+בעלת ניסיון עשיר באבחון של ילדים, מתבגרים ובוגרים. ליוותה מטופלים רבים במסע להגשמה אישית ותפקוד מיטבי.
+מומחית באבחון וטיפול ב-ADHD
+ניסיון של למעלה מ-15 שנה
+התמחות בילדים, נוער ומבוגרים
+"המשימה שלנו היא לספק אבחון מדויק ותוכניות טיפול מותאמות אישית, המאפשרים למטופלים שלנו להגיע למיצוי הפוטנציאל האישי שלהם."
+יחס אישי
+כל מטופל מקבל יחס אישי ומותאם לצרכיו הייחודיים
+מקצועיות
+צוות מומחים עם ניסיון רב ועדכון מתמיד
+דיסקרטיות
+שמירה על פרטיות מלאה וסביבה בטוחה
+השירותים שלנו
+אבחון מותאם אישית באמצעות כלים מתקדמים, ראיונות קליניים ומבחנים ממוחשבים
+התאמת טיפול תרופתי אישי עם מעקב בטיחות מתמשך
+הערכה אובייקטיבית של תפקודי הקשב והריכוז
+תמיכה מקצועית מתמשכת ומעקב אחר הטיפול
+הפניות לריפוי בעיסוק, טיפול רגשי ותמיכה פסיכולוגית
+תהליך האבחון
+
+יצירת קשר
+פנייה ראשונית טלפונית או באמצעות הטופס באתר
+
+פגישת היכרות
+שיחה ראשונית, איסוף היסטוריה רפואית ומילוי שאלונים
+
+אבחון מקיף
+ביצוע מבחנים ממוחשבים והערכה קלינית מעמיקה
+
+דוח ותוכנית טיפול
+קבלת דוח מפורט והמלצות לתוכנית טיפול אישית
+הפרעת קשב וריכוז (ADHD) היא הפרעה נוירו-התפתחותית שמשפיעה על ילדים ומבוגרים כאחד
+קשיי ריכוז
+קושי לשמור על ריכוז לאורך זמן, הסחת דעת קלה ושכחנות
+היפראקטיביות
+חוסר שקט, קושי לשבת במקום ותחושת אי-מנוחה פנימית
+אימפולסיביות
+קושי בבקרה עצמית, קבלת החלטות מהירות ללא מחשבה מוקדמת
+קשיים חברתיים
+קושי בתקשורת חברתית, ביצירת קשרים ובשמירה עליהם
+ADHD ניתן לטיפול!
+עם אבחון מדויק ותוכנית טיפול מותאמת אישית, ניתן לשפר משמעותית את איכות החיים. הצעד הראשון הוא פנייה למומחה.
+שאלות נפוצות
+תשובות לשאלות הנפוצות ביותר
+לא מצאתם תשובה? צרו איתנו קשר
+שאלונים
+שאלונים לזיהוי סימנים של הפרעת קשב וריכוז (ADHD)
+שאלון להורים
+שאלון זה מיועד להורים ומספק תובנות על התנהגות הילד בבית ובסביבה המשפחתית.
+קבצים להורדה
+שאלון למורה
+שאלון זה מיועד למורים ומספק תובנות על התנהגות הילד בכיתה ובסביבה החינוכית.
+קבצים להורדה
+שאלון דיווח עצמי
+שאלון זה מיועד למילוי על ידי מבוגר מעל גיל 18 להערכת הפרעות קשב ופעלתנות יתר.
+קבצים להורדה
+ניתן להוריד את השאלונים ולמלא אותם לפני הפגישה במרפאה
+יצירת קשר
+השאירו פרטים ונחזור אליכם בהקדם האפשרי
+השאירו פרטים
+ROUTING INSTRUCTIONS:
+If using React Router: Add: <Route path="/demo" element={} />
+If using Next.js: Create /pages/demo.tsx (or /app/demo/page.tsx) that imports and renders the same main component used on the homepage.
+DO NOT:
+Duplicate content manually
+Create a second version of the text
+Modify wording
+Change formatting
+GOAL:
+"/" → original SPA
+"/demo" → exact identical SPA clone
+Zero content differences
+Zero behavioral differences
