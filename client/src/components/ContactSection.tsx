@@ -24,11 +24,14 @@ const contactSchema = z.object({
 
 type ContactFormData = z.infer<typeof contactSchema>;
 
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+
 const ContactSection: React.FC = () => {
   const { t, isRTL } = useLanguage();
   const isDemo = useIsDemo();
   const { toast } = useToast();
   
+  const [directionsModalOpen, setDirectionsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formData, setFormData] = useState<ContactFormData>({
@@ -114,9 +117,9 @@ const ContactSection: React.FC = () => {
           whileInView={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
           viewport={{ once: true }}
-          className="order-2 lg:order-1"
+          className="order-1"
         >
-          <Card className="border-border shadow-lg">
+          <Card className={cn("border-0 shadow-lg", isDemo && "bg-[#FFB37B] dark:bg-[#FFB37B]")}>
             <CardContent className="pt-6">
               {isSubmitted ? (
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
@@ -129,46 +132,10 @@ const ContactSection: React.FC = () => {
                 </motion.div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <Label htmlFor="name">{t('contact.full_name')} *</Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        className={cn(errors.name && "border-destructive")}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="phone">{t('contact.phone_label')} *</Label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        className={cn(errors.phone && "border-destructive")}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label htmlFor="email">{t('contact.email_optional')}</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-
                   {isDemo && (
                     <div className="space-y-1">
-                      <Label>{t('contact.topic_label')}</Label>
                       <Select onValueChange={handleSelectChange} value={formData.topic}>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white h-12 text-lg">
                           <SelectValue placeholder={t('contact.topic_label')} />
                         </SelectTrigger>
                         <SelectContent>
@@ -181,25 +148,23 @@ const ContactSection: React.FC = () => {
                   )}
 
                   <div className="space-y-1">
-                    <Label htmlFor="message">{t('contact.message')} *</Label>
                     <Textarea
                       id="message"
                       name="message"
                       value={formData.message}
                       onChange={handleInputChange}
+                      placeholder={isDemo ? "הודעה" : t('contact.message_placeholder')}
                       rows={4}
-                      className={cn("resize-none", errors.message && "border-destructive")}
+                      className={cn("bg-white text-lg resize-none", errors.message && "border-destructive")}
                     />
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                    <AccessibleButton type="submit" variant="primary" loading={isSubmitting} className="flex-1 min-h-[48px]">
-                      <Send className="w-4 h-4 mr-2" />
+                    <AccessibleButton type="submit" variant="primary" loading={isSubmitting} className="flex-1 min-h-[48px] bg-[#25D366] hover:bg-[#20bd5a] border-0 text-white font-bold">
                       {t('contact.send_message')}
                     </AccessibleButton>
                     {isDemo && (
-                      <AccessibleButton type="button" variant="outline" onClick={handleClear} className="flex-1 min-h-[48px]">
-                        <RotateCcw className="w-4 h-4 mr-2" />
+                      <AccessibleButton type="button" variant="outline" onClick={handleClear} className="flex-1 min-h-[48px] bg-[#E0E0E0] hover:bg-[#D0D0D0] border-0 text-foreground font-bold">
                         {t('contact.clear_form')}
                       </AccessibleButton>
                     )}
@@ -219,49 +184,97 @@ const ContactSection: React.FC = () => {
           className="order-1 lg:order-2 space-y-6"
         >
           <div className="space-y-6">
-            <h3 className="text-2xl font-bold text-primary">{t('contact.details_title')}</h3>
+            <h3 className="text-2xl font-bold text-primary text-center">{t('contact.details_title')}</h3>
             
-            <div className="space-y-4">
-              <div className="flex gap-4">
-                <MapPin className="w-6 h-6 text-primary shrink-0" />
-                <div>
-                  <p className="font-bold text-lg">{t('contact.address_label')}</p>
-                  <p className="text-muted-foreground">{t('contact.address_line1')}</p>
-                  <p className="text-muted-foreground">{t('contact.address_line2')}</p>
-                </div>
+            <div className="space-y-4 text-center">
+              <div className="flex flex-col items-center gap-2">
+                <p className="font-bold text-xl">{t('contact.address_label')}</p>
+                <p className="text-primary font-bold text-lg leading-tight">{t('contact.address_line1')}</p>
+                <p className="text-primary font-bold text-lg leading-tight">{t('contact.address_line2')}</p>
               </div>
 
-              <div className="flex gap-4">
-                <Mail className="w-6 h-6 text-primary shrink-0" />
-                <div>
-                  <p className="font-bold text-lg">{t('contact.email_label')}</p>
-                  <a href="mailto:dr@keshevplus.co.il" className="text-primary hover:underline">dr@keshevplus.co.il</a>
-                </div>
+              <div className="flex flex-col items-center gap-1">
+                <p className="font-bold text-xl">{t('contact.email_label')}</p>
+                <a href="mailto:dr@keshevplus.co.il" className="text-[#25D366] font-bold text-lg hover:underline">dr@keshevplus.co.il</a>
               </div>
 
-              <div className="flex gap-4">
-                <Phone className="w-6 h-6 text-primary shrink-0" />
-                <div>
-                  <p className="font-bold text-lg">{t('contact.phone_label')}</p>
-                  <a href="tel:055-27-399-27" className="text-primary hover:underline">055-27-399-27</a>
-                </div>
+              <div className="flex flex-col items-center gap-1">
+                <p className="font-bold text-xl">{t('contact.phone_label')}</p>
+                <a href="tel:055-27-399-27" className="text-foreground font-bold text-lg hover:underline">055-27-399-27</a>
               </div>
             </div>
 
-            <div className="pt-4 space-y-4">
-              <p className="font-bold text-lg">{t('contact.directions_title')}</p>
-              <div className="flex flex-wrap gap-3">
-                <a href={googleMapsLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-[#4285F4] text-white rounded-lg hover:bg-opacity-90 transition-opacity">
-                  <MapPin className="w-4 h-4" />
-                  {t('contact.navigate_google')}
+            <div className="pt-4 flex flex-col items-center gap-4">
+              <AccessibleButton 
+                variant="primary" 
+                className="w-full max-w-sm bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold h-12 text-lg rounded-lg"
+                onClick={() => setDirectionsModalOpen(true)}
+              >
+                {t('contact.directions_title')}
+              </AccessibleButton>
+
+              <div className="flex flex-wrap justify-center gap-3 w-full">
+                <a href={wazeLink} target="_blank" rel="noopener noreferrer" className="flex-1 max-w-[180px] flex items-center justify-center gap-2 px-4 py-2 bg-[#33CCFF] text-white rounded-lg font-bold hover:bg-opacity-90 transition-opacity min-h-[44px]">
+                  נווט עם Waze
                 </a>
-                <a href={wazeLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-[#33CCFF] text-white rounded-lg hover:bg-opacity-90 transition-opacity">
-                  <Navigation className="w-4 h-4" />
-                  {t('contact.navigate_waze')}
+                <a href={googleMapsLink} target="_blank" rel="noopener noreferrer" className="flex-1 max-w-[180px] flex items-center justify-center gap-2 px-4 py-2 bg-[#4285F4] text-white rounded-lg font-bold hover:bg-opacity-90 transition-opacity min-h-[44px]">
+                  נווט עם Google Maps
                 </a>
               </div>
             </div>
           </div>
+
+          <Dialog open={directionsModalOpen} onOpenChange={setDirectionsModalOpen}>
+            <DialogContent className="max-w-md w-[90vw] p-0 overflow-hidden rounded-2xl" dir={isRTL ? 'rtl' : 'ltr'}>
+              <div className="bg-white p-6 space-y-6">
+                <h2 className="text-2xl font-bold text-[#1B4332] text-center border-b pb-4">
+                  דרכי הגעה ואפשרויות חניה
+                </h2>
+                
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <h3 className="text-xl font-bold text-[#1B4332] flex items-center gap-2">
+                      <span className="text-2xl">🚗</span> אפשרויות חניה באזור:
+                    </h3>
+                    
+                    <div className="space-y-4 text-[#1B4332]">
+                      <div>
+                        <p className="font-bold text-lg">חניון אורחים מגדלי אלון - <span className="font-normal text-base">כניסה דרך מגדל אלון 1 בצד הצפוני</span></p>
+                        <p className="text-sm">חניות אורחים מסומנות באור ירוק ושלט מגדל "הראל"</p>
+                        <a href="https://waze.com/ul?q=מגדלי+אלון+כניסה+צפונית" target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm hover:underline">מגדלי אלון- כניסה צפונית Waze</a>
+                      </div>
+
+                      <div>
+                        <p className="font-bold text-lg">חניון "אושר עד" - <span className="font-normal text-base">ממש ברחוב המקביל אלינו</span></p>
+                        <a href="https://waze.com/ul?q=חניון+אושר+עד+תל+אביב" target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm hover:underline">Waze לחניון אושר עד</a>
+                      </div>
+
+                      <div>
+                        <p className="font-bold text-lg">חניון אחוזת חוף - <span className="font-normal text-base">ליד מגדל טויוטה (חניון הסינרמה, יגאל אלון 63)</span></p>
+                        <p className="text-sm">כניסה מהצד הדרומי</p>
+                        <a href="https://waze.com/ul?q=חניון+אחוזת+חוף+יגאל+אלון+63" target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm hover:underline">Waze לחניון אחוזות חוף</a>
+                      </div>
+
+                      <div>
+                        <p className="font-bold text-lg">כחול לבן באזור <span className="font-normal text-base">(זמין בעיקר בבוקר ובערב)</span></p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🚆</span>
+                      <div className="font-bold text-[#1B4332]">
+                        <p className="text-lg leading-tight">לבאי</p>
+                        <p className="text-lg leading-tight">ברכבת</p>
+                      </div>
+                    </div>
+                    <p className="text-[#1B4332] text-lg font-medium">- מרחק הליכה מתחנת השלום (עזריאלי)</p>
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </motion.div>
       </div>
 
