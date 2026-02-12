@@ -160,10 +160,9 @@ const AccessibilityWidget = () => {
         )}
         aria-label={t("accessibilityMenu")}
       >
-        <svg viewBox="0 0 24 24" className="w-8 h-8" fill="white" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="11.5" cy="3.5" r="2.5"/>
-          <path d="M10 7c-1.1 0-2 .9-2 2v5h2v6h3l2.5 0 1.5 3h2.5l-2-4H14v-7h3v-2h-4V9c0-1.1-.9-2-2-2h-1z"/>
-          <path d="M7.5 16.5a5 5 0 1 0 5-5" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        <svg viewBox="0 0 16 16" className="w-8 h-8" fill="white" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10.4 10h-.5c.1.3.1.7.1 1 0 2.2-1.8 4-4 4s-4-1.8-4-4c0-2.1 1.6-3.8 3.7-4l-.2-1C2.9 6.4 1 8.4 1 11c0 2.8 2.2 5 5 5 2.4 0 4.4-1.7 4.9-3.9z" />
+          <path d="M13.1 13 12 8H7.9l-.2-1H11V6H7.5l-.6-2.5c.9-.1 1.6-.8 1.6-1.7C8.5.8 7.7 0 6.7 0S5 .8 5 1.8c0 .6.3 1.2.8 1.5L7.1 9h4.1l1.2 5H15v-1z" />
         </svg>
       </button>
 
