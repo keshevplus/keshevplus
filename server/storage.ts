@@ -43,6 +43,8 @@ export interface IStorage {
   getClientInteractions(clientId: number): Promise<{ contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[] }>;
   getActiveAppointmentForChild(email: string, childName: string): Promise<Appointment | undefined>;
   getAdminBadgeCounts(): Promise<{ unreadContacts: number; pendingAppointments: number; unreviewedQuestionnaires: number; unreviewedConversations: number; newLeads: number }>;
+  getWidgetSettings(): Promise<WidgetSettings>;
+  updateWidgetSettings(settings: WidgetSettings): Promise<WidgetSettings>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   getConversations(): Promise<Conversation[]>;
   getConversation(id: number): Promise<Conversation | undefined>;
@@ -417,6 +419,17 @@ export class DatabaseStorage implements IStorage {
       unreviewedConversations: conversationsResult?.count ?? 0,
       newLeads: leadsResult?.count ?? 0,
     };
+  }
+
+  async getWidgetSettings(): Promise<WidgetSettings> {
+    const setting = await this.getSetting("widget_settings");
+    if (setting) return setting.value as WidgetSettings;
+    return { showChat: true, showAccessibility: true, showWhatsApp: true };
+  }
+
+  async updateWidgetSettings(settings: WidgetSettings): Promise<WidgetSettings> {
+    const updated = await this.upsertSetting("widget_settings", settings);
+    return updated.value as WidgetSettings;
   }
 
   async createConversation(conversation: InsertConversation): Promise<Conversation> {

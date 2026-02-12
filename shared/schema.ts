@@ -147,7 +147,14 @@ export const languageSettingsSchema = z.object({
   defaultLanguage: z.enum(SUPPORTED_LANGUAGES),
 });
 
+export const widgetSettingsSchema = z.object({
+  showChat: z.boolean().default(true),
+  showAccessibility: z.boolean().default(true),
+  showWhatsApp: z.boolean().default(true),
+});
+
 export type LanguageSettings = z.infer<typeof languageSettingsSchema>;
+export type WidgetSettings = z.infer<typeof widgetSettingsSchema>;
 
 export const upsertTranslationSchema = z.object({
   key: z.string().min(1),

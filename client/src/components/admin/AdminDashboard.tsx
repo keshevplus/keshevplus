@@ -55,7 +55,23 @@ const AdminDashboard = () => {
     questionnaires: badgeCounts?.unreviewedQuestionnaires ?? 0,
   }
 
-  const totalBadges = Object.values(tabBadgeMap).reduce((a, b) => a + b, 0)
+  const [widgetSettings, setWidgetSettings] = useState<WidgetSettings>({ showChat: true, showAccessibility: true, showWhatsApp: true })
+
+  useEffect(() => {
+    fetch('/api/settings/widgets')
+      .then(res => res.json())
+      .then(data => setWidgetSettings(data))
+      .catch(() => {})
+  }, [])
+
+  const handleSaveWidgetSettings = async () => {
+    try {
+      await apiRequest('PUT', '/api/settings/widgets', widgetSettings)
+      toast({ title: isHe ? 'ההגדרות נשמרו' : 'Settings saved' })
+    } catch {
+      toast({ title: isHe ? 'שגיאה' : 'Error', variant: 'destructive' })
+    }
+  }
 
   useEffect(() => {
     fetch('/api/settings/language', { credentials: 'include' })
@@ -395,6 +411,31 @@ const AdminDashboard = () => {
               </Card>
 
               <EmailNotificationSettings />
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>{isHe ? 'הגדרות ווידג׳טים' : 'Widget Settings'}</CardTitle>
+                  <CardDescription>{isHe ? 'שליטה על הצגת אלמנטים צפים באתר' : 'Control visibility of floating site elements'}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label>{isHe ? 'הצג צ׳אט' : 'Show Chat'}</Label>
+                    <Switch checked={widgetSettings.showChat} onCheckedChange={v => setWidgetSettings(p => ({ ...p, showChat: v }))} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label>{isHe ? 'הצג נגישות' : 'Show Accessibility'}</Label>
+                    <Switch checked={widgetSettings.showAccessibility} onCheckedChange={v => setWidgetSettings(p => ({ ...p, showAccessibility: v }))} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label>{isHe ? 'הצג וואטסאפ' : 'Show WhatsApp'}</Label>
+                    <Switch checked={widgetSettings.showWhatsApp} onCheckedChange={v => setWidgetSettings(p => ({ ...p, showWhatsApp: v }))} />
+                  </div>
+                  <Button onClick={handleSaveWidgetSettings} className="w-full mt-4">
+                    <Save className="w-4 h-4 mr-2" />
+                    {isHe ? 'שמור הגדרות ווידג׳טים' : 'Save Widget Settings'}
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
         </Tabs>

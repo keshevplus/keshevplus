@@ -2,10 +2,11 @@ import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MessageCircle, X, Send, Bot, User, ArrowRight } from 'lucide-react'
-import { SiWhatsapp } from 'react-icons/si'
+import { SiWhatsapp as SiWhatsApp } from 'react-icons/si'
 import { useLanguage } from '@/hooks/useLanguage'
 import { useLocation } from 'wouter'
 import { cn } from '@/lib/utils'
+import { useQuery } from '@tanstack/react-query'
 
 const CLINIC_WHATSAPP = '972552739927'
 
@@ -274,6 +275,10 @@ const ChatWidget = () => {
     }
   }
 
+  const { data: widgetSettings } = useQuery<any>({
+    queryKey: ['/api/settings/widgets'],
+  });
+
   const isInIframe = () => {
     try {
       return window.self !== window.top;
@@ -282,15 +287,14 @@ const ChatWidget = () => {
     }
   }
 
-  if (location.startsWith('/admin') || isInIframe()) return null
+  if (location.startsWith('/admin') || isInIframe() || widgetSettings?.showChat === false) return null
 
   if (!open) {
-    const whatsAppUrl = `https://wa.me/${CLINIC_WHATSAPP}?text=${encodeURIComponent(isHe ? 'שלום, אשמח לקבל מידע על אבחון ADHD' : 'Hello, I would like information about ADHD diagnosis')}`
     return (
       <div
         className={cn(
           "fixed bottom-5 z-[9998] flex items-center gap-0",
-          isRTL ? "left-20 flex-row" : "right-5 flex-row"
+          isRTL ? "right-20 flex-row" : "left-5 flex-row"
         )}
         style={{
           transition: 'opacity 0.3s ease, transform 0.3s ease',
@@ -303,7 +307,7 @@ const ChatWidget = () => {
             className={cn(
               "flex items-center gap-2 bg-background border border-border rounded-full py-2 px-4 shadow-md cursor-pointer",
               "transition-all duration-300",
-              isRTL ? "ml-[-8px] pl-6" : "mr-[-8px] pr-6"
+              isRTL ? "mr-[-8px] pr-6" : "ml-[-8px] pl-6"
             )}
             onClick={() => setOpen(true)}
             data-testid="chat-attention-bar"
@@ -323,22 +327,24 @@ const ChatWidget = () => {
         )}
 
         <div className="flex flex-col gap-2 items-center">
-          <a
-            href={whatsAppUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              "h-11 w-11 rounded-full flex items-center justify-center",
-              "bg-[#25D366] border-2 border-[#128C7E]",
-              "shadow-[0_2px_8px_rgba(37,211,102,0.35)]",
-              "transition-transform duration-200 hover:scale-105",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2"
-            )}
-            aria-label="WhatsApp"
-            data-testid="button-open-whatsapp"
-          >
-            <SiWhatsapp className="h-5 w-5 text-white" />
-          </a>
+          {widgetSettings?.showWhatsApp !== false && (
+            <a
+              href={`https://wa.me/${CLINIC_WHATSAPP}?text=${encodeURIComponent(isHe ? 'שלום, אשמח לקבל מידע על אבחון ADHD' : 'Hello, I would like information about ADHD diagnosis')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "h-11 w-11 rounded-full flex items-center justify-center",
+                "bg-[#25D366] border-2 border-[#128C7E]",
+                "shadow-[0_2px_8px_rgba(37,211,102,0.35)]",
+                "transition-transform duration-200 hover:scale-105",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2"
+              )}
+              aria-label="WhatsApp"
+              data-testid="button-open-whatsapp"
+            >
+              <SiWhatsApp className="h-5 w-5 text-white" />
+            </a>
+          )}
           <button
             onClick={() => setOpen(true)}
             className={cn(

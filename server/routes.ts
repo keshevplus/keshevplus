@@ -256,6 +256,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/settings/widgets", async (req, res) => {
+    const settings = await storage.getWidgetSettings();
+    res.json(settings);
+  });
+
+  app.put("/api/settings/widgets", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+    
+    const settings = await storage.updateWidgetSettings(req.body);
+    res.json(settings);
+  });
+
   app.get("/api/contacts", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
