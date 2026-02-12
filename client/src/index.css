@@ -177,6 +177,8 @@
   body {
     @apply bg-background text-foreground;
     overflow-x: hidden;
+    width: 100%;
+    position: relative;
     min-height: 100vh;
     min-height: 100svh;
   }
@@ -292,7 +294,7 @@
     height: 3px;
     background: var(--gradient-primary);
     transform-origin: left;
-    z-index: 1000;
+    z-index: 10000;
   }
 
   /* Animated Background Elements */
