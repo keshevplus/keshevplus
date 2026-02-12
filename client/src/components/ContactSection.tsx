@@ -119,12 +119,12 @@ const ContactSection: React.FC = () => {
           viewport={{ once: true }}
           className="order-1"
         >
-          <Card className={cn("border-0 shadow-lg", isDemo && "bg-[#FFB37B] dark:bg-[#FFB37B]")}>
+          <Card className={cn("border-0 shadow-lg", isDemo && "bg-[#FFB37B] dark:bg-orange-900/40 dark:border dark:border-orange-500/30")}>
             <CardContent className="pt-6">
               {isSubmitted ? (
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
                   <CheckCircle className="w-16 h-16 text-primary mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">{t('contact.thank_you')}</h3>
+                  <h3 className="text-xl font-semibold mb-2 text-foreground">{t('contact.thank_you')}</h3>
                   <p className="text-muted-foreground">{t('contact.will_reply')}</p>
                   <AccessibleButton variant="outline" className="mt-6" onClick={() => setIsSubmitted(false)}>
                     {t('contact.send_another')}
@@ -140,7 +140,7 @@ const ContactSection: React.FC = () => {
                         value={formData.name}
                         onChange={handleInputChange}
                         placeholder={t('contact.name_placeholder')}
-                        className={cn("bg-white h-12 text-lg text-right", errors.name && "border-destructive")}
+                        className={cn("bg-white dark:bg-gray-800 dark:text-white h-12 text-lg text-right", errors.name && "border-destructive")}
                       />
                     </div>
                     <div className="space-y-1">
@@ -151,7 +151,7 @@ const ContactSection: React.FC = () => {
                         value={formData.email}
                         onChange={handleInputChange}
                         placeholder={t('contact.email_placeholder')}
-                        className="bg-white h-12 text-lg text-right"
+                        className="bg-white dark:bg-gray-800 dark:text-white h-12 text-lg text-right"
                       />
                     </div>
                     <div className="space-y-1">
@@ -162,13 +162,13 @@ const ContactSection: React.FC = () => {
                         value={formData.phone}
                         onChange={handleInputChange}
                         placeholder={t('contact.phone_placeholder')}
-                        className={cn("bg-white h-12 text-lg text-right", errors.phone && "border-destructive")}
+                        className={cn("bg-white dark:bg-gray-800 dark:text-white h-12 text-lg text-right", errors.phone && "border-destructive")}
                       />
                     </div>
 
                     <div className="space-y-1">
                       <Select onValueChange={handleSelectChange} value={formData.topic}>
-                        <SelectTrigger className="bg-[#E9ECEF] h-12 text-lg text-right border-0">
+                        <SelectTrigger className="bg-[#E9ECEF] dark:bg-gray-700 h-12 text-lg text-right border-0 dark:text-white">
                           <SelectValue placeholder={t('contact.topic_label')} />
                         </SelectTrigger>
                         <SelectContent>
@@ -187,7 +187,7 @@ const ContactSection: React.FC = () => {
                         onChange={handleInputChange}
                         placeholder={t('contact.message_placeholder')}
                         rows={4}
-                        className={cn("bg-white text-lg text-right resize-none", errors.message && "border-destructive")}
+                        className={cn("bg-white dark:bg-gray-800 dark:text-white text-lg text-right resize-none", errors.message && "border-destructive")}
                       />
                     </div>
                   </div>
@@ -197,7 +197,7 @@ const ContactSection: React.FC = () => {
                       {t('contact.send_message')}
                     </AccessibleButton>
                     {isDemo && (
-                      <AccessibleButton type="button" variant="outline" onClick={handleClear} className="flex-1 min-h-[48px] bg-[#E0E0E0] hover:bg-[#D0D0D0] border-0 text-foreground font-bold">
+                      <AccessibleButton type="button" variant="outline" onClick={handleClear} className="flex-1 min-h-[48px] bg-[#E0E0E0] dark:bg-gray-600 hover:bg-[#D0D0D0] dark:hover:bg-gray-500 border-0 text-foreground dark:text-white font-bold">
                         {t('contact.clear_form')}
                       </AccessibleButton>
                     )}
@@ -217,23 +217,23 @@ const ContactSection: React.FC = () => {
           className="order-1 lg:order-2 space-y-6"
         >
           <div className="space-y-6">
-            <h3 className="text-2xl font-bold text-primary text-center">{t('contact.details_title')}</h3>
+            <h3 className="text-2xl font-bold text-primary text-center dark:text-orange-400">{t('contact.details_title')}</h3>
             
             <div className="space-y-4 text-center">
               <div className="flex flex-col items-center gap-2">
-                <p className="font-bold text-xl">{t('contact.address_label')}</p>
-                <p className="text-primary font-bold text-lg leading-tight">{t('contact.address_line1')}</p>
-                <p className="text-primary font-bold text-lg leading-tight">{t('contact.address_line2')}</p>
+                <p className="font-bold text-xl text-foreground">{t('contact.address_label')}</p>
+                <p className="text-primary font-bold text-lg leading-tight dark:text-orange-300">{t('contact.address_line1')}</p>
+                <p className="text-primary font-bold text-lg leading-tight dark:text-orange-300">{t('contact.address_line2')}</p>
               </div>
 
               <div className="flex flex-col items-center gap-1">
-                <p className="font-bold text-xl">{t('contact.email_label')}</p>
-                <a href="mailto:dr@keshevplus.co.il" className="text-[#25D366] font-bold text-lg hover:underline">dr@keshevplus.co.il</a>
+                <p className="font-bold text-xl text-foreground">{t('contact.email_label')}</p>
+                <a href="mailto:dr@keshevplus.co.il" className="text-[#25D366] font-bold text-lg hover:underline dark:text-green-400">dr@keshevplus.co.il</a>
               </div>
 
               <div className="flex flex-col items-center gap-1">
-                <p className="font-bold text-xl">{t('contact.phone_label')}</p>
-                <a href="tel:055-27-399-27" className="text-foreground font-bold text-lg hover:underline">055-27-399-27</a>
+                <p className="font-bold text-xl text-foreground">{t('contact.phone_label')}</p>
+                <a href="tel:055-27-399-27" className="text-foreground font-bold text-lg hover:underline dark:text-white">055-27-399-27</a>
               </div>
             </div>
 
