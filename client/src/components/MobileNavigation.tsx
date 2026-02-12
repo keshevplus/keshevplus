@@ -123,7 +123,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
           transition: 'background-color 0.3s, box-shadow 0.3s',
         }}
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 overflow-visible",
+          "fixed top-0 left-0 right-0 z-[9990] overflow-visible",
           isScrolled
             ? "bg-background/95 backdrop-blur-md shadow-md"
             : "bg-background/80 backdrop-blur-sm",
