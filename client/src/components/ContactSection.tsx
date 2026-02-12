@@ -1,207 +1,32 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Phone, Mail, MapPin, Clock, Send, CheckCircle, Car, Navigation, Train } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Phone, Mail, MapPin, Send, CheckCircle, Navigation, RotateCcw } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useLanguage, useIsDemo } from '@/hooks/useLanguage';
 import { Section, SectionHeader } from '@/components/layout/Section';
 import { AccessibleButton } from '@/components/ui/accessible-button';
-import { contentApi, useContent, type ContactInfo } from '@/lib/content';
+import { contentApi } from '@/lib/content';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 
-/**
- * ContactSection - Accessible, mobile-first contact form
- * 
- * UX Improvements:
- * - Single-column form on mobile
- * - Large input fields with proper labels
- * - Clear validation messages
- * - Touch-friendly buttons (min 44px)
- * - Progressive disclosure
- * - Data-driven contact info from API
- */
-
-// Validation schema
 const contactSchema = z.object({
   name: z.string().trim().min(2, { message: 'Name must be at least 2 characters' }).max(100),
   phone: z.string().trim().min(9, { message: 'Please enter a valid phone number' }).max(20),
   email: z.string().trim().email({ message: 'Please enter a valid email' }).optional().or(z.literal('')),
+  topic: z.string().optional(),
   message: z.string().trim().min(10, { message: 'Message must be at least 10 characters' }).max(1000),
 });
 
 type ContactFormData = z.infer<typeof contactSchema>;
 
-// Arrival & Parking Modal Component
-const ArrivalParkingModal: React.FC<{ isRTL: boolean }> = ({ isRTL }) => {
-  const { t } = useLanguage();
-  const [open, setOpen] = useState(false);
-  
-  const clinicAddress = 'יגאל אלון 94, תל אביב';
-  const wazeLink = `https://waze.com/ul?q=${encodeURIComponent(clinicAddress)}&navigate=yes`;
-  const googleMapsLink = `https://maps.google.com/?q=${encodeURIComponent(clinicAddress)}`;
-  
-  return (
-    <>
-      <motion.button
-        onClick={() => setOpen(true)}
-        className={cn(
-          "flex items-center justify-center gap-3 w-full",
-          "py-4 px-6 rounded-xl",
-          "bg-primary text-primary-foreground font-semibold text-lg",
-          "hover:bg-primary/90 transition-colors",
-          "shadow-md hover:shadow-lg",
-          "min-h-[56px]"
-        )}
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.5 }}
-        viewport={{ once: true }}
-      >
-        <Car className="w-5 h-5" aria-hidden="true" />
-        <span>{t('contact.directions')}</span>
-      </motion.button>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent 
-          className="max-w-lg sm:max-w-xl"
-          dir={isRTL ? 'rtl' : 'ltr'}
-        >
-          <DialogHeader>
-            <DialogTitle className="text-xl text-primary flex items-center gap-2">
-              <Car className="w-5 h-5" />
-              {t('contact.directions')}
-            </DialogTitle>
-            <DialogDescription>
-              {t('contact.directions_desc')}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6 mt-4">
-            {/* Address */}
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-                <MapPin className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground mb-1">
-                  {t('contact.clinic_address')}
-                </h4>
-                <p className="text-muted-foreground text-sm">
-                  {t('contact.address_line1')}
-                  <br />
-                  <span className="text-xs">
-                    {t('contact.address_line2')}
-                  </span>
-                </p>
-              </div>
-            </div>
-
-            {/* Parking Info */}
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-                <Car className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground mb-1">
-                  {t('contact.parking_title')}
-                </h4>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  {t('contact.parking_desc')}
-                </p>
-              </div>
-            </div>
-
-            {/* Public Transport */}
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-                <Train className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground mb-1">
-                  {t('contact.transport_title')}
-                </h4>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  {t('contact.transport_desc')}
-                </p>
-              </div>
-            </div>
-
-            {/* Google Maps Embed */}
-            <div className="aspect-video rounded-lg overflow-hidden border">
-              <iframe
-                src={`https://maps.google.com/maps?q=${encodeURIComponent('יגאל אלון 94, תל אביב')}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title={isRTL ? 'מפת הגעה למרפאת קשב פלוס' : 'Map to Keshev Plus clinic'}
-                data-testid="iframe-clinic-map"
-              />
-            </div>
-
-            {/* Navigation Buttons */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <a
-                href={wazeLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  "flex items-center justify-center gap-2 py-3 px-4 rounded-lg",
-                  "bg-[#33CCFF] text-white font-medium",
-                  "hover:bg-[#2bb8e8] transition-colors",
-                  "min-h-[48px]"
-                )}
-              >
-                <Navigation className="w-4 h-4" />
-                Waze
-              </a>
-              <a
-                href={googleMapsLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  "flex items-center justify-center gap-2 py-3 px-4 rounded-lg",
-                  "bg-[#4285F4] text-white font-medium",
-                  "hover:bg-[#3574d4] transition-colors",
-                  "min-h-[48px]"
-                )}
-              >
-                <MapPin className="w-4 h-4" />
-                Google Maps
-              </a>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-};
-
-// Icon mapping
-const iconMap: Record<string, React.FC<{ className?: string }>> = {
-  phone: Phone,
-  email: Mail,
-  address: MapPin,
-  hours: Clock,
-};
-
-import ContactInfoList from './ContactInfoList';
-
 const ContactSection: React.FC = () => {
-  const { t, language, isRTL } = useLanguage();
+  const { t, isRTL } = useLanguage();
+  const isDemo = useIsDemo();
   const { toast } = useToast();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -210,31 +35,32 @@ const ContactSection: React.FC = () => {
     name: '',
     phone: '',
     email: '',
+    topic: '',
     message: '',
   });
   const [errors, setErrors] = useState<Partial<Record<keyof ContactFormData, string>>>({});
-
-  // Fetch contact info from API
-  const { data: contactInfo } = useContent(
-    () => contentApi.getContactInfo(),
-    []
-  );
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
     if (errors[name as keyof ContactFormData]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
 
+  const handleSelectChange = (value: string) => {
+    setFormData(prev => ({ ...prev, topic: value }));
+  };
+
+  const handleClear = () => {
+    setFormData({ name: '', phone: '', email: '', topic: '', message: '' });
+    setErrors({});
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate form
     const result = contactSchema.safeParse(formData);
     if (!result.success) {
       const fieldErrors: Partial<Record<keyof ContactFormData, string>> = {};
@@ -248,36 +74,25 @@ const ContactSection: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    
     try {
-      const validData = {
-        name: result.data.name,
-        phone: result.data.phone,
-        email: result.data.email,
-        message: result.data.message,
-      };
-      const response = await contentApi.submitContactForm(validData);
-      
+      const response = await contentApi.submitContactForm(result.data);
       if (response.success) {
         setIsSubmitted(true);
-        toast({
-          title: t('contact.success_title'),
-          description: t('contact.success_desc'),
-        });
-        setFormData({ name: '', phone: '', email: '', message: '' });
+        toast({ title: t('contact.success_title'), description: t('contact.success_desc') });
+        handleClear();
       } else {
         throw new Error(response.message);
       }
     } catch (error) {
-      toast({
-        title: t('contact.error_title'),
-        description: t('contact.error_desc'),
-        variant: 'destructive',
-      });
+      toast({ title: t('contact.error_title'), description: t('contact.error_desc'), variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const clinicAddress = 'יגאל אלון 94, תל אביב';
+  const wazeLink = `https://waze.com/ul?q=${encodeURIComponent(clinicAddress)}&navigate=yes`;
+  const googleMapsLink = `https://maps.google.com/?q=${encodeURIComponent(clinicAddress)}`;
 
   return (
     <Section 
@@ -287,251 +102,180 @@ const ContactSection: React.FC = () => {
       aria-labelledby="contact-heading"
     >
       <SectionHeader 
-        title={t('nav.contact')} 
+        title={isDemo ? t('contact.title') : t('nav.contact')} 
         subtitle={t('contact.subtitle')}
         titleId="contact-heading"
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-        {/* Contact Information */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+        {/* Contact Form */}
         <motion.div
           initial={{ opacity: 0, x: isRTL ? 30 : -30 }}
           whileInView={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
           viewport={{ once: true }}
-          className="space-y-6"
-        >
-          <ContactInfoList contactInfo={contactInfo} language={language} iconMap={iconMap} />
-
-          {/* Direct Call CTA - Prominent on mobile */}
-          <motion.a
-            href="tel:0552739927"
-            className={cn(
-              "flex items-center justify-center gap-3 w-full",
-              "py-4 px-6 rounded-xl",
-              "bg-primary text-primary-foreground font-semibold text-lg",
-              "hover:bg-primary/90 transition-colors",
-              "shadow-md hover:shadow-lg",
-              "min-h-[56px]",
-              "lg:hidden" // Only show prominently on mobile
-            )}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
-            viewport={{ once: true }}
-          >
-            <Phone className="w-5 h-5" aria-hidden="true" />
-            <span>{t('contact.call_now')}</span>
-          </motion.a>
-
-          {/* WhatsApp CTA */}
-          <motion.a
-            href={`https://wa.me/972552739927?text=${encodeURIComponent(language === 'he' ? 'שלום, אשמח לקבל מידע על אבחון ADHD' : 'Hello, I would like information about ADHD diagnosis')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              "flex items-center justify-center gap-3 w-full",
-              "py-4 px-6 rounded-xl",
-              "bg-[#25D366] text-white font-semibold text-lg",
-              "hover:bg-[#20bd5a] transition-colors",
-              "shadow-md hover:shadow-lg",
-              "min-h-[56px]"
-            )}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.4 }}
-            viewport={{ once: true }}
-          >
-            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-            </svg>
-            <span>{t('contact.whatsapp')}</span>
-          </motion.a>
-
-          {/* Arrival & Parking Button */}
-          <ArrivalParkingModal isRTL={isRTL} />
-        </motion.div>
-
-        {/* Contact Form */}
-        <motion.div
-          initial={{ opacity: 0, x: isRTL ? -30 : 30 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
-          viewport={{ once: true }}
+          className="order-2 lg:order-1"
         >
           <Card className="border-border shadow-lg">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-xl text-primary">
-                {t('contact.leave_details')}
-              </CardTitle>
-            </CardHeader>
-            
-            <CardContent>
+            <CardContent className="pt-6">
               {isSubmitted ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="text-center py-8"
-                >
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
                   <CheckCircle className="w-16 h-16 text-primary mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2 text-foreground">
-                    {t('contact.thank_you')}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {t('contact.will_reply')}
-                  </p>
-                  <AccessibleButton
-                    variant="outline"
-                    className="mt-6"
-                    onClick={() => setIsSubmitted(false)}
-                  >
+                  <h3 className="text-xl font-semibold mb-2">{t('contact.thank_you')}</h3>
+                  <p className="text-muted-foreground">{t('contact.will_reply')}</p>
+                  <AccessibleButton variant="outline" className="mt-6" onClick={() => setIsSubmitted(false)}>
                     {t('contact.send_another')}
                   </AccessibleButton>
                 </motion.div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-5" noValidate data-testid="form-contact">
-                  {/* Name & Phone - side by side on tablet+ */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    {/* Name Field */}
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="text-base font-medium">
-                        {t('contact.full_name')} *
-                      </Label>
+                <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="name">{t('contact.full_name')} *</Label>
                       <Input
                         id="name"
                         name="name"
-                        type="text"
                         value={formData.name}
                         onChange={handleInputChange}
-                        placeholder={t('contact.name_placeholder')}
-                        required
-                        aria-required="true"
-                        aria-invalid={!!errors.name}
-                        aria-describedby={errors.name ? 'name-error' : undefined}
-                        className={cn(
-                          "h-12 text-base",
-                          errors.name && "border-red-500 focus-visible:ring-red-500"
-                        )}
-                        data-testid="input-name"
+                        className={cn(errors.name && "border-destructive")}
                       />
-                      {errors.name && (
-                        <p id="name-error" className="text-sm text-red-600" role="alert">
-                          {errors.name}
-                        </p>
-                      )}
                     </div>
-
-                    {/* Phone Field */}
-                    <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-base font-medium">
-                        {t('contact.phone_label')} *
-                      </Label>
+                    <div className="space-y-1">
+                      <Label htmlFor="phone">{t('contact.phone_label')} *</Label>
                       <Input
                         id="phone"
                         name="phone"
                         type="tel"
-                        inputMode="tel"
                         value={formData.phone}
                         onChange={handleInputChange}
-                        placeholder={language === 'he' ? '050-000-0000' : '050-000-0000'}
-                        required
-                        aria-required="true"
-                        aria-invalid={!!errors.phone}
-                        aria-describedby={errors.phone ? 'phone-error' : undefined}
-                        className={cn(
-                          "h-12 text-base",
-                          errors.phone && "border-red-500 focus-visible:ring-red-500"
-                        )}
-                        data-testid="input-phone"
+                        className={cn(errors.phone && "border-destructive")}
                       />
-                      {errors.phone && (
-                        <p id="phone-error" className="text-sm text-red-600" role="alert">
-                          {errors.phone}
-                        </p>
-                      )}
                     </div>
                   </div>
 
-                  {/* Email Field - Optional */}
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-base font-medium">
-                      {t('contact.email_optional')}
-                    </Label>
+                  <div className="space-y-1">
+                    <Label htmlFor="email">{t('contact.email_optional')}</Label>
                     <Input
                       id="email"
                       name="email"
                       type="email"
-                      inputMode="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      placeholder={language === 'he' ? 'your@email.com' : 'your@email.com'}
-                      aria-invalid={!!errors.email}
-                      aria-describedby={errors.email ? 'email-error' : undefined}
-                      className={cn(
-                        "h-12 text-base",
-                        errors.email && "border-red-500 focus-visible:ring-red-500"
-                      )}
-                      data-testid="input-email"
                     />
-                    {errors.email && (
-                      <p id="email-error" className="text-sm text-red-600" role="alert">
-                        {errors.email}
-                      </p>
-                    )}
                   </div>
 
-                  {/* Message Field */}
-                  <div className="space-y-2">
-                    <Label htmlFor="message" className="text-base font-medium">
-                      {t('contact.message')} *
-                    </Label>
+                  {isDemo && (
+                    <div className="space-y-1">
+                      <Label>{t('contact.topic_label')}</Label>
+                      <Select onValueChange={handleSelectChange} value={formData.topic}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('contact.topic_label')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="diagnosis">{t('contact.topic_option1')}</SelectItem>
+                          <SelectItem value="moxo">{t('contact.topic_option2')}</SelectItem>
+                          <SelectItem value="other">{t('contact.topic_option3')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <Label htmlFor="message">{t('contact.message')} *</Label>
                     <Textarea
                       id="message"
                       name="message"
                       value={formData.message}
                       onChange={handleInputChange}
-                      placeholder={t('contact.message_placeholder')}
                       rows={4}
-                      required
-                      aria-required="true"
-                      aria-invalid={!!errors.message}
-                      aria-describedby={errors.message ? 'message-error' : undefined}
-                      className={cn(
-                        "text-base resize-none",
-                        errors.message && "border-red-500 focus-visible:ring-red-500"
-                      )}
-                      data-testid="input-message"
+                      className={cn("resize-none", errors.message && "border-destructive")}
                     />
-                    {errors.message && (
-                      <p id="message-error" className="text-sm text-red-600" role="alert">
-                        {errors.message}
-                      </p>
-                    )}
                   </div>
 
-                  {/* Submit Button */}
-                  <AccessibleButton
-                    type="submit"
-                    variant="primary"
-                    size="lg"
-                    fullWidth
-                    loading={isSubmitting}
-                    loadingText={t('contact.sending')}
-                    className="mt-6"
-                    data-testid="button-submit-contact"
-                  >
-                    <Send className="w-5 h-5" aria-hidden="true" />
-                    {t('contact.send_message')}
-                  </AccessibleButton>
-
-                  <p className="text-xs text-muted-foreground text-center mt-4">
-                    {t('contact.privacy_note')}
-                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                    <AccessibleButton type="submit" variant="primary" loading={isSubmitting} className="flex-1 min-h-[48px]">
+                      <Send className="w-4 h-4 mr-2" />
+                      {t('contact.send_message')}
+                    </AccessibleButton>
+                    {isDemo && (
+                      <AccessibleButton type="button" variant="outline" onClick={handleClear} className="flex-1 min-h-[48px]">
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        {t('contact.clear_form')}
+                      </AccessibleButton>
+                    )}
+                  </div>
                 </form>
               )}
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Contact Info */}
+        <motion.div
+          initial={{ opacity: 0, x: isRTL ? -30 : 30 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          viewport={{ once: true }}
+          className="order-1 lg:order-2 space-y-6"
+        >
+          <div className="space-y-6">
+            <h3 className="text-2xl font-bold text-primary">{t('contact.details_title')}</h3>
+            
+            <div className="space-y-4">
+              <div className="flex gap-4">
+                <MapPin className="w-6 h-6 text-primary shrink-0" />
+                <div>
+                  <p className="font-bold text-lg">{t('contact.address_label')}</p>
+                  <p className="text-muted-foreground">{t('contact.address_line1')}</p>
+                  <p className="text-muted-foreground">{t('contact.address_line2')}</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <Mail className="w-6 h-6 text-primary shrink-0" />
+                <div>
+                  <p className="font-bold text-lg">{t('contact.email_label')}</p>
+                  <a href="mailto:dr@keshevplus.co.il" className="text-primary hover:underline">dr@keshevplus.co.il</a>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <Phone className="w-6 h-6 text-primary shrink-0" />
+                <div>
+                  <p className="font-bold text-lg">{t('contact.phone_label')}</p>
+                  <a href="tel:055-27-399-27" className="text-primary hover:underline">055-27-399-27</a>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 space-y-4">
+              <p className="font-bold text-lg">{t('contact.directions_title')}</p>
+              <div className="flex flex-wrap gap-3">
+                <a href={googleMapsLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-[#4285F4] text-white rounded-lg hover:bg-opacity-90 transition-opacity">
+                  <MapPin className="w-4 h-4" />
+                  {t('contact.navigate_google')}
+                </a>
+                <a href={wazeLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-[#33CCFF] text-white rounded-lg hover:bg-opacity-90 transition-opacity">
+                  <Navigation className="w-4 h-4" />
+                  {t('contact.navigate_waze')}
+                </a>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      <div className="mt-12 aspect-video w-full rounded-2xl overflow-hidden border shadow-inner">
+        <iframe
+          src={`https://maps.google.com/maps?q=${encodeURIComponent('יגאל אלון 94, תל אביב')}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
+          width="100%"
+          height="100%"
+          style={{ border: 0 }}
+          allowFullScreen
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          title="Clinic Location Map"
+        />
       </div>
     </Section>
   );

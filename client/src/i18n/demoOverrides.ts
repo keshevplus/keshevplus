@@ -49,7 +49,24 @@ const demoOverrides: Record<string, string> = {
   "questionnaires.self_report": "שאלון דיווח עצמי",
   "questionnaires.self_report_desc": "שאלון זה מיועד למילוי על ידי מבוגר מעל גיל 18 להערכת הפרעות קשב ופעלתנות יתר.",
 
+  "contact.title": "יצירת קשר",
   "contact.subtitle": "אנו כאן לענות על כל שאלה. מלאו את הטופס ואחד מהנציגים שלנו יחזור אליכם בהקדם.",
+  "contact.topic_label": "אנא בחר נושא פנייה",
+  "contact.topic_option1": "זימון תור לאבחון מלא",
+  "contact.topic_option2": "זימון תור למבחן MOXO",
+  "contact.topic_option3": "נושאים אחרים",
+  "contact.send_message": "שלח הודעה",
+  "contact.clear_form": "ניקוי טופס",
+  "contact.details_title": "פרטי התקשרות",
+  "contact.address_label": "כתובת:",
+  "contact.address_line1": "מגדלי אלון 1, קומה 12, משרד 1202",
+  "contact.address_line2": "יגאל אלון 94, תל אביב (וויביז)",
+  "contact.email_label": "אימייל:",
+  "contact.phone_label": "טלפון:",
+  "contact.directions_title": "דרכי הגעה ואפשרויות חניה",
+  "contact.navigate_google": "נווט עם Google Maps",
+  "contact.navigate_waze": "נווט עם Waze",
+
   "contact.email": "dr@keshevplus.co.il",
 };
 
