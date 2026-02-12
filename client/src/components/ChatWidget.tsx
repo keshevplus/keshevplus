@@ -289,12 +289,31 @@ const ChatWidget = () => {
 
   if (location.startsWith('/admin') || isInIframe() || widgetSettings?.showChat === false) return null
 
+  const whatsAppButton = widgetSettings?.showWhatsApp !== false && (
+    <a
+      href={`https://wa.me/${CLINIC_WHATSAPP}?text=${encodeURIComponent(isHe ? 'שלום, אשמח לקבל מידע על אבחון ADHD' : 'Hello, I would like information about ADHD diagnosis')}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(
+        "h-11 w-11 rounded-full flex items-center justify-center",
+        "bg-[#25D366] border-2 border-[#128C7E]",
+        "shadow-[0_2px_8px_rgba(37,211,102,0.35)]",
+        "transition-transform duration-200 hover:scale-105",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2"
+      )}
+      aria-label="WhatsApp"
+      data-testid="button-open-whatsapp"
+    >
+      <SiWhatsApp className="h-5 w-5 text-white" />
+    </a>
+  );
+
   if (!open) {
     return (
       <div
         className={cn(
           "fixed bottom-5 z-[9998] flex items-center gap-0",
-          isRTL ? "right-20 flex-row" : "left-5 flex-row"
+          isRTL ? "left-5 flex-row-reverse" : "left-5 flex-row"
         )}
         style={{
           transition: 'opacity 0.3s ease, transform 0.3s ease',
@@ -302,12 +321,30 @@ const ChatWidget = () => {
           transform: barVisible ? 'translateY(0)' : 'translateY(12px)',
         }}
       >
+        <div className="flex flex-col gap-2 items-center">
+          {whatsAppButton}
+          <button
+            onClick={() => setOpen(true)}
+            className={cn(
+              "relative z-10 h-14 w-14 rounded-full flex items-center justify-center",
+              "bg-[#F97316] border-2 border-[#16a34a]",
+              "shadow-[0_2px_12px_rgba(249,115,22,0.35)]",
+              "transition-colors duration-200",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F97316] focus-visible:ring-offset-2"
+            )}
+            aria-label={isHe ? 'פתח צ׳אט' : 'Open chat'}
+            data-testid="button-open-chat"
+          >
+            <MessageCircle className="h-6 w-6 text-white" />
+          </button>
+        </div>
+
         {bubbleState === 'bar' && (
           <div
             className={cn(
               "flex items-center gap-2 bg-background border border-border rounded-full py-2 px-4 shadow-md cursor-pointer",
               "transition-all duration-300",
-              isRTL ? "mr-[-8px] pr-6" : "ml-[-8px] pl-6"
+              isRTL ? "mr-2 pl-6" : "ml-2 pl-6"
             )}
             onClick={() => setOpen(true)}
             data-testid="chat-attention-bar"
@@ -325,41 +362,6 @@ const ChatWidget = () => {
             </button>
           </div>
         )}
-
-        <div className="flex flex-col gap-2 items-center">
-          {widgetSettings?.showWhatsApp !== false && (
-            <a
-              href={`https://wa.me/${CLINIC_WHATSAPP}?text=${encodeURIComponent(isHe ? 'שלום, אשמח לקבל מידע על אבחון ADHD' : 'Hello, I would like information about ADHD diagnosis')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(
-                "h-11 w-11 rounded-full flex items-center justify-center",
-                "bg-[#25D366] border-2 border-[#128C7E]",
-                "shadow-[0_2px_8px_rgba(37,211,102,0.35)]",
-                "transition-transform duration-200 hover:scale-105",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2"
-              )}
-              aria-label="WhatsApp"
-              data-testid="button-open-whatsapp"
-            >
-              <SiWhatsApp className="h-5 w-5 text-white" />
-            </a>
-          )}
-          <button
-            onClick={() => setOpen(true)}
-            className={cn(
-              "relative z-10 h-14 w-14 rounded-full flex items-center justify-center",
-              "bg-[#F97316] border-2 border-[#16a34a]",
-              "shadow-[0_2px_12px_rgba(249,115,22,0.35)]",
-              "transition-colors duration-200",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F97316] focus-visible:ring-offset-2"
-            )}
-            aria-label={isHe ? 'פתח צ׳אט' : 'Open chat'}
-            data-testid="button-open-chat"
-          >
-            <MessageCircle className="h-6 w-6 text-white" />
-          </button>
-        </div>
       </div>
     )
   }

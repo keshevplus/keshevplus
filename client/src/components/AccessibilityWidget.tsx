@@ -156,7 +156,7 @@ const AccessibilityWidget = () => {
           "bg-white text-[#1565C0] border-2 border-[#1565C0]",
           "flex items-center justify-center",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2",
-          isRTL ? "right-5" : "left-5"
+          isRTL ? "left-5" : "right-5"
         )}
         aria-label={t("accessibilityMenu")}
       >
