@@ -10,11 +10,12 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye } from 'lucide-react'
+import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye, Phone } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useQuery } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/queryClient'
 import { ALL_LANGUAGES, type LanguageSettings, type SupportedLanguage, DEFAULT_LANGUAGE_SETTINGS, BILINGUAL_CODES, MULTILINGUAL_CODES } from '@/i18n/config'
+import type { WidgetSettings } from '@shared/schema'
 import TranslationManager from './TranslationManager'
 import QuestionnaireSubmissions from './QuestionnaireSubmissions'
 import AppointmentsManager from './AppointmentsManager'
@@ -23,6 +24,7 @@ import ContactsManager from './ContactsManager'
 import ConversationsManager from './ConversationsManager'
 import EmailNotificationSettings from './EmailNotificationSettings'
 import VisualEditor from './VisualEditor'
+import WhatsAppManager from './WhatsAppManager'
 
 const AdminDashboard = () => {
   const { user, signOut } = useAuth()
@@ -54,6 +56,8 @@ const AdminDashboard = () => {
     conversations: badgeCounts?.unreviewedConversations ?? 0,
     questionnaires: badgeCounts?.unreviewedQuestionnaires ?? 0,
   }
+
+  const totalBadges = Object.values(tabBadgeMap).reduce((a, b) => a + b, 0)
 
   const [widgetSettings, setWidgetSettings] = useState<WidgetSettings>({ showChat: true, showAccessibility: true, showWhatsApp: true })
 
@@ -121,6 +125,7 @@ const AdminDashboard = () => {
     { value: 'appointments', icon: Calendar, he: 'פגישות', en: 'Appointments' },
     { value: 'clients', icon: Users, he: 'לידים ולקוחות', en: 'Leads & Clients' },
     { value: 'conversations', icon: MessageCircle, he: 'שיחות צ׳אט', en: 'Conversations' },
+    { value: 'whatsapp', icon: Phone, he: 'וואטסאפ', en: 'WhatsApp' },
     { value: 'questionnaires', icon: ClipboardList, he: 'שאלונים', en: 'Questionnaires' },
     { value: 'visual-editor', icon: Eye, he: 'עורך ויזואלי', en: 'Visual Editor' },
     { value: 'translations', icon: Languages, he: 'תרגומים', en: 'Translations' },
@@ -244,6 +249,16 @@ const AdminDashboard = () => {
                 </CardContent>
               </Card>
 
+              <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('whatsapp')} data-testid="card-whatsapp">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{isHe ? 'וואטסאפ' : 'WhatsApp'}</CardTitle>
+                  <Phone className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">{isHe ? 'צפייה בשיחות וואטסאפ' : 'View WhatsApp conversations'}</p>
+                </CardContent>
+              </Card>
+
               <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('questionnaires')} data-testid="card-questionnaires">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{isHe ? 'שאלונים' : 'Questionnaires'}</CardTitle>
@@ -290,6 +305,10 @@ const AdminDashboard = () => {
 
           <TabsContent value="conversations" className="mt-0">
             <ConversationsManager />
+          </TabsContent>
+
+          <TabsContent value="whatsapp" className="mt-0">
+            <WhatsAppManager />
           </TabsContent>
 
           <TabsContent value="questionnaires" className="mt-0">

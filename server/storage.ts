@@ -1,4 +1,4 @@
-import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, conversations, messages, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type Conversation, type InsertConversation, type Message, type InsertMessage } from "@shared/schema";
+import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, conversations, messages, whatsappMessages, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type WhatsAppMessage, type InsertWhatsAppMessage } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, lt, inArray } from "drizzle-orm";
 
@@ -63,6 +63,10 @@ export interface IStorage {
   deleteQuestionnaire(id: number): Promise<boolean>;
   bulkDeleteAppointments(ids: number[]): Promise<number>;
   bulkDeleteQuestionnaires(ids: number[]): Promise<number>;
+  createWhatsAppMessage(message: InsertWhatsAppMessage): Promise<WhatsAppMessage>;
+  getWhatsAppMessages(phone: string): Promise<WhatsAppMessage[]>;
+  getWhatsAppConversations(): Promise<{ phone: string; clientId: number | null; lastMessage: string; lastMessageAt: Date; unreadCount: number }[]>;
+  updateWhatsAppMessageStatus(waMessageId: string, status: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -502,12 +506,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateContactStatus(id: number, status: string): Promise<Contact | undefined> {
-    const [updated] = await db.update(contacts).set({ status }).where(eq(contacts.id, id)).returning();
+    const [updated] = await db.update(contacts).set({ status } as any).where(eq(contacts.id, id)).returning();
     return updated;
   }
 
   async updateQuestionnaireStatus(id: number, status: string): Promise<QuestionnaireSubmission | undefined> {
-    const [updated] = await db.update(questionnaireSubmissions).set({ status }).where(eq(questionnaireSubmissions.id, id)).returning();
+    const [updated] = await db.update(questionnaireSubmissions).set({ status } as any).where(eq(questionnaireSubmissions.id, id)).returning();
     return updated;
   }
 
@@ -531,6 +535,40 @@ export class DatabaseStorage implements IStorage {
     if (ids.length === 0) return 0;
     const result = await db.delete(questionnaireSubmissions).where(inArray(questionnaireSubmissions.id, ids)).returning();
     return result.length;
+  }
+
+  async createWhatsAppMessage(message: InsertWhatsAppMessage): Promise<WhatsAppMessage> {
+    const [msg] = await db.insert(whatsappMessages).values(message as any).returning();
+    return msg;
+  }
+
+  async getWhatsAppMessages(phone: string): Promise<WhatsAppMessage[]> {
+    return await db.select().from(whatsappMessages).where(eq(whatsappMessages.phone, phone)).orderBy(whatsappMessages.createdAt);
+  }
+
+  async getWhatsAppConversations(): Promise<{ phone: string; clientId: number | null; lastMessage: string; lastMessageAt: Date; unreadCount: number }[]> {
+    const result = await db.execute(sql`
+      SELECT 
+        phone,
+        (SELECT client_id FROM whatsapp_messages w2 WHERE w2.phone = w.phone AND w2.client_id IS NOT NULL LIMIT 1) as client_id,
+        (SELECT content FROM whatsapp_messages w3 WHERE w3.phone = w.phone ORDER BY w3.created_at DESC LIMIT 1) as last_message,
+        MAX(created_at) as last_message_at,
+        COUNT(*) FILTER (WHERE direction = 'inbound' AND status != 'read') as unread_count
+      FROM whatsapp_messages w
+      GROUP BY phone
+      ORDER BY MAX(created_at) DESC
+    `);
+    return (result.rows as any[]).map(r => ({
+      phone: r.phone,
+      clientId: r.client_id ? Number(r.client_id) : null,
+      lastMessage: r.last_message || '',
+      lastMessageAt: new Date(r.last_message_at),
+      unreadCount: Number(r.unread_count || 0),
+    }));
+  }
+
+  async updateWhatsAppMessageStatus(waMessageId: string, status: string): Promise<void> {
+    await db.update(whatsappMessages).set({ status } as any).where(eq(whatsappMessages.waMessageId, waMessageId));
   }
 }
 

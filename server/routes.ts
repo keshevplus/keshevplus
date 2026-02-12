@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, APPOINTMENT_STATUSES } from "@shared/schema";
+import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, APPOINTMENT_STATUSES, insertWhatsAppMessageSchema } from "@shared/schema";
+import crypto from "crypto";
 import { z } from "zod";
 import nodemailer from "nodemailer";
 import OpenAI from "openai";
@@ -1280,37 +1281,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       } catch (openaiError: any) {
-        console.error("OpenAI failed, falling back to Gemini:", openaiError);
+        console.error("OpenAI failed, falling back to Gemini:", openaiError?.message || openaiError);
         try {
-          // Fix Gemini model instantiation - some versions use getGenerativeModel on the instance
-          const model = (geminiAi as any).getGenerativeModel ? (geminiAi as any).getGenerativeModel({ model: "gemini-1.5-flash" }) : (geminiAi as any).models.get("gemini-1.5-flash");
-          const chatHistory = history.map((m: any) => ({
-            role: m.role === "assistant" ? "model" : "user",
-            parts: [{ text: m.content }],
-          }));
+          const geminiContents = [
+            ...history.map((m: any) => ({
+              role: m.role === 'assistant' ? 'model' : 'user',
+              parts: [{ text: m.content }],
+            })),
+            { role: 'user', parts: [{ text: message }] },
+          ];
 
-          const chat = model.startChat({
-            history: chatHistory,
+          const response = await geminiAi.models.generateContentStream({
+            model: 'gemini-2.0-flash',
+            contents: geminiContents,
+            config: {
+              systemInstruction: systemPrompt,
+              maxOutputTokens: 500,
+            },
           });
 
-          // Gemini doesn't support a separate system message in startChat like OpenAI, 
-          // so we prepend it to the first message if history is empty, or just use sendMessageStream.
-          // For simplicity and to maintain instructions, we use the system instruction if supported by the model config.
-          const result = await model.generateContentStream({
-            contents: [
-              { role: 'user', parts: [{ text: `Instructions: ${systemPrompt}\n\nUser Message: ${message}` }] }
-            ]
-          });
-
-          for await (const chunk of result.stream) {
-            const chunkText = chunk.text();
+          for await (const chunk of response) {
+            const chunkText = chunk.text;
             if (chunkText) {
               fullAssistantResponse += chunkText;
               res.write(`data: ${JSON.stringify({ content: chunkText })}\n\n`);
             }
           }
-        } catch (geminiError) {
-          console.error("Both OpenAI and Gemini failed:", geminiError);
+        } catch (geminiError: any) {
+          console.error("Both OpenAI and Gemini failed:", geminiError?.message || geminiError);
           const errorMsg = language === 'he'
             ? 'שירות הצ\'אט אינו זמין כרגע. ניתן ליצור קשר עם המרפאה בטלפון 055-27-399-27 או דרך טופס יצירת הקשר באתר.'
             : 'Chat service is currently unavailable. Please contact the clinic at 055-27-399-27 or use the contact form on the website.';
@@ -1472,6 +1470,195 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete conversation" });
+    }
+  });
+
+  // ===== WhatsApp Business API Routes =====
+  
+  app.get("/api/webhook/whatsapp", (req, res) => {
+    const mode = req.query["hub.mode"];
+    const token = req.query["hub.verify_token"];
+    const challenge = req.query["hub.challenge"];
+    
+    const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
+    if (mode === "subscribe" && token === verifyToken) {
+      console.log("WhatsApp webhook verified");
+      return res.status(200).send(challenge);
+    }
+    return res.sendStatus(403);
+  });
+
+  app.post("/api/webhook/whatsapp", async (req, res) => {
+    try {
+      const signature = req.headers["x-hub-signature-256"] as string;
+      const appSecret = process.env.META_APP_SECRET;
+      
+      if (appSecret && signature) {
+        const rawBody = JSON.stringify(req.body);
+        const expectedSig = "sha256=" + crypto.createHmac("sha256", appSecret).update(rawBody).digest("hex");
+        try {
+          const sigBuf = Buffer.from(signature);
+          const expBuf = Buffer.from(expectedSig);
+          if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+            console.error("WhatsApp webhook signature mismatch");
+            return res.sendStatus(403);
+          }
+        } catch {
+          console.error("WhatsApp webhook signature validation error");
+          return res.sendStatus(403);
+        }
+      }
+
+      const body = req.body;
+      if (body.object !== "whatsapp_business_account") {
+        return res.sendStatus(404);
+      }
+
+      for (const entry of body.entry || []) {
+        for (const change of entry.changes || []) {
+          const value = change.value;
+          
+          if (value.statuses) {
+            for (const status of value.statuses) {
+              try {
+                await storage.updateWhatsAppMessageStatus(status.id, status.status);
+              } catch (e) { console.error("WA status update error:", e); }
+            }
+          }
+
+          if (value.messages) {
+            for (const msg of value.messages) {
+              const phone = msg.from;
+              const content = msg.text?.body || msg.caption || "[media]";
+              
+              let clientId: number | null = null;
+              try {
+                const existingClients = await storage.getClients();
+                const match = existingClients.find(c => c.phone && phone.includes(c.phone.replace(/\D/g, '').slice(-9)));
+                if (match) {
+                  clientId = match.id;
+                } else {
+                  const contactName = value.contacts?.[0]?.profile?.name || phone;
+                  const newClient = await storage.createClient({
+                    name: contactName,
+                    phone: phone,
+                    source: "whatsapp",
+                    status: "lead",
+                  });
+                  clientId = newClient.id;
+                }
+              } catch (e) { console.error("WA client lookup error:", e); }
+
+              await storage.createWhatsAppMessage({
+                clientId,
+                waMessageId: msg.id,
+                phone,
+                direction: "inbound",
+                content,
+                status: "delivered",
+                rawPayload: msg,
+              });
+            }
+          }
+        }
+      }
+
+      return res.sendStatus(200);
+    } catch (error) {
+      console.error("WhatsApp webhook error:", error);
+      return res.sendStatus(200);
+    }
+  });
+
+  app.post("/api/whatsapp/send", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+
+      const { phone, message } = req.body;
+      if (!phone || !message) return res.status(400).json({ error: "Phone and message are required" });
+
+      const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+      const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+      
+      if (!accessToken || !phoneNumberId) {
+        return res.status(500).json({ error: "WhatsApp API not configured" });
+      }
+
+      const waResponse = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: phone.replace(/\D/g, ''),
+          type: "text",
+          text: { body: message },
+        }),
+      });
+
+      const waData = await waResponse.json();
+      
+      if (!waResponse.ok) {
+        console.error("WhatsApp send error:", waData);
+        return res.status(500).json({ error: "Failed to send WhatsApp message", details: waData });
+      }
+
+      const waMessageId = waData.messages?.[0]?.id;
+      
+      let clientId: number | null = null;
+      try {
+        const existingClients = await storage.getClients();
+        const cleanPhone = phone.replace(/\D/g, '');
+        const match = existingClients.find(c => c.phone && cleanPhone.includes(c.phone.replace(/\D/g, '').slice(-9)));
+        if (match) clientId = match.id;
+      } catch (e) {}
+
+      const saved = await storage.createWhatsAppMessage({
+        clientId,
+        waMessageId: waMessageId || null,
+        phone: phone.replace(/\D/g, ''),
+        direction: "outbound",
+        content: message,
+        status: "sent",
+      });
+
+      return res.json(saved);
+    } catch (error) {
+      console.error("WhatsApp send error:", error);
+      return res.status(500).json({ error: "Failed to send message" });
+    }
+  });
+
+  app.get("/api/whatsapp/conversations", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+      
+      const conversations = await storage.getWhatsAppConversations();
+      return res.json(conversations);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch WhatsApp conversations" });
+    }
+  });
+
+  app.get("/api/whatsapp/messages/:phone", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+      
+      const messages = await storage.getWhatsAppMessages(req.params.phone);
+      return res.json(messages);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch messages" });
     }
   });
 

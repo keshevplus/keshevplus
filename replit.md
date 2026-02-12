@@ -31,6 +31,8 @@ KeshevPlus is a multilingual website for an ADHD clinic specializing in the diag
 - **Feb 2026:** Added Visual Editor - iframe-based WYSIWYG content editor in admin dashboard for editing site text visually
 - **Feb 2026:** Questionnaires now open as modals (like booking page) instead of navigating to separate page
 - **Feb 2026:** Mobile hero layout: full-width stacked text + image on portrait, side-by-side on larger screens
+- **Feb 2026:** Fixed AI chat Gemini fallback to use correct @google/genai SDK API (generateContentStream with systemInstruction)
+- **Feb 2026:** Added WhatsApp Business API integration - webhook endpoints (verify + inbound), outbound message sending via Meta Graph API, admin WhatsApp conversations manager with chat-style thread view
 
 ## System Architecture
 The application is a full-stack project built with a React frontend (Vite, TailwindCSS, shadcn/ui) and an Express.js backend. It uses Neon Postgres via Drizzle ORM for data persistence.
@@ -61,6 +63,7 @@ The application is a full-stack project built with a React frontend (Vite, Tailw
 - `ClientActivities`: Logs interactions with clients within the CRM. Includes type, description, metadata, and auto-timestamped createdAt.
 - `Conversations`: Stores AI chat dialogues with visitor info.
 - `Messages`: Stores individual messages within conversations.
+- `WhatsAppMessages`: Stores WhatsApp Business API messages (inbound/outbound) with phone, direction, status, raw payload, and optional client linkage.
 
 ## External Dependencies
 - **Neon Postgres:** Primary database solution.
@@ -81,3 +84,4 @@ The application is a full-stack project built with a React frontend (Vite, Tailw
 - `client/src/components/admin/ClientsManager.tsx` - CRM with timestamped activity logging
 - `client/src/components/admin/VisualEditor.tsx` - WYSIWYG visual content editor with iframe preview
 - `client/src/components/admin/AdminDashboard.tsx` - Admin overview dashboard
+- `client/src/components/admin/WhatsAppManager.tsx` - WhatsApp Business conversations manager with chat thread view

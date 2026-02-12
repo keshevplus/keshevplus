@@ -164,5 +164,28 @@ export const upsertTranslationSchema = z.object({
 
 export const bulkUpsertTranslationsSchema = z.array(upsertTranslationSchema);
 
+export const WA_MESSAGE_DIRECTIONS = ["inbound", "outbound"] as const;
+export type WaMessageDirection = typeof WA_MESSAGE_DIRECTIONS[number];
+
+export const WA_MESSAGE_STATUSES = ["sent", "delivered", "read", "failed"] as const;
+export type WaMessageStatus = typeof WA_MESSAGE_STATUSES[number];
+
+export const whatsappMessages = pgTable("whatsapp_messages", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id"),
+  waMessageId: text("wa_message_id"),
+  phone: text("phone").notNull(),
+  direction: text("direction").notNull().default("inbound"),
+  content: text("content").notNull(),
+  mediaUrl: text("media_url"),
+  status: text("status").notNull().default("sent"),
+  rawPayload: jsonb("raw_payload"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertWhatsAppMessageSchema = createInsertSchema(whatsappMessages).omit({ id: true, createdAt: true });
+export type WhatsAppMessage = typeof whatsappMessages.$inferSelect;
+export type InsertWhatsAppMessage = z.infer<typeof insertWhatsAppMessageSchema>;
+
 export { conversations, messages } from "./models/chat";
 export type { Conversation, InsertConversation, Message, InsertMessage } from "./models/chat";
