@@ -90,40 +90,40 @@ const QuestionnairesSection = () => {
                   {t('questionnaires.fill_online')}
                 </Button>
 
-                <p className="text-sm font-medium text-foreground mb-3" data-testid={`text-download-label-${item.id}`}>{t('questionnaires.download_files')}</p>
+                <div className="w-full space-y-3">
+                  <p className="text-sm font-medium text-foreground text-center" data-testid={`text-download-label-${item.id}`}>{t('questionnaires.download_files')}</p>
 
-                <div className="flex items-center justify-center gap-4">
-                  <a
-                    href={item.docx}
-                    download
-                    className="flex flex-col items-center gap-1 group"
-                    data-testid={`download-docx-${item.id}`}
-                    title={t('questionnaires.download_word')}
-                  >
-                    <div className="w-12 h-12 flex items-center justify-center rounded-lg bg-[#2B579A]/10 group-hover:bg-[#2B579A]/20 transition-colors">
-                      <svg viewBox="0 0 32 32" className="w-8 h-8" fill="none">
-                        <rect x="2" y="2" width="28" height="28" rx="4" fill="#2B579A"/>
-                        <text x="16" y="21" textAnchor="middle" fill="white" fontSize="13" fontWeight="bold" fontFamily="Arial, sans-serif">W</text>
-                      </svg>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{t('questionnaires.download_word')}</span>
-                  </a>
+                  <div className="flex items-center justify-center gap-4">
+                    <a
+                      href={item.docx}
+                      download
+                      className="flex flex-col items-center gap-1 group"
+                      data-testid={`download-docx-${item.id}`}
+                      title={t('questionnaires.download_word')}
+                    >
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-lg bg-[#2B579A]/10 group-hover:bg-[#2B579A]/20 transition-colors">
+                        <svg viewBox="0 0 32 32" className="w-6 h-6 sm:w-8 sm:h-8" fill="none">
+                          <rect x="2" y="2" width="28" height="28" rx="4" fill="#2B579A"/>
+                          <text x="16" y="21" textAnchor="middle" fill="white" fontSize="13" fontWeight="bold" fontFamily="Arial, sans-serif">W</text>
+                        </svg>
+                      </div>
+                    </a>
 
-                  <a
-                    href={item.pdf}
-                    download
-                    className="flex flex-col items-center gap-1 group"
-                    data-testid={`download-pdf-${item.id}`}
-                    title={t('questionnaires.download_pdf')}
-                  >
-                    <div className="w-12 h-12 flex items-center justify-center rounded-lg bg-[#D32F2F]/10 group-hover:bg-[#D32F2F]/20 transition-colors">
-                      <svg viewBox="0 0 32 32" className="w-8 h-8" fill="none">
-                        <rect x="2" y="2" width="28" height="28" rx="4" fill="#D32F2F"/>
-                        <text x="16" y="21" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold" fontFamily="Arial, sans-serif">PDF</text>
-                      </svg>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{t('questionnaires.download_pdf')}</span>
-                  </a>
+                    <a
+                      href={item.pdf}
+                      download
+                      className="flex flex-col items-center gap-1 group"
+                      data-testid={`download-pdf-${item.id}`}
+                      title={t('questionnaires.download_pdf')}
+                    >
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-lg bg-[#D32F2F]/10 group-hover:bg-[#D32F2F]/20 transition-colors">
+                        <svg viewBox="0 0 32 32" className="w-6 h-6 sm:w-8 sm:h-8" fill="none">
+                          <rect x="2" y="2" width="28" height="28" rx="4" fill="#D32F2F"/>
+                          <text x="16" y="21" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold" fontFamily="Arial, sans-serif">PDF</text>
+                        </svg>
+                      </div>
+                    </a>
+                  </div>
                 </div>
               </CardContent>
             </Card>

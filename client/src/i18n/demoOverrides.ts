@@ -40,6 +40,15 @@ const demoOverrides: Record<string, string> = {
   "diagnosis.step3_title": "מבחן ממוחשב (MOXO)",
   "diagnosis.step3_desc": "מבחן MOXO הוא מבחן ממוחשב להערכת תפקודי קשב, אשר נמצא בשימוש נרחב בישראל ובעולם. המבחן משמש ככלי תומך לאבחון. החו מספק מידע אובייקטיבי להערכת תפקודי הקשב",
 
+  "questionnaires.title": "שאלונים",
+  "questionnaires.subtitle": "שאלונים לזיהוי סימנים של הפרעת קשב וריכוז (ADHD)",
+  "questionnaires.parent_form": "שאלון להורים",
+  "questionnaires.parent_form_desc": "שאלון זה מיועד להורים ומספק תובנות על התנהגות הילד בבית ובסביבה המשפחתית.",
+  "questionnaires.teacher_form": "שאלון למורה",
+  "questionnaires.teacher_form_desc": "שאלון זה מיועד למורים ומספק תובנות על התנהגות הילד בכיתה ובסביבה החינוכית.",
+  "questionnaires.self_report": "שאלון דיווח עצמי",
+  "questionnaires.self_report_desc": "שאלון זה מיועד למילוי על ידי מבוגר מעל גיל 18 להערכת הפרעות קשב ופעלתנות יתר.",
+
   "contact.subtitle": "אנו כאן לענות על כל שאלה. מלאו את הטופס ואחד מהנציגים שלנו יחזור אליכם בהקדם.",
   "contact.email": "dr@keshevplus.co.il",
 };
