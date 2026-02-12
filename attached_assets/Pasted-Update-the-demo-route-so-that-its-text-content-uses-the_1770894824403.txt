@@ -1,0 +1,64 @@
+Update the /demo route so that its text content uses the exact original wording from:
+👉 www.keshevplus.co.il�
+while keeping the current SPA layout, structure, styling, and components exactly as they are.
+OBJECTIVE
+Replace ONLY the text content inside /demo with the exact wording from the original site (www.keshevplus.co.il�).
+Do NOT modify anything else.
+REQUIRED PROCESS
+Compare the current /demo page content section-by-section with www.keshevplus.co.il�.
+For each matching section:
+Replace the existing text with the exact original wording from the original site.
+Preserve:
+All HTML structure
+Component hierarchy
+CSS classes
+Layout
+Section order
+Buttons
+Forms
+Icons
+Spacing
+Animations
+Routing
+Only change visible text nodes.
+Keep formatting clean and readable.
+Do NOT compress long paragraphs unnaturally.
+Do NOT rewrite or summarize.
+Do NOT modernize the language.
+Do NOT improve the copy.
+Do NOT change punctuation unless required to match the exact original wording.
+STRICT RULES
+Do NOT touch the root route /
+Only modify /demo
+Do NOT change metadata unless the original homepage contains different SEO title/description — if so, match it exactly.
+Do NOT alter button structure — only change button text.
+Do NOT add new sections.
+Do NOT remove sections.
+If a section exists in /demo but not on the original site:
+Keep the section structure
+Leave it empty or adapt wording minimally from original content
+Do NOT invent new content
+SECTION MAPPING INSTRUCTIONS
+Match these major sections from the original site:
+Hero / Introduction
+About the Doctor
+ADHD Explanation
+Diagnostic Process
+Services
+Questionnaires
+FAQ
+Contact
+If the original site contains longer paragraphs:
+Insert the full paragraph text into the existing layout.
+Break into multiple lines only if necessary for readability.
+Keep it visually clean but textually identical.
+FINAL RESULT MUST:
+Look visually identical to current /demo
+Contain the exact wording from www.keshevplus.co.il�
+Have zero rewritten phrases
+Have zero structural changes
+Maintain responsiveness
+Maintain RTL formatting correctly
+END STATE
+/ → modern marketing version (unchanged)
+/demo → same design but text 100% identical to original website wording

@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const QuestionnairePage = lazy(() => import("./pages/QuestionnairePage"));
+const DemoIndex = lazy(() => import("./pages/DemoIndex"));
 const NotFound = lazy(() => import("./pages/not-found"));
 const CookiesBanner = lazy(() => import("@/components/CookiesBanner"));
 const AccessibilityWidget = lazy(() => import("@/components/AccessibilityWidget"));
@@ -30,7 +31,7 @@ function Router() {
     <Suspense fallback={<PageFallback />}>
       <Switch>
         <Route path="/" component={Index} />
-        <Route path="/demo" component={Index} />
+        <Route path="/demo" component={DemoIndex} />
         <Route path="/questionnaire/:type" component={QuestionnairePage} />
         <Route path="/admin" component={AdminPage} />
         <Route component={NotFound} />

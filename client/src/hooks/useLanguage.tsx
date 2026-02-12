@@ -25,6 +25,16 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
+const TranslationOverrideContext = createContext<Record<string, string> | null>(null);
+
+export const TranslationOverrideProvider = ({ overrides, children }: { overrides: Record<string, string>; children: ReactNode }) => {
+  return (
+    <TranslationOverrideContext.Provider value={overrides}>
+      {children}
+    </TranslationOverrideContext.Provider>
+  );
+};
+
 const dbTranslationsCache: Record<string, Record<string, string>> = {};
 
 async function fetchDbTranslations(lang: string): Promise<Record<string, string>> {
@@ -169,6 +179,16 @@ export const useLanguage = () => {
   const context = useContext(LanguageContext);
   if (!context) {
     throw new Error("useLanguage must be used within LanguageProvider");
+  }
+  const overrides = useContext(TranslationOverrideContext);
+  if (overrides) {
+    return {
+      ...context,
+      t: (key: string) => {
+        if (overrides[key] !== undefined) return overrides[key];
+        return context.t(key);
+      },
+    };
   }
   return context;
 };
