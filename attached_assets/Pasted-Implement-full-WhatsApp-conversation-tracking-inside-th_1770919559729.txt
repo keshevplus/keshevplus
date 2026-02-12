@@ -1,0 +1,119 @@
+Implement full WhatsApp conversation tracking inside the Admin Dashboard for messages sent and received from the WhatsApp Business number:
++972552739927
+The system must document complete bidirectional message history and automatically create or update a Lead record tied to the sender’s phone number.
+OBJECTIVE
+Build a WhatsApp messaging integration that:
+Receives inbound messages from WhatsApp Business.
+Sends outbound messages from the Admin Dashboard.
+Logs the full conversation history (both directions).
+Associates each conversation with a unique Lead.
+Preserves the WhatsApp message ID.
+Automatically creates a new Lead if one does not exist.
+Updates existing Lead if phone number already exists.
+Displays the conversation thread cleanly inside the Admin Dashboard.
+TECHNICAL REQUIREMENTS
+1️⃣ WhatsApp Integration
+Use WhatsApp Business Cloud API (Meta Graph API).
+Implement:
+Webhook endpoint to receive incoming messages
+Verification endpoint for webhook validation
+Outgoing message sending endpoint
+Store:
+WhatsApp message ID
+Timestamp
+Sender phone number
+Receiver phone number
+Message type (text, image, document if applicable)
+Delivery status if available
+2️⃣ Database Structure
+Create or update the following models:
+Lead
+id (internal unique ID)
+phone_number (unique)
+name (nullable)
+source = "whatsapp"
+created_at
+updated_at
+Conversation
+id
+lead_id (foreign key)
+wa_message_id (preserve exact WhatsApp ID)
+direction ("inbound" | "outbound")
+message_body
+message_type
+status
+timestamp
+raw_payload (optional JSON storage for debugging)
+Ensure:
+Phone number normalization (E.164 format)
+Unique lead per phone number
+3️⃣ Lead Logic
+When webhook receives a message:
+Extract sender phone number.
+Normalize phone to E.164 format.
+Search for existing Lead by phone.
+If not found:
+Create new Lead
+source = "whatsapp"
+Create new Conversation record tied to that Lead.
+Do NOT duplicate Leads.
+4️⃣ Admin Dashboard Requirements
+Add:
+WhatsApp Conversations Panel
+List of Leads with WhatsApp conversations
+Show:
+Lead name (if exists)
+Phone number
+Last message preview
+Timestamp
+Click opens full conversation thread
+Conversation View
+Chat-style interface
+Distinguish inbound vs outbound visually
+Show:
+Message content
+Timestamp
+Status (sent/delivered/read if available)
+WhatsApp message ID (admin-visible only)
+Send Message Box
+Input field
+Send button
+Sends message via WhatsApp API
+Logs message immediately as outbound
+5️⃣ Keep Existing IDs
+Preserve WhatsApp message ID exactly as received.
+Do not generate your own ID in place of WhatsApp ID.
+Internal database ID can exist separately.
+6️⃣ Security & Validation
+Validate webhook signature
+Store webhook raw payload for debugging
+Prevent duplicate message storage
+Handle retries safely
+7️⃣ Environment Variables Required
+Add support for:
+WHATSAPP_ACCESS_TOKEN
+WHATSAPP_PHONE_NUMBER_ID
+WHATSAPP_VERIFY_TOKEN
+META_APP_SECRET
+Do not hardcode credentials.
+8️⃣ Error Handling
+Log API errors
+Retry failed outbound messages
+Gracefully handle malformed webhook payloads
+9️⃣ UI Constraints
+Do not break existing Admin layout
+Keep UI clean and minimal
+Mobile responsive
+RTL compatible (Hebrew support)
+FINAL RESULT
+When someone sends a WhatsApp message to:
++972552739927
+The system must:
+Receive it via webhook.
+Create or update Lead.
+Store full message with WhatsApp ID.
+Display it in Admin Dashboard.
+Allow admin to reply.
+Store reply in same conversation thread.
+Maintain complete chronological history.
+Do NOT refactor unrelated parts of the system. Do NOT remove existing lead functionality. Only extend it to support WhatsApp full conversation trackin
