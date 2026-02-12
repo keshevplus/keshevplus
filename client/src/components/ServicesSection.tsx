@@ -32,6 +32,7 @@ const ServicesSection: React.FC = () => {
     >
       <SectionHeader 
         title={t('services.title')} 
+        subtitle={t('services.subtitle')}
         titleId="services-heading"
       />
 

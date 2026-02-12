@@ -98,6 +98,7 @@ const he: Record<string, string> = {
   "about.value3_desc": "שמירה על פרטיות מלאה וסביבה בטוחה",
 
   "services.title": "השירותים שלנו",
+  "services.subtitle": "אנו מציעים מגוון רחב של שירותים מקצועיים בתחום אבחון וטיפול בהפרעות קשב",
   "services.service1_title": "אבחון מקיף",
   "services.service1_desc": "אבחון מותאם אישית באמצעות כלים מתקדמים, ראיונות קליניים ומבחנים ממוחשבים",
   "services.service2_title": "התאמת טיפול תרופתי",
