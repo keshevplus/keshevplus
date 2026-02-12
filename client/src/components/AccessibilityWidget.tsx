@@ -160,13 +160,9 @@ const AccessibilityWidget = () => {
         )}
         aria-label={t("accessibilityMenu")}
       >
-        <svg viewBox="0 0 100 100" className="w-10 h-10 fill-current">
-          <g transform="translate(5, 5)">
-            <circle cx="50" cy="18" r="9"/>
-            <path d="M50 32 L50 55 L75 55 L82 85" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M50 55 L32 55 C25 55 18 50 18 42" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round"/>
-            <path d="M18 62 A24 24 0 1 0 52 86" fill="none" stroke="currentColor" strokeWidth="9" strokeLinecap="round"/>
-          </g>
+        <svg viewBox="0 0 100 100" className="w-8 h-8 fill-current">
+          <path d="M77.4,79.5l-6-13c-0.5-1-1.5-1.7-2.7-1.7H49.1l-1-20.3h17.3c2,0,3.6-1.6,3.6-3.6s-1.6-3.6-3.6-3.6H47.4L44,14.6 c-0.4-1.9-2.2-3.2-4.1-2.9c-1.9,0.4-3.2,2.2-2.9,4.1l3.3,16.5c0.4,1.8,1.9,3.1,3.8,3.1l0.8,17.4l-15.6,0c-4,0-7.8,2.2-9.7,5.7 c-2.1,3.7-2.1,8.3,0,12c2,3.5,5.7,5.7,9.7,5.7h14.8c1.5,0,2.8-1,3.4-2.4l5.3-11.8l6.3,13.7c0.7,1.5,2.1,2.4,3.7,2.4 c0.5,0,1-0.1,1.5-0.3C76.9,84.9,77.9,82.4,77.4,79.5z M32.6,71.7c-4.1,0-7.5-3.3-7.5-7.5s3.3-7.5,7.5-7.5h11.9l-2.6,5.8l-1.4,3.1 l-1.1,2.5L32.6,71.7z" />
+          <circle cx="43.3" cy="22.2" r="7.8" />
         </svg>
       </button>
 
