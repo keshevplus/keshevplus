@@ -132,10 +132,43 @@ const ContactSection: React.FC = () => {
                 </motion.div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-                  {isDemo && (
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <Input
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        placeholder={t('contact.name_placeholder')}
+                        className={cn("bg-white h-12 text-lg text-right", errors.name && "border-destructive")}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        placeholder={t('contact.email_placeholder')}
+                        className="bg-white h-12 text-lg text-right"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Input
+                        id="phone"
+                        name="phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        placeholder={t('contact.phone_placeholder')}
+                        className={cn("bg-white h-12 text-lg text-right", errors.phone && "border-destructive")}
+                      />
+                    </div>
+
                     <div className="space-y-1">
                       <Select onValueChange={handleSelectChange} value={formData.topic}>
-                        <SelectTrigger className="bg-white h-12 text-lg">
+                        <SelectTrigger className="bg-[#E9ECEF] h-12 text-lg text-right border-0">
                           <SelectValue placeholder={t('contact.topic_label')} />
                         </SelectTrigger>
                         <SelectContent>
@@ -145,18 +178,18 @@ const ContactSection: React.FC = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                  )}
 
-                  <div className="space-y-1">
-                    <Textarea
-                      id="message"
-                      name="message"
-                      value={formData.message}
-                      onChange={handleInputChange}
-                      placeholder={isDemo ? "הודעה" : t('contact.message_placeholder')}
-                      rows={4}
-                      className={cn("bg-white text-lg resize-none", errors.message && "border-destructive")}
-                    />
+                    <div className="space-y-1">
+                      <Textarea
+                        id="message"
+                        name="message"
+                        value={formData.message}
+                        onChange={handleInputChange}
+                        placeholder={t('contact.message_placeholder')}
+                        rows={4}
+                        className={cn("bg-white text-lg text-right resize-none", errors.message && "border-destructive")}
+                      />
+                    </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-3 pt-2">
