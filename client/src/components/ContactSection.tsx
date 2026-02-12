@@ -258,51 +258,50 @@ const ContactSection: React.FC = () => {
           </div>
 
           <Dialog open={directionsModalOpen} onOpenChange={setDirectionsModalOpen}>
-            <DialogContent className="max-w-md w-[90vw] p-0 overflow-hidden rounded-2xl" dir={isRTL ? 'rtl' : 'ltr'}>
-              <div className="bg-white p-6 space-y-6">
-                <h2 className="text-2xl font-bold text-[#1B4332] text-center border-b pb-4">
+            <DialogContent className="max-w-sm w-[85vw] p-0 overflow-hidden rounded-2xl z-[9995]" dir={isRTL ? 'rtl' : 'ltr'}>
+              <div className="bg-white dark:bg-gray-900 p-4 space-y-3 pt-8">
+                <h2 className="text-base font-bold text-[#1B4332] dark:text-green-300 text-center border-b pb-2">
                   דרכי הגעה ואפשרויות חניה
                 </h2>
                 
-                <div className="space-y-6">
-                  <div className="space-y-3">
-                    <h3 className="text-xl font-bold text-[#1B4332] flex items-center gap-2">
-                      <span className="text-2xl">🚗</span> אפשרויות חניה באזור:
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-bold text-[#1B4332] dark:text-green-300 flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 shrink-0" /> אפשרויות חניה באזור:
                     </h3>
                     
-                    <div className="space-y-4 text-[#1B4332]">
+                    <div className="space-y-2.5 text-[#1B4332] dark:text-green-200">
                       <div>
-                        <p className="font-bold text-lg">חניון אורחים מגדלי אלון - <span className="font-normal text-base">כניסה דרך מגדל אלון 1 בצד הצפוני</span></p>
-                        <p className="text-sm">חניות אורחים מסומנות באור ירוק ושלט מגדל "הראל"</p>
-                        <a href="https://waze.com/ul?q=מגדלי+אלון+כניסה+צפונית" target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm hover:underline">מגדלי אלון- כניסה צפונית Waze</a>
+                        <p className="font-bold text-xs">חניון אורחים מגדלי אלון - <span className="font-normal">כניסה דרך מגדל אלון 1 בצד הצפוני</span></p>
+                        <p className="text-[11px] text-muted-foreground">חניות אורחים מסומנות באור ירוק ושלט מגדל "הראל"</p>
+                        <a href="https://waze.com/ul?q=מגדלי+אלון+כניסה+צפונית" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 text-[11px] hover:underline">מגדלי אלון- כניסה צפונית Waze</a>
                       </div>
 
                       <div>
-                        <p className="font-bold text-lg">חניון "אושר עד" - <span className="font-normal text-base">ממש ברחוב המקביל אלינו</span></p>
-                        <a href="https://waze.com/ul?q=חניון+אושר+עד+תל+אביב" target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm hover:underline">Waze לחניון אושר עד</a>
+                        <p className="font-bold text-xs">חניון "אושר עד" - <span className="font-normal">ממש ברחוב המקביל אלינו</span></p>
+                        <a href="https://waze.com/ul?q=חניון+אושר+עד+תל+אביב" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 text-[11px] hover:underline">Waze לחניון אושר עד</a>
                       </div>
 
                       <div>
-                        <p className="font-bold text-lg">חניון אחוזת חוף - <span className="font-normal text-base">ליד מגדל טויוטה (חניון הסינרמה, יגאל אלון 63)</span></p>
-                        <p className="text-sm">כניסה מהצד הדרומי</p>
-                        <a href="https://waze.com/ul?q=חניון+אחוזת+חוף+יגאל+אלון+63" target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm hover:underline">Waze לחניון אחוזות חוף</a>
+                        <p className="font-bold text-xs">חניון אחוזת חוף - <span className="font-normal">ליד מגדל טויוטה (חניון הסינרמה, יגאל אלון 63)</span></p>
+                        <p className="text-[11px] text-muted-foreground">כניסה מהצד הדרומי</p>
+                        <a href="https://waze.com/ul?q=חניון+אחוזת+חוף+יגאל+אלון+63" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 text-[11px] hover:underline">Waze לחניון אחוזות חוף</a>
                       </div>
 
                       <div>
-                        <p className="font-bold text-lg">כחול לבן באזור <span className="font-normal text-base">(זמין בעיקר בבוקר ובערב)</span></p>
+                        <p className="font-bold text-xs">כחול לבן באזור <span className="font-normal">(זמין בעיקר בבוקר ובערב)</span></p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">🚆</span>
-                      <div className="font-bold text-[#1B4332]">
-                        <p className="text-lg leading-tight">לבאי</p>
-                        <p className="text-lg leading-tight">ברכבת</p>
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t">
+                    <div className="flex items-center gap-2">
+                      <Navigation className="w-4 h-4 shrink-0 text-[#1B4332] dark:text-green-300" />
+                      <div className="font-bold text-[#1B4332] dark:text-green-300">
+                        <p className="text-xs leading-tight">לבאי ברכבת</p>
                       </div>
                     </div>
-                    <p className="text-[#1B4332] text-lg font-medium">- מרחק הליכה מתחנת השלום (עזריאלי)</p>
+                    <p className="text-[#1B4332] dark:text-green-200 text-xs font-medium">מרחק הליכה מתחנת השלום (עזריאלי)</p>
                   </div>
                 </div>
               </div>
