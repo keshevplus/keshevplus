@@ -313,7 +313,7 @@ const ChatWidget = () => {
       <div
         className={cn(
           "fixed bottom-5 z-[9998] flex items-center gap-0",
-          isRTL ? "left-5 flex-row-reverse" : "left-5 flex-row"
+          isRTL ? "left-5 flex-row" : "left-5 flex-row"
         )}
         style={{
           transition: 'opacity 0.3s ease, transform 0.3s ease',

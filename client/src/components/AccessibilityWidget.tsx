@@ -152,19 +152,19 @@ const AccessibilityWidget = () => {
       <button
         onClick={() => setOpen(!open)}
         className={cn(
-          "fixed bottom-5 z-[9999] w-12 h-12 rounded-full shadow-lg transition-transform duration-200 hover:scale-110",
-          "bg-white text-[#1565C0] border-2 border-[#1565C0]",
+          "fixed bottom-5 z-[9999] w-12 h-12 rounded-xl shadow-lg transition-transform duration-200 hover:scale-110",
+          "bg-[#FFB37B] text-white border-2 border-white",
           "flex items-center justify-center",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2",
-          isRTL ? "left-5" : "right-5"
+          isRTL ? "right-5" : "left-5"
         )}
         aria-label={t("accessibilityMenu")}
       >
         <svg viewBox="0 0 100 100" className="w-8 h-8 fill-current">
-          <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="2"/>
-          <circle cx="50" cy="25" r="8"/>
-          <path d="M20 40 Q50 30 80 40" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round"/>
-          <path d="M50 40 L50 70 L35 90 M50 70 L65 90" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round"/>
+          <rect width="100" height="100" rx="20" fill="none"/>
+          <path d="M50 15 C54 15 57 18 57 22 C57 26 54 29 50 29 C46 29 43 26 43 22 C43 18 46 15 50 15 Z" fill="currentColor"/>
+          <path d="M65 35 L35 35 C32 35 30 37 30 40 L30 55 C30 58 32 60 35 60 L42 60 L42 85 C42 88 44 90 47 90 L53 90 C56 90 58 88 58 85 L58 60 L65 60 C68 60 70 58 70 55 L70 40 C70 37 68 35 65 35 Z" fill="currentColor"/>
+          <path d="M30 65 A18 18 0 1 0 55 83" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round"/>
         </svg>
       </button>
 
