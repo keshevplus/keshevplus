@@ -103,13 +103,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id));
   }
 
-  async clearResetToken(id: number): Promise<void> {
-    await db
-      .update(users)
-      .set({ resetToken: null } as any)
-      .where(eq(users.id, id));
-  }
-
   async createContact(insertContact: InsertContact): Promise<Contact> {
     const [contact] = await db
       .insert(contacts)
