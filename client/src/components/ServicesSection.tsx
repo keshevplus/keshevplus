@@ -138,6 +138,56 @@ const ServicesSection: React.FC = () => {
           </ol>
         </div>
       )}
+      
+      {isDemo && (
+        <div className="mt-16 sm:mt-20" aria-labelledby="diagnosis-heading">
+          <h3 
+            id="diagnosis-heading"
+            className="text-xl sm:text-2xl font-bold text-center mb-4 text-foreground"
+          >
+            {t('diagnosis.title')}
+          </h3>
+          <p className="text-center text-muted-foreground mb-8 sm:mb-12">
+            {t('diagnosis.subtitle')}
+          </p>
+          
+          <ol 
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8"
+          >
+            {[1, 2, 3].map((step) => (
+              <motion.li
+                key={step}
+                className="relative text-center"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: step * 0.1 }}
+                viewport={{ once: true }}
+              >
+                <div 
+                  className={cn(
+                    "w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 sm:mb-4",
+                    "bg-gradient-to-br from-primary to-primary/80 rounded-full",
+                    "flex items-center justify-center shadow-md"
+                  )}
+                  aria-hidden="true"
+                >
+                  <span className="text-lg sm:text-xl font-bold text-primary-foreground">
+                    {step}
+                  </span>
+                </div>
+                
+                <h4 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2 text-foreground">
+                  {t(`diagnosis.step${step}_title`)}
+                </h4>
+                
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {t(`diagnosis.step${step}_desc`)}
+                </p>
+              </motion.li>
+            ))}
+          </ol>
+        </div>
+      )}
     </Section>
   );
 };
