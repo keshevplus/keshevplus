@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: text("role").notNull().default("user"),
   mustChangePassword: boolean("must_change_password").notNull().default(false),
+  resetToken: text("reset_token"),
 });
 
 export const CONTACT_STATUSES = ["new", "in_progress", "closed", "follow_up"] as const;

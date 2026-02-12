@@ -509,6 +509,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/admin/users", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+
+      const allUsers = await db.select().from(users);
+      // Hide superadmin from everyone
+      const filtered = allUsers.filter(u => u.email !== "drkeshevplus@gmail.com");
+      return res.json(filtered);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+
+      const targetId = parseInt(req.params.id);
+      const targetUser = await storage.getUser(targetId);
+      
+      if (targetUser?.email === "drkeshevplus@gmail.com") {
+        return res.status(403).json({ error: "Cannot delete superadmin" });
+      }
+
+      await db.delete(users).where(eq(users.id, targetId));
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Delete failed" });
+    }
+  });
+
   app.post("/api/auth/logout", (req, res) => {
     req.session.destroy(() => {
       res.json({ success: true });
@@ -557,6 +594,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Change password error:", error);
       return res.status(500).json({ error: "Failed to change password" });
+    }
+  });
+
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.json({ success: true, message: "If the email exists, a reset link was sent." });
+      }
+
+      const resetToken = Math.random().toString(36).substring(2, 15);
+      await storage.setResetToken(user.id, resetToken);
+
+      const resetUrl = `${req.protocol}://${req.get('host')}/admin/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
+      
+      await sendNotificationEmail(
+        "שחזור סיסמה - קשב פלוס",
+        `שלום,\n\nהתקבלה בקשה לשחזור סיסמה עבור המשתמש שלך.\nלחץ על הקישור הבא כדי לאפס את הסיסמה:\n${resetUrl}\n\nאם לא ביקשת זאת, ניתן להתעלם מהודעה זו.`
+      );
+
+      return res.json({ success: true, message: "If the email exists, a reset link was sent." });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      return res.status(500).json({ error: "Failed to process request" });
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { email, token, newPassword } = req.body;
+      const user = await storage.getUserByEmail(email);
+      if (!user || (user as any).resetToken !== token) {
+        return res.status(400).json({ error: "Invalid token or email" });
+      }
+
+      const bcrypt = await import("bcryptjs");
+      const hash = bcrypt.default?.hash || bcrypt.hash;
+      const hashedPassword = await hash(newPassword, 10);
+      
+      await storage.updateUserPassword(user.id, hashedPassword);
+      await storage.clearResetToken(user.id);
+      
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Reset failed" });
     }
   });
 
