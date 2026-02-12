@@ -279,15 +279,16 @@ const ChatWidget = () => {
     queryKey: ['/api/settings/widgets'],
   });
 
-  const isInIframe = () => {
+  const isInVisualEditorIframe = () => {
     try {
-      return window.self !== window.top;
+      if (window.self === window.top) return false;
+      return window.location.search.includes('visualEditor=true');
     } catch (e) {
-      return true;
+      return false;
     }
   }
 
-  if (location.startsWith('/admin') || isInIframe() || widgetSettings?.showChat === false) return null
+  if (location.startsWith('/admin') || isInVisualEditorIframe() || widgetSettings?.showChat === false) return null
 
   const whatsAppButton = widgetSettings?.showWhatsApp !== false && (
     <a

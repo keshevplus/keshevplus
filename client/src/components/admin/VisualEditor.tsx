@@ -388,7 +388,7 @@ export default function VisualEditor() {
     iframe.contentDocument.execCommand(command, false)
   }
 
-  const iframeSrc = `/?_t=${Date.now()}`
+  const iframeSrc = `/?visualEditor=true&_t=${Date.now()}`
 
   return (
     <div className={cn(
