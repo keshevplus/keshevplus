@@ -175,6 +175,11 @@ export function invalidateTranslationCache(lang?: string) {
   }
 }
 
+export const useIsDemo = () => {
+  const overrides = useContext(TranslationOverrideContext);
+  return overrides !== null;
+};
+
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
   if (!context) {

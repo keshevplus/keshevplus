@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Heart, Award, Shield, CheckCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useLanguage, useIsDemo } from '@/hooks/useLanguage';
 import { Section, SectionHeader } from '@/components/layout/Section';
 import heroAbout from '@/assets/hero-about.jpg';
 
@@ -17,6 +17,7 @@ const credentialKeys = ['about.credential1', 'about.credential2', 'about.credent
 
 const AboutSection: React.FC = () => {
   const { t, isRTL } = useLanguage();
+  const isDemo = useIsDemo();
   
   const [ref, inView] = useInView({
     triggerOnce: true,
@@ -75,63 +76,69 @@ const AboutSection: React.FC = () => {
                 {t('about.doctor_desc')}
               </p>
               
-              <ul className="space-y-3">
-                {credentialKeys.map((key, index) => (
-                  <motion.li
-                    key={key}
-                    initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
-                    animate={inView ? { opacity: 1, x: 0 } : {}}
-                    transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
-                    className="flex items-center gap-3"
-                  >
-                    <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
-                    <span className="text-foreground/80" data-testid={`text-credential-${index}`}>{t(key)}</span>
-                  </motion.li>
-                ))}
-              </ul>
+              {!isDemo && (
+                <ul className="space-y-3">
+                  {credentialKeys.map((key, index) => (
+                    <motion.li
+                      key={key}
+                      initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
+                      animate={inView ? { opacity: 1, x: 0 } : {}}
+                      transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
+                      className="flex items-center gap-3"
+                    >
+                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-foreground/80" data-testid={`text-credential-${index}`}>{t(key)}</span>
+                    </motion.li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
         </motion.div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={inView ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.6, delay: 0.5 }}
-        className="text-center mb-12"
-      >
-        <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed italic" data-testid="text-mission">
-          "{t('about.mission')}"
-        </p>
-      </motion.div>
+      {!isDemo && (
+        <>
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="text-center mb-12"
+          >
+            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed italic" data-testid="text-mission">
+              "{t('about.mission')}"
+            </p>
+          </motion.div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {values.map((value, index) => {
-          const IconComponent = value.icon;
-          return (
-            <motion.div
-              key={value.titleKey}
-              initial={{ opacity: 0, y: 30 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, delay: 0.6 + index * 0.1 }}
-            >
-              <Card className="h-full border-0 shadow-md hover:shadow-lg transition-shadow">
-                <CardContent className="p-6 text-center">
-                  <div className="w-14 h-14 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
-                    <IconComponent className="w-7 h-7 text-primary" />
-                  </div>
-                  <h4 className="text-lg font-semibold text-foreground mb-2" data-testid={`text-value-title-${index}`}>
-                    {t(value.titleKey)}
-                  </h4>
-                  <p className="text-muted-foreground text-sm leading-relaxed" data-testid={`text-value-desc-${index}`}>
-                    {t(value.descKey)}
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          );
-        })}
-      </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {values.map((value, index) => {
+              const IconComponent = value.icon;
+              return (
+                <motion.div
+                  key={value.titleKey}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={inView ? { opacity: 1, y: 0 } : {}}
+                  transition={{ duration: 0.5, delay: 0.6 + index * 0.1 }}
+                >
+                  <Card className="h-full border-0 shadow-md hover:shadow-lg transition-shadow">
+                    <CardContent className="p-6 text-center">
+                      <div className="w-14 h-14 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
+                        <IconComponent className="w-7 h-7 text-primary" />
+                      </div>
+                      <h4 className="text-lg font-semibold text-foreground mb-2" data-testid={`text-value-title-${index}`}>
+                        {t(value.titleKey)}
+                      </h4>
+                      <p className="text-muted-foreground text-sm leading-relaxed" data-testid={`text-value-desc-${index}`}>
+                        {t(value.descKey)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </Section>
   );
 };
