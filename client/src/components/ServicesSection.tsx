@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Brain, Pill, Monitor, ClipboardList, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useLanguage, useIsDemo } from '@/hooks/useLanguage';
 import { Section, SectionHeader } from '@/components/layout/Section';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +23,7 @@ const processSteps = [
 
 const ServicesSection: React.FC = () => {
   const { t, isRTL } = useLanguage();
+  const isDemo = useIsDemo();
 
   return (
     <Section 
@@ -90,51 +91,53 @@ const ServicesSection: React.FC = () => {
         })}
       </div>
 
-      <div className="mt-16 sm:mt-20" aria-labelledby="process-heading">
-        <h3 
-          id="process-heading"
-          className="text-xl sm:text-2xl font-bold text-center mb-8 sm:mb-12 text-foreground"
-        >
-          {t('nav.process')}
-        </h3>
-        
-        <ol 
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8"
-          aria-label={t('services.process_steps')}
-        >
-          {processSteps.map((step, index) => (
-            <motion.li
-              key={step.id}
-              className="relative text-center"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
-              viewport={{ once: true }}
-            >
-              <div 
-                className={cn(
-                  "w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 sm:mb-4",
-                  "bg-gradient-to-br from-primary to-primary/80 rounded-full",
-                  "flex items-center justify-center shadow-md"
-                )}
-                aria-hidden="true"
+      {!isDemo && (
+        <div className="mt-16 sm:mt-20" aria-labelledby="process-heading">
+          <h3 
+            id="process-heading"
+            className="text-xl sm:text-2xl font-bold text-center mb-8 sm:mb-12 text-foreground"
+          >
+            {t('nav.process')}
+          </h3>
+          
+          <ol 
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8"
+            aria-label={t('services.process_steps')}
+          >
+            {processSteps.map((step, index) => (
+              <motion.li
+                key={step.id}
+                className="relative text-center"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+                viewport={{ once: true }}
               >
-                <span className="text-lg sm:text-xl font-bold text-primary-foreground">
-                  {step.step}
-                </span>
-              </div>
-              
-              <h4 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2 text-foreground" data-testid={`text-step-title-${step.id}`}>
-                {t(step.titleKey)}
-              </h4>
-              
-              <p className="text-sm text-muted-foreground leading-relaxed" data-testid={`text-step-desc-${step.id}`}>
-                {t(step.descKey)}
-              </p>
-            </motion.li>
-          ))}
-        </ol>
-      </div>
+                <div 
+                  className={cn(
+                    "w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 sm:mb-4",
+                    "bg-gradient-to-br from-primary to-primary/80 rounded-full",
+                    "flex items-center justify-center shadow-md"
+                  )}
+                  aria-hidden="true"
+                >
+                  <span className="text-lg sm:text-xl font-bold text-primary-foreground">
+                    {step.step}
+                  </span>
+                </div>
+                
+                <h4 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2 text-foreground" data-testid={`text-step-title-${step.id}`}>
+                  {t(step.titleKey)}
+                </h4>
+                
+                <p className="text-sm text-muted-foreground leading-relaxed" data-testid={`text-step-desc-${step.id}`}>
+                  {t(step.descKey)}
+                </p>
+              </motion.li>
+            ))}
+          </ol>
+        </div>
+      )}
     </Section>
   );
 };
