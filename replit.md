@@ -28,6 +28,7 @@ KeshevPlus is a multilingual website for an ADHD clinic specializing in the diag
 - **Feb 2026:** Chat widget always visible (no dismiss to hidden), hidden on admin pages
 - **Feb 2026:** Lead/client distinction: visitors auto-registered as leads, manual conversion toggle
 - **Feb 2026:** Chatbot graceful error handling for AI service unavailability
+- **Feb 2026:** Chat AI enforcement rules: unified system prompt with dynamic language matching (replies in user's language), knowledge grounding from clinic data, information gathering mode, increased token limit (800)
 - **Feb 2026:** Added Italian (it) language support - now 10 languages total
 - **Feb 2026:** Added Visual Editor - iframe-based WYSIWYG content editor in admin dashboard for editing site text visually
 - **Feb 2026:** Questionnaires now open as modals (like booking page) instead of navigating to separate page
