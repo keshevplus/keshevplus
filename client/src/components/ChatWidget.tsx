@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MessageCircle, X, Send, Bot, User, ArrowRight } from 'lucide-react'
 import { SiWhatsapp as SiWhatsApp } from 'react-icons/si'
-import { useLanguage } from '@/hooks/useLanguage'
+import { useLanguage, useIsDemo } from '@/hooks/useLanguage'
 import { useLocation } from 'wouter'
 import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
@@ -41,6 +41,7 @@ function clearVisitorCookie() {
 const ChatWidget = () => {
   const { language, isRTL } = useLanguage()
   const isHe = language === 'he'
+  const isDemo = useIsDemo()
   const [location] = useLocation()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -314,7 +315,9 @@ const ChatWidget = () => {
       <div
         className={cn(
           "fixed bottom-5 z-[9998] flex items-end gap-0",
-          isRTL ? "right-5 flex-row-reverse" : "left-5 flex-row"
+          isDemo
+            ? "left-5 flex-row"
+            : isRTL ? "right-5 flex-row-reverse" : "left-5 flex-row"
         )}
         style={{
           transition: 'opacity 0.3s ease, transform 0.3s ease',
@@ -345,7 +348,9 @@ const ChatWidget = () => {
             className={cn(
               "flex items-center gap-2 bg-background border border-border rounded-full py-2 px-4 shadow-md cursor-pointer",
               "transition-all duration-300",
-              isRTL ? "ml-2 pr-6" : "ml-2 pl-6"
+              isDemo
+                ? "ml-2 pl-6"
+                : isRTL ? "ml-2 pr-6" : "ml-2 pl-6"
             )}
             onClick={() => setOpen(true)}
             data-testid="chat-attention-bar"
