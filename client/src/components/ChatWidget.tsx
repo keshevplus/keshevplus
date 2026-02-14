@@ -313,8 +313,8 @@ const ChatWidget = () => {
     return (
       <div
         className={cn(
-          "fixed bottom-5 z-[9998] flex items-center gap-0",
-          isRTL ? "left-5 flex-row" : "left-5 flex-row"
+          "fixed bottom-5 z-[9998] flex items-end gap-0",
+          isRTL ? "right-5 flex-row-reverse" : "left-5 flex-row"
         )}
         style={{
           transition: 'opacity 0.3s ease, transform 0.3s ease',
@@ -345,7 +345,7 @@ const ChatWidget = () => {
             className={cn(
               "flex items-center gap-2 bg-background border border-border rounded-full py-2 px-4 shadow-md cursor-pointer",
               "transition-all duration-300",
-              isRTL ? "mr-2 pl-6" : "ml-2 pl-6"
+              isRTL ? "ml-2 pr-6" : "ml-2 pl-6"
             )}
             onClick={() => setOpen(true)}
             data-testid="chat-attention-bar"
