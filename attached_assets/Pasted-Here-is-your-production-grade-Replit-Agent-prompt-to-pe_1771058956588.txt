@@ -1,0 +1,155 @@
+Here is your production-grade Replit Agent prompt to permanently fix the layout issues on:
+keshevplus-monorepo.replit.app
+This prompt is structured to eliminate:
+❌ overflow-x scrolling
+❌ Navbar cut-off during scroll (up or down)
+❌ Layout shift caused by sticky header
+❌ Hidden content under header
+❌ Mobile rendering inconsistencies
+✅ REPLIT AGENT PROMPT
+Task: Permanently Fix Layout & Navigation Rendering Issues
+🎯 Objective
+Refactor the entire layout system of keshevplus-monorepo.replit.app to guarantee:
+The application NEVER has horizontal overflow (overflow-x)
+The navbar is NEVER cut off while scrolling
+The navbar remains fully visible at all scroll positions
+No content is hidden under the navbar
+Layout works consistently across:
+Mobile
+Tablet
+Desktop
+No layout shifting or scroll-jump behavior
+This must be a permanent architectural fix — not a patch.
+🔍 ROOT PROBLEMS TO FIX
+Agent must inspect and fix:
+Incorrect position: sticky usage
+Missing top: 0
+Missing z-index stacking
+Parent containers using overflow-x: auto or hidden
+100vw width usage causing horizontal scroll
+Negative margins
+Absolute positioned children exceeding width
+Tailwind classes causing layout overflow
+Body/html not constrained properly
+🏗 GLOBAL LAYOUT ARCHITECTURE (MANDATORY)
+Refactor root layout to this structure:
+Tsx
+Copy code
+<html>
+  <body className="min-h-screen overflow-x-hidden">
+    <div className="flex flex-col min-h-screen w-full overflow-x-hidden">
+      <Navbar />
+      <main className="flex-1 w-full">
+        {children}
+      </main>
+      <Footer />
+    </div>
+  </body>
+</html>
+🧱 GLOBAL CSS FIXES (MANDATORY)
+Add or enforce:
+Css
+Copy code
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#__next, #root {
+  width: 100%;
+  overflow-x: hidden;
+}
+If using Tailwind, enforce:
+Copy code
+
+overflow-x-hidden
+max-w-full
+w-full
+🧭 NAVBAR FIX REQUIREMENTS
+The navbar must:
+Use position: sticky
+Use top: 0
+Use z-index: 50 or higher
+Have a defined background color
+Have no parent container with overflow clipping
+Not use negative margins
+Not use 100vw
+Not exceed w-full
+Correct example:
+Tsx
+Copy code
+<header className="sticky top-0 z-50 w-full bg-white shadow-md">
+🛑 REMOVE ALL 100vw USAGE
+Search entire project and replace:
+width: 100vw
+w-screen
+min-w-screen
+Replace with:
+w-full
+max-w-full
+Reason: 100vw includes scrollbar width and causes overflow.
+📦 CONTAINER FIX RULE
+All main containers must follow:
+Tsx
+Copy code
+<div className="w-full max-w-[1440px] mx-auto px-4">
+Never allow:
+fixed widths larger than screen
+absolute positioned elements exceeding parent width
+left/right offsets that break layout
+🔎 DEBUG & CLEANUP TASKS
+Agent must:
+Inspect every layout wrapper
+Remove unnecessary overflow rules
+Fix nested flex/grid causing overflow
+Ensure images use:
+Copy code
+
+max-w-full h-auto
+Ensure tables use:
+Copy code
+
+overflow-x-auto only inside controlled container
+Remove horizontal scrolling from entire app
+Test at widths:
+320px
+375px
+768px
+1024px
+1440px
+📱 MOBILE-FIRST ENFORCEMENT
+All layout must:
+Be built mobile-first
+Avoid fixed pixel widths
+Avoid absolute positioning unless required
+Avoid transform shifts affecting scroll
+🧪 VERIFICATION CHECKLIST (Agent Must Confirm)
+After refactor, verify:
+No horizontal scrollbar exists at any viewport
+Navbar never disappears
+Navbar never clips when scrolling
+No content sits behind navbar
+No layout shift when page loads
+No double scrollbars
+No body scroll lock issue
+🚫 NOT ALLOWED
+Do NOT:
+Add JavaScript scroll hacks
+Add overflow hidden randomly
+Fix only one page
+Use position fixed unless justified
+Use magic padding numbers without reason
+This must be a structural fix.
+🏁 FINAL OUTPUT
+Return:
+List of layout files modified
+Navbar file modifications
+Root layout changes
+CSS/global changes
+Confirmation that overflow-x is eliminated
