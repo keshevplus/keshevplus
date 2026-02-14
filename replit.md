@@ -87,3 +87,8 @@ The application is a full-stack project built with a React frontend (Vite, Tailw
 - `client/src/components/admin/VisualEditor.tsx` - WYSIWYG visual content editor with iframe preview
 - `client/src/components/admin/AdminDashboard.tsx` - Admin overview dashboard
 - `client/src/components/admin/WhatsAppManager.tsx` - WhatsApp Business conversations manager with chat thread view
+
+## Mandatory Reference Documentation
+**READ THESE FILES BEFORE ANY REFACTORING:**
+- `docs/CHAT_WIDGET_ENFORCEMENT.md` - Chat AI behavioral rules, language handling, LLM requirements, mobile keyboard rules, bubble positioning
+- `docs/UI_LAYOUT_RULES.md` - All UI/layout/design rules, overflow prevention, mobile-first requirements, section component rules, admin dashboard rules, translation requirements
