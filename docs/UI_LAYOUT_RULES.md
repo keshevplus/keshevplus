@@ -186,6 +186,34 @@ The `<Section>` layout component (`client/src/components/layout/Section.tsx`):
 
 ---
 
+## 13. Project Separation Plan (keshevplus-demo)
+
+### Intent
+The /demo route should become the main / route in a separate project called "keshevplus-demo".
+The current / route stays in this keshevplus-monorepo project.
+
+### Architecture Notes for Separation
+- `/demo` uses `DemoIndex.tsx` which wraps `Index` with `TranslationOverrideProvider` using `demoOverrides.ts`
+- Components with `isDemo` conditional logic: `AboutSection.tsx`, `ServicesSection.tsx`, `ContactSection.tsx`, `ChatWidget.tsx`
+- In the demo project: remove all `isDemo` checks and always show the "demo" variant
+- In this project: remove the /demo route and `DemoIndex.tsx` after separation
+- All server infrastructure (admin dashboard, API routes, database, auth) must remain intact in BOTH projects
+- The demo project shares the same database and backend
+
+### isDemo Conditionals Summary
+| Component | isDemo=true behavior |
+|-----------|---------------------|
+| AboutSection | Hides credentials list and values cards section |
+| ServicesSection | Shows diagnosis steps (3 steps) instead of process steps (4 steps) |
+| ContactSection | Uses `contact.title` instead of `nav.contact`; orange card bg; shows "clear form" button |
+| ChatWidget | Currently unused (was for demo detection via URL) |
+
+### Translation Overrides (demoOverrides.ts)
+Contains Hebrew content overrides for: about, services, ADHD info, diagnosis, questionnaires, contact sections.
+In the demo project, these overrides should become the primary translations (merged into database or static files).
+
+---
+
 # CHANGE LOG
 
 | Date       | Change Description |
@@ -195,6 +223,7 @@ The `<Section>` layout component (`client/src/components/layout/Section.tsx`):
 | Feb 2026   | Chat bubble positioning: absolute float-right, no button displacement |
 | Feb 2026   | Mobile keyboard: visualViewport-based modal repositioning |
 | Feb 2026   | Chat AI enforcement rules documented |
+| Feb 2026   | Added project separation plan for keshevplus-demo |
 
 ---
 
