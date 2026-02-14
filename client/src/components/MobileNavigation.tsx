@@ -130,11 +130,11 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
         )}
         dir={dir}
       >
-        <div className="container mx-auto px-4 sm:px-6 overflow-visible">
-          <div className="flex items-center justify-between overflow-visible">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between">
             <button
               onClick={() => scrollToSection("#home")}
-              className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md overflow-visible"
+              className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md"
               aria-label={isRTL ? "חזרה לדף הבית" : "Go to homepage"}
             >
               <img

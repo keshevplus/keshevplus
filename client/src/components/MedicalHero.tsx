@@ -37,7 +37,7 @@ const MedicalHero: React.FC = () => {
       <main id="main-content">
         <section
           id="home"
-          className="relative bg-background"
+          className="relative bg-background overflow-x-hidden"
           dir={isRTL ? "rtl" : "ltr"}
           aria-label={t("hero.welcome_line1") + " " + t("hero.welcome_line2")}
         >
@@ -186,7 +186,7 @@ const MedicalHero: React.FC = () => {
                 <img
                   src={doctorHero}
                   alt={t("hero.doctor_alt")}
-                  className="w-full max-h-[50vh] sm:max-h-[75vh] md:max-h-[85vh] lg:max-h-[90vh] h-auto object-contain object-bottom drop-shadow-2xl block scale-105 sm:scale-110 origin-bottom"
+                  className="w-full max-h-[50vh] sm:max-h-[75vh] md:max-h-[85vh] lg:max-h-[90vh] h-auto object-contain object-bottom drop-shadow-2xl block"
                   loading="eager"
                   fetchPriority="high"
                   width="800"

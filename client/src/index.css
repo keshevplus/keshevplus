@@ -172,11 +172,15 @@
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
     font-display: swap;
+    overflow-x: hidden;
+    width: 100%;
   }
 
   body {
     @apply bg-background text-foreground;
     overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
     width: 100%;
     position: relative;
     min-height: 100vh;
