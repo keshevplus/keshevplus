@@ -331,10 +331,7 @@ const ChatWidget = () => {
   if (!open) {
     return (
       <div
-        className={cn(
-          "fixed bottom-5 z-[9998] flex items-end gap-0",
-          "left-5 flex-row"
-        )}
+        className="fixed bottom-5 left-5 z-[9998]"
         style={{
           transition: 'opacity 0.3s ease, transform 0.3s ease',
           opacity: barVisible ? 1 : 0,
@@ -361,15 +358,11 @@ const ChatWidget = () => {
 
         {bubbleState === 'bar' && (
           <div
-            className={cn(
-              "flex items-center gap-2 bg-background border border-border rounded-full py-2 px-4 shadow-md cursor-pointer",
-              "transition-all duration-300",
-              "ml-2 pl-6"
-            )}
+            className="absolute bottom-1 left-[calc(100%+8px)] flex items-center gap-2 bg-background border border-border rounded-full py-2 px-4 shadow-md cursor-pointer whitespace-nowrap"
             onClick={() => setOpen(true)}
             data-testid="chat-attention-bar"
           >
-            <span className="text-sm font-medium text-foreground whitespace-nowrap">
+            <span className="text-sm font-medium text-foreground">
               {isHe ? 'איך אוכל לעזור?' : 'How can I help?'}
             </span>
             <button
