@@ -10,6 +10,7 @@ KeshevPlus is a multilingual website for an ADHD clinic specializing in the diag
 - Visitors are LEADS, not clients. Only manually converted to clients by admin.
 - Persistent user recognition via cookies/localStorage
 - Israeli law compliance for cookies disclaimer
+- Mobile-first design: Ensure navbar sticks to top and doesn't get cutoff when scrolling on mobile (for both `/` and `/demo` routes).
 
 ## Recent Changes
 - **Feb 2026:** Implemented smooth scroll-based navbar logo animation with continuous interpolation
