@@ -62,19 +62,28 @@ const ChatWidget = () => {
   const [barVisible, setBarVisible] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const chatModalRef = useRef<HTMLDivElement>(null)
   const [viewportHeight, setViewportHeight] = useState<number | null>(null)
+  const [viewportOffset, setViewportOffset] = useState(0)
+  const [keyboardOpen, setKeyboardOpen] = useState(false)
 
   useEffect(() => {
     if (!window.visualViewport) return
 
     const handleResize = () => {
-      setViewportHeight(window.visualViewport?.height || null)
+      const vv = window.visualViewport
+      if (!vv) return
+      const vh = vv.height
+      const offset = vv.offsetTop
+      setViewportHeight(vh)
+      setViewportOffset(offset)
+      const isKb = window.innerHeight - vh > 100
+      setKeyboardOpen(isKb)
     }
 
     window.visualViewport.addEventListener('resize', handleResize)
     window.visualViewport.addEventListener('scroll', handleResize)
     
-    // Initial height
     handleResize()
 
     return () => {
@@ -121,6 +130,15 @@ const ChatWidget = () => {
       inputRef.current.focus()
     }
   }, [open, visitorInfo])
+
+  const scrollInputIntoView = () => {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }, 300)
+    })
+  }
 
   const handleDismiss = () => {
     if (bubbleState === 'bar') {
@@ -368,9 +386,43 @@ const ChatWidget = () => {
     )
   }
 
+  const modalStyle: React.CSSProperties = keyboardOpen && viewportHeight
+    ? {
+        position: 'fixed',
+        top: `${viewportOffset}px`,
+        left: 0,
+        right: 0,
+        height: `${viewportHeight}px`,
+        maxHeight: `${viewportHeight}px`,
+        borderRadius: 0,
+        margin: 0,
+        width: '100%',
+        maxWidth: '100%',
+      }
+    : viewportHeight && viewportHeight < 500
+      ? {
+          position: 'fixed',
+          top: `${viewportOffset}px`,
+          left: 0,
+          height: `${viewportHeight}px`,
+          maxHeight: '100dvh',
+          borderRadius: 0,
+          margin: 0,
+          width: '100%',
+        }
+      : {}
+
   return (
     <div
       className="fixed inset-0 z-[9998] flex items-center justify-center p-4"
+      style={keyboardOpen && viewportHeight ? {
+        position: 'fixed',
+        top: `${viewportOffset}px`,
+        left: 0,
+        width: '100%',
+        height: `${viewportHeight}px`,
+        padding: 0,
+      } : {}}
       data-testid="chat-modal-overlay"
     >
       <div
@@ -378,20 +430,12 @@ const ChatWidget = () => {
         onClick={() => setOpen(false)}
       />
       <div
+        ref={chatModalRef}
         className={cn(
           "relative z-10 bg-background rounded-xl shadow-2xl flex flex-col",
-          "w-full max-w-md h-[70vh] max-h-[560px]"
+          !keyboardOpen && "w-full max-w-md h-[70vh] max-h-[560px]"
         )}
-        style={viewportHeight ? { 
-          height: `${viewportHeight}px`,
-          maxHeight: '100dvh',
-          borderRadius: viewportHeight < 500 ? '0' : undefined,
-          margin: viewportHeight < 500 ? '0' : undefined,
-          position: viewportHeight < 500 ? 'fixed' : 'relative',
-          top: viewportHeight < 500 ? '0' : undefined,
-          left: viewportHeight < 500 ? '0' : undefined,
-          width: viewportHeight < 500 ? '100%' : undefined
-        } : {}}
+        style={modalStyle}
         dir={isHe ? 'rtl' : 'ltr'}
       >
         <div className="flex items-center justify-between gap-2 p-4 border-b bg-primary text-primary-foreground rounded-t-xl">
@@ -437,6 +481,7 @@ const ChatWidget = () => {
               value={infoForm.name}
               onChange={(e) => setInfoForm(prev => ({ ...prev, name: e.target.value }))}
               onKeyDown={handleInfoKeyDown}
+              onFocus={scrollInputIntoView}
               placeholder={isHe ? 'שם מלא *' : 'Full name *'}
               data-testid="input-chat-name"
             />
@@ -444,6 +489,7 @@ const ChatWidget = () => {
               value={infoForm.email}
               onChange={(e) => setInfoForm(prev => ({ ...prev, email: e.target.value }))}
               onKeyDown={handleInfoKeyDown}
+              onFocus={scrollInputIntoView}
               placeholder={isHe ? 'אימייל *' : 'Email *'}
               type="email"
               data-testid="input-chat-email"
@@ -452,6 +498,7 @@ const ChatWidget = () => {
               value={infoForm.phone}
               onChange={(e) => setInfoForm(prev => ({ ...prev, phone: e.target.value }))}
               onKeyDown={handleInfoKeyDown}
+              onFocus={scrollInputIntoView}
               placeholder={isHe ? 'טלפון (אופציונלי)' : 'Phone (optional)'}
               type="tel"
               data-testid="input-chat-phone"
@@ -519,6 +566,7 @@ const ChatWidget = () => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
+                  onFocus={scrollInputIntoView}
                   placeholder={isHe ? 'הקלידו הודעה...' : 'Type a message...'}
                   disabled={loading}
                   data-testid="input-chat-message"
