@@ -22,8 +22,8 @@ jobs:
       # The test user's credentials.  These values are referenced by your
       # seeding script and test code.  In a production project you should
       # supply these via GitHub secrets instead of hard coding them.
-      TEST_OWNER_EMAIL: "dr@keshevplus.co.il"
-      TEST_OWNER_PASSWORD: "12345678"
+      TEST_OWNER_EMAIL: ${{ secrets.TEST_OWNER_EMAIL }}
+      TEST_OWNER_PASSWORD: ${{ secrets.TEST_OWNER_PASSWORD }}
       # Optional: URL of the application under test.  Defaults to
       # localhost:3000 if not provided.
       TEST_APP_URL: ${{ secrets.TEST_APP_URL }}
