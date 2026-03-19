@@ -93,6 +93,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
         <div className="max-w-6xl mx-auto">
           <h2
             id={titleId}
+            data-sticky-title={title}
             className={cn(
               "text-2xl sm:text-3xl lg:text-4xl font-bold text-primary-foreground",
               centered && "text-center",

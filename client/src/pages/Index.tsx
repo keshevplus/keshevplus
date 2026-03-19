@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import MedicalHero from "@/components/MedicalHero";
+import StickySectionTitle from "@/components/StickySectionTitle";
 
 const AboutSection = lazy(() => import("@/components/AboutSection"));
 const ServicesSection = lazy(() => import("@/components/ServicesSection"));
@@ -15,6 +16,7 @@ function SectionFallback() {
 const Index = () => {
   return (
     <div className="min-h-screen bg-background overflow-x-hidden w-full">
+      <StickySectionTitle />
       <MedicalHero />
       <Suspense fallback={<SectionFallback />}>
         <AboutSection />
