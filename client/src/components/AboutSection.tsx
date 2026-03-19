@@ -27,7 +27,7 @@ const AboutSection: React.FC = () => {
   return (
     <Section 
       id="about" 
-      className="bg-[#FFFDF5] dark:bg-card"
+      className="bg-muted/20 dark:bg-card"
       dir={isRTL ? 'rtl' : 'ltr'}
       aria-labelledby="about-heading"
     >
