@@ -25,7 +25,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [isDesktop, setIsDesktop] = useState(false);
+  const [activeSection, setActiveSection] = useState('');
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : false);
   const isScrolled = scrollProgress > 0.1;
   const { t, isRTL, dir } = useLanguage();
 
@@ -46,12 +47,25 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   ];
 
   useEffect(() => {
+    const sectionIds = ['home', 'about', 'services', 'adhd', 'questionnaires', 'contact'];
+
     const handleScroll = () => {
       const progress = Math.min(1, Math.max(0, window.scrollY / 150));
       setScrollProgress(progress);
+
+      const scrollY = window.scrollY + 120;
+      let current = '';
+      for (const id of sectionIds) {
+        const el = document.getElementById(id);
+        if (el && el.offsetTop <= scrollY) {
+          current = `#${id}`;
+        }
+      }
+      setActiveSection(current);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -152,20 +166,28 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
             </button>
 
             <div className="hidden lg:flex items-center gap-1">
-              {navItems.map((item) => (
-                <button
-                  key={item.href}
-                  onClick={() => scrollToSection(item.href)}
-                  className={cn(
-                    "px-4 py-2 text-sm font-medium rounded-md transition-colors",
-                    "text-foreground/70 hover:text-primary hover:bg-primary/10",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                    "min-h-[44px] flex items-center",
-                  )}
-                >
-                  {item.label}
-                </button>
-              ))}
+              {navItems.map((item) => {
+                const isActive = activeSection === item.href;
+                return (
+                  <button
+                    key={item.href}
+                    onClick={() => scrollToSection(item.href)}
+                    className={cn(
+                      "relative px-4 py-2 text-sm font-medium rounded-md transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                      "min-h-[44px] flex items-center",
+                      isActive
+                        ? "text-primary"
+                        : "text-foreground/70 hover:text-primary hover:bg-primary/10",
+                    )}
+                  >
+                    {item.label}
+                    {isActive && (
+                      <span className="absolute bottom-1 left-4 right-4 h-0.5 rounded-full bg-primary" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="hidden lg:flex items-center gap-3">
@@ -256,25 +278,30 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               >
                 <div className="container mx-auto px-4 py-4">
                   <div className="flex flex-col gap-1">
-                    {navItems.map((item, index) => (
-                      <motion.button
-                        key={item.href}
-                        initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        onClick={() => scrollToSection(item.href)}
-                        className={cn(
-                          "w-full px-4 py-3 rounded-md text-base font-medium",
-                          "text-foreground/70 hover:text-primary hover:bg-primary/10",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                          "min-h-[48px] flex items-center",
-                          isRTL ? "text-right" : "text-left",
-                        )}
-                        role="menuitem"
-                      >
-                        {item.label}
-                      </motion.button>
-                    ))}
+                    {navItems.map((item, index) => {
+                      const isActive = activeSection === item.href;
+                      return (
+                        <motion.button
+                          key={item.href}
+                          initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          onClick={() => scrollToSection(item.href)}
+                          className={cn(
+                            "w-full px-4 py-3 rounded-md text-base font-medium",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                            "min-h-[48px] flex items-center",
+                            isRTL ? "text-right" : "text-left",
+                            isActive
+                              ? "text-primary bg-primary/10 font-semibold"
+                              : "text-foreground/70 hover:text-primary hover:bg-primary/10",
+                          )}
+                          role="menuitem"
+                        >
+                          {item.label}
+                        </motion.button>
+                      );
+                    })}
                   </div>
 
                   <div className="mt-4 pt-4 border-t border-border space-y-2">

@@ -89,8 +89,8 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
 }) => {
   return (
     <div className={cn("mb-8 md:mb-12", className)}>
-      <div className="green-section-bg -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-5 md:py-6">
-        <div className="max-w-7xl mx-auto">
+      <div className="green-section-bg relative left-1/2 -translate-x-1/2 w-screen px-4 sm:px-6 lg:px-8 py-5 md:py-6">
+        <div className="max-w-6xl mx-auto">
           <h2
             id={titleId}
             className={cn(

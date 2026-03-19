@@ -7,11 +7,11 @@ import { Section, SectionHeader } from '@/components/layout/Section';
 import { cn } from '@/lib/utils';
 
 const services = [
-  { id: '1', icon: Brain, titleKey: 'services.service1_title', descKey: 'services.service1_desc', color: 'from-emerald-500 to-teal-600' },
-  { id: '2', icon: Pill, titleKey: 'services.service2_title', descKey: 'services.service2_desc', color: 'from-blue-500 to-indigo-600' },
-  { id: '3', icon: Monitor, titleKey: 'services.service3_title', descKey: 'services.service3_desc', color: 'from-purple-500 to-violet-600' },
-  { id: '4', icon: ClipboardList, titleKey: 'services.service4_title', descKey: 'services.service4_desc', color: 'from-orange-500 to-amber-600' },
-  { id: '5', icon: Users, titleKey: 'services.service5_title', descKey: 'services.service5_desc', color: 'from-teal-500 to-cyan-600' },
+  { id: '1', icon: Brain, titleKey: 'services.service1_title', descKey: 'services.service1_desc', color: 'from-[hsl(142,64%,22%)] to-[hsl(142,64%,32%)]' },
+  { id: '2', icon: Pill, titleKey: 'services.service2_title', descKey: 'services.service2_desc', color: 'from-[hsl(32,95%,48%)] to-[hsl(32,95%,60%)]' },
+  { id: '3', icon: Monitor, titleKey: 'services.service3_title', descKey: 'services.service3_desc', color: 'from-[hsl(142,50%,28%)] to-[hsl(142,50%,40%)]' },
+  { id: '4', icon: ClipboardList, titleKey: 'services.service4_title', descKey: 'services.service4_desc', color: 'from-[hsl(28,90%,45%)] to-[hsl(28,90%,58%)]' },
+  { id: '5', icon: Users, titleKey: 'services.service5_title', descKey: 'services.service5_desc', color: 'from-[hsl(142,64%,18%)] to-[hsl(142,64%,28%)]' },
 ];
 
 const processSteps = [
