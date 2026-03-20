@@ -103,7 +103,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       } else {
         const element = document.querySelector(href);
         if (element) {
-          const navHeight = 80;
+          const navHeight = 60;
           const elementPosition =
             element.getBoundingClientRect().top + window.scrollY;
           window.scrollTo({
@@ -116,6 +116,9 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
     },
     [onContactClick],
   );
+
+  const logoOpacity = Math.min(1, scrollProgress * 3);
+  const logoHeight = scrollProgress > 0.05 ? 40 : 0;
 
   return (
     <>
@@ -132,8 +135,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
         role="navigation"
         aria-label={isRTL ? "ניווט ראשי" : "Main navigation"}
         style={{
-          paddingTop: `${24 - scrollProgress * 20}px`,
-          paddingBottom: `${24 - scrollProgress * 20}px`,
+          paddingTop: `${10 - scrollProgress * 6}px`,
+          paddingBottom: `${10 - scrollProgress * 6}px`,
           transition: 'background-color 0.3s, box-shadow 0.3s',
         }}
         className={cn(
@@ -145,27 +148,34 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
         dir={dir}
       >
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
+
+            {/* Logo — hidden at top, fades in on scroll */}
             <button
               onClick={() => scrollToSection("#home")}
-              className="flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md"
+              className={cn(
+                "flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md overflow-hidden",
+                "transition-all duration-300",
+              )}
+              style={{
+                height: logoHeight,
+                opacity: logoOpacity,
+                width: logoHeight > 0 ? 'auto' : 0,
+                pointerEvents: logoHeight > 0 ? 'auto' : 'none',
+              }}
               aria-label={isRTL ? "חזרה לדף הבית" : "Go to homepage"}
+              aria-hidden={logoHeight === 0}
+              tabIndex={logoHeight === 0 ? -1 : 0}
             >
               <img
                 src={logo}
                 alt={isRTL ? "קשב פלוס" : "Keshev Plus"}
-                style={{
-                  height: isDesktop
-                    ? `${144 - scrollProgress * 104}px`
-                    : `${80 - scrollProgress * 40}px`,
-                  marginTop: isDesktop ? `${-32 + scrollProgress * 32}px` : undefined,
-                  marginBottom: isDesktop ? `${-32 + scrollProgress * 32}px` : undefined,
-                }}
-                className="w-auto nav-logo"
+                className="h-10 w-auto"
               />
             </button>
 
-            <div className="hidden lg:flex items-center gap-1">
+            {/* Desktop nav links — centered */}
+            <div className="hidden lg:flex items-center gap-1 flex-1 justify-center">
               {navItems.map((item) => {
                 const isActive = activeSection === item.href;
                 return (
@@ -173,9 +183,9 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                     key={item.href}
                     onClick={() => scrollToSection(item.href)}
                     className={cn(
-                      "relative px-4 py-2 text-sm font-medium rounded-md transition-colors",
+                      "relative px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                      "min-h-[44px] flex items-center",
+                      "min-h-[40px] flex items-center",
                       isActive
                         ? "text-primary"
                         : "text-foreground/70 hover:text-primary hover:bg-primary/10",
@@ -183,14 +193,15 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   >
                     {item.label}
                     {isActive && (
-                      <span className="absolute bottom-1 left-4 right-4 h-0.5 rounded-full bg-primary" />
+                      <span className="absolute bottom-1 left-3 right-3 h-0.5 rounded-full bg-primary" />
                     )}
                   </button>
                 );
               })}
             </div>
 
-            <div className="hidden lg:flex items-center gap-3">
+            {/* Desktop right/left utility area */}
+            <div className="hidden lg:flex items-center gap-2 flex-shrink-0">
               <Button
                 size="sm"
                 className="flex items-center gap-1.5 font-bold rounded-full"
@@ -204,11 +215,11 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               <a
                 href="tel:055-27-399-27"
                 className={cn(
-                  "flex items-center gap-2 text-primary font-semibold whitespace-nowrap",
-                  "bg-primary/10 px-4 py-2 rounded-full text-sm",
+                  "flex items-center gap-1.5 text-primary font-semibold whitespace-nowrap",
+                  "bg-primary/10 px-3 py-2 rounded-full text-sm",
                   "hover:bg-primary/20 transition-colors",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                  "min-h-[44px]",
+                  "min-h-[40px]",
                 )}
                 aria-label={
                   isRTL
@@ -224,6 +235,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               <ThemeToggle />
             </div>
 
+            {/* Mobile right area */}
             <div className="lg:hidden flex items-center gap-2">
               <LanguageSelector />
               <ThemeToggle />
@@ -305,14 +317,14 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   </div>
 
                   <div className="mt-4 pt-4 border-t border-border space-y-2">
-                      <Button
-                        className="w-full flex items-center justify-center gap-2"
-                        data-testid="button-mobile-booking"
-                        onClick={() => { setIsOpen(false); setBookingOpen(true); }}
-                      >
-                        <CalendarCheck className="w-5 h-5" />
-                        <span>{isRTL ? "קביעת תור" : "Book Now"}</span>
-                      </Button>
+                    <Button
+                      className="w-full flex items-center justify-center gap-2"
+                      data-testid="button-mobile-booking"
+                      onClick={() => { setIsOpen(false); setBookingOpen(true); }}
+                    >
+                      <CalendarCheck className="w-5 h-5" />
+                      <span>{isRTL ? "קביעת תור" : "Book Now"}</span>
+                    </Button>
                     <a
                       href="tel:055-27-399-27"
                       className={cn(
