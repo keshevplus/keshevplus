@@ -65,12 +65,8 @@ const ADHDInfoSection = () => {
       background="muted"
       dir={isRTL ? "rtl" : "ltr"}
       aria-labelledby="adhd-heading"
+      header={<SectionHeader title={t("nav.adhd")} subtitle={t("adhd.subtitle")} titleId="adhd-heading" />}
     >
-      <SectionHeader
-        title={t("nav.adhd")}
-        subtitle={t("adhd.subtitle")}
-        titleId="adhd-heading"
-      />
 
       <motion.div
         className="text-center mb-8 sm:mb-12"

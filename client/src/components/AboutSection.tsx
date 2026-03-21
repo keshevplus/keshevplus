@@ -30,12 +30,8 @@ const AboutSection: React.FC = () => {
       className="bg-muted/20 dark:bg-card"
       dir={isRTL ? 'rtl' : 'ltr'}
       aria-labelledby="about-heading"
+      header={<SectionHeader title={t('about.title')} subtitle={t('about.subtitle')} titleId="about-heading" />}
     >
-      <SectionHeader 
-        title={t('about.title')}
-        subtitle={t('about.subtitle')}
-        titleId="about-heading"
-      />
 
       <div ref={ref} className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center mb-8 sm:mb-12 lg:mb-16">
         <motion.div

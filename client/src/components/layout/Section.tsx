@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 interface SectionProps {
   id?: string;
   children: React.ReactNode;
+  header?: React.ReactNode;
   className?: string;
   background?: "default" | "muted" | "primary" | "gradient";
   spacing?: "sm" | "md" | "lg";
@@ -36,9 +37,16 @@ const spacingVariants = {
   lg: "py-12 md:py-16 lg:py-20",
 };
 
+const spacingBottomVariants = {
+  sm: "pb-8 md:pb-12",
+  md: "pb-10 md:pb-12 lg:pb-16",
+  lg: "pb-12 md:pb-16 lg:pb-20",
+};
+
 export const Section: React.FC<SectionProps> = ({
   id,
   children,
+  header,
   className,
   background = "default",
   spacing = "md",
@@ -53,13 +61,15 @@ export const Section: React.FC<SectionProps> = ({
       aria-labelledby={ariaLabelledby}
       className={cn(
         backgroundVariants[background],
-        spacingVariants[spacing],
+        header ? spacingBottomVariants[spacing] : spacingVariants[spacing],
         "overflow-x-hidden relative",
         className,
       )}
     >
+      {/* Header renders outside the container so it naturally fills 100% section width */}
+      {header}
       {container ? (
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
+        <div className={cn("container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl", header && "pt-8 md:pt-10 lg:pt-12")}>
           {children}
         </div>
       ) : (
@@ -88,21 +98,19 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   titleId,
 }) => {
   return (
-    <div className={cn("mb-8 md:mb-12", className)}>
-      <div className="green-section-bg relative left-1/2 -translate-x-1/2 w-screen px-4 sm:px-6 lg:px-8 py-5 md:py-6 text-center">
-          <h2
-            id={titleId}
-            data-sticky-title={title}
-            className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary-foreground text-center"
-          >
-            {title}
-          </h2>
-          {subtitle && (
-            <p className="text-base sm:text-lg text-primary-foreground/80 mt-2 max-w-2xl leading-relaxed text-center mx-auto">
-              {subtitle}
-            </p>
-          )}
-      </div>
+    <div className={cn("w-full green-section-bg px-4 sm:px-6 lg:px-8 py-5 md:py-6 text-center", className)}>
+      <h2
+        id={titleId}
+        data-sticky-title={title}
+        className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary-foreground"
+      >
+        {title}
+      </h2>
+      {subtitle && (
+        <p className="text-base sm:text-lg text-primary-foreground/80 mt-2 max-w-2xl leading-relaxed mx-auto">
+          {subtitle}
+        </p>
+      )}
     </div>
   );
 };

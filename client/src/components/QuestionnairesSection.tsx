@@ -54,12 +54,8 @@ const QuestionnairesSection = () => {
       background="default"
       dir={isRTL ? 'rtl' : 'ltr'}
       aria-labelledby="questionnaires-heading"
+      header={<SectionHeader title={t('questionnaires.title')} subtitle={t('questionnaires.subtitle')} titleId="questionnaires-heading" />}
     >
-      <SectionHeader
-        title={t('questionnaires.title')}
-        subtitle={t('questionnaires.subtitle')}
-        titleId="questionnaires-heading"
-      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
         {questionnaires.map((item, index) => (

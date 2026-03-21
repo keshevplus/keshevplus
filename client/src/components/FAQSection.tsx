@@ -26,11 +26,8 @@ const FAQSection: React.FC = () => {
         background="muted"
         dir={isRTL ? 'rtl' : 'ltr'}
         aria-labelledby="faq-heading"
+        header={<SectionHeader title={t('nav.faq')} titleId="faq-heading" />}
       >
-        <SectionHeader 
-          title={t('nav.faq')} 
-          titleId="faq-heading"
-        />
         <div className="max-w-3xl mx-auto space-y-4">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-16 bg-card rounded-lg animate-pulse" />
@@ -46,12 +43,8 @@ const FAQSection: React.FC = () => {
       background="muted"
       dir={isRTL ? 'rtl' : 'ltr'}
       aria-labelledby="faq-heading"
+      header={<SectionHeader title={t('nav.faq')} subtitle={t('faq.subtitle')} titleId="faq-heading" />}
     >
-      <SectionHeader 
-        title={t('nav.faq')} 
-        subtitle={t('faq.subtitle')}
-        titleId="faq-heading"
-      />
 
       <motion.div
         className="max-w-3xl mx-auto"

@@ -30,12 +30,8 @@ const ServicesSection: React.FC = () => {
       id="services" 
       dir={isRTL ? 'rtl' : 'ltr'}
       aria-labelledby="services-heading"
+      header={<SectionHeader title={t('services.title')} subtitle={t('services.subtitle')} titleId="services-heading" />}
     >
-      <SectionHeader 
-        title={t('services.title')} 
-        subtitle={t('services.subtitle')}
-        titleId="services-heading"
-      />
 
       <div 
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8"

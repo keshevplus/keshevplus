@@ -103,12 +103,8 @@ const ContactSection: React.FC = () => {
       background="muted"
       dir={isRTL ? 'rtl' : 'ltr'}
       aria-labelledby="contact-heading"
+      header={<SectionHeader title={isDemo ? t('contact.title') : t('nav.contact')} subtitle={t('contact.subtitle')} titleId="contact-heading" />}
     >
-      <SectionHeader 
-        title={isDemo ? t('contact.title') : t('nav.contact')} 
-        subtitle={t('contact.subtitle')}
-        titleId="contact-heading"
-      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
         {/* Contact Form */}
