@@ -43,16 +43,17 @@ const MedicalHero: React.FC = () => {
         >
           <div className="relative z-10">
             {/*
-              Nav at top is ~60px (10px padding × 2 + 40px items).
-              pt-16 (64px) gives just enough clearance on all breakpoints.
-              On mobile the hero switches to a single column; image goes below text.
+              Container has NO top padding — the image column starts at the section
+              top (just behind the nav) and fills the full height. The text column
+              carries its own pt to clear the fixed nav.
             */}
-            <div className="container mx-auto px-4 sm:px-6 flex flex-col sm:flex-row sm:items-end pt-16 sm:pt-16 md:pt-16 lg:pt-16 gap-4 sm:gap-8 lg:gap-12 min-h-[88vh] sm:min-h-[85vh]">
+            <div className="container mx-auto px-4 sm:px-6 flex flex-col sm:flex-row gap-4 sm:gap-8 lg:gap-12 min-h-[90vh] sm:min-h-screen">
 
-              {/* ── Text content column ─────────────────────────────── */}
+              {/* ── Text content column — bottom-aligned, clears nav via pt ─ */}
               <motion.div
                 className={cn(
-                  "w-full sm:w-[48%] py-6 sm:py-8 md:py-10 lg:py-14 flex flex-col",
+                  "w-full sm:w-[48%] sm:self-end",
+                  "pt-16 sm:pt-20 pb-6 sm:pb-10 md:pb-12 lg:pb-16 flex flex-col",
                   "items-center text-center",
                 )}
                 initial={{ opacity: 0, y: 20 }}
@@ -62,7 +63,7 @@ const MedicalHero: React.FC = () => {
                 {/* H1 welcome */}
                 <motion.h1
                   className="font-bold text-primary leading-tight"
-                  style={{ fontSize: "clamp(1.25rem, 3.5vw, 2.8rem)", marginBottom: "clamp(0.6rem, 1.5vw, 1rem)" }}
+                  style={{ fontSize: "clamp(1.5rem, 3.8vw, 3.2rem)", marginBottom: "clamp(0.6rem, 1.5vw, 1rem)" }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
@@ -80,7 +81,7 @@ const MedicalHero: React.FC = () => {
                   <img
                     src={logoImg}
                     alt={isRTL ? "קשב פלוס" : "Keshev Plus"}
-                    className="h-16 sm:h-20 md:h-24 lg:h-28 w-auto"
+                    className="h-20 sm:h-24 md:h-28 lg:h-32 w-auto"
                   />
                 </motion.div>
 
@@ -183,9 +184,9 @@ const MedicalHero: React.FC = () => {
                 </motion.div>
               </motion.div>
 
-              {/* ── Doctor image column ──────────────────────────────── */}
+              {/* ── Doctor image column — stretches full section height ── */}
               <motion.div
-                className="w-full sm:w-[52%] self-end flex items-end justify-center"
+                className="w-full sm:w-[52%] sm:self-stretch flex items-end justify-center overflow-hidden"
                 initial={{ opacity: 0, x: isRTL ? -30 : 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
@@ -193,7 +194,7 @@ const MedicalHero: React.FC = () => {
                 <img
                   src={doctorHero}
                   alt={t("hero.doctor_alt")}
-                  className="w-full max-h-[55vh] sm:max-h-none sm:h-[70vh] md:h-[78vh] lg:h-[84vh] object-contain object-bottom drop-shadow-2xl block"
+                  className="w-full max-h-[50vh] sm:max-h-none sm:h-full object-contain object-bottom drop-shadow-2xl block"
                   loading="eager"
                   fetchPriority="high"
                   width="800"
