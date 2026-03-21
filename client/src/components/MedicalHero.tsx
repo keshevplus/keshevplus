@@ -108,7 +108,7 @@ const MedicalHero: React.FC = () => {
                     aria-live="polite"
                     aria-atomic="true"
                   >
-                    {t("hero.welcome_line1")} {t("hero.welcome_line2")} {typingTexts[currentTextIndex]}
+                    {typingTexts[currentTextIndex]}
                   </motion.p>
                 </AnimatePresence>
 
