@@ -84,6 +84,17 @@ const MedicalHero: React.FC = () => {
                   />
                 </motion.div>
 
+                {/* Clinic description */}
+                <motion.p
+                  className="text-foreground leading-relaxed"
+                  style={{ fontSize: "clamp(0.9rem, 2vw, 1.4rem)", marginBottom: "clamp(0.25rem, 0.6vw, 0.5rem)" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                >
+                  {t("hero.clinic_description")}
+                </motion.p>
+
                 {/* Animated cycling — full sentence like production site */}
                 <AnimatePresence mode="wait">
                   <motion.p
