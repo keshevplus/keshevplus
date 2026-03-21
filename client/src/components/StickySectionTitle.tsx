@@ -68,13 +68,7 @@ const StickySectionTitle = () => {
             exit={{ y: "-100%" }}
             transition={{ duration: 0.22, ease: "easeInOut" }}
           >
-            <div
-              className={cn(
-                "max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5",
-                isRTL ? "text-right" : "text-left",
-              )}
-              dir={isRTL ? "rtl" : "ltr"}
-            >
+            <div className="w-full px-4 py-1.5 text-center">
               <span className="text-sm font-bold text-primary-foreground tracking-wide leading-tight">
                 {currentTitle}
               </span>

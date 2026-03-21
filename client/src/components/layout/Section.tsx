@@ -89,29 +89,19 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
 }) => {
   return (
     <div className={cn("mb-8 md:mb-12", className)}>
-      <div className="green-section-bg relative left-1/2 -translate-x-1/2 w-screen px-4 sm:px-6 lg:px-8 py-5 md:py-6">
-        <div className="max-w-6xl mx-auto">
+      <div className="green-section-bg relative left-1/2 -translate-x-1/2 w-screen px-4 sm:px-6 lg:px-8 py-5 md:py-6 text-center">
           <h2
             id={titleId}
             data-sticky-title={title}
-            className={cn(
-              "text-2xl sm:text-3xl lg:text-4xl font-bold text-primary-foreground",
-              centered && "text-center",
-            )}
+            className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary-foreground text-center"
           >
             {title}
           </h2>
           {subtitle && (
-            <p
-              className={cn(
-                "text-base sm:text-lg text-primary-foreground/80 mt-2 max-w-2xl leading-relaxed",
-                centered && "text-center mx-auto",
-              )}
-            >
+            <p className="text-base sm:text-lg text-primary-foreground/80 mt-2 max-w-2xl leading-relaxed text-center mx-auto">
               {subtitle}
             </p>
           )}
-        </div>
       </div>
     </div>
   );
