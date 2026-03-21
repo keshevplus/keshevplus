@@ -63,7 +63,7 @@ const MedicalHero: React.FC = () => {
                 {/* H1 welcome */}
                 <motion.h1
                   className="font-bold text-primary leading-tight"
-                  style={{ fontSize: "clamp(1.5rem, 3.8vw, 3.2rem)", marginBottom: "clamp(0.6rem, 1.5vw, 1rem)" }}
+                  style={{ fontSize: "clamp(1.1rem, 2.6vw, 2rem)", marginBottom: "clamp(0.6rem, 1.5vw, 1rem)" }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
@@ -194,7 +194,7 @@ const MedicalHero: React.FC = () => {
                 <img
                   src={doctorHero}
                   alt={t("hero.doctor_alt")}
-                  className="w-full max-h-[50vh] sm:max-h-none sm:h-full object-contain object-bottom drop-shadow-2xl block"
+                  className="w-full max-h-[50vh] sm:max-h-none sm:h-[calc(100vh-4rem)] object-contain object-bottom drop-shadow-2xl block"
                   loading="eager"
                   fetchPriority="high"
                   width="800"
