@@ -53,7 +53,7 @@ const MedicalHero: React.FC = () => {
               <motion.div
                 className={cn(
                   "w-full sm:w-[48%] py-6 sm:py-8 md:py-10 lg:py-14 flex flex-col",
-                  "items-center text-center sm:items-start sm:text-start",
+                  "items-center text-center",
                 )}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -80,27 +80,16 @@ const MedicalHero: React.FC = () => {
                   <img
                     src={logoImg}
                     alt={isRTL ? "קשב פלוס" : "Keshev Plus"}
-                    className="h-24 sm:h-28 md:h-32 lg:h-36 w-auto"
+                    className="h-16 sm:h-20 md:h-24 lg:h-28 w-auto"
                   />
                 </motion.div>
 
-                {/* Clinic description */}
-                <motion.p
-                  className="text-foreground leading-relaxed"
-                  style={{ fontSize: "clamp(0.9rem, 2vw, 1.4rem)", marginBottom: "clamp(0.25rem, 0.6vw, 0.5rem)" }}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                >
-                  {t("hero.clinic_description")}
-                </motion.p>
-
-                {/* Animated cycling audience text */}
+                {/* Animated cycling — full sentence like production site */}
                 <AnimatePresence mode="wait">
                   <motion.p
                     key={currentTextIndex}
-                    className="font-bold text-primary"
-                    style={{ fontSize: "clamp(1.1rem, 2.8vw, 2.2rem)", marginBottom: "clamp(0.25rem, 0.6vw, 0.5rem)" }}
+                    className="text-foreground leading-snug"
+                    style={{ fontSize: "clamp(0.95rem, 2.2vw, 1.5rem)", marginBottom: "clamp(0.3rem, 0.7vw, 0.6rem)" }}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -108,7 +97,7 @@ const MedicalHero: React.FC = () => {
                     aria-live="polite"
                     aria-atomic="true"
                   >
-                    {typingTexts[currentTextIndex]}
+                    {t("hero.welcome_line1")} {t("hero.welcome_line2")} {typingTexts[currentTextIndex]}
                   </motion.p>
                 </AnimatePresence>
 
