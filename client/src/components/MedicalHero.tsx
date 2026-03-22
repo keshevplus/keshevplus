@@ -204,49 +204,51 @@ const MedicalHero: React.FC = () => {
             </div>
           </div>
 
-          {/* ── Green CTA band ───────────────────────────────────────── */}
+          {/* ── CTA card ─────────────────────────────────────────────── */}
           <section
-            className="relative z-10 green-section-bg py-6 sm:py-10 md:py-14"
+            className="relative z-10 bg-background py-8 sm:py-10 md:py-14"
             dir={isRTL ? "rtl" : "ltr"}
             aria-labelledby="cta-heading"
           >
             <div className="container mx-auto px-4 sm:px-6 text-center">
-              <motion.h2
-                id="cta-heading"
-                className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold text-primary-foreground mb-2 md:mb-4"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                viewport={{ once: true }}
-              >
-                {t("hero.ready_to_start")}
-              </motion.h2>
-
-              <motion.p
-                className="text-sm sm:text-base md:text-lg text-primary-foreground/90 mb-4 md:mb-6 max-w-xl mx-auto leading-relaxed"
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                viewport={{ once: true }}
-              >
-                {t("hero.ready_description")}
-              </motion.p>
-
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                viewport={{ once: true }}
-              >
-                <AccessibleButton
-                  variant="secondary"
-                  size="lg"
-                  onClick={() => setContactModalOpen(true)}
-                  data-testid="button-contact-cta"
+              <div className="max-w-2xl mx-auto bg-primary text-primary-foreground rounded-2xl shadow-xl px-6 sm:px-10 py-8 sm:py-10">
+                <motion.h2
+                  id="cta-heading"
+                  className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold text-primary-foreground mb-2 md:mb-4"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  viewport={{ once: true }}
                 >
-                  {t("hero.contact_us_now")}
-                </AccessibleButton>
-              </motion.div>
+                  {t("hero.ready_to_start")}
+                </motion.h2>
+
+                <motion.p
+                  className="text-sm sm:text-base md:text-lg text-primary-foreground/90 mb-6 md:mb-8 max-w-xl mx-auto leading-relaxed"
+                  initial={{ opacity: 0, y: 15 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                  viewport={{ once: true }}
+                >
+                  {t("hero.ready_description")}
+                </motion.p>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 15 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  viewport={{ once: true }}
+                >
+                  <AccessibleButton
+                    size="lg"
+                    className="bg-white text-primary hover:bg-white/90 font-bold px-8 py-3 rounded-full shadow"
+                    onClick={() => setContactModalOpen(true)}
+                    data-testid="button-contact-cta"
+                  >
+                    {t("hero.contact_us_now")}
+                  </AccessibleButton>
+                </motion.div>
+              </div>
             </div>
           </section>
         </section>
