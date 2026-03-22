@@ -103,7 +103,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       } else {
         const element = document.querySelector(href);
         if (element) {
-          const navHeight = 60;
+          const navHeight = 80;
           const elementPosition =
             element.getBoundingClientRect().top + window.scrollY;
           window.scrollTo({
@@ -169,7 +169,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               <img
                 src={logo}
                 alt={isRTL ? "קשב פלוס" : "Keshev Plus"}
-                className="h-10 w-auto"
+                className="h-14 w-auto"
               />
             </button>
 
