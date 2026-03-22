@@ -156,11 +156,10 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               className={cn(
                 "flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md overflow-hidden",
                 "transition-all duration-300",
+                logoHeight > 0 ? "visible" : "invisible",
               )}
               style={{
-                height: logoHeight,
                 opacity: logoOpacity,
-                width: logoHeight > 0 ? 'auto' : 0,
                 pointerEvents: logoHeight > 0 ? 'auto' : 'none',
               }}
               aria-label={isRTL ? "חזרה לדף הבית" : "Go to homepage"}

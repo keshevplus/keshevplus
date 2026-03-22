@@ -37,11 +37,6 @@ const spacingVariants = {
   lg: "py-12 md:py-16 lg:py-20",
 };
 
-const spacingBottomVariants = {
-  sm: "pb-8 md:pb-12",
-  md: "pb-10 md:pb-12 lg:pb-16",
-  lg: "pb-12 md:pb-16 lg:pb-20",
-};
 
 export const Section: React.FC<SectionProps> = ({
   id,
@@ -61,7 +56,7 @@ export const Section: React.FC<SectionProps> = ({
       aria-labelledby={ariaLabelledby}
       className={cn(
         backgroundVariants[background],
-        header ? spacingBottomVariants[spacing] : spacingVariants[spacing],
+        header ? "" : spacingVariants[spacing],
         "overflow-x-hidden relative",
         className,
       )}
@@ -69,7 +64,7 @@ export const Section: React.FC<SectionProps> = ({
       {/* Header renders outside the container so it naturally fills 100% section width */}
       {header}
       {container ? (
-        <div className={cn("container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl", header && "pt-8 md:pt-10 lg:pt-12")}>
+        <div className={cn("container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl", header && "pt-8 md:pt-10 lg:pt-12 pb-8 md:pb-10 lg:pb-12")}>
           {children}
         </div>
       ) : (
