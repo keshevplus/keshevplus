@@ -104,12 +104,12 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       <div
-        className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl border-2 border-primary bg-background shadow-2xl pt-2 sm:pt-4"
+        className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl border-2 border-primary bg-background shadow-2xl pt-4 sm:pt-6"
         dir={isHe ? 'rtl' : 'ltr'}
         data-testid="booking-modal-content"
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between px-6 pt-4 pb-4 border-b border-border bg-background rounded-t-xl">
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+        <div className="sticky top-0 z-10 flex items-center justify-between px-6 pt-5 pb-4 border-b border-border bg-background rounded-t-xl">
+          <h2 className="text-xl font-bold text-foreground flex items-center gap-2 pr-2">
             <Calendar className="h-5 w-5 text-primary" />
             {isHe ? 'קביעת פגישה' : 'Book an Appointment'}
           </h2>
