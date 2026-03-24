@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.node.json",
+  "compilerOptions": {
+    "baseUrl": "..",
+    "paths": {
+      "@shared/*": ["./shared/*"],
+      "@/*": ["./client/src/*"]
+    },
+    "noEmit": false,
+    "outDir": "../dist/api"
+  },
+  "include": ["./**/*.ts", "../server/**/*.ts", "../shared/**/*.ts"]
+}
