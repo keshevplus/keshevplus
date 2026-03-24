@@ -112,8 +112,8 @@ const MobileNavigation: React.FC = () => {
     [openModal],
   );
 
-  const logoOpacity = 1;
-  const logoHeight = 40;
+  const logoOpacity = Math.min(1, scrollProgress * 3);
+  const logoHeight = scrollProgress > 0.05 ? 40 : 0;
 
   return (
     <>
