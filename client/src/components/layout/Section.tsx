@@ -32,9 +32,9 @@ const backgroundVariants = {
 };
 
 const spacingVariants = {
-  sm: "py-8 md:py-12",
-  md: "py-10 md:py-12 lg:py-16",
-  lg: "py-12 md:py-16 lg:py-20",
+  sm: "pt-8 md:pt-12",
+  md: "pt-10 md:pt-12 lg:pt-16",
+  lg: "pt-12 md:pt-16 lg:pt-20",
 };
 
 
@@ -63,7 +63,7 @@ export const Section: React.FC<SectionProps> = ({
       {/* Header renders outside the container so it naturally fills 100% section width */}
       {header}
       {container ? (
-        <div className={cn("container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl", header ? "pt-8 md:pt-10 lg:pt-12 pb-8 md:pb-10 lg:pb-12" : spacingVariants[spacing])}>
+        <div className={cn("container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl", header ? "pt-8 md:pt-10 lg:pt-12" : spacingVariants[spacing])}>
           {children}
         </div>
       ) : (
