@@ -34,7 +34,6 @@ const MobileNavigation: React.FC = () => {
   }, []);
 
   const navItems: NavItem[] = [
-    { href: "#home", label: t("nav.home") },
     { href: "#about", label: t("nav.about") },
     { href: "#services", label: t("nav.services") },
     { href: "#adhd", label: t("nav.adhd") },
@@ -113,8 +112,8 @@ const MobileNavigation: React.FC = () => {
     [openModal],
   );
 
-  const logoOpacity = Math.min(1, scrollProgress * 3);
-  const logoHeight = scrollProgress > 0.05 ? 40 : 0;
+  const logoOpacity = 1;
+  const logoHeight = 40;
 
   return (
     <>
@@ -146,7 +145,7 @@ const MobileNavigation: React.FC = () => {
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between gap-2">
 
-            {/* Logo — hidden at top, fades in on scroll */}
+            {/* Logo — always available and scrolls to top */}
             <button
               onClick={() => scrollToSection("#home")}
               className={cn(
