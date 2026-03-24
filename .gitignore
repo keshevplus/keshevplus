@@ -27,3 +27,8 @@ dist-ssr
 *.sql
 *.dump
 *.bak
+
+# Large archive files — never commit these
+*.zip
+*.tar.gz
+*.rar
