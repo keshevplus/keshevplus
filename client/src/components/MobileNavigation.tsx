@@ -9,19 +9,15 @@ import { Button } from "@/components/ui/button";
 import BookingModal from "@/components/BookingModal";
 import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
+import { useContactModal } from "@/contexts/ContactModalContext";
 
 interface NavItem {
   href: string;
   label: string;
 }
 
-interface MobileNavigationProps {
-  onContactClick?: () => void;
-}
-
-const MobileNavigation: React.FC<MobileNavigationProps> = ({
-  onContactClick,
-}) => {
+const MobileNavigation: React.FC = () => {
+  const { openModal } = useContactModal();
   const [isOpen, setIsOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -93,8 +89,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
 
   const scrollToSection = useCallback(
     (href: string) => {
-      if (href === "#contact" && onContactClick) {
-        onContactClick();
+      if (href === "#contact") {
+        openModal();
         setIsOpen(false);
         return;
       }
@@ -114,7 +110,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
       }
       setIsOpen(false);
     },
-    [onContactClick],
+    [openModal],
   );
 
   const logoOpacity = Math.min(1, scrollProgress * 3);

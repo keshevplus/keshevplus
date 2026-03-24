@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Phone, Mail, Send, CheckCircle, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Phone, Mail, Send, CheckCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/hooks/useLanguage';
 import { AccessibleButton } from '@/components/ui/accessible-button';
@@ -22,6 +23,7 @@ const contactSchema = z.object({
   name: z.string().trim().min(2, { message: 'Name must be at least 2 characters' }).max(100),
   phone: z.string().trim().min(9, { message: 'Please enter a valid phone number' }).max(20),
   email: z.string().trim().email({ message: 'Please enter a valid email' }).optional().or(z.literal('')),
+  topic: z.string().optional(),
   message: z.string().trim().min(10, { message: 'Message must be at least 10 characters' }).max(1000),
 });
 
@@ -41,6 +43,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
     name: '',
     phone: '',
     email: '',
+    topic: '',
     message: '',
   });
   const [errors, setErrors] = useState<Partial<Record<keyof ContactFormData, string>>>({});
@@ -55,48 +58,33 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
     }
   };
 
+  const handleSelectChange = (value: string) => {
+    setFormData(prev => ({ ...prev, topic: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const result = contactSchema.safeParse(formData);
     if (!result.success) {
       const fieldErrors: Partial<Record<keyof ContactFormData, string>> = {};
       result.error.errors.forEach(err => {
-        if (err.path[0]) {
-          fieldErrors[err.path[0] as keyof ContactFormData] = err.message;
-        }
+        if (err.path[0]) fieldErrors[err.path[0] as keyof ContactFormData] = err.message;
       });
       setErrors(fieldErrors);
       return;
     }
-
     setIsSubmitting(true);
-
     try {
-      const validData = {
-        name: result.data.name,
-        phone: result.data.phone,
-        email: result.data.email,
-        message: result.data.message,
-      };
-      const response = await contentApi.submitContactForm(validData);
-
+      const response = await contentApi.submitContactForm(result.data);
       if (response.success) {
         setIsSubmitted(true);
-        toast({
-          title: t('contact.success_title'),
-          description: t('contact.success_desc'),
-        });
-        setFormData({ name: '', phone: '', email: '', message: '' });
+        toast({ title: t('contact.success_title'), description: t('contact.success_desc') });
+        setFormData({ name: '', phone: '', email: '', topic: '', message: '' });
       } else {
         throw new Error(response.message);
       }
-    } catch (error) {
-      toast({
-        title: t('contact.error_title'),
-        description: t('contact.error_desc'),
-        variant: 'destructive',
-      });
+    } catch {
+      toast({ title: t('contact.error_title'), description: t('contact.error_desc'), variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -114,10 +102,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent
-        className="max-w-md sm:max-w-lg"
-        dir={isRTL ? 'rtl' : 'ltr'}
-      >
+      <DialogContent className="max-w-md sm:max-w-lg" dir={isRTL ? 'rtl' : 'ltr'}>
         <DialogHeader>
           <DialogTitle className="text-xl text-primary flex items-center gap-2">
             <Mail className="w-5 h-5" />
@@ -135,12 +120,8 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
             className="text-center py-8"
           >
             <CheckCircle className="w-16 h-16 text-primary mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2 text-foreground">
-              {t('contact.thank_you')}
-            </h3>
-            <p className="text-muted-foreground">
-              {t('contact.will_reply')}
-            </p>
+            <h3 className="text-xl font-semibold mb-2 text-foreground">{t('contact.thank_you')}</h3>
+            <p className="text-muted-foreground">{t('contact.will_reply')}</p>
             <AccessibleButton
               variant="outline"
               className="mt-4"
@@ -203,6 +184,22 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
                 data-testid="input-modal-email"
               />
               {errors.email && <p className="text-destructive text-xs mt-1">{errors.email}</p>}
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium text-foreground">
+                {t('contact.topic_label')}
+              </Label>
+              <Select onValueChange={handleSelectChange} value={formData.topic}>
+                <SelectTrigger className="mt-1" data-testid="select-modal-topic">
+                  <SelectValue placeholder={t('contact.topic_label')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="diagnosis">{t('contact.topic_option1')}</SelectItem>
+                  <SelectItem value="moxo">{t('contact.topic_option2')}</SelectItem>
+                  <SelectItem value="other">{t('contact.topic_option3')}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>

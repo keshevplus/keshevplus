@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Switch, Route } from "wouter";
 import { ThemeProvider } from "@/hooks/useTheme";
+import { ContactModalProvider } from "@/contexts/ContactModalContext";
 import Index from "./pages/Index";
 
 const AdminPage = lazy(() => import("./pages/AdminPage"));
@@ -44,17 +45,19 @@ const App = () => (
   <ThemeProvider>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Router />
-        <Suspense fallback={null}>
-          <AccessibilityWidget />
-        </Suspense>
-        <Suspense fallback={null}>
-          <ChatWidget />
-        </Suspense>
-        <Toaster />
-        <Suspense fallback={null}>
-          <CookiesBanner />
-        </Suspense>
+        <ContactModalProvider>
+          <Router />
+          <Suspense fallback={null}>
+            <AccessibilityWidget />
+          </Suspense>
+          <Suspense fallback={null}>
+            <ChatWidget />
+          </Suspense>
+          <Toaster />
+          <Suspense fallback={null}>
+            <CookiesBanner />
+          </Suspense>
+        </ContactModalProvider>
       </TooltipProvider>
     </QueryClientProvider>
   </ThemeProvider>

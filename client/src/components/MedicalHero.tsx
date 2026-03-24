@@ -4,14 +4,14 @@ import doctorHero from "@/assets/doctor-hero.png";
 import logoImg from "@/assets/logo.png";
 import { useLanguage } from "@/hooks/useLanguage";
 import MobileNavigation from "./MobileNavigation";
-import ContactModal from "./ContactModal";
 import { AccessibleButton } from "./ui/accessible-button";
 import { cn } from "@/lib/utils";
+import { useContactModal } from "@/contexts/ContactModalContext";
 
 const MedicalHero: React.FC = () => {
   const { t, isRTL } = useLanguage();
+  const { openModal } = useContactModal();
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
-  const [contactModalOpen, setContactModalOpen] = useState(false);
 
   const typingTexts = [
     t("hero.typing_children"),
@@ -28,11 +28,7 @@ const MedicalHero: React.FC = () => {
 
   return (
     <>
-      <MobileNavigation onContactClick={() => setContactModalOpen(true)} />
-      <ContactModal
-        open={contactModalOpen}
-        onOpenChange={setContactModalOpen}
-      />
+      <MobileNavigation />
 
       <main id="main-content">
         <section
@@ -242,7 +238,7 @@ const MedicalHero: React.FC = () => {
                   <AccessibleButton
                     size="lg"
                     className="bg-white text-primary hover:bg-white/90 font-bold px-8 py-3 rounded-full shadow"
-                    onClick={() => setContactModalOpen(true)}
+                    onClick={openModal}
                     data-testid="button-contact-cta"
                   >
                     {t("hero.contact_us_now")}
