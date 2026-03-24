@@ -55,7 +55,7 @@ const StickySectionTitle = () => {
 
   return (
     <div
-      className="fixed left-0 right-0 z-[9985] pointer-events-none overflow-hidden"
+      className="fixed left-0 right-0 z-[9985] pointer-events-none overflow-hidden md:hidden"
       style={{ top: navHeight }}
     >
       <AnimatePresence mode="popLayout">
