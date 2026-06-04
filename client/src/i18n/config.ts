@@ -64,10 +64,21 @@ export interface LanguageSettings {
   enabled: boolean;
   mode: "bilingual" | "multilingual";
   defaultLanguage: SupportedLanguage;
+  enabledLanguages: SupportedLanguage[];
 }
 
 export const DEFAULT_LANGUAGE_SETTINGS: LanguageSettings = {
   enabled: false,
   mode: "bilingual",
   defaultLanguage: "he",
+  enabledLanguages: BILINGUAL_CODES,
 };
+
+export function getEnabledLanguageCodes(settings: Partial<LanguageSettings> | null | undefined): SupportedLanguage[] {
+  const fallback = settings?.mode === "multilingual" ? MULTILINGUAL_CODES : BILINGUAL_CODES;
+  const requested = settings?.enabledLanguages?.length ? settings.enabledLanguages : fallback;
+  const unique = Array.from(new Set(requested)).filter((code): code is SupportedLanguage =>
+    MULTILINGUAL_CODES.includes(code as SupportedLanguage)
+  );
+  return unique.length ? unique : BILINGUAL_CODES;
+}

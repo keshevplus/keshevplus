@@ -5,10 +5,10 @@ import {
   type LanguageSettings,
   ALL_LANGUAGES,
   BILINGUAL_CODES,
-  MULTILINGUAL_CODES,
   DEFAULT_LANGUAGE_SETTINGS,
   getTranslation as getStaticTranslation,
   getLanguageInfo,
+  getEnabledLanguageCodes,
   isRTL as checkRTL,
 } from "@/i18n/config";
 
@@ -66,12 +66,13 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
       })
       .then((data) => {
         if (data) {
-          setSettings(data);
+          const normalized = normalizeLanguageSettings(data);
+          setSettings(normalized);
           const saved = localStorage.getItem("language") as SupportedLanguage | null;
-          if (saved && isLanguageAvailable(saved, data)) {
+          if (saved && isLanguageAvailable(saved, normalized)) {
             setLanguageState(saved);
           } else {
-            setLanguageState(data.defaultLanguage || "he");
+            setLanguageState(normalized.defaultLanguage || "he");
           }
         } else {
           const saved = localStorage.getItem("language") as SupportedLanguage | null;
@@ -155,7 +156,7 @@ function isLanguageAvailable(lang: SupportedLanguage, settings: LanguageSettings
   if (!settings.enabled) {
     return lang === "he" || lang === "en";
   }
-  const codes = settings.mode === "bilingual" ? BILINGUAL_CODES : MULTILINGUAL_CODES;
+  const codes = getEnabledLanguageCodes(settings);
   return codes.includes(lang);
 }
 
@@ -163,8 +164,22 @@ function getAvailableLanguages(settings: LanguageSettings): LanguageInfo[] {
   if (!settings.enabled) {
     return ALL_LANGUAGES.filter((l) => BILINGUAL_CODES.includes(l.code));
   }
-  const codes = settings.mode === "bilingual" ? BILINGUAL_CODES : MULTILINGUAL_CODES;
+  const codes = getEnabledLanguageCodes(settings);
   return ALL_LANGUAGES.filter((l) => codes.includes(l.code));
+}
+
+function normalizeLanguageSettings(settings: Partial<LanguageSettings>): LanguageSettings {
+  const enabledLanguages = getEnabledLanguageCodes(settings);
+  const defaultLanguage = enabledLanguages.includes(settings.defaultLanguage as SupportedLanguage)
+    ? settings.defaultLanguage as SupportedLanguage
+    : enabledLanguages[0];
+
+  return {
+    ...DEFAULT_LANGUAGE_SETTINGS,
+    ...settings,
+    enabledLanguages,
+    defaultLanguage,
+  };
 }
 
 export function invalidateTranslationCache(lang?: string) {
