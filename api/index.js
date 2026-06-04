@@ -2009,6 +2009,50 @@ function getGeminiAi() {
   });
   return geminiAi;
 }
+function streamChatContent(res, content) {
+  const chunks = content.match(/.{1,80}(\s|$)/g) || [content];
+  for (const chunk of chunks) {
+    res.write(`data: ${JSON.stringify({ content: chunk })}
+
+`);
+  }
+}
+function buildClinicFallbackResponse(message, language) {
+  const lower = message.toLowerCase();
+  const isHebrew = /[\u0590-\u05ff]/.test(message) || language === "he";
+  const mentionsAppointment = /תור|פגישה|לקבוע|appointment|book|schedule/.test(lower);
+  const mentionsAssessment = /אבחון|שאלון|adhd|קשב|assessment|diagnosis|questionnaire|vanderbilt/.test(lower);
+  const mentionsPrice = /מחיר|עלות|כמה|price|cost/.test(lower);
+  const mentionsLocation = /איפה|כתובת|מיקום|location|address|where/.test(lower);
+  if (isHebrew) {
+    if (mentionsAppointment) {
+      return "\u05D0\u05E4\u05E9\u05E8 \u05DC\u05E7\u05D1\u05D5\u05E2 \u05E4\u05D2\u05D9\u05E9\u05D4 \u05D3\u05E8\u05DA \u05DB\u05E4\u05EA\u05D5\u05E8 \u05E7\u05D1\u05D9\u05E2\u05EA \u05D4\u05E4\u05D2\u05D9\u05E9\u05D4 \u05D1\u05D0\u05EA\u05E8. \u05DE\u05DC\u05D0\u05D5 \u05E9\u05DD, \u05D8\u05DC\u05E4\u05D5\u05DF, \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC, \u05EA\u05D0\u05E8\u05D9\u05DA \u05D5\u05E9\u05E2\u05D4 \u05DE\u05D5\u05E2\u05D3\u05E4\u05D9\u05DD, \u05D5\u05D4\u05DE\u05E8\u05E4\u05D0\u05D4 \u05EA\u05D7\u05D6\u05D5\u05E8 \u05D0\u05DC\u05D9\u05DB\u05DD \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8. \u05D0\u05E4\u05E9\u05E8 \u05D2\u05DD \u05DC\u05D4\u05EA\u05E7\u05E9\u05E8 \u05DC-055-27-399-27.";
+    }
+    if (mentionsAssessment) {
+      return "\u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 \u05DE\u05E1\u05D9\u05D9\u05E2\u05EA \u05D1\u05D0\u05D1\u05D7\u05D5\u05DF ADHD \u05D5\u05D4\u05E2\u05E8\u05DB\u05EA \u05E7\u05E9\u05D9\u05D9 \u05E7\u05E9\u05D1 \u05DC\u05D9\u05DC\u05D3\u05D9\u05DD, \u05E0\u05D5\u05E2\u05E8 \u05D5\u05DE\u05D1\u05D5\u05D2\u05E8\u05D9\u05DD. \u05D1\u05D0\u05EA\u05E8 \u05D9\u05E9 \u05E9\u05D0\u05DC\u05D5\u05E0\u05D9 \u05D4\u05D5\u05E8\u05D4, \u05DE\u05D5\u05E8\u05D4 \u05D5\u05D3\u05D9\u05D5\u05D5\u05D7 \u05E2\u05E6\u05DE\u05D9. \u05DC\u05D0\u05D7\u05E8 \u05DE\u05D9\u05DC\u05D5\u05D9 \u05D4\u05E9\u05D0\u05DC\u05D5\u05DF \u05D4\u05E6\u05D5\u05D5\u05EA \u05D9\u05DB\u05D5\u05DC \u05DC\u05E2\u05D1\u05D5\u05E8 \u05E2\u05DC \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05D5\u05DC\u05D7\u05D6\u05D5\u05E8 \u05D0\u05DC\u05D9\u05DB\u05DD \u05DC\u05D4\u05DE\u05E9\u05DA \u05EA\u05D4\u05DC\u05D9\u05DA.";
+    }
+    if (mentionsPrice) {
+      return "\u05D0\u05D9\u05DF \u05DC\u05D9 \u05DE\u05D7\u05D9\u05E8\u05D5\u05DF \u05DE\u05DC\u05D0 \u05D5\u05DE\u05E2\u05D5\u05D3\u05DB\u05DF \u05D1\u05EA\u05D5\u05DA \u05D4\u05E6'\u05D0\u05D8. \u05DB\u05D3\u05D9 \u05DC\u05E7\u05D1\u05DC \u05E2\u05DC\u05D5\u05EA \u05DE\u05D3\u05D5\u05D9\u05E7\u05EA \u05DC\u05E4\u05D9 \u05E1\u05D5\u05D2 \u05D4\u05D0\u05D1\u05D7\u05D5\u05DF \u05D0\u05D5 \u05D4\u05E4\u05D2\u05D9\u05E9\u05D4, \u05DE\u05D5\u05DE\u05DC\u05E5 \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8 \u05E4\u05E8\u05D8\u05D9\u05DD \u05D1\u05D8\u05D5\u05E4\u05E1 \u05D9\u05E6\u05D9\u05E8\u05EA \u05D4\u05E7\u05E9\u05E8 \u05D0\u05D5 \u05DC\u05D4\u05EA\u05E7\u05E9\u05E8 \u05DC-055-27-399-27.";
+    }
+    if (mentionsLocation) {
+      return "\u05D4\u05DE\u05E8\u05E4\u05D0\u05D4 \u05E0\u05DE\u05E6\u05D0\u05EA \u05D1\u05E8\u05D7\u05D5\u05D1 \u05D9\u05D2\u05D0\u05DC \u05D0\u05DC\u05D5\u05DF 94, \u05EA\u05DC \u05D0\u05D1\u05D9\u05D1. \u05D0\u05E4\u05E9\u05E8 \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8 \u05E4\u05E8\u05D8\u05D9\u05DD \u05D1\u05D0\u05EA\u05E8 \u05D0\u05D5 \u05DC\u05D9\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8 \u05D1\u05D8\u05DC\u05E4\u05D5\u05DF 055-27-399-27 \u05DC\u05EA\u05D9\u05D0\u05D5\u05DD \u05D4\u05D2\u05E2\u05D4.";
+    }
+    return "\u05D0\u05E9\u05DE\u05D7 \u05DC\u05E2\u05D6\u05D5\u05E8. \u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 \u05DE\u05EA\u05DE\u05D7\u05D4 \u05D1\u05D0\u05D1\u05D7\u05D5\u05DF \u05D5\u05D8\u05D9\u05E4\u05D5\u05DC \u05D1-ADHD, \u05E9\u05D0\u05DC\u05D5\u05E0\u05D9 \u05D4\u05E2\u05E8\u05DB\u05D4, \u05D5\u05EA\u05D9\u05D0\u05D5\u05DD \u05E4\u05D2\u05D9\u05E9\u05D5\u05EA \u05D9\u05D9\u05E2\u05D5\u05E5. \u05DB\u05EA\u05D1\u05D5 \u05DC\u05D9 \u05D0\u05DD \u05EA\u05E8\u05E6\u05D5 \u05DC\u05E7\u05D1\u05D5\u05E2 \u05E4\u05D2\u05D9\u05E9\u05D4, \u05DC\u05DE\u05DC\u05D0 \u05E9\u05D0\u05DC\u05D5\u05DF \u05D0\u05D1\u05D7\u05D5\u05DF, \u05DC\u05E7\u05D1\u05DC \u05E4\u05E8\u05D8\u05D9\u05DD \u05E2\u05DC \u05D4\u05E9\u05D9\u05E8\u05D5\u05EA\u05D9\u05DD, \u05D0\u05D5 \u05DC\u05D9\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8 \u05E2\u05DD \u05D4\u05DE\u05E8\u05E4\u05D0\u05D4 \u05D1\u05D8\u05DC\u05E4\u05D5\u05DF 055-27-399-27.";
+  }
+  if (mentionsAppointment) {
+    return "You can book an appointment through the appointment form on the site. Enter your name, phone, email, preferred date and time, and the clinic will contact you to confirm. You can also call 055-27-399-27.";
+  }
+  if (mentionsAssessment) {
+    return "Keshev Plus supports ADHD diagnosis and attention assessments for children, teens, and adults. The site includes parent, teacher, and self-report questionnaires. After submission, the clinic team can review the information and follow up.";
+  }
+  if (mentionsPrice) {
+    return "I do not have a full up-to-date price list in chat. For an exact cost by assessment or appointment type, please use the contact form or call 055-27-399-27.";
+  }
+  if (mentionsLocation) {
+    return "The clinic is located at 94 Yigal Alon St., Tel Aviv. You can leave details on the website or call 055-27-399-27 to coordinate.";
+  }
+  return "I can help with Keshev Plus services, ADHD assessments, questionnaires, and appointment booking. Tell me whether you want to schedule a consultation, fill out an assessment form, learn about services, or contact the clinic at 055-27-399-27.";
+}
 var additionalTranslations = {
   he: {
     "hero.welcome_line1": "\u05D1\u05E8\u05D5\u05DB\u05D9\u05DD \u05D4\u05D1\u05D0\u05D9\u05DD \u05DC\u05DE\u05E8\u05E4\u05D0\u05EA",
@@ -3132,11 +3176,6 @@ ${resetUrl}
       if (!message) {
         return res.status(400).json({ error: "Message is required" });
       }
-      const useDirectKey = !!process.env.OPENAI_API_KEY;
-      const openai = new OpenAI({
-        apiKey: useDirectKey ? process.env.OPENAI_API_KEY : process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-        ...useDirectKey ? {} : { baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL }
-      });
       const systemPrompt = `You are the virtual assistant for "Keshev Plus" (\u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1) clinic - a leading clinic specializing in ADHD diagnosis and treatment for children, teens, and adults.
 
 CLINIC INFORMATION:
@@ -3181,6 +3220,15 @@ RESPONSE BEHAVIOR:
       res.setHeader("Connection", "keep-alive");
       let fullAssistantResponse = "";
       try {
+        const useDirectKey = !!process.env.OPENAI_API_KEY;
+        const openAiKey = useDirectKey ? process.env.OPENAI_API_KEY : process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+        if (!openAiKey) {
+          throw new Error("OpenAI key is not configured");
+        }
+        const openai = new OpenAI({
+          apiKey: openAiKey,
+          ...useDirectKey ? {} : { baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL }
+        });
         const stream = await openai.chat.completions.create({
           model: "gpt-4o-mini",
           messages: chatMessages,
@@ -3199,6 +3247,9 @@ RESPONSE BEHAVIOR:
       } catch (openaiError) {
         console.error("OpenAI failed, falling back to Gemini:", openaiError?.message || openaiError);
         try {
+          if (!process.env.AI_INTEGRATIONS_GEMINI_API_KEY) {
+            throw new Error("Gemini key is not configured");
+          }
           const geminiContents = [
             ...history.map((m) => ({
               role: m.role === "assistant" ? "model" : "user",
@@ -3225,10 +3276,8 @@ RESPONSE BEHAVIOR:
           }
         } catch (geminiError) {
           console.error("Both OpenAI and Gemini failed:", geminiError?.message || geminiError);
-          const errorMsg = language === "he" ? "\u05E9\u05D9\u05E8\u05D5\u05EA \u05D4\u05E6'\u05D0\u05D8 \u05D0\u05D9\u05E0\u05D5 \u05D6\u05DE\u05D9\u05DF \u05DB\u05E8\u05D2\u05E2. \u05E0\u05D9\u05EA\u05DF \u05DC\u05D9\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8 \u05E2\u05DD \u05D4\u05DE\u05E8\u05E4\u05D0\u05D4 \u05D1\u05D8\u05DC\u05E4\u05D5\u05DF 055-27-399-27 \u05D0\u05D5 \u05D3\u05E8\u05DA \u05D8\u05D5\u05E4\u05E1 \u05D9\u05E6\u05D9\u05E8\u05EA \u05D4\u05E7\u05E9\u05E8 \u05D1\u05D0\u05EA\u05E8." : "Chat service is currently unavailable. Please contact the clinic at 055-27-399-27 or use the contact form on the website.";
-          res.write(`data: ${JSON.stringify({ content: errorMsg })}
-
-`);
+          fullAssistantResponse = buildClinicFallbackResponse(message, language);
+          streamChatContent(res, fullAssistantResponse);
         }
       }
       if (conversationId && fullAssistantResponse) {

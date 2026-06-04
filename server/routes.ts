@@ -26,6 +26,53 @@ function getGeminiAi() {
   return geminiAi;
 }
 
+function streamChatContent(res: any, content: string) {
+  const chunks = content.match(/.{1,80}(\s|$)/g) || [content];
+  for (const chunk of chunks) {
+    res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+  }
+}
+
+function buildClinicFallbackResponse(message: string, language: string) {
+  const lower = message.toLowerCase();
+  const isHebrew = /[\u0590-\u05ff]/.test(message) || language === "he";
+
+  const mentionsAppointment = /תור|פגישה|לקבוע|appointment|book|schedule/.test(lower);
+  const mentionsAssessment = /אבחון|שאלון|adhd|קשב|assessment|diagnosis|questionnaire|vanderbilt/.test(lower);
+  const mentionsPrice = /מחיר|עלות|כמה|price|cost/.test(lower);
+  const mentionsLocation = /איפה|כתובת|מיקום|location|address|where/.test(lower);
+
+  if (isHebrew) {
+    if (mentionsAppointment) {
+      return "אפשר לקבוע פגישה דרך כפתור קביעת הפגישה באתר. מלאו שם, טלפון, אימייל, תאריך ושעה מועדפים, והמרפאה תחזור אליכם לאישור. אפשר גם להתקשר ל-055-27-399-27.";
+    }
+    if (mentionsAssessment) {
+      return "קשב פלוס מסייעת באבחון ADHD והערכת קשיי קשב לילדים, נוער ומבוגרים. באתר יש שאלוני הורה, מורה ודיווח עצמי. לאחר מילוי השאלון הצוות יכול לעבור על הפרטים ולחזור אליכם להמשך תהליך.";
+    }
+    if (mentionsPrice) {
+      return "אין לי מחירון מלא ומעודכן בתוך הצ'אט. כדי לקבל עלות מדויקת לפי סוג האבחון או הפגישה, מומלץ להשאיר פרטים בטופס יצירת הקשר או להתקשר ל-055-27-399-27.";
+    }
+    if (mentionsLocation) {
+      return "המרפאה נמצאת ברחוב יגאל אלון 94, תל אביב. אפשר להשאיר פרטים באתר או ליצור קשר בטלפון 055-27-399-27 לתיאום הגעה.";
+    }
+    return "אשמח לעזור. קשב פלוס מתמחה באבחון וטיפול ב-ADHD, שאלוני הערכה, ותיאום פגישות ייעוץ. כתבו לי אם תרצו לקבוע פגישה, למלא שאלון אבחון, לקבל פרטים על השירותים, או ליצור קשר עם המרפאה בטלפון 055-27-399-27.";
+  }
+
+  if (mentionsAppointment) {
+    return "You can book an appointment through the appointment form on the site. Enter your name, phone, email, preferred date and time, and the clinic will contact you to confirm. You can also call 055-27-399-27.";
+  }
+  if (mentionsAssessment) {
+    return "Keshev Plus supports ADHD diagnosis and attention assessments for children, teens, and adults. The site includes parent, teacher, and self-report questionnaires. After submission, the clinic team can review the information and follow up.";
+  }
+  if (mentionsPrice) {
+    return "I do not have a full up-to-date price list in chat. For an exact cost by assessment or appointment type, please use the contact form or call 055-27-399-27.";
+  }
+  if (mentionsLocation) {
+    return "The clinic is located at 94 Yigal Alon St., Tel Aviv. You can leave details on the website or call 055-27-399-27 to coordinate.";
+  }
+  return "I can help with Keshev Plus services, ADHD assessments, questionnaires, and appointment booking. Tell me whether you want to schedule a consultation, fill out an assessment form, learn about services, or contact the clinic at 055-27-399-27.";
+}
+
 import en from "../client/src/i18n/locales/en";
 import he from "../client/src/i18n/locales/he";
 import fr from "../client/src/i18n/locales/fr";
@@ -1248,12 +1295,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Message is required" });
       }
 
-      const useDirectKey = !!process.env.OPENAI_API_KEY;
-      const openai = new OpenAI({
-        apiKey: useDirectKey ? process.env.OPENAI_API_KEY : process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-        ...(useDirectKey ? {} : { baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL }),
-      });
-
       const systemPrompt = `You are the virtual assistant for "Keshev Plus" (קשב פלוס) clinic - a leading clinic specializing in ADHD diagnosis and treatment for children, teens, and adults.
 
 CLINIC INFORMATION:
@@ -1303,6 +1344,17 @@ RESPONSE BEHAVIOR:
       let fullAssistantResponse = '';
 
       try {
+        const useDirectKey = !!process.env.OPENAI_API_KEY;
+        const openAiKey = useDirectKey ? process.env.OPENAI_API_KEY : process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+        if (!openAiKey) {
+          throw new Error("OpenAI key is not configured");
+        }
+
+        const openai = new OpenAI({
+          apiKey: openAiKey,
+          ...(useDirectKey ? {} : { baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL }),
+        });
+
         const stream = await openai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: chatMessages,
@@ -1320,6 +1372,10 @@ RESPONSE BEHAVIOR:
       } catch (openaiError: any) {
         console.error("OpenAI failed, falling back to Gemini:", openaiError?.message || openaiError);
         try {
+          if (!process.env.AI_INTEGRATIONS_GEMINI_API_KEY) {
+            throw new Error("Gemini key is not configured");
+          }
+
           const geminiContents = [
             ...history.map((m: any) => ({
               role: m.role === 'assistant' ? 'model' : 'user',
@@ -1346,10 +1402,8 @@ RESPONSE BEHAVIOR:
           }
         } catch (geminiError: any) {
           console.error("Both OpenAI and Gemini failed:", geminiError?.message || geminiError);
-          const errorMsg = language === 'he'
-            ? 'שירות הצ\'אט אינו זמין כרגע. ניתן ליצור קשר עם המרפאה בטלפון 055-27-399-27 או דרך טופס יצירת הקשר באתר.'
-            : 'Chat service is currently unavailable. Please contact the clinic at 055-27-399-27 or use the contact form on the website.';
-          res.write(`data: ${JSON.stringify({ content: errorMsg })}\n\n`);
+          fullAssistantResponse = buildClinicFallbackResponse(message, language);
+          streamChatContent(res, fullAssistantResponse);
         }
       }
 
