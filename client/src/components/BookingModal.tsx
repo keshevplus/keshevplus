@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar, Clock, CheckCircle, X } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { apiRequest } from '@/lib/queryClient'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 const APPOINTMENT_TYPES = [
   { value: 'consultation', he: 'ייעוץ ראשוני', en: 'Initial Consultation' },
@@ -43,6 +44,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
     type: 'consultation',
     notes: '',
   })
+
+  useBodyScrollLock(open)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -171,6 +171,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
+    scrollbar-gutter: stable;
     font-display: swap;
     overflow-x: hidden;
     width: 100%;

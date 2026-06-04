@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { QUESTIONNAIRES, RATING_OPTIONS, PERFORMANCE_OPTIONS, calculateScores, type QuestionnaireType } from "@/lib/questionnaire-data";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 type Step = "register" | "form" | "success";
 
@@ -59,16 +60,7 @@ const QuestionnaireModal: React.FC<QuestionnaireModalProps> = ({ open, onOpenCha
   const NextArrow = isRTL ? ChevronLeft : ChevronRight;
   const PrevArrow = isRTL ? ChevronRight : ChevronLeft;
 
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
+  useBodyScrollLock(open);
 
   if (!open) return null;
   if (!config) {
