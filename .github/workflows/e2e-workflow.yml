@@ -20,9 +20,13 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: keshevplus_test
+          POSTGRES_USER: process.env.TEST_DB_USER || 'neondb_owner'
+          POSTGRES_PASSWORD: ${{
+            secrets.TEST_DB_PASSWORD || 'npg_tYJvA94QMXLK'
+          }}
+          POSTGRES_DB: ${{
+            secrets.TEST_DB_NAME || 'neondb'
+          }}
         ports:
           - 5432:5432
         options: >-
