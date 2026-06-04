@@ -15,12 +15,16 @@ import { users } from "@shared/schema";
 let geminiAi: GoogleGenAI | null = null;
 
 function getGeminiAi() {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.AI_INTEGRATIONS_GEMINI_API_KEY;
+  const baseUrl = process.env.AI_INTEGRATIONS_GEMINI_BASE_URL;
   geminiAi ??= new GoogleGenAI({
-    apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
-    httpOptions: {
-      apiVersion: "",
-      baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL,
-    },
+    apiKey,
+    ...(baseUrl ? {
+      httpOptions: {
+        apiVersion: "",
+        baseUrl,
+      },
+    } : {}),
   });
 
   return geminiAi;
@@ -33,16 +37,55 @@ function streamChatContent(res: any, content: string) {
   }
 }
 
-function buildClinicFallbackResponse(message: string, language: string) {
+function buildClinicFallbackResponse(message: string, language: string, history: Array<{ role?: string; content?: string }> = []) {
   const lower = message.toLowerCase();
   const isHebrew = /[\u0590-\u05ff]/.test(message) || language === "he";
+  const previousUserMessage = [...history].reverse().find((m) => m.role === "user")?.content || "";
+  const combined = `${previousUserMessage}\n${message}`.toLowerCase();
 
-  const mentionsAppointment = /תור|פגישה|לקבוע|appointment|book|schedule/.test(lower);
-  const mentionsAssessment = /אבחון|שאלון|adhd|קשב|assessment|diagnosis|questionnaire|vanderbilt/.test(lower);
-  const mentionsPrice = /מחיר|עלות|כמה|price|cost/.test(lower);
-  const mentionsLocation = /איפה|כתובת|מיקום|location|address|where/.test(lower);
+  const hasAny = (text: string, terms: string[]) => terms.some((term) => text.includes(term));
+
+  const asksForAvailability = hasAny(combined, [
+    "זמינה", "זמין", "עכשיו", "היום", "מתי אפשר", "תור פנוי", "פנוי",
+    "available", "availability", "right now", "today", "open now", "free slot",
+  ]);
+  const asksForSmarterAnswer = hasAny(lower, [
+    "חכם", "חכמה", "תהיה חכם", "לא עוזר", "לא מספיק", "כן תהיה",
+    "smarter", "be smart", "not helpful", "try again",
+  ]);
+  const wantsHuman = hasAny(combined, [
+    "רופאה", "רופא", "נציג", "מזכירה", "בן אדם", "אנושי",
+    "doctor", "physician", "human", "representative", "secretary",
+  ]);
+  const mentionsAppointment = hasAny(combined, [
+    "תור", "פגישה", "לקבוע", "ייעוץ", "appointment", "book", "schedule", "consultation",
+  ]);
+  const mentionsAssessment = hasAny(combined, [
+    "אבחון", "שאלון", "adhd", "קשב", "וונדרבילט", "assessment", "diagnosis", "questionnaire", "vanderbilt",
+  ]);
+  const mentionsPrice = hasAny(combined, [
+    "מחיר", "עלות", "כמה עולה", "תשלום", "price", "cost", "fee", "payment",
+  ]);
+  const mentionsLocation = hasAny(combined, [
+    "איפה", "כתובת", "מיקום", "להגיע", "location", "address", "where", "directions",
+  ]);
+  const mentionsHours = hasAny(combined, [
+    "שעות", "פתוח", "סגור", "מתי", "hours", "opening", "closed", "open",
+  ]);
 
   if (isHebrew) {
+    if (asksForSmarterAnswer && asksForAvailability) {
+      return "צודק/ת. אין לי חיבור ליומן חי של הרופאה, לכן אני לא יכול לאשר בזמן אמת אם היא זמינה ממש עכשיו. הדרך הכי מהירה לבדוק זמינות מיידית היא להתקשר למרפאה ב-055-27-399-27. אם אין מענה, כדאי להשאיר פרטים בטופס קביעת פגישה עם שעה מועדפת, והמרפאה תחזור אליכם לאישור.";
+    }
+    if (asksForAvailability && wantsHuman) {
+      return "אני לא מחובר ליומן חי, ולכן לא יכול לדעת אם הרופאה זמינה כרגע. לבדיקה מיידית התקשרו ל-055-27-399-27. אם תרצו, אפשר גם לקבוע בקשת פגישה דרך האתר עם שם, טלפון, אימייל, תאריך ושעה מועדפים, והמרפאה תחזור לאישור.";
+    }
+    if (asksForAvailability) {
+      return "אין לי גישה לזמינות בזמן אמת. אם מדובר במשהו דחוף או בשאלה האם אפשר לדבר עכשיו, הכי נכון להתקשר למרפאה: 055-27-399-27. לתיאום רגיל אפשר להשתמש בטופס קביעת פגישה באתר ולציין מועד מועדף.";
+    }
+    if (asksForSmarterAnswer) {
+      return "מבין/ה. אענה בצורה יותר ממוקדת: אני יכול לעזור בבדיקת אפשרויות לתיאום פגישה, להסביר איזה שאלון אבחון מתאים, לתת כתובת ופרטי קשר, או להסביר מה קורה אחרי מילוי טופס. מה בדיוק תרצו לעשות עכשיו?";
+    }
     if (mentionsAppointment) {
       return "אפשר לקבוע פגישה דרך כפתור קביעת הפגישה באתר. מלאו שם, טלפון, אימייל, תאריך ושעה מועדפים, והמרפאה תחזור אליכם לאישור. אפשר גם להתקשר ל-055-27-399-27.";
     }
@@ -55,9 +98,24 @@ function buildClinicFallbackResponse(message: string, language: string) {
     if (mentionsLocation) {
       return "המרפאה נמצאת ברחוב יגאל אלון 94, תל אביב. אפשר להשאיר פרטים באתר או ליצור קשר בטלפון 055-27-399-27 לתיאום הגעה.";
     }
-    return "אשמח לעזור. קשב פלוס מתמחה באבחון וטיפול ב-ADHD, שאלוני הערכה, ותיאום פגישות ייעוץ. כתבו לי אם תרצו לקבוע פגישה, למלא שאלון אבחון, לקבל פרטים על השירותים, או ליצור קשר עם המרפאה בטלפון 055-27-399-27.";
+    if (mentionsHours) {
+      return "אין לי מידע ודאי על שעות פעילות מעודכנות בתוך הצ'אט. לבדיקת שעות וזמינות באותו יום מומלץ להתקשר ל-055-27-399-27 או להשאיר פרטים באתר.";
+    }
+    return "אני יכול לעזור בזה. כדי להתקדם מהר, כתבו מה אתם צריכים: קביעת פגישה, שאלון אבחון, מידע על אבחון ADHD, כתובת המרפאה, או יצירת קשר עם הצוות. אם זה דחוף, התקשרו ל-055-27-399-27.";
   }
 
+  if (asksForSmarterAnswer && asksForAvailability) {
+    return "You are right. I do not have live access to the doctor's calendar, so I cannot confirm whether she is available right now. For immediate availability, call the clinic at 055-27-399-27. If there is no answer, submit an appointment request with your preferred time and the clinic will follow up to confirm.";
+  }
+  if (asksForAvailability && wantsHuman) {
+    return "I do not have live calendar access, so I cannot know whether the doctor is available this minute. For an immediate check, call 055-27-399-27. You can also submit an appointment request on the site with your preferred date and time.";
+  }
+  if (asksForAvailability) {
+    return "I cannot check real-time availability from chat. If you need to know whether someone is available now, please call 055-27-399-27. For regular scheduling, use the appointment form and include your preferred date and time.";
+  }
+  if (asksForSmarterAnswer) {
+    return "Understood. I can help more specifically with appointment options, choosing the right assessment questionnaire, clinic location, contact details, or what happens after submitting a form. What would you like to do next?";
+  }
   if (mentionsAppointment) {
     return "You can book an appointment through the appointment form on the site. Enter your name, phone, email, preferred date and time, and the clinic will contact you to confirm. You can also call 055-27-399-27.";
   }
@@ -70,7 +128,10 @@ function buildClinicFallbackResponse(message: string, language: string) {
   if (mentionsLocation) {
     return "The clinic is located at 94 Yigal Alon St., Tel Aviv. You can leave details on the website or call 055-27-399-27 to coordinate.";
   }
-  return "I can help with Keshev Plus services, ADHD assessments, questionnaires, and appointment booking. Tell me whether you want to schedule a consultation, fill out an assessment form, learn about services, or contact the clinic at 055-27-399-27.";
+  if (mentionsHours) {
+    return "I do not have confirmed current opening hours in chat. For same-day hours or availability, please call 055-27-399-27 or leave your details on the site.";
+  }
+  return "I can help. To move quickly, tell me whether you need appointment booking, an ADHD assessment questionnaire, information about diagnosis, the clinic address, or contact with the clinic team. For urgent questions, call 055-27-399-27.";
 }
 
 import en from "../client/src/i18n/locales/en";
@@ -1336,7 +1397,6 @@ CLINIC INFORMATION:
 
 LANGUAGE RULES (CRITICAL - follow exactly):
 - The website page language is: ${language}
-- If the page language is Hebrew and the user has not written yet, default your response to English.
 - ALWAYS reply in the SAME language as the user's message, regardless of page language or app settings.
 - Dynamically adapt language per message. If a user switches languages mid-conversation, switch with them.
 
@@ -1344,6 +1404,7 @@ RESPONSE BEHAVIOR:
 - Be professional, helpful, concise but informative.
 - Use the clinic's actual information above to answer questions. Do not invent facts.
 - If information is not available, explicitly say you could not find that information and suggest contacting the clinic directly.
+- You do not have live access to the doctor's calendar, staff status, or same-day availability. If asked whether the doctor is available now, say that you cannot check live availability and direct the user to call 055-27-399-27 or submit an appointment request.
 - Actively gather information: ask structured follow-up questions, clarify ambiguous requests.
 - Guide users toward booking a consultation appointment when relevant.
 - Never give specific medical advice - always refer to a professional consultation.
@@ -1403,7 +1464,7 @@ RESPONSE BEHAVIOR:
       } catch (openaiError: any) {
         console.error("OpenAI failed, falling back to Gemini:", openaiError?.message || openaiError);
         try {
-          if (!process.env.AI_INTEGRATIONS_GEMINI_API_KEY) {
+          if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_API_KEY && !process.env.AI_INTEGRATIONS_GEMINI_API_KEY) {
             throw new Error("Gemini key is not configured");
           }
 
@@ -1433,7 +1494,7 @@ RESPONSE BEHAVIOR:
           }
         } catch (geminiError: any) {
           console.error("Both OpenAI and Gemini failed:", geminiError?.message || geminiError);
-          fullAssistantResponse = buildClinicFallbackResponse(message, language);
+          fullAssistantResponse = buildClinicFallbackResponse(message, language, history);
           streamChatContent(res, fullAssistantResponse);
         }
       }

@@ -2002,12 +2002,16 @@ var yi_default = yi;
 // server/routes.ts
 var geminiAi = null;
 function getGeminiAi() {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.AI_INTEGRATIONS_GEMINI_API_KEY;
+  const baseUrl = process.env.AI_INTEGRATIONS_GEMINI_BASE_URL;
   geminiAi ??= new GoogleGenAI({
-    apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
-    httpOptions: {
-      apiVersion: "",
-      baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL
-    }
+    apiKey,
+    ...baseUrl ? {
+      httpOptions: {
+        apiVersion: "",
+        baseUrl
+      }
+    } : {}
   });
   return geminiAi;
 }
@@ -2019,14 +2023,117 @@ function streamChatContent(res, content) {
 `);
   }
 }
-function buildClinicFallbackResponse(message, language) {
+function buildClinicFallbackResponse(message, language, history = []) {
   const lower = message.toLowerCase();
   const isHebrew = /[\u0590-\u05ff]/.test(message) || language === "he";
-  const mentionsAppointment = /תור|פגישה|לקבוע|appointment|book|schedule/.test(lower);
-  const mentionsAssessment = /אבחון|שאלון|adhd|קשב|assessment|diagnosis|questionnaire|vanderbilt/.test(lower);
-  const mentionsPrice = /מחיר|עלות|כמה|price|cost/.test(lower);
-  const mentionsLocation = /איפה|כתובת|מיקום|location|address|where/.test(lower);
+  const previousUserMessage = [...history].reverse().find((m) => m.role === "user")?.content || "";
+  const combined = `${previousUserMessage}
+${message}`.toLowerCase();
+  const hasAny = (text3, terms) => terms.some((term) => text3.includes(term));
+  const asksForAvailability = hasAny(combined, [
+    "\u05D6\u05DE\u05D9\u05E0\u05D4",
+    "\u05D6\u05DE\u05D9\u05DF",
+    "\u05E2\u05DB\u05E9\u05D9\u05D5",
+    "\u05D4\u05D9\u05D5\u05DD",
+    "\u05DE\u05EA\u05D9 \u05D0\u05E4\u05E9\u05E8",
+    "\u05EA\u05D5\u05E8 \u05E4\u05E0\u05D5\u05D9",
+    "\u05E4\u05E0\u05D5\u05D9",
+    "available",
+    "availability",
+    "right now",
+    "today",
+    "open now",
+    "free slot"
+  ]);
+  const asksForSmarterAnswer = hasAny(lower, [
+    "\u05D7\u05DB\u05DD",
+    "\u05D7\u05DB\u05DE\u05D4",
+    "\u05EA\u05D4\u05D9\u05D4 \u05D7\u05DB\u05DD",
+    "\u05DC\u05D0 \u05E2\u05D5\u05D6\u05E8",
+    "\u05DC\u05D0 \u05DE\u05E1\u05E4\u05D9\u05E7",
+    "\u05DB\u05DF \u05EA\u05D4\u05D9\u05D4",
+    "smarter",
+    "be smart",
+    "not helpful",
+    "try again"
+  ]);
+  const wantsHuman = hasAny(combined, [
+    "\u05E8\u05D5\u05E4\u05D0\u05D4",
+    "\u05E8\u05D5\u05E4\u05D0",
+    "\u05E0\u05E6\u05D9\u05D2",
+    "\u05DE\u05D6\u05DB\u05D9\u05E8\u05D4",
+    "\u05D1\u05DF \u05D0\u05D3\u05DD",
+    "\u05D0\u05E0\u05D5\u05E9\u05D9",
+    "doctor",
+    "physician",
+    "human",
+    "representative",
+    "secretary"
+  ]);
+  const mentionsAppointment = hasAny(combined, [
+    "\u05EA\u05D5\u05E8",
+    "\u05E4\u05D2\u05D9\u05E9\u05D4",
+    "\u05DC\u05E7\u05D1\u05D5\u05E2",
+    "\u05D9\u05D9\u05E2\u05D5\u05E5",
+    "appointment",
+    "book",
+    "schedule",
+    "consultation"
+  ]);
+  const mentionsAssessment = hasAny(combined, [
+    "\u05D0\u05D1\u05D7\u05D5\u05DF",
+    "\u05E9\u05D0\u05DC\u05D5\u05DF",
+    "adhd",
+    "\u05E7\u05E9\u05D1",
+    "\u05D5\u05D5\u05E0\u05D3\u05E8\u05D1\u05D9\u05DC\u05D8",
+    "assessment",
+    "diagnosis",
+    "questionnaire",
+    "vanderbilt"
+  ]);
+  const mentionsPrice = hasAny(combined, [
+    "\u05DE\u05D7\u05D9\u05E8",
+    "\u05E2\u05DC\u05D5\u05EA",
+    "\u05DB\u05DE\u05D4 \u05E2\u05D5\u05DC\u05D4",
+    "\u05EA\u05E9\u05DC\u05D5\u05DD",
+    "price",
+    "cost",
+    "fee",
+    "payment"
+  ]);
+  const mentionsLocation = hasAny(combined, [
+    "\u05D0\u05D9\u05E4\u05D4",
+    "\u05DB\u05EA\u05D5\u05D1\u05EA",
+    "\u05DE\u05D9\u05E7\u05D5\u05DD",
+    "\u05DC\u05D4\u05D2\u05D9\u05E2",
+    "location",
+    "address",
+    "where",
+    "directions"
+  ]);
+  const mentionsHours = hasAny(combined, [
+    "\u05E9\u05E2\u05D5\u05EA",
+    "\u05E4\u05EA\u05D5\u05D7",
+    "\u05E1\u05D2\u05D5\u05E8",
+    "\u05DE\u05EA\u05D9",
+    "hours",
+    "opening",
+    "closed",
+    "open"
+  ]);
   if (isHebrew) {
+    if (asksForSmarterAnswer && asksForAvailability) {
+      return "\u05E6\u05D5\u05D3\u05E7/\u05EA. \u05D0\u05D9\u05DF \u05DC\u05D9 \u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u05D9\u05D5\u05DE\u05DF \u05D7\u05D9 \u05E9\u05DC \u05D4\u05E8\u05D5\u05E4\u05D0\u05D4, \u05DC\u05DB\u05DF \u05D0\u05E0\u05D9 \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D0\u05E9\u05E8 \u05D1\u05D6\u05DE\u05DF \u05D0\u05DE\u05EA \u05D0\u05DD \u05D4\u05D9\u05D0 \u05D6\u05DE\u05D9\u05E0\u05D4 \u05DE\u05DE\u05E9 \u05E2\u05DB\u05E9\u05D9\u05D5. \u05D4\u05D3\u05E8\u05DA \u05D4\u05DB\u05D9 \u05DE\u05D4\u05D9\u05E8\u05D4 \u05DC\u05D1\u05D3\u05D5\u05E7 \u05D6\u05DE\u05D9\u05E0\u05D5\u05EA \u05DE\u05D9\u05D9\u05D3\u05D9\u05EA \u05D4\u05D9\u05D0 \u05DC\u05D4\u05EA\u05E7\u05E9\u05E8 \u05DC\u05DE\u05E8\u05E4\u05D0\u05D4 \u05D1-055-27-399-27. \u05D0\u05DD \u05D0\u05D9\u05DF \u05DE\u05E2\u05E0\u05D4, \u05DB\u05D3\u05D0\u05D9 \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8 \u05E4\u05E8\u05D8\u05D9\u05DD \u05D1\u05D8\u05D5\u05E4\u05E1 \u05E7\u05D1\u05D9\u05E2\u05EA \u05E4\u05D2\u05D9\u05E9\u05D4 \u05E2\u05DD \u05E9\u05E2\u05D4 \u05DE\u05D5\u05E2\u05D3\u05E4\u05EA, \u05D5\u05D4\u05DE\u05E8\u05E4\u05D0\u05D4 \u05EA\u05D7\u05D6\u05D5\u05E8 \u05D0\u05DC\u05D9\u05DB\u05DD \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8.";
+    }
+    if (asksForAvailability && wantsHuman) {
+      return "\u05D0\u05E0\u05D9 \u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8 \u05DC\u05D9\u05D5\u05DE\u05DF \u05D7\u05D9, \u05D5\u05DC\u05DB\u05DF \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D3\u05E2\u05EA \u05D0\u05DD \u05D4\u05E8\u05D5\u05E4\u05D0\u05D4 \u05D6\u05DE\u05D9\u05E0\u05D4 \u05DB\u05E8\u05D2\u05E2. \u05DC\u05D1\u05D3\u05D9\u05E7\u05D4 \u05DE\u05D9\u05D9\u05D3\u05D9\u05EA \u05D4\u05EA\u05E7\u05E9\u05E8\u05D5 \u05DC-055-27-399-27. \u05D0\u05DD \u05EA\u05E8\u05E6\u05D5, \u05D0\u05E4\u05E9\u05E8 \u05D2\u05DD \u05DC\u05E7\u05D1\u05D5\u05E2 \u05D1\u05E7\u05E9\u05EA \u05E4\u05D2\u05D9\u05E9\u05D4 \u05D3\u05E8\u05DA \u05D4\u05D0\u05EA\u05E8 \u05E2\u05DD \u05E9\u05DD, \u05D8\u05DC\u05E4\u05D5\u05DF, \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC, \u05EA\u05D0\u05E8\u05D9\u05DA \u05D5\u05E9\u05E2\u05D4 \u05DE\u05D5\u05E2\u05D3\u05E4\u05D9\u05DD, \u05D5\u05D4\u05DE\u05E8\u05E4\u05D0\u05D4 \u05EA\u05D7\u05D6\u05D5\u05E8 \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8.";
+    }
+    if (asksForAvailability) {
+      return "\u05D0\u05D9\u05DF \u05DC\u05D9 \u05D2\u05D9\u05E9\u05D4 \u05DC\u05D6\u05DE\u05D9\u05E0\u05D5\u05EA \u05D1\u05D6\u05DE\u05DF \u05D0\u05DE\u05EA. \u05D0\u05DD \u05DE\u05D3\u05D5\u05D1\u05E8 \u05D1\u05DE\u05E9\u05D4\u05D5 \u05D3\u05D7\u05D5\u05E3 \u05D0\u05D5 \u05D1\u05E9\u05D0\u05DC\u05D4 \u05D4\u05D0\u05DD \u05D0\u05E4\u05E9\u05E8 \u05DC\u05D3\u05D1\u05E8 \u05E2\u05DB\u05E9\u05D9\u05D5, \u05D4\u05DB\u05D9 \u05E0\u05DB\u05D5\u05DF \u05DC\u05D4\u05EA\u05E7\u05E9\u05E8 \u05DC\u05DE\u05E8\u05E4\u05D0\u05D4: 055-27-399-27. \u05DC\u05EA\u05D9\u05D0\u05D5\u05DD \u05E8\u05D2\u05D9\u05DC \u05D0\u05E4\u05E9\u05E8 \u05DC\u05D4\u05E9\u05EA\u05DE\u05E9 \u05D1\u05D8\u05D5\u05E4\u05E1 \u05E7\u05D1\u05D9\u05E2\u05EA \u05E4\u05D2\u05D9\u05E9\u05D4 \u05D1\u05D0\u05EA\u05E8 \u05D5\u05DC\u05E6\u05D9\u05D9\u05DF \u05DE\u05D5\u05E2\u05D3 \u05DE\u05D5\u05E2\u05D3\u05E3.";
+    }
+    if (asksForSmarterAnswer) {
+      return "\u05DE\u05D1\u05D9\u05DF/\u05D4. \u05D0\u05E2\u05E0\u05D4 \u05D1\u05E6\u05D5\u05E8\u05D4 \u05D9\u05D5\u05EA\u05E8 \u05DE\u05DE\u05D5\u05E7\u05D3\u05EA: \u05D0\u05E0\u05D9 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E2\u05D6\u05D5\u05E8 \u05D1\u05D1\u05D3\u05D9\u05E7\u05EA \u05D0\u05E4\u05E9\u05E8\u05D5\u05D9\u05D5\u05EA \u05DC\u05EA\u05D9\u05D0\u05D5\u05DD \u05E4\u05D2\u05D9\u05E9\u05D4, \u05DC\u05D4\u05E1\u05D1\u05D9\u05E8 \u05D0\u05D9\u05D6\u05D4 \u05E9\u05D0\u05DC\u05D5\u05DF \u05D0\u05D1\u05D7\u05D5\u05DF \u05DE\u05EA\u05D0\u05D9\u05DD, \u05DC\u05EA\u05EA \u05DB\u05EA\u05D5\u05D1\u05EA \u05D5\u05E4\u05E8\u05D8\u05D9 \u05E7\u05E9\u05E8, \u05D0\u05D5 \u05DC\u05D4\u05E1\u05D1\u05D9\u05E8 \u05DE\u05D4 \u05E7\u05D5\u05E8\u05D4 \u05D0\u05D7\u05E8\u05D9 \u05DE\u05D9\u05DC\u05D5\u05D9 \u05D8\u05D5\u05E4\u05E1. \u05DE\u05D4 \u05D1\u05D3\u05D9\u05D5\u05E7 \u05EA\u05E8\u05E6\u05D5 \u05DC\u05E2\u05E9\u05D5\u05EA \u05E2\u05DB\u05E9\u05D9\u05D5?";
+    }
     if (mentionsAppointment) {
       return "\u05D0\u05E4\u05E9\u05E8 \u05DC\u05E7\u05D1\u05D5\u05E2 \u05E4\u05D2\u05D9\u05E9\u05D4 \u05D3\u05E8\u05DA \u05DB\u05E4\u05EA\u05D5\u05E8 \u05E7\u05D1\u05D9\u05E2\u05EA \u05D4\u05E4\u05D2\u05D9\u05E9\u05D4 \u05D1\u05D0\u05EA\u05E8. \u05DE\u05DC\u05D0\u05D5 \u05E9\u05DD, \u05D8\u05DC\u05E4\u05D5\u05DF, \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC, \u05EA\u05D0\u05E8\u05D9\u05DA \u05D5\u05E9\u05E2\u05D4 \u05DE\u05D5\u05E2\u05D3\u05E4\u05D9\u05DD, \u05D5\u05D4\u05DE\u05E8\u05E4\u05D0\u05D4 \u05EA\u05D7\u05D6\u05D5\u05E8 \u05D0\u05DC\u05D9\u05DB\u05DD \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8. \u05D0\u05E4\u05E9\u05E8 \u05D2\u05DD \u05DC\u05D4\u05EA\u05E7\u05E9\u05E8 \u05DC-055-27-399-27.";
     }
@@ -2039,7 +2146,22 @@ function buildClinicFallbackResponse(message, language) {
     if (mentionsLocation) {
       return "\u05D4\u05DE\u05E8\u05E4\u05D0\u05D4 \u05E0\u05DE\u05E6\u05D0\u05EA \u05D1\u05E8\u05D7\u05D5\u05D1 \u05D9\u05D2\u05D0\u05DC \u05D0\u05DC\u05D5\u05DF 94, \u05EA\u05DC \u05D0\u05D1\u05D9\u05D1. \u05D0\u05E4\u05E9\u05E8 \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8 \u05E4\u05E8\u05D8\u05D9\u05DD \u05D1\u05D0\u05EA\u05E8 \u05D0\u05D5 \u05DC\u05D9\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8 \u05D1\u05D8\u05DC\u05E4\u05D5\u05DF 055-27-399-27 \u05DC\u05EA\u05D9\u05D0\u05D5\u05DD \u05D4\u05D2\u05E2\u05D4.";
     }
-    return "\u05D0\u05E9\u05DE\u05D7 \u05DC\u05E2\u05D6\u05D5\u05E8. \u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 \u05DE\u05EA\u05DE\u05D7\u05D4 \u05D1\u05D0\u05D1\u05D7\u05D5\u05DF \u05D5\u05D8\u05D9\u05E4\u05D5\u05DC \u05D1-ADHD, \u05E9\u05D0\u05DC\u05D5\u05E0\u05D9 \u05D4\u05E2\u05E8\u05DB\u05D4, \u05D5\u05EA\u05D9\u05D0\u05D5\u05DD \u05E4\u05D2\u05D9\u05E9\u05D5\u05EA \u05D9\u05D9\u05E2\u05D5\u05E5. \u05DB\u05EA\u05D1\u05D5 \u05DC\u05D9 \u05D0\u05DD \u05EA\u05E8\u05E6\u05D5 \u05DC\u05E7\u05D1\u05D5\u05E2 \u05E4\u05D2\u05D9\u05E9\u05D4, \u05DC\u05DE\u05DC\u05D0 \u05E9\u05D0\u05DC\u05D5\u05DF \u05D0\u05D1\u05D7\u05D5\u05DF, \u05DC\u05E7\u05D1\u05DC \u05E4\u05E8\u05D8\u05D9\u05DD \u05E2\u05DC \u05D4\u05E9\u05D9\u05E8\u05D5\u05EA\u05D9\u05DD, \u05D0\u05D5 \u05DC\u05D9\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8 \u05E2\u05DD \u05D4\u05DE\u05E8\u05E4\u05D0\u05D4 \u05D1\u05D8\u05DC\u05E4\u05D5\u05DF 055-27-399-27.";
+    if (mentionsHours) {
+      return "\u05D0\u05D9\u05DF \u05DC\u05D9 \u05DE\u05D9\u05D3\u05E2 \u05D5\u05D3\u05D0\u05D9 \u05E2\u05DC \u05E9\u05E2\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA \u05DE\u05E2\u05D5\u05D3\u05DB\u05E0\u05D5\u05EA \u05D1\u05EA\u05D5\u05DA \u05D4\u05E6'\u05D0\u05D8. \u05DC\u05D1\u05D3\u05D9\u05E7\u05EA \u05E9\u05E2\u05D5\u05EA \u05D5\u05D6\u05DE\u05D9\u05E0\u05D5\u05EA \u05D1\u05D0\u05D5\u05EA\u05D5 \u05D9\u05D5\u05DD \u05DE\u05D5\u05DE\u05DC\u05E5 \u05DC\u05D4\u05EA\u05E7\u05E9\u05E8 \u05DC-055-27-399-27 \u05D0\u05D5 \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8 \u05E4\u05E8\u05D8\u05D9\u05DD \u05D1\u05D0\u05EA\u05E8.";
+    }
+    return "\u05D0\u05E0\u05D9 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E2\u05D6\u05D5\u05E8 \u05D1\u05D6\u05D4. \u05DB\u05D3\u05D9 \u05DC\u05D4\u05EA\u05E7\u05D3\u05DD \u05DE\u05D4\u05E8, \u05DB\u05EA\u05D1\u05D5 \u05DE\u05D4 \u05D0\u05EA\u05DD \u05E6\u05E8\u05D9\u05DB\u05D9\u05DD: \u05E7\u05D1\u05D9\u05E2\u05EA \u05E4\u05D2\u05D9\u05E9\u05D4, \u05E9\u05D0\u05DC\u05D5\u05DF \u05D0\u05D1\u05D7\u05D5\u05DF, \u05DE\u05D9\u05D3\u05E2 \u05E2\u05DC \u05D0\u05D1\u05D7\u05D5\u05DF ADHD, \u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05DE\u05E8\u05E4\u05D0\u05D4, \u05D0\u05D5 \u05D9\u05E6\u05D9\u05E8\u05EA \u05E7\u05E9\u05E8 \u05E2\u05DD \u05D4\u05E6\u05D5\u05D5\u05EA. \u05D0\u05DD \u05D6\u05D4 \u05D3\u05D7\u05D5\u05E3, \u05D4\u05EA\u05E7\u05E9\u05E8\u05D5 \u05DC-055-27-399-27.";
+  }
+  if (asksForSmarterAnswer && asksForAvailability) {
+    return "You are right. I do not have live access to the doctor's calendar, so I cannot confirm whether she is available right now. For immediate availability, call the clinic at 055-27-399-27. If there is no answer, submit an appointment request with your preferred time and the clinic will follow up to confirm.";
+  }
+  if (asksForAvailability && wantsHuman) {
+    return "I do not have live calendar access, so I cannot know whether the doctor is available this minute. For an immediate check, call 055-27-399-27. You can also submit an appointment request on the site with your preferred date and time.";
+  }
+  if (asksForAvailability) {
+    return "I cannot check real-time availability from chat. If you need to know whether someone is available now, please call 055-27-399-27. For regular scheduling, use the appointment form and include your preferred date and time.";
+  }
+  if (asksForSmarterAnswer) {
+    return "Understood. I can help more specifically with appointment options, choosing the right assessment questionnaire, clinic location, contact details, or what happens after submitting a form. What would you like to do next?";
   }
   if (mentionsAppointment) {
     return "You can book an appointment through the appointment form on the site. Enter your name, phone, email, preferred date and time, and the clinic will contact you to confirm. You can also call 055-27-399-27.";
@@ -2053,7 +2175,10 @@ function buildClinicFallbackResponse(message, language) {
   if (mentionsLocation) {
     return "The clinic is located at 94 Yigal Alon St., Tel Aviv. You can leave details on the website or call 055-27-399-27 to coordinate.";
   }
-  return "I can help with Keshev Plus services, ADHD assessments, questionnaires, and appointment booking. Tell me whether you want to schedule a consultation, fill out an assessment form, learn about services, or contact the clinic at 055-27-399-27.";
+  if (mentionsHours) {
+    return "I do not have confirmed current opening hours in chat. For same-day hours or availability, please call 055-27-399-27 or leave your details on the site.";
+  }
+  return "I can help. To move quickly, tell me whether you need appointment booking, an ADHD assessment questionnaire, information about diagnosis, the clinic address, or contact with the clinic team. For urgent questions, call 055-27-399-27.";
 }
 var additionalTranslations = {
   he: {
@@ -3211,7 +3336,6 @@ CLINIC INFORMATION:
 
 LANGUAGE RULES (CRITICAL - follow exactly):
 - The website page language is: ${language}
-- If the page language is Hebrew and the user has not written yet, default your response to English.
 - ALWAYS reply in the SAME language as the user's message, regardless of page language or app settings.
 - Dynamically adapt language per message. If a user switches languages mid-conversation, switch with them.
 
@@ -3219,6 +3343,7 @@ RESPONSE BEHAVIOR:
 - Be professional, helpful, concise but informative.
 - Use the clinic's actual information above to answer questions. Do not invent facts.
 - If information is not available, explicitly say you could not find that information and suggest contacting the clinic directly.
+- You do not have live access to the doctor's calendar, staff status, or same-day availability. If asked whether the doctor is available now, say that you cannot check live availability and direct the user to call 055-27-399-27 or submit an appointment request.
 - Actively gather information: ask structured follow-up questions, clarify ambiguous requests.
 - Guide users toward booking a consultation appointment when relevant.
 - Never give specific medical advice - always refer to a professional consultation.
@@ -3272,7 +3397,7 @@ RESPONSE BEHAVIOR:
       } catch (openaiError) {
         console.error("OpenAI failed, falling back to Gemini:", openaiError?.message || openaiError);
         try {
-          if (!process.env.AI_INTEGRATIONS_GEMINI_API_KEY) {
+          if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_API_KEY && !process.env.AI_INTEGRATIONS_GEMINI_API_KEY) {
             throw new Error("Gemini key is not configured");
           }
           const geminiContents = [
@@ -3301,7 +3426,7 @@ RESPONSE BEHAVIOR:
           }
         } catch (geminiError) {
           console.error("Both OpenAI and Gemini failed:", geminiError?.message || geminiError);
-          fullAssistantResponse = buildClinicFallbackResponse(message, language);
+          fullAssistantResponse = buildClinicFallbackResponse(message, language, history);
           streamChatContent(res, fullAssistantResponse);
         }
       }
