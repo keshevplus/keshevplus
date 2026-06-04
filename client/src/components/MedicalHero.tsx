@@ -49,7 +49,7 @@ const MedicalHero: React.FC = () => {
               <motion.div
                 className={cn(
                   "w-full sm:w-[48%] sm:self-end",
-                  "pt-16 sm:pt-20 pb-6 sm:pb-10 md:pb-12 lg:pb-16 flex flex-col",
+                  "pt-28 sm:pt-28 lg:pt-24 pb-6 sm:pb-10 md:pb-12 lg:pb-16 flex flex-col",
                   "items-center text-center",
                 )}
                 initial={{ opacity: 0, y: 20 }}

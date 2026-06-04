@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.tmp/
 *.local
 
 # Editor directories and files
@@ -32,3 +33,10 @@ dist-ssr
 *.zip
 *.tar.gz
 *.rar
+
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*

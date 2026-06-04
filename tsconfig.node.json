@@ -13,7 +13,6 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noImplicitAny": false,
-    "baseUrl": ".",
     "paths": {
       "@shared/*": ["./shared/*"]
     }
