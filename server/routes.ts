@@ -44,8 +44,17 @@ function buildClinicFallbackResponse(message: string, language: string, history:
   const combined = `${previousUserMessage}\n${message}`.toLowerCase();
 
   const hasAny = (text: string, terms: string[]) => terms.some((term) => text.includes(term));
+  const hasQuestion = /[?؟]/.test(message) || hasAny(lower, [
+    "איך", "מה", "מתי", "איפה", "למה", "האם", "כמה",
+    "how", "what", "when", "where", "why", "can", "does", "is", "are",
+  ]);
+  const mostlyHebrewOrLatinLetters = message.replace(/[^\u0590-\u05ffa-zA-Z]/g, "");
+  const gibberishLike = message.trim().length >= 4 && !hasQuestion && mostlyHebrewOrLatinLetters.length >= 4 && (
+    /(.)\1{2,}/.test(message) ||
+    /[גכד]{4,}|[שבוגי]{6,}|[קרא]{5,}/.test(message)
+  );
 
-  const asksForAvailability = hasAny(combined, [
+  const asksForAvailability = hasAny(lower, [
     "זמינה", "זמין", "עכשיו", "היום", "מתי אפשר", "תור פנוי", "פנוי",
     "available", "availability", "right now", "today", "open now", "free slot",
   ]);
@@ -53,27 +62,46 @@ function buildClinicFallbackResponse(message: string, language: string, history:
     "חכם", "חכמה", "תהיה חכם", "לא עוזר", "לא מספיק", "כן תהיה",
     "smarter", "be smart", "not helpful", "try again",
   ]);
-  const wantsHuman = hasAny(combined, [
+  const asksAboutTypingSpeed = hasAny(lower, [
+    "כותבת מהר", "כותב מהר", "מהר מדי", "למה את כותבת", "למה אתה כותב",
+    "typing fast", "too fast", "write so fast",
+  ]);
+  const asksIfRequired = hasAny(lower, [
+    "באמת חייבים", "חייבים", "צריך חובה", "must", "required", "mandatory", "do i have to",
+  ]);
+  const asksAboutZoom = hasAny(lower, [
+    "זום", "zoom", "אונליין", "מקוון", "מרחוק", "וידאו", "video", "online", "remote",
+  ]);
+  const wantsHuman = hasAny(lower, [
     "רופאה", "רופא", "נציג", "מזכירה", "בן אדם", "אנושי",
     "doctor", "physician", "human", "representative", "secretary",
   ]);
-  const mentionsAppointment = hasAny(combined, [
+  const mentionsAppointment = hasAny(lower, [
     "תור", "פגישה", "לקבוע", "ייעוץ", "appointment", "book", "schedule", "consultation",
   ]);
-  const mentionsAssessment = hasAny(combined, [
-    "אבחון", "שאלון", "adhd", "קשב", "וונדרבילט", "assessment", "diagnosis", "questionnaire", "vanderbilt",
+  const mentionsAssessment = hasAny(lower, [
+    "אבחון", "מאבחנים", "מקבלים אבחון", "שאלון", "adhd", "קשב", "וונדרבילט", "assessment", "diagnosis", "questionnaire", "vanderbilt",
   ]);
-  const mentionsPrice = hasAny(combined, [
+  const mentionsPrice = hasAny(lower, [
     "מחיר", "עלות", "כמה עולה", "תשלום", "price", "cost", "fee", "payment",
   ]);
-  const mentionsLocation = hasAny(combined, [
+  const mentionsLocation = hasAny(lower, [
     "איפה", "כתובת", "מיקום", "להגיע", "location", "address", "where", "directions",
   ]);
-  const mentionsHours = hasAny(combined, [
+  const mentionsHours = hasAny(lower, [
     "שעות", "פתוח", "סגור", "מתי", "hours", "opening", "closed", "open",
   ]);
 
   if (isHebrew) {
+    if (asksAboutTypingSpeed) {
+      return "צודק/ת, זה יכול להרגיש מהיר מדי. אני אציג תשובות בצורה מדורגת יותר בצ'אט. מבחינת התוכן עצמו, אם משהו לא ברור לי אשאל שאלה קצרה במקום לשלוח תשובה כללית.";
+    }
+    if (gibberishLike) {
+      return "לא בטוח שהבנתי את ההודעה. אפשר לכתוב במילים פשוטות מה רציתם לברר: קביעת פגישה, אבחון, שאלון, מחיר, כתובת או זמינות?";
+    }
+    if (asksIfRequired) {
+      return "לא תמיד חייבים. זה תלוי למה התכוונתם: אם מדובר בשאלון, הוא עוזר לצוות להבין את הרקע לפני אבחון או פגישה, אבל אפשר גם ליצור קשר קודם ולקבל הכוונה. אם מדובר בפגישה, בדרך כלל צריך להשאיר פרטים כדי שהמרפאה תוכל לחזור ולאשר מועד.";
+    }
     if (asksForSmarterAnswer && asksForAvailability) {
       return "צודק/ת. אין לי חיבור ליומן חי של הרופאה, לכן אני לא יכול לאשר בזמן אמת אם היא זמינה ממש עכשיו. הדרך הכי מהירה לבדוק זמינות מיידית היא להתקשר למרפאה ב-055-27-399-27. אם אין מענה, כדאי להשאיר פרטים בטופס קביעת פגישה עם שעה מועדפת, והמרפאה תחזור אליכם לאישור.";
     }
@@ -86,11 +114,14 @@ function buildClinicFallbackResponse(message: string, language: string, history:
     if (asksForSmarterAnswer) {
       return "מבין/ה. אענה בצורה יותר ממוקדת: אני יכול לעזור בבדיקת אפשרויות לתיאום פגישה, להסביר איזה שאלון אבחון מתאים, לתת כתובת ופרטי קשר, או להסביר מה קורה אחרי מילוי טופס. מה בדיוק תרצו לעשות עכשיו?";
     }
-    if (mentionsAppointment) {
-      return "אפשר לקבוע פגישה דרך כפתור קביעת הפגישה באתר. מלאו שם, טלפון, אימייל, תאריך ושעה מועדפים, והמרפאה תחזור אליכם לאישור. אפשר גם להתקשר ל-055-27-399-27.";
+    if (asksAboutZoom) {
+      return "אין לי מידע ודאי שהרופאה מקיימת פגישות בזום בכל מקרה. כדאי לציין בטופס קביעת הפגישה שאתם מעדיפים פגישת זום/אונליין, או להתקשר ל-055-27-399-27 כדי לבדוק אם זה אפשרי לסוג הפגישה שלכם.";
     }
     if (mentionsAssessment) {
-      return "קשב פלוס מסייעת באבחון ADHD והערכת קשיי קשב לילדים, נוער ומבוגרים. באתר יש שאלוני הורה, מורה ודיווח עצמי. לאחר מילוי השאלון הצוות יכול לעבור על הפרטים ולחזור אליכם להמשך תהליך.";
+      return "כדי להתחיל אבחון, בדרך כלל משאירים פרטים וקובעים פגישת ייעוץ/אבחון. בנוסף אפשר למלא באתר שאלון מתאים: הורה, מורה או דיווח עצמי. השאלון לא מחליף אבחון רפואי, אבל הוא נותן לצוות תמונת מצב טובה לפני ההמשך.";
+    }
+    if (mentionsAppointment) {
+      return "אפשר לקבוע פגישה דרך כפתור קביעת הפגישה באתר. מלאו שם, טלפון, אימייל, תאריך ושעה מועדפים, והמרפאה תחזור אליכם לאישור. אפשר גם להתקשר ל-055-27-399-27.";
     }
     if (mentionsPrice) {
       return "אין לי מחירון מלא ומעודכן בתוך הצ'אט. כדי לקבל עלות מדויקת לפי סוג האבחון או הפגישה, מומלץ להשאיר פרטים בטופס יצירת הקשר או להתקשר ל-055-27-399-27.";
@@ -101,9 +132,18 @@ function buildClinicFallbackResponse(message: string, language: string, history:
     if (mentionsHours) {
       return "אין לי מידע ודאי על שעות פעילות מעודכנות בתוך הצ'אט. לבדיקת שעות וזמינות באותו יום מומלץ להתקשר ל-055-27-399-27 או להשאיר פרטים באתר.";
     }
-    return "אני יכול לעזור בזה. כדי להתקדם מהר, כתבו מה אתם צריכים: קביעת פגישה, שאלון אבחון, מידע על אבחון ADHD, כתובת המרפאה, או יצירת קשר עם הצוות. אם זה דחוף, התקשרו ל-055-27-399-27.";
+    return "אני לא בטוח שהבנתי את הבקשה. אפשר לכתוב שאלה קצרה כמו: איך קובעים פגישה, איזה שאלון למלא, איפה המרפאה, כמה זה עולה, או האם יש אפשרות לפגישה מרחוק.";
   }
 
+  if (asksAboutTypingSpeed) {
+    return "You are right, that can feel too fast. I will show answers more gradually in the chat. For the answer itself, if the request is unclear I will ask a short clarifying question instead of repeating a generic reply.";
+  }
+  if (gibberishLike) {
+    return "I am not sure I understood that message. Please write what you want to check: appointment booking, diagnosis, questionnaire, price, location, or availability.";
+  }
+  if (asksIfRequired) {
+    return "Not always. It depends what you mean: a questionnaire helps the clinic understand the background before diagnosis or consultation, but you can contact the clinic first for guidance. For an appointment request, contact details are needed so the clinic can confirm a time.";
+  }
   if (asksForSmarterAnswer && asksForAvailability) {
     return "You are right. I do not have live access to the doctor's calendar, so I cannot confirm whether she is available right now. For immediate availability, call the clinic at 055-27-399-27. If there is no answer, submit an appointment request with your preferred time and the clinic will follow up to confirm.";
   }
@@ -116,11 +156,14 @@ function buildClinicFallbackResponse(message: string, language: string, history:
   if (asksForSmarterAnswer) {
     return "Understood. I can help more specifically with appointment options, choosing the right assessment questionnaire, clinic location, contact details, or what happens after submitting a form. What would you like to do next?";
   }
-  if (mentionsAppointment) {
-    return "You can book an appointment through the appointment form on the site. Enter your name, phone, email, preferred date and time, and the clinic will contact you to confirm. You can also call 055-27-399-27.";
+  if (asksAboutZoom) {
+    return "I do not have confirmed information that Zoom appointments are available for every case. In the appointment form, note that you prefer Zoom or an online meeting, or call 055-27-399-27 to check whether it is possible for your appointment type.";
   }
   if (mentionsAssessment) {
-    return "Keshev Plus supports ADHD diagnosis and attention assessments for children, teens, and adults. The site includes parent, teacher, and self-report questionnaires. After submission, the clinic team can review the information and follow up.";
+    return "To start a diagnosis process, you can leave your details and request a consultation or diagnostic appointment. You can also fill out the relevant questionnaire on the site: parent, teacher, or self-report. The questionnaire does not replace a medical diagnosis, but it helps the clinic understand the background before follow-up.";
+  }
+  if (mentionsAppointment) {
+    return "You can book an appointment through the appointment form on the site. Enter your name, phone, email, preferred date and time, and the clinic will contact you to confirm. You can also call 055-27-399-27.";
   }
   if (mentionsPrice) {
     return "I do not have a full up-to-date price list in chat. For an exact cost by assessment or appointment type, please use the contact form or call 055-27-399-27.";
@@ -131,7 +174,7 @@ function buildClinicFallbackResponse(message: string, language: string, history:
   if (mentionsHours) {
     return "I do not have confirmed current opening hours in chat. For same-day hours or availability, please call 055-27-399-27 or leave your details on the site.";
   }
-  return "I can help. To move quickly, tell me whether you need appointment booking, an ADHD assessment questionnaire, information about diagnosis, the clinic address, or contact with the clinic team. For urgent questions, call 055-27-399-27.";
+  return "I am not sure I understood the request. You can ask a short question like: how to book an appointment, which questionnaire to fill, where the clinic is, how much it costs, or whether remote appointments are available.";
 }
 
 import en from "../client/src/i18n/locales/en";
