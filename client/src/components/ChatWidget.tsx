@@ -9,6 +9,11 @@ import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 
 const CLINIC_WHATSAPP = '972552739927'
+const INITIAL_TYPING_DELAY_MS = 650
+const TYPING_STEP_MS = 28
+const TYPING_IDLE_MS = 55
+const TYPING_PUNCTUATION_PAUSE_MS = 130
+const TYPING_CHARS_PER_STEP = 2
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -37,6 +42,8 @@ function setVisitorCookie(info: VisitorInfo) {
 function clearVisitorCookie() {
   document.cookie = `${VISITOR_COOKIE_NAME}=; path=/; max-age=0`
 }
+
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 const ChatWidget = () => {
   const { language, isRTL } = useLanguage()
@@ -240,41 +247,72 @@ const ChatWidget = () => {
       const decoder = new TextDecoder()
       let buffer = ''
       let assistantContent = ''
+      let visibleContent = ''
+      let streamDone = false
 
       setMessages(prev => [...prev, { role: 'assistant', content: '' }])
 
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
+      const updateAssistantMessage = (content: string) => {
+        setMessages(prev => {
+          const updated = [...prev]
+          updated[updated.length - 1] = { role: 'assistant', content }
+          return updated
+        })
+      }
 
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          try {
-            const data = JSON.parse(line.slice(6))
-            if (data.content) {
-              assistantContent += data.content
-              setMessages(prev => {
-                const updated = [...prev]
-                updated[updated.length - 1] = { role: 'assistant', content: assistantContent }
-                return updated
-              })
-            }
-          } catch {}
+      const typingTask = (async () => {
+        await wait(INITIAL_TYPING_DELAY_MS)
+        while (!streamDone || visibleContent.length < assistantContent.length) {
+          if (visibleContent.length < assistantContent.length) {
+            const remaining = assistantContent.length - visibleContent.length
+            const nextLength = visibleContent.length + Math.min(TYPING_CHARS_PER_STEP, remaining)
+            visibleContent = assistantContent.slice(0, nextLength)
+            updateAssistantMessage(visibleContent)
+
+            const lastChar = visibleContent[visibleContent.length - 1]
+            await wait(/[.!?。！？:;,\n]$/.test(lastChar) ? TYPING_PUNCTUATION_PAUSE_MS : TYPING_STEP_MS)
+          } else {
+            await wait(TYPING_IDLE_MS)
+          }
         }
+      })()
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || ''
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue
+            try {
+              const data = JSON.parse(line.slice(6))
+              if (data.content) {
+                assistantContent += data.content
+              }
+            } catch {}
+          }
+        }
+      } finally {
+        streamDone = true
+        await typingTask
       }
     } catch {
-      setMessages(prev => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: isHe
-            ? 'שירות הצ\'אט אינו זמין כרגע. ניתן ליצור קשר עם המרפאה בטלפון 055-27-399-27 או דרך טופס יצירת הקשר באתר.'
-            : 'Chat service is currently unavailable. Please contact the clinic at 055-27-399-27 or use the contact form on the website.',
-        },
-      ])
+      setMessages(prev => {
+        const last = prev[prev.length - 1]
+        const messagesWithoutPending = last?.role === 'assistant' && !last.content ? prev.slice(0, -1) : prev
+        return [
+          ...messagesWithoutPending,
+          {
+            role: 'assistant',
+            content: isHe
+              ? 'שירות הצ\'אט אינו זמין כרגע. ניתן ליצור קשר עם המרפאה בטלפון 055-27-399-27 או דרך טופס יצירת הקשר באתר.'
+              : 'Chat service is currently unavailable. Please contact the clinic at 055-27-399-27 or use the contact form on the website.',
+          },
+        ]
+      })
     } finally {
       setLoading(false)
     }
@@ -546,7 +584,7 @@ const ChatWidget = () => {
                         : 'bg-muted'
                     )}
                   >
-                    {msg.content || (loading && i === messages.length - 1 ? '...' : '')}
+                    {msg.content || (loading && i === messages.length - 1 ? <TypingIndicator /> : '')}
                   </div>
                   {msg.role === 'user' && (
                     <div className="shrink-0 h-7 w-7 rounded-full bg-muted flex items-center justify-center">
@@ -584,6 +622,20 @@ const ChatWidget = () => {
         )}
       </div>
     </div>
+  )
+}
+
+function TypingIndicator() {
+  return (
+    <span className="flex h-5 items-center gap-1" aria-label="Assistant is typing">
+      {[0, 1, 2].map((dot) => (
+        <span
+          key={dot}
+          className="h-1.5 w-1.5 rounded-full bg-muted-foreground/70 animate-bounce"
+          style={{ animationDelay: `${dot * 120}ms` }}
+        />
+      ))}
+    </span>
   )
 }
 
