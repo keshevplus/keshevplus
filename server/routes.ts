@@ -9,13 +9,19 @@ import OpenAI from "openai";
 import { GoogleGenAI } from "@google/genai";
 
 // This is using Replit's AI Integrations service, which provides Gemini-compatible API access without requiring your own Gemini API key.
-const geminiAi = new GoogleGenAI({
-  apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
-  httpOptions: {
-    apiVersion: "",
-    baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL,
-  },
-});
+let geminiAi: GoogleGenAI | null = null;
+
+function getGeminiAi() {
+  geminiAi ??= new GoogleGenAI({
+    apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
+    httpOptions: {
+      apiVersion: "",
+      baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL,
+    },
+  });
+
+  return geminiAi;
+}
 
 import en from "../client/src/i18n/locales/en";
 import he from "../client/src/i18n/locales/he";
@@ -1312,7 +1318,7 @@ RESPONSE BEHAVIOR:
             { role: 'user', parts: [{ text: message }] },
           ];
 
-          const response = await geminiAi.models.generateContentStream({
+          const response = await getGeminiAi().models.generateContentStream({
             model: 'gemini-2.0-flash',
             contents: geminiContents,
             config: {
