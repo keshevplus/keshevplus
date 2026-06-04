@@ -40,8 +40,6 @@ function streamChatContent(res: any, content: string) {
 function buildClinicFallbackResponse(message: string, language: string, history: Array<{ role?: string; content?: string }> = []) {
   const lower = message.toLowerCase();
   const isHebrew = /[\u0590-\u05ff]/.test(message) || language === "he";
-  const previousUserMessage = [...history].reverse().find((m) => m.role === "user")?.content || "";
-  const combined = `${previousUserMessage}\n${message}`.toLowerCase();
 
   const hasAny = (text: string, terms: string[]) => terms.some((term) => text.includes(term));
   const hasQuestion = /[?؟]/.test(message) || hasAny(lower, [
@@ -51,7 +49,8 @@ function buildClinicFallbackResponse(message: string, language: string, history:
   const mostlyHebrewOrLatinLetters = message.replace(/[^\u0590-\u05ffa-zA-Z]/g, "");
   const gibberishLike = message.trim().length >= 4 && !hasQuestion && mostlyHebrewOrLatinLetters.length >= 4 && (
     /(.)\1{2,}/.test(message) ||
-    /[גכד]{4,}|[שבוגי]{6,}|[קרא]{5,}/.test(message)
+    /[גכד]{4,}|[שבוגי]{4,}|[קרא]{5,}/.test(message) ||
+    hasAny(lower, ["שוגי", "בוגי", "דגכ", "גכד"])
   );
 
   const asksForAvailability = hasAny(lower, [
