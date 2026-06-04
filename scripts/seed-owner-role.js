@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
-const { Pool } = require("@neondatabase/serverless");
-const bcrypt = require("bcryptjs");
+import pg from "pg";
+import bcrypt from "bcryptjs";
+
+const { Pool } = pg;
 
 const EMAIL = process.env.OWNER_EMAIL || "dr@keshevplus.co.il";
 const PASSWORD = process.env.OWNER_PASSWORD || "12345678";
