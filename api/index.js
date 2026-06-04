@@ -2026,11 +2026,28 @@ function streamChatContent(res, content) {
 function buildClinicFallbackResponse(message, language, history = []) {
   const lower = message.toLowerCase();
   const isHebrew = /[\u0590-\u05ff]/.test(message) || language === "he";
-  const previousUserMessage = [...history].reverse().find((m) => m.role === "user")?.content || "";
-  const combined = `${previousUserMessage}
-${message}`.toLowerCase();
   const hasAny = (text3, terms) => terms.some((term) => text3.includes(term));
-  const asksForAvailability = hasAny(combined, [
+  const hasQuestion = /[?؟]/.test(message) || hasAny(lower, [
+    "\u05D0\u05D9\u05DA",
+    "\u05DE\u05D4",
+    "\u05DE\u05EA\u05D9",
+    "\u05D0\u05D9\u05E4\u05D4",
+    "\u05DC\u05DE\u05D4",
+    "\u05D4\u05D0\u05DD",
+    "\u05DB\u05DE\u05D4",
+    "how",
+    "what",
+    "when",
+    "where",
+    "why",
+    "can",
+    "does",
+    "is",
+    "are"
+  ]);
+  const mostlyHebrewOrLatinLetters = message.replace(/[^\u0590-\u05ffa-zA-Z]/g, "");
+  const gibberishLike = message.trim().length >= 4 && !hasQuestion && mostlyHebrewOrLatinLetters.length >= 4 && (/(.)\1{2,}/.test(message) || /[גכד]{4,}|[שבוגי]{4,}|[קרא]{5,}/.test(message) || hasAny(lower, ["\u05E9\u05D5\u05D2\u05D9", "\u05D1\u05D5\u05D2\u05D9", "\u05D3\u05D2\u05DB", "\u05D2\u05DB\u05D3"]));
+  const asksForAvailability = hasAny(lower, [
     "\u05D6\u05DE\u05D9\u05E0\u05D4",
     "\u05D6\u05DE\u05D9\u05DF",
     "\u05E2\u05DB\u05E9\u05D9\u05D5",
@@ -2057,7 +2074,37 @@ ${message}`.toLowerCase();
     "not helpful",
     "try again"
   ]);
-  const wantsHuman = hasAny(combined, [
+  const asksAboutTypingSpeed = hasAny(lower, [
+    "\u05DB\u05D5\u05EA\u05D1\u05EA \u05DE\u05D4\u05E8",
+    "\u05DB\u05D5\u05EA\u05D1 \u05DE\u05D4\u05E8",
+    "\u05DE\u05D4\u05E8 \u05DE\u05D3\u05D9",
+    "\u05DC\u05DE\u05D4 \u05D0\u05EA \u05DB\u05D5\u05EA\u05D1\u05EA",
+    "\u05DC\u05DE\u05D4 \u05D0\u05EA\u05D4 \u05DB\u05D5\u05EA\u05D1",
+    "typing fast",
+    "too fast",
+    "write so fast"
+  ]);
+  const asksIfRequired = hasAny(lower, [
+    "\u05D1\u05D0\u05DE\u05EA \u05D7\u05D9\u05D9\u05D1\u05D9\u05DD",
+    "\u05D7\u05D9\u05D9\u05D1\u05D9\u05DD",
+    "\u05E6\u05E8\u05D9\u05DA \u05D7\u05D5\u05D1\u05D4",
+    "must",
+    "required",
+    "mandatory",
+    "do i have to"
+  ]);
+  const asksAboutZoom = hasAny(lower, [
+    "\u05D6\u05D5\u05DD",
+    "zoom",
+    "\u05D0\u05D5\u05E0\u05DC\u05D9\u05D9\u05DF",
+    "\u05DE\u05E7\u05D5\u05D5\u05DF",
+    "\u05DE\u05E8\u05D7\u05D5\u05E7",
+    "\u05D5\u05D9\u05D3\u05D0\u05D5",
+    "video",
+    "online",
+    "remote"
+  ]);
+  const wantsHuman = hasAny(lower, [
     "\u05E8\u05D5\u05E4\u05D0\u05D4",
     "\u05E8\u05D5\u05E4\u05D0",
     "\u05E0\u05E6\u05D9\u05D2",
@@ -2070,7 +2117,7 @@ ${message}`.toLowerCase();
     "representative",
     "secretary"
   ]);
-  const mentionsAppointment = hasAny(combined, [
+  const mentionsAppointment = hasAny(lower, [
     "\u05EA\u05D5\u05E8",
     "\u05E4\u05D2\u05D9\u05E9\u05D4",
     "\u05DC\u05E7\u05D1\u05D5\u05E2",
@@ -2080,8 +2127,10 @@ ${message}`.toLowerCase();
     "schedule",
     "consultation"
   ]);
-  const mentionsAssessment = hasAny(combined, [
+  const mentionsAssessment = hasAny(lower, [
     "\u05D0\u05D1\u05D7\u05D5\u05DF",
+    "\u05DE\u05D0\u05D1\u05D7\u05E0\u05D9\u05DD",
+    "\u05DE\u05E7\u05D1\u05DC\u05D9\u05DD \u05D0\u05D1\u05D7\u05D5\u05DF",
     "\u05E9\u05D0\u05DC\u05D5\u05DF",
     "adhd",
     "\u05E7\u05E9\u05D1",
@@ -2091,7 +2140,7 @@ ${message}`.toLowerCase();
     "questionnaire",
     "vanderbilt"
   ]);
-  const mentionsPrice = hasAny(combined, [
+  const mentionsPrice = hasAny(lower, [
     "\u05DE\u05D7\u05D9\u05E8",
     "\u05E2\u05DC\u05D5\u05EA",
     "\u05DB\u05DE\u05D4 \u05E2\u05D5\u05DC\u05D4",
@@ -2101,7 +2150,7 @@ ${message}`.toLowerCase();
     "fee",
     "payment"
   ]);
-  const mentionsLocation = hasAny(combined, [
+  const mentionsLocation = hasAny(lower, [
     "\u05D0\u05D9\u05E4\u05D4",
     "\u05DB\u05EA\u05D5\u05D1\u05EA",
     "\u05DE\u05D9\u05E7\u05D5\u05DD",
@@ -2111,7 +2160,7 @@ ${message}`.toLowerCase();
     "where",
     "directions"
   ]);
-  const mentionsHours = hasAny(combined, [
+  const mentionsHours = hasAny(lower, [
     "\u05E9\u05E2\u05D5\u05EA",
     "\u05E4\u05EA\u05D5\u05D7",
     "\u05E1\u05D2\u05D5\u05E8",
@@ -2122,6 +2171,15 @@ ${message}`.toLowerCase();
     "open"
   ]);
   if (isHebrew) {
+    if (asksAboutTypingSpeed) {
+      return "\u05E6\u05D5\u05D3\u05E7/\u05EA, \u05D6\u05D4 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D4\u05E8\u05D2\u05D9\u05E9 \u05DE\u05D4\u05D9\u05E8 \u05DE\u05D3\u05D9. \u05D0\u05E0\u05D9 \u05D0\u05E6\u05D9\u05D2 \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05D1\u05E6\u05D5\u05E8\u05D4 \u05DE\u05D3\u05D5\u05E8\u05D2\u05EA \u05D9\u05D5\u05EA\u05E8 \u05D1\u05E6'\u05D0\u05D8. \u05DE\u05D1\u05D7\u05D9\u05E0\u05EA \u05D4\u05EA\u05D5\u05DB\u05DF \u05E2\u05E6\u05DE\u05D5, \u05D0\u05DD \u05DE\u05E9\u05D4\u05D5 \u05DC\u05D0 \u05D1\u05E8\u05D5\u05E8 \u05DC\u05D9 \u05D0\u05E9\u05D0\u05DC \u05E9\u05D0\u05DC\u05D4 \u05E7\u05E6\u05E8\u05D4 \u05D1\u05DE\u05E7\u05D5\u05DD \u05DC\u05E9\u05DC\u05D5\u05D7 \u05EA\u05E9\u05D5\u05D1\u05D4 \u05DB\u05DC\u05DC\u05D9\u05EA.";
+    }
+    if (gibberishLike) {
+      return "\u05DC\u05D0 \u05D1\u05D8\u05D5\u05D7 \u05E9\u05D4\u05D1\u05E0\u05EA\u05D9 \u05D0\u05EA \u05D4\u05D4\u05D5\u05D3\u05E2\u05D4. \u05D0\u05E4\u05E9\u05E8 \u05DC\u05DB\u05EA\u05D5\u05D1 \u05D1\u05DE\u05D9\u05DC\u05D9\u05DD \u05E4\u05E9\u05D5\u05D8\u05D5\u05EA \u05DE\u05D4 \u05E8\u05E6\u05D9\u05EA\u05DD \u05DC\u05D1\u05E8\u05E8: \u05E7\u05D1\u05D9\u05E2\u05EA \u05E4\u05D2\u05D9\u05E9\u05D4, \u05D0\u05D1\u05D7\u05D5\u05DF, \u05E9\u05D0\u05DC\u05D5\u05DF, \u05DE\u05D7\u05D9\u05E8, \u05DB\u05EA\u05D5\u05D1\u05EA \u05D0\u05D5 \u05D6\u05DE\u05D9\u05E0\u05D5\u05EA?";
+    }
+    if (asksIfRequired) {
+      return "\u05DC\u05D0 \u05EA\u05DE\u05D9\u05D3 \u05D7\u05D9\u05D9\u05D1\u05D9\u05DD. \u05D6\u05D4 \u05EA\u05DC\u05D5\u05D9 \u05DC\u05DE\u05D4 \u05D4\u05EA\u05DB\u05D5\u05D5\u05E0\u05EA\u05DD: \u05D0\u05DD \u05DE\u05D3\u05D5\u05D1\u05E8 \u05D1\u05E9\u05D0\u05DC\u05D5\u05DF, \u05D4\u05D5\u05D0 \u05E2\u05D5\u05D6\u05E8 \u05DC\u05E6\u05D5\u05D5\u05EA \u05DC\u05D4\u05D1\u05D9\u05DF \u05D0\u05EA \u05D4\u05E8\u05E7\u05E2 \u05DC\u05E4\u05E0\u05D9 \u05D0\u05D1\u05D7\u05D5\u05DF \u05D0\u05D5 \u05E4\u05D2\u05D9\u05E9\u05D4, \u05D0\u05D1\u05DC \u05D0\u05E4\u05E9\u05E8 \u05D2\u05DD \u05DC\u05D9\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8 \u05E7\u05D5\u05D3\u05DD \u05D5\u05DC\u05E7\u05D1\u05DC \u05D4\u05DB\u05D5\u05D5\u05E0\u05D4. \u05D0\u05DD \u05DE\u05D3\u05D5\u05D1\u05E8 \u05D1\u05E4\u05D2\u05D9\u05E9\u05D4, \u05D1\u05D3\u05E8\u05DA \u05DB\u05DC\u05DC \u05E6\u05E8\u05D9\u05DA \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8 \u05E4\u05E8\u05D8\u05D9\u05DD \u05DB\u05D3\u05D9 \u05E9\u05D4\u05DE\u05E8\u05E4\u05D0\u05D4 \u05EA\u05D5\u05DB\u05DC \u05DC\u05D7\u05D6\u05D5\u05E8 \u05D5\u05DC\u05D0\u05E9\u05E8 \u05DE\u05D5\u05E2\u05D3.";
+    }
     if (asksForSmarterAnswer && asksForAvailability) {
       return "\u05E6\u05D5\u05D3\u05E7/\u05EA. \u05D0\u05D9\u05DF \u05DC\u05D9 \u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u05D9\u05D5\u05DE\u05DF \u05D7\u05D9 \u05E9\u05DC \u05D4\u05E8\u05D5\u05E4\u05D0\u05D4, \u05DC\u05DB\u05DF \u05D0\u05E0\u05D9 \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D0\u05E9\u05E8 \u05D1\u05D6\u05DE\u05DF \u05D0\u05DE\u05EA \u05D0\u05DD \u05D4\u05D9\u05D0 \u05D6\u05DE\u05D9\u05E0\u05D4 \u05DE\u05DE\u05E9 \u05E2\u05DB\u05E9\u05D9\u05D5. \u05D4\u05D3\u05E8\u05DA \u05D4\u05DB\u05D9 \u05DE\u05D4\u05D9\u05E8\u05D4 \u05DC\u05D1\u05D3\u05D5\u05E7 \u05D6\u05DE\u05D9\u05E0\u05D5\u05EA \u05DE\u05D9\u05D9\u05D3\u05D9\u05EA \u05D4\u05D9\u05D0 \u05DC\u05D4\u05EA\u05E7\u05E9\u05E8 \u05DC\u05DE\u05E8\u05E4\u05D0\u05D4 \u05D1-055-27-399-27. \u05D0\u05DD \u05D0\u05D9\u05DF \u05DE\u05E2\u05E0\u05D4, \u05DB\u05D3\u05D0\u05D9 \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8 \u05E4\u05E8\u05D8\u05D9\u05DD \u05D1\u05D8\u05D5\u05E4\u05E1 \u05E7\u05D1\u05D9\u05E2\u05EA \u05E4\u05D2\u05D9\u05E9\u05D4 \u05E2\u05DD \u05E9\u05E2\u05D4 \u05DE\u05D5\u05E2\u05D3\u05E4\u05EA, \u05D5\u05D4\u05DE\u05E8\u05E4\u05D0\u05D4 \u05EA\u05D7\u05D6\u05D5\u05E8 \u05D0\u05DC\u05D9\u05DB\u05DD \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8.";
     }
@@ -2134,11 +2192,14 @@ ${message}`.toLowerCase();
     if (asksForSmarterAnswer) {
       return "\u05DE\u05D1\u05D9\u05DF/\u05D4. \u05D0\u05E2\u05E0\u05D4 \u05D1\u05E6\u05D5\u05E8\u05D4 \u05D9\u05D5\u05EA\u05E8 \u05DE\u05DE\u05D5\u05E7\u05D3\u05EA: \u05D0\u05E0\u05D9 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E2\u05D6\u05D5\u05E8 \u05D1\u05D1\u05D3\u05D9\u05E7\u05EA \u05D0\u05E4\u05E9\u05E8\u05D5\u05D9\u05D5\u05EA \u05DC\u05EA\u05D9\u05D0\u05D5\u05DD \u05E4\u05D2\u05D9\u05E9\u05D4, \u05DC\u05D4\u05E1\u05D1\u05D9\u05E8 \u05D0\u05D9\u05D6\u05D4 \u05E9\u05D0\u05DC\u05D5\u05DF \u05D0\u05D1\u05D7\u05D5\u05DF \u05DE\u05EA\u05D0\u05D9\u05DD, \u05DC\u05EA\u05EA \u05DB\u05EA\u05D5\u05D1\u05EA \u05D5\u05E4\u05E8\u05D8\u05D9 \u05E7\u05E9\u05E8, \u05D0\u05D5 \u05DC\u05D4\u05E1\u05D1\u05D9\u05E8 \u05DE\u05D4 \u05E7\u05D5\u05E8\u05D4 \u05D0\u05D7\u05E8\u05D9 \u05DE\u05D9\u05DC\u05D5\u05D9 \u05D8\u05D5\u05E4\u05E1. \u05DE\u05D4 \u05D1\u05D3\u05D9\u05D5\u05E7 \u05EA\u05E8\u05E6\u05D5 \u05DC\u05E2\u05E9\u05D5\u05EA \u05E2\u05DB\u05E9\u05D9\u05D5?";
     }
-    if (mentionsAppointment) {
-      return "\u05D0\u05E4\u05E9\u05E8 \u05DC\u05E7\u05D1\u05D5\u05E2 \u05E4\u05D2\u05D9\u05E9\u05D4 \u05D3\u05E8\u05DA \u05DB\u05E4\u05EA\u05D5\u05E8 \u05E7\u05D1\u05D9\u05E2\u05EA \u05D4\u05E4\u05D2\u05D9\u05E9\u05D4 \u05D1\u05D0\u05EA\u05E8. \u05DE\u05DC\u05D0\u05D5 \u05E9\u05DD, \u05D8\u05DC\u05E4\u05D5\u05DF, \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC, \u05EA\u05D0\u05E8\u05D9\u05DA \u05D5\u05E9\u05E2\u05D4 \u05DE\u05D5\u05E2\u05D3\u05E4\u05D9\u05DD, \u05D5\u05D4\u05DE\u05E8\u05E4\u05D0\u05D4 \u05EA\u05D7\u05D6\u05D5\u05E8 \u05D0\u05DC\u05D9\u05DB\u05DD \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8. \u05D0\u05E4\u05E9\u05E8 \u05D2\u05DD \u05DC\u05D4\u05EA\u05E7\u05E9\u05E8 \u05DC-055-27-399-27.";
+    if (asksAboutZoom) {
+      return "\u05D0\u05D9\u05DF \u05DC\u05D9 \u05DE\u05D9\u05D3\u05E2 \u05D5\u05D3\u05D0\u05D9 \u05E9\u05D4\u05E8\u05D5\u05E4\u05D0\u05D4 \u05DE\u05E7\u05D9\u05D9\u05DE\u05EA \u05E4\u05D2\u05D9\u05E9\u05D5\u05EA \u05D1\u05D6\u05D5\u05DD \u05D1\u05DB\u05DC \u05DE\u05E7\u05E8\u05D4. \u05DB\u05D3\u05D0\u05D9 \u05DC\u05E6\u05D9\u05D9\u05DF \u05D1\u05D8\u05D5\u05E4\u05E1 \u05E7\u05D1\u05D9\u05E2\u05EA \u05D4\u05E4\u05D2\u05D9\u05E9\u05D4 \u05E9\u05D0\u05EA\u05DD \u05DE\u05E2\u05D3\u05D9\u05E4\u05D9\u05DD \u05E4\u05D2\u05D9\u05E9\u05EA \u05D6\u05D5\u05DD/\u05D0\u05D5\u05E0\u05DC\u05D9\u05D9\u05DF, \u05D0\u05D5 \u05DC\u05D4\u05EA\u05E7\u05E9\u05E8 \u05DC-055-27-399-27 \u05DB\u05D3\u05D9 \u05DC\u05D1\u05D3\u05D5\u05E7 \u05D0\u05DD \u05D6\u05D4 \u05D0\u05E4\u05E9\u05E8\u05D9 \u05DC\u05E1\u05D5\u05D2 \u05D4\u05E4\u05D2\u05D9\u05E9\u05D4 \u05E9\u05DC\u05DB\u05DD.";
     }
     if (mentionsAssessment) {
-      return "\u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 \u05DE\u05E1\u05D9\u05D9\u05E2\u05EA \u05D1\u05D0\u05D1\u05D7\u05D5\u05DF ADHD \u05D5\u05D4\u05E2\u05E8\u05DB\u05EA \u05E7\u05E9\u05D9\u05D9 \u05E7\u05E9\u05D1 \u05DC\u05D9\u05DC\u05D3\u05D9\u05DD, \u05E0\u05D5\u05E2\u05E8 \u05D5\u05DE\u05D1\u05D5\u05D2\u05E8\u05D9\u05DD. \u05D1\u05D0\u05EA\u05E8 \u05D9\u05E9 \u05E9\u05D0\u05DC\u05D5\u05E0\u05D9 \u05D4\u05D5\u05E8\u05D4, \u05DE\u05D5\u05E8\u05D4 \u05D5\u05D3\u05D9\u05D5\u05D5\u05D7 \u05E2\u05E6\u05DE\u05D9. \u05DC\u05D0\u05D7\u05E8 \u05DE\u05D9\u05DC\u05D5\u05D9 \u05D4\u05E9\u05D0\u05DC\u05D5\u05DF \u05D4\u05E6\u05D5\u05D5\u05EA \u05D9\u05DB\u05D5\u05DC \u05DC\u05E2\u05D1\u05D5\u05E8 \u05E2\u05DC \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05D5\u05DC\u05D7\u05D6\u05D5\u05E8 \u05D0\u05DC\u05D9\u05DB\u05DD \u05DC\u05D4\u05DE\u05E9\u05DA \u05EA\u05D4\u05DC\u05D9\u05DA.";
+      return "\u05DB\u05D3\u05D9 \u05DC\u05D4\u05EA\u05D7\u05D9\u05DC \u05D0\u05D1\u05D7\u05D5\u05DF, \u05D1\u05D3\u05E8\u05DA \u05DB\u05DC\u05DC \u05DE\u05E9\u05D0\u05D9\u05E8\u05D9\u05DD \u05E4\u05E8\u05D8\u05D9\u05DD \u05D5\u05E7\u05D5\u05D1\u05E2\u05D9\u05DD \u05E4\u05D2\u05D9\u05E9\u05EA \u05D9\u05D9\u05E2\u05D5\u05E5/\u05D0\u05D1\u05D7\u05D5\u05DF. \u05D1\u05E0\u05D5\u05E1\u05E3 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05DE\u05DC\u05D0 \u05D1\u05D0\u05EA\u05E8 \u05E9\u05D0\u05DC\u05D5\u05DF \u05DE\u05EA\u05D0\u05D9\u05DD: \u05D4\u05D5\u05E8\u05D4, \u05DE\u05D5\u05E8\u05D4 \u05D0\u05D5 \u05D3\u05D9\u05D5\u05D5\u05D7 \u05E2\u05E6\u05DE\u05D9. \u05D4\u05E9\u05D0\u05DC\u05D5\u05DF \u05DC\u05D0 \u05DE\u05D7\u05DC\u05D9\u05E3 \u05D0\u05D1\u05D7\u05D5\u05DF \u05E8\u05E4\u05D5\u05D0\u05D9, \u05D0\u05D1\u05DC \u05D4\u05D5\u05D0 \u05E0\u05D5\u05EA\u05DF \u05DC\u05E6\u05D5\u05D5\u05EA \u05EA\u05DE\u05D5\u05E0\u05EA \u05DE\u05E6\u05D1 \u05D8\u05D5\u05D1\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05D4\u05D4\u05DE\u05E9\u05DA.";
+    }
+    if (mentionsAppointment) {
+      return "\u05D0\u05E4\u05E9\u05E8 \u05DC\u05E7\u05D1\u05D5\u05E2 \u05E4\u05D2\u05D9\u05E9\u05D4 \u05D3\u05E8\u05DA \u05DB\u05E4\u05EA\u05D5\u05E8 \u05E7\u05D1\u05D9\u05E2\u05EA \u05D4\u05E4\u05D2\u05D9\u05E9\u05D4 \u05D1\u05D0\u05EA\u05E8. \u05DE\u05DC\u05D0\u05D5 \u05E9\u05DD, \u05D8\u05DC\u05E4\u05D5\u05DF, \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC, \u05EA\u05D0\u05E8\u05D9\u05DA \u05D5\u05E9\u05E2\u05D4 \u05DE\u05D5\u05E2\u05D3\u05E4\u05D9\u05DD, \u05D5\u05D4\u05DE\u05E8\u05E4\u05D0\u05D4 \u05EA\u05D7\u05D6\u05D5\u05E8 \u05D0\u05DC\u05D9\u05DB\u05DD \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8. \u05D0\u05E4\u05E9\u05E8 \u05D2\u05DD \u05DC\u05D4\u05EA\u05E7\u05E9\u05E8 \u05DC-055-27-399-27.";
     }
     if (mentionsPrice) {
       return "\u05D0\u05D9\u05DF \u05DC\u05D9 \u05DE\u05D7\u05D9\u05E8\u05D5\u05DF \u05DE\u05DC\u05D0 \u05D5\u05DE\u05E2\u05D5\u05D3\u05DB\u05DF \u05D1\u05EA\u05D5\u05DA \u05D4\u05E6'\u05D0\u05D8. \u05DB\u05D3\u05D9 \u05DC\u05E7\u05D1\u05DC \u05E2\u05DC\u05D5\u05EA \u05DE\u05D3\u05D5\u05D9\u05E7\u05EA \u05DC\u05E4\u05D9 \u05E1\u05D5\u05D2 \u05D4\u05D0\u05D1\u05D7\u05D5\u05DF \u05D0\u05D5 \u05D4\u05E4\u05D2\u05D9\u05E9\u05D4, \u05DE\u05D5\u05DE\u05DC\u05E5 \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8 \u05E4\u05E8\u05D8\u05D9\u05DD \u05D1\u05D8\u05D5\u05E4\u05E1 \u05D9\u05E6\u05D9\u05E8\u05EA \u05D4\u05E7\u05E9\u05E8 \u05D0\u05D5 \u05DC\u05D4\u05EA\u05E7\u05E9\u05E8 \u05DC-055-27-399-27.";
@@ -2149,7 +2210,16 @@ ${message}`.toLowerCase();
     if (mentionsHours) {
       return "\u05D0\u05D9\u05DF \u05DC\u05D9 \u05DE\u05D9\u05D3\u05E2 \u05D5\u05D3\u05D0\u05D9 \u05E2\u05DC \u05E9\u05E2\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA \u05DE\u05E2\u05D5\u05D3\u05DB\u05E0\u05D5\u05EA \u05D1\u05EA\u05D5\u05DA \u05D4\u05E6'\u05D0\u05D8. \u05DC\u05D1\u05D3\u05D9\u05E7\u05EA \u05E9\u05E2\u05D5\u05EA \u05D5\u05D6\u05DE\u05D9\u05E0\u05D5\u05EA \u05D1\u05D0\u05D5\u05EA\u05D5 \u05D9\u05D5\u05DD \u05DE\u05D5\u05DE\u05DC\u05E5 \u05DC\u05D4\u05EA\u05E7\u05E9\u05E8 \u05DC-055-27-399-27 \u05D0\u05D5 \u05DC\u05D4\u05E9\u05D0\u05D9\u05E8 \u05E4\u05E8\u05D8\u05D9\u05DD \u05D1\u05D0\u05EA\u05E8.";
     }
-    return "\u05D0\u05E0\u05D9 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E2\u05D6\u05D5\u05E8 \u05D1\u05D6\u05D4. \u05DB\u05D3\u05D9 \u05DC\u05D4\u05EA\u05E7\u05D3\u05DD \u05DE\u05D4\u05E8, \u05DB\u05EA\u05D1\u05D5 \u05DE\u05D4 \u05D0\u05EA\u05DD \u05E6\u05E8\u05D9\u05DB\u05D9\u05DD: \u05E7\u05D1\u05D9\u05E2\u05EA \u05E4\u05D2\u05D9\u05E9\u05D4, \u05E9\u05D0\u05DC\u05D5\u05DF \u05D0\u05D1\u05D7\u05D5\u05DF, \u05DE\u05D9\u05D3\u05E2 \u05E2\u05DC \u05D0\u05D1\u05D7\u05D5\u05DF ADHD, \u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05DE\u05E8\u05E4\u05D0\u05D4, \u05D0\u05D5 \u05D9\u05E6\u05D9\u05E8\u05EA \u05E7\u05E9\u05E8 \u05E2\u05DD \u05D4\u05E6\u05D5\u05D5\u05EA. \u05D0\u05DD \u05D6\u05D4 \u05D3\u05D7\u05D5\u05E3, \u05D4\u05EA\u05E7\u05E9\u05E8\u05D5 \u05DC-055-27-399-27.";
+    return "\u05D0\u05E0\u05D9 \u05DC\u05D0 \u05D1\u05D8\u05D5\u05D7 \u05E9\u05D4\u05D1\u05E0\u05EA\u05D9 \u05D0\u05EA \u05D4\u05D1\u05E7\u05E9\u05D4. \u05D0\u05E4\u05E9\u05E8 \u05DC\u05DB\u05EA\u05D5\u05D1 \u05E9\u05D0\u05DC\u05D4 \u05E7\u05E6\u05E8\u05D4 \u05DB\u05DE\u05D5: \u05D0\u05D9\u05DA \u05E7\u05D5\u05D1\u05E2\u05D9\u05DD \u05E4\u05D2\u05D9\u05E9\u05D4, \u05D0\u05D9\u05D6\u05D4 \u05E9\u05D0\u05DC\u05D5\u05DF \u05DC\u05DE\u05DC\u05D0, \u05D0\u05D9\u05E4\u05D4 \u05D4\u05DE\u05E8\u05E4\u05D0\u05D4, \u05DB\u05DE\u05D4 \u05D6\u05D4 \u05E2\u05D5\u05DC\u05D4, \u05D0\u05D5 \u05D4\u05D0\u05DD \u05D9\u05E9 \u05D0\u05E4\u05E9\u05E8\u05D5\u05EA \u05DC\u05E4\u05D2\u05D9\u05E9\u05D4 \u05DE\u05E8\u05D7\u05D5\u05E7.";
+  }
+  if (asksAboutTypingSpeed) {
+    return "You are right, that can feel too fast. I will show answers more gradually in the chat. For the answer itself, if the request is unclear I will ask a short clarifying question instead of repeating a generic reply.";
+  }
+  if (gibberishLike) {
+    return "I am not sure I understood that message. Please write what you want to check: appointment booking, diagnosis, questionnaire, price, location, or availability.";
+  }
+  if (asksIfRequired) {
+    return "Not always. It depends what you mean: a questionnaire helps the clinic understand the background before diagnosis or consultation, but you can contact the clinic first for guidance. For an appointment request, contact details are needed so the clinic can confirm a time.";
   }
   if (asksForSmarterAnswer && asksForAvailability) {
     return "You are right. I do not have live access to the doctor's calendar, so I cannot confirm whether she is available right now. For immediate availability, call the clinic at 055-27-399-27. If there is no answer, submit an appointment request with your preferred time and the clinic will follow up to confirm.";
@@ -2163,11 +2233,14 @@ ${message}`.toLowerCase();
   if (asksForSmarterAnswer) {
     return "Understood. I can help more specifically with appointment options, choosing the right assessment questionnaire, clinic location, contact details, or what happens after submitting a form. What would you like to do next?";
   }
-  if (mentionsAppointment) {
-    return "You can book an appointment through the appointment form on the site. Enter your name, phone, email, preferred date and time, and the clinic will contact you to confirm. You can also call 055-27-399-27.";
+  if (asksAboutZoom) {
+    return "I do not have confirmed information that Zoom appointments are available for every case. In the appointment form, note that you prefer Zoom or an online meeting, or call 055-27-399-27 to check whether it is possible for your appointment type.";
   }
   if (mentionsAssessment) {
-    return "Keshev Plus supports ADHD diagnosis and attention assessments for children, teens, and adults. The site includes parent, teacher, and self-report questionnaires. After submission, the clinic team can review the information and follow up.";
+    return "To start a diagnosis process, you can leave your details and request a consultation or diagnostic appointment. You can also fill out the relevant questionnaire on the site: parent, teacher, or self-report. The questionnaire does not replace a medical diagnosis, but it helps the clinic understand the background before follow-up.";
+  }
+  if (mentionsAppointment) {
+    return "You can book an appointment through the appointment form on the site. Enter your name, phone, email, preferred date and time, and the clinic will contact you to confirm. You can also call 055-27-399-27.";
   }
   if (mentionsPrice) {
     return "I do not have a full up-to-date price list in chat. For an exact cost by assessment or appointment type, please use the contact form or call 055-27-399-27.";
@@ -2178,7 +2251,7 @@ ${message}`.toLowerCase();
   if (mentionsHours) {
     return "I do not have confirmed current opening hours in chat. For same-day hours or availability, please call 055-27-399-27 or leave your details on the site.";
   }
-  return "I can help. To move quickly, tell me whether you need appointment booking, an ADHD assessment questionnaire, information about diagnosis, the clinic address, or contact with the clinic team. For urgent questions, call 055-27-399-27.";
+  return "I am not sure I understood the request. You can ask a short question like: how to book an appointment, which questionnaire to fill, where the clinic is, how much it costs, or whether remote appointments are available.";
 }
 var additionalTranslations = {
   he: {
