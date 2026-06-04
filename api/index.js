@@ -45,7 +45,7 @@ __export(schema_exports, {
   smsVerifications: () => smsVerifications,
   translations: () => translations,
   upsertTranslationSchema: () => upsertTranslationSchema,
-  users: () => users2,
+  users: () => users,
   whatsappMessages: () => whatsappMessages,
   widgetSettingsSchema: () => widgetSettingsSchema
 });
@@ -84,7 +84,7 @@ var insertMessageSchema = createInsertSchema(messages).omit({
 });
 
 // shared/schema.ts
-var users2 = pgTable2("users", {
+var users = pgTable2("users", {
   id: serial2("id").primaryKey(),
   email: text2("email").notNull().unique(),
   password: text2("password").notNull(),
@@ -176,7 +176,7 @@ var clientActivities = pgTable2("client_activities", {
   metadata: jsonb("metadata"),
   createdAt: timestamp2("created_at").defaultNow().notNull()
 });
-var insertUserSchema = createInsertSchema2(users2).omit({ id: true });
+var insertUserSchema = createInsertSchema2(users).omit({ id: true });
 var insertContactSchema = createInsertSchema2(contacts).omit({ id: true, createdAt: true, read: true });
 var insertSiteSettingSchema = createInsertSchema2(siteSettings).omit({ id: true });
 var insertTranslationSchema = createInsertSchema2(translations).omit({ id: true });
@@ -241,61 +241,61 @@ function getDatabaseUrl(env = process.env) {
 // server/db.ts
 var { Pool } = pg;
 var pool = new Pool({ connectionString: getDatabaseUrl() });
-var db2 = drizzle(pool, { schema: schema_exports });
+var db = drizzle(pool, { schema: schema_exports });
 
 // server/routes.ts
 import { createServer } from "http";
 
 // server/storage.ts
-import { eq as eq2, desc, and, sql as sql2, lt, inArray } from "drizzle-orm";
+import { eq, desc, and, sql as sql2, lt, inArray } from "drizzle-orm";
 var DatabaseStorage = class {
   async getUser(id) {
-    const [user] = await db2.select().from(users2).where(eq2(users2.id, id));
+    const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || void 0;
   }
   async getUserByEmail(email) {
-    const [user] = await db2.select().from(users2).where(eq2(users2.email, email));
+    const [user] = await db.select().from(users).where(eq(users.email, email));
     return user || void 0;
   }
   async createUser(insertUser) {
-    const [user] = await db2.insert(users2).values(insertUser).returning();
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
   async updateUserPassword(id, hashedPassword) {
-    await db2.update(users2).set({ password: hashedPassword, mustChangePassword: false, resetToken: null }).where(eq2(users2.id, id));
+    await db.update(users).set({ password: hashedPassword, mustChangePassword: false, resetToken: null }).where(eq(users.id, id));
   }
   async setResetToken(id, token) {
-    await db2.update(users2).set({ resetToken: token }).where(eq2(users2.id, id));
+    await db.update(users).set({ resetToken: token }).where(eq(users.id, id));
   }
   async clearResetToken(id) {
-    await db2.update(users2).set({ resetToken: null }).where(eq2(users2.id, id));
+    await db.update(users).set({ resetToken: null }).where(eq(users.id, id));
   }
   async createContact(insertContact) {
-    const [contact] = await db2.insert(contacts).values(insertContact).returning();
+    const [contact] = await db.insert(contacts).values(insertContact).returning();
     return contact;
   }
   async getContacts() {
-    return await db2.select().from(contacts).orderBy(desc(contacts.createdAt));
+    return await db.select().from(contacts).orderBy(desc(contacts.createdAt));
   }
   async markContactRead(id) {
-    const [contact] = await db2.update(contacts).set({ read: true }).where(eq2(contacts.id, id)).returning();
+    const [contact] = await db.update(contacts).set({ read: true }).where(eq(contacts.id, id)).returning();
     return contact || void 0;
   }
   async getSetting(key) {
-    const [setting] = await db2.select().from(siteSettings).where(eq2(siteSettings.key, key));
+    const [setting] = await db.select().from(siteSettings).where(eq(siteSettings.key, key));
     return setting || void 0;
   }
   async upsertSetting(key, value) {
     const existing = await this.getSetting(key);
     if (existing) {
-      const [updated] = await db2.update(siteSettings).set({ value }).where(eq2(siteSettings.key, key)).returning();
+      const [updated] = await db.update(siteSettings).set({ value }).where(eq(siteSettings.key, key)).returning();
       return updated;
     }
-    const [created] = await db2.insert(siteSettings).values({ key, value }).returning();
+    const [created] = await db.insert(siteSettings).values({ key, value }).returning();
     return created;
   }
   async getTranslationsByLanguage(language) {
-    const rows = await db2.select().from(translations).where(eq2(translations.language, language));
+    const rows = await db.select().from(translations).where(eq(translations.language, language));
     const map = {};
     for (const row of rows) {
       map[row.key] = row.value;
@@ -303,15 +303,15 @@ var DatabaseStorage = class {
     return map;
   }
   async getAllTranslations() {
-    return await db2.select().from(translations).orderBy(translations.key, translations.language);
+    return await db.select().from(translations).orderBy(translations.key, translations.language);
   }
   async upsertTranslation(key, language, value) {
-    const [existing] = await db2.select().from(translations).where(and(eq2(translations.key, key), eq2(translations.language, language)));
+    const [existing] = await db.select().from(translations).where(and(eq(translations.key, key), eq(translations.language, language)));
     if (existing) {
-      const [updated] = await db2.update(translations).set({ value }).where(and(eq2(translations.key, key), eq2(translations.language, language))).returning();
+      const [updated] = await db.update(translations).set({ value }).where(and(eq(translations.key, key), eq(translations.language, language))).returning();
       return updated;
     }
-    const [created] = await db2.insert(translations).values({ key, language, value }).returning();
+    const [created] = await db.insert(translations).values({ key, language, value }).returning();
     return created;
   }
   async upsertTranslationsBulk(items) {
@@ -320,7 +320,7 @@ var DatabaseStorage = class {
     const batchSize = 100;
     for (let i = 0; i < items.length; i += batchSize) {
       const batch = items.slice(i, i + batchSize);
-      await db2.insert(translations).values(batch).onConflictDoUpdate({
+      await db.insert(translations).values(batch).onConflictDoUpdate({
         target: [translations.key, translations.language],
         set: { value: sql2`excluded.value` }
       });
@@ -329,33 +329,33 @@ var DatabaseStorage = class {
     return count;
   }
   async deleteTranslationKey(key) {
-    const deleted = await db2.delete(translations).where(eq2(translations.key, key)).returning();
+    const deleted = await db.delete(translations).where(eq(translations.key, key)).returning();
     return deleted.length;
   }
   async getTranslationKeys() {
-    const rows = await db2.selectDistinct({ key: translations.key }).from(translations).orderBy(translations.key);
+    const rows = await db.selectDistinct({ key: translations.key }).from(translations).orderBy(translations.key);
     return rows.map((r) => r.key);
   }
   async createQuestionnaireSubmission(submission) {
-    const [created] = await db2.insert(questionnaireSubmissions).values(submission).returning();
+    const [created] = await db.insert(questionnaireSubmissions).values(submission).returning();
     return created;
   }
   async getQuestionnaireSubmissions(type) {
     if (type) {
-      return await db2.select().from(questionnaireSubmissions).where(eq2(questionnaireSubmissions.type, type)).orderBy(desc(questionnaireSubmissions.createdAt));
+      return await db.select().from(questionnaireSubmissions).where(eq(questionnaireSubmissions.type, type)).orderBy(desc(questionnaireSubmissions.createdAt));
     }
-    return await db2.select().from(questionnaireSubmissions).orderBy(desc(questionnaireSubmissions.createdAt));
+    return await db.select().from(questionnaireSubmissions).orderBy(desc(questionnaireSubmissions.createdAt));
   }
   async getQuestionnaireSubmission(id) {
-    const [submission] = await db2.select().from(questionnaireSubmissions).where(eq2(questionnaireSubmissions.id, id));
+    const [submission] = await db.select().from(questionnaireSubmissions).where(eq(questionnaireSubmissions.id, id));
     return submission || void 0;
   }
   async markQuestionnaireReviewed(id) {
-    const [updated] = await db2.update(questionnaireSubmissions).set({ reviewed: true }).where(eq2(questionnaireSubmissions.id, id)).returning();
+    const [updated] = await db.update(questionnaireSubmissions).set({ reviewed: true }).where(eq(questionnaireSubmissions.id, id)).returning();
     return updated || void 0;
   }
   async getQuestionnaireStats() {
-    const all = await db2.select().from(questionnaireSubmissions);
+    const all = await db.select().from(questionnaireSubmissions);
     const byType = {};
     let unreviewed = 0;
     for (const sub of all) {
@@ -365,65 +365,65 @@ var DatabaseStorage = class {
     return { total: all.length, byType, unreviewed };
   }
   async createSmsVerification(phone, code, expiresAt) {
-    const [created] = await db2.insert(smsVerifications).values({ phone, code, expiresAt }).returning();
+    const [created] = await db.insert(smsVerifications).values({ phone, code, expiresAt }).returning();
     return created;
   }
   async verifySmsCode(phone, code) {
     const now = /* @__PURE__ */ new Date();
-    const [record] = await db2.select().from(smsVerifications).where(
+    const [record] = await db.select().from(smsVerifications).where(
       and(
-        eq2(smsVerifications.phone, phone),
-        eq2(smsVerifications.code, code),
-        eq2(smsVerifications.verified, false)
+        eq(smsVerifications.phone, phone),
+        eq(smsVerifications.code, code),
+        eq(smsVerifications.verified, false)
       )
     ).orderBy(desc(smsVerifications.createdAt)).limit(1);
     if (!record || record.expiresAt < now) return false;
-    await db2.update(smsVerifications).set({ verified: true }).where(eq2(smsVerifications.id, record.id));
+    await db.update(smsVerifications).set({ verified: true }).where(eq(smsVerifications.id, record.id));
     return true;
   }
   async cleanupExpiredVerifications() {
     const now = /* @__PURE__ */ new Date();
-    await db2.delete(smsVerifications).where(lt(smsVerifications.expiresAt, now));
+    await db.delete(smsVerifications).where(lt(smsVerifications.expiresAt, now));
   }
   async createAppointment(appointment) {
-    const [created] = await db2.insert(appointments).values(appointment).returning();
+    const [created] = await db.insert(appointments).values(appointment).returning();
     return created;
   }
   async getAppointments(status) {
     if (status) {
-      return await db2.select().from(appointments).where(eq2(appointments.status, status)).orderBy(desc(appointments.createdAt));
+      return await db.select().from(appointments).where(eq(appointments.status, status)).orderBy(desc(appointments.createdAt));
     }
-    return await db2.select().from(appointments).orderBy(desc(appointments.createdAt));
+    return await db.select().from(appointments).orderBy(desc(appointments.createdAt));
   }
   async getAppointment(id) {
-    const [a] = await db2.select().from(appointments).where(eq2(appointments.id, id));
+    const [a] = await db.select().from(appointments).where(eq(appointments.id, id));
     return a || void 0;
   }
   async updateAppointmentStatus(id, status) {
-    const [updated] = await db2.update(appointments).set({ status }).where(eq2(appointments.id, id)).returning();
+    const [updated] = await db.update(appointments).set({ status }).where(eq(appointments.id, id)).returning();
     return updated || void 0;
   }
   async createClient(client) {
-    const [created] = await db2.insert(clients).values(client).returning();
+    const [created] = await db.insert(clients).values(client).returning();
     return created;
   }
   async getClients() {
-    return await db2.select().from(clients).orderBy(desc(clients.createdAt));
+    return await db.select().from(clients).orderBy(desc(clients.createdAt));
   }
   async getClient(id) {
-    const [c] = await db2.select().from(clients).where(eq2(clients.id, id));
+    const [c] = await db.select().from(clients).where(eq(clients.id, id));
     return c || void 0;
   }
   async updateClient(id, data) {
-    const [updated] = await db2.update(clients).set(data).where(eq2(clients.id, id)).returning();
+    const [updated] = await db.update(clients).set(data).where(eq(clients.id, id)).returning();
     return updated || void 0;
   }
   async createClientActivity(activity) {
-    const [created] = await db2.insert(clientActivities).values(activity).returning();
+    const [created] = await db.insert(clientActivities).values(activity).returning();
     return created;
   }
   async getClientActivities(clientId) {
-    return await db2.select().from(clientActivities).where(eq2(clientActivities.clientId, clientId)).orderBy(desc(clientActivities.createdAt));
+    return await db.select().from(clientActivities).where(eq(clientActivities.clientId, clientId)).orderBy(desc(clientActivities.createdAt));
   }
   async upsertClientByEmail(data) {
     const existing = await this.getClientByEmail(data.email);
@@ -432,12 +432,12 @@ var DatabaseStorage = class {
       if (data.phone && !existing.phone) updates.phone = data.phone;
       if (data.childName && !existing.childName) updates.childName = data.childName;
       if (Object.keys(updates).length > 0) {
-        const [updated] = await db2.update(clients).set(updates).where(eq2(clients.id, existing.id)).returning();
+        const [updated] = await db.update(clients).set(updates).where(eq(clients.id, existing.id)).returning();
         return updated;
       }
       return existing;
     }
-    const [created] = await db2.insert(clients).values({
+    const [created] = await db.insert(clients).values({
       name: data.name,
       email: data.email,
       phone: data.phone || null,
@@ -448,7 +448,7 @@ var DatabaseStorage = class {
     return created;
   }
   async getClientByEmail(email) {
-    const [c] = await db2.select().from(clients).where(eq2(clients.email, email));
+    const [c] = await db.select().from(clients).where(eq(clients.email, email));
     return c || void 0;
   }
   async getClientInteractions(clientId) {
@@ -457,24 +457,24 @@ var DatabaseStorage = class {
       return { contacts: [], appointments: [], questionnaires: [], conversations: [] };
     }
     const email = client.email;
-    const clientContacts = await db2.select().from(contacts).where(eq2(contacts.email, email)).orderBy(desc(contacts.createdAt));
-    const clientAppointments = await db2.select().from(appointments).where(eq2(appointments.clientEmail, email)).orderBy(desc(appointments.createdAt));
-    const clientQuestionnaires = await db2.select().from(questionnaireSubmissions).where(eq2(questionnaireSubmissions.respondentEmail, email)).orderBy(desc(questionnaireSubmissions.createdAt));
-    const clientConversations = await db2.select().from(conversations).where(eq2(conversations.visitorEmail, email)).orderBy(desc(conversations.createdAt));
+    const clientContacts = await db.select().from(contacts).where(eq(contacts.email, email)).orderBy(desc(contacts.createdAt));
+    const clientAppointments = await db.select().from(appointments).where(eq(appointments.clientEmail, email)).orderBy(desc(appointments.createdAt));
+    const clientQuestionnaires = await db.select().from(questionnaireSubmissions).where(eq(questionnaireSubmissions.respondentEmail, email)).orderBy(desc(questionnaireSubmissions.createdAt));
+    const clientConversations = await db.select().from(conversations).where(eq(conversations.visitorEmail, email)).orderBy(desc(conversations.createdAt));
     return { contacts: clientContacts, appointments: clientAppointments, questionnaires: clientQuestionnaires, conversations: clientConversations };
   }
   async getActiveAppointmentForChild(email, childName) {
-    const allAppts = await db2.select().from(appointments).where(eq2(appointments.clientEmail, email)).orderBy(desc(appointments.createdAt));
+    const allAppts = await db.select().from(appointments).where(eq(appointments.clientEmail, email)).orderBy(desc(appointments.createdAt));
     return allAppts.find(
       (a) => (a.status === "pending" || a.status === "confirmed") && a.childName?.toLowerCase() === childName.toLowerCase()
     );
   }
   async getAdminBadgeCounts() {
-    const [contactsResult] = await db2.select({ count: sql2`count(*)::int` }).from(contacts).where(eq2(contacts.read, false));
-    const [appointmentsResult] = await db2.select({ count: sql2`count(*)::int` }).from(appointments).where(eq2(appointments.status, "pending"));
-    const [questionnairesResult] = await db2.select({ count: sql2`count(*)::int` }).from(questionnaireSubmissions).where(eq2(questionnaireSubmissions.reviewed, false));
-    const [conversationsResult] = await db2.select({ count: sql2`count(*)::int` }).from(conversations).where(eq2(conversations.reviewed, false));
-    const [leadsResult] = await db2.select({ count: sql2`count(*)::int` }).from(clients).where(eq2(clients.status, "lead"));
+    const [contactsResult] = await db.select({ count: sql2`count(*)::int` }).from(contacts).where(eq(contacts.read, false));
+    const [appointmentsResult] = await db.select({ count: sql2`count(*)::int` }).from(appointments).where(eq(appointments.status, "pending"));
+    const [questionnairesResult] = await db.select({ count: sql2`count(*)::int` }).from(questionnaireSubmissions).where(eq(questionnaireSubmissions.reviewed, false));
+    const [conversationsResult] = await db.select({ count: sql2`count(*)::int` }).from(conversations).where(eq(conversations.reviewed, false));
+    const [leadsResult] = await db.select({ count: sql2`count(*)::int` }).from(clients).where(eq(clients.status, "lead"));
     return {
       unreadContacts: contactsResult?.count ?? 0,
       pendingAppointments: appointmentsResult?.count ?? 0,
@@ -493,92 +493,92 @@ var DatabaseStorage = class {
     return updated.value;
   }
   async createConversation(conversation) {
-    const [created] = await db2.insert(conversations).values(conversation).returning();
+    const [created] = await db.insert(conversations).values(conversation).returning();
     return created;
   }
   async getConversations() {
-    return await db2.select().from(conversations).orderBy(desc(conversations.createdAt));
+    return await db.select().from(conversations).orderBy(desc(conversations.createdAt));
   }
   async getConversation(id) {
-    const [c] = await db2.select().from(conversations).where(eq2(conversations.id, id));
+    const [c] = await db.select().from(conversations).where(eq(conversations.id, id));
     return c || void 0;
   }
   async markConversationReviewed(id) {
-    const [updated] = await db2.update(conversations).set({ reviewed: true }).where(eq2(conversations.id, id)).returning();
+    const [updated] = await db.update(conversations).set({ reviewed: true }).where(eq(conversations.id, id)).returning();
     return updated || void 0;
   }
   async addMessage(message) {
-    const [created] = await db2.insert(messages).values(message).returning();
+    const [created] = await db.insert(messages).values(message).returning();
     return created;
   }
   async getMessages(conversationId) {
-    return await db2.select().from(messages).where(eq2(messages.conversationId, conversationId)).orderBy(messages.createdAt);
+    return await db.select().from(messages).where(eq(messages.conversationId, conversationId)).orderBy(messages.createdAt);
   }
   async deleteContact(id) {
-    const result = await db2.delete(contacts).where(eq2(contacts.id, id)).returning();
+    const result = await db.delete(contacts).where(eq(contacts.id, id)).returning();
     return result.length > 0;
   }
   async deleteConversation(id) {
-    const result = await db2.delete(conversations).where(eq2(conversations.id, id)).returning();
+    const result = await db.delete(conversations).where(eq(conversations.id, id)).returning();
     return result.length > 0;
   }
   async deleteClient(id) {
-    await db2.delete(clientActivities).where(eq2(clientActivities.clientId, id));
-    const result = await db2.delete(clients).where(eq2(clients.id, id)).returning();
+    await db.delete(clientActivities).where(eq(clientActivities.clientId, id));
+    const result = await db.delete(clients).where(eq(clients.id, id)).returning();
     return result.length > 0;
   }
   async bulkDeleteContacts(ids) {
     if (ids.length === 0) return 0;
-    const result = await db2.delete(contacts).where(inArray(contacts.id, ids)).returning();
+    const result = await db.delete(contacts).where(inArray(contacts.id, ids)).returning();
     return result.length;
   }
   async bulkDeleteConversations(ids) {
     if (ids.length === 0) return 0;
-    await db2.delete(messages).where(inArray(messages.conversationId, ids));
-    const result = await db2.delete(conversations).where(inArray(conversations.id, ids)).returning();
+    await db.delete(messages).where(inArray(messages.conversationId, ids));
+    const result = await db.delete(conversations).where(inArray(conversations.id, ids)).returning();
     return result.length;
   }
   async bulkDeleteClients(ids) {
     if (ids.length === 0) return 0;
-    await db2.delete(clientActivities).where(inArray(clientActivities.clientId, ids));
-    const result = await db2.delete(clients).where(inArray(clients.id, ids)).returning();
+    await db.delete(clientActivities).where(inArray(clientActivities.clientId, ids));
+    const result = await db.delete(clients).where(inArray(clients.id, ids)).returning();
     return result.length;
   }
   async updateContactStatus(id, status) {
-    const [updated] = await db2.update(contacts).set({ status }).where(eq2(contacts.id, id)).returning();
+    const [updated] = await db.update(contacts).set({ status }).where(eq(contacts.id, id)).returning();
     return updated;
   }
   async updateQuestionnaireStatus(id, status) {
-    const [updated] = await db2.update(questionnaireSubmissions).set({ status }).where(eq2(questionnaireSubmissions.id, id)).returning();
+    const [updated] = await db.update(questionnaireSubmissions).set({ status }).where(eq(questionnaireSubmissions.id, id)).returning();
     return updated;
   }
   async deleteAppointment(id) {
-    const result = await db2.delete(appointments).where(eq2(appointments.id, id)).returning();
+    const result = await db.delete(appointments).where(eq(appointments.id, id)).returning();
     return result.length > 0;
   }
   async deleteQuestionnaire(id) {
-    const result = await db2.delete(questionnaireSubmissions).where(eq2(questionnaireSubmissions.id, id)).returning();
+    const result = await db.delete(questionnaireSubmissions).where(eq(questionnaireSubmissions.id, id)).returning();
     return result.length > 0;
   }
   async bulkDeleteAppointments(ids) {
     if (ids.length === 0) return 0;
-    const result = await db2.delete(appointments).where(inArray(appointments.id, ids)).returning();
+    const result = await db.delete(appointments).where(inArray(appointments.id, ids)).returning();
     return result.length;
   }
   async bulkDeleteQuestionnaires(ids) {
     if (ids.length === 0) return 0;
-    const result = await db2.delete(questionnaireSubmissions).where(inArray(questionnaireSubmissions.id, ids)).returning();
+    const result = await db.delete(questionnaireSubmissions).where(inArray(questionnaireSubmissions.id, ids)).returning();
     return result.length;
   }
   async createWhatsAppMessage(message) {
-    const [msg] = await db2.insert(whatsappMessages).values(message).returning();
+    const [msg] = await db.insert(whatsappMessages).values(message).returning();
     return msg;
   }
   async getWhatsAppMessages(phone) {
-    return await db2.select().from(whatsappMessages).where(eq2(whatsappMessages.phone, phone)).orderBy(whatsappMessages.createdAt);
+    return await db.select().from(whatsappMessages).where(eq(whatsappMessages.phone, phone)).orderBy(whatsappMessages.createdAt);
   }
   async getWhatsAppConversations() {
-    const result = await db2.execute(sql2`
+    const result = await db.execute(sql2`
       SELECT 
         phone,
         (SELECT client_id FROM whatsapp_messages w2 WHERE w2.phone = w.phone AND w2.client_id IS NOT NULL LIMIT 1) as client_id,
@@ -598,7 +598,7 @@ var DatabaseStorage = class {
     }));
   }
   async updateWhatsAppMessageStatus(waMessageId, status) {
-    await db2.update(whatsappMessages).set({ status }).where(eq2(whatsappMessages.waMessageId, waMessageId));
+    await db.update(whatsappMessages).set({ status }).where(eq(whatsappMessages.waMessageId, waMessageId));
   }
 };
 var storage = new DatabaseStorage();
@@ -609,6 +609,7 @@ import { z as z2 } from "zod";
 import nodemailer from "nodemailer";
 import OpenAI from "openai";
 import { GoogleGenAI } from "@google/genai";
+import { eq as eq2 } from "drizzle-orm";
 
 // client/src/i18n/locales/en.ts
 var en = {
@@ -2474,7 +2475,12 @@ async function registerRoutes(app2) {
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
       if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
-      const allUsers = await db.select().from(users);
+      const allUsers = await db.select({
+        id: users.id,
+        email: users.email,
+        role: users.role,
+        mustChangePassword: users.mustChangePassword
+      }).from(users);
       const filtered = allUsers.filter((u) => u.email !== "drkeshevplus@gmail.com");
       return res.json(filtered);
     } catch (error) {
@@ -2492,7 +2498,7 @@ async function registerRoutes(app2) {
       if (targetUser?.email === "drkeshevplus@gmail.com") {
         return res.status(403).json({ error: "Cannot delete superadmin" });
       }
-      await db.delete(users).where(eq(users.id, targetId));
+      await db.delete(users).where(eq2(users.id, targetId));
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Delete failed" });

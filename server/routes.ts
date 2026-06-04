@@ -7,6 +7,9 @@ import { z } from "zod";
 import nodemailer from "nodemailer";
 import OpenAI from "openai";
 import { GoogleGenAI } from "@google/genai";
+import { eq } from "drizzle-orm";
+import { db } from "./db";
+import { users } from "@shared/schema";
 
 // This is using Replit's AI Integrations service, which provides Gemini-compatible API access without requiring your own Gemini API key.
 let geminiAi: GoogleGenAI | null = null;
@@ -538,7 +541,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
 
-      const allUsers = await db.select().from(users);
+      const allUsers = await db
+        .select({
+          id: users.id,
+          email: users.email,
+          role: users.role,
+          mustChangePassword: users.mustChangePassword,
+        })
+        .from(users);
       // Hide superadmin from everyone
       const filtered = allUsers.filter(u => u.email !== "drkeshevplus@gmail.com");
       return res.json(filtered);
