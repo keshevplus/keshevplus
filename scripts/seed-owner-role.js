@@ -2,12 +2,30 @@
 
 import pg from "pg";
 import bcrypt from "bcryptjs";
-import { getDatabaseUrl } from "../server/database-url";
 
 const { Pool } = pg;
 
 const EMAIL = process.env.OWNER_EMAIL || "dr@keshevplus.co.il";
 const PASSWORD = process.env.OWNER_PASSWORD || "12345678";
+
+const DATABASE_URL_ENV_KEYS = [
+  "DATABASE_URL",
+  "POSTGRES_URL",
+  "KESHEVPLUS_POSTGRES_URL",
+  "POSTGRES_PRISMA_URL",
+  "KESHEVPLUS_POSTGRES_PRISMA_URL",
+  "POSTGRES_URL_NON_POOLING",
+  "KESHEVPLUS_POSTGRES_URL_NON_POOLING",
+  "KESHEVPLUS_DATABASE_URL",
+];
+
+function getDatabaseUrl() {
+  for (const key of DATABASE_URL_ENV_KEYS) {
+    const value = process.env[key]?.trim().replace(/^['"]|['"]$/g, "");
+    if (value) return value;
+  }
+  throw new Error(`Missing database URL. Set one of: ${DATABASE_URL_ENV_KEYS.join(", ")}`);
+}
 
 async function seedOwnerRole() {
   const pool = new Pool({ connectionString: getDatabaseUrl() });

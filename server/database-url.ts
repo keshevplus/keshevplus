@@ -11,7 +11,7 @@ const DATABASE_URL_ENV_KEYS = [
 
 export function getDatabaseUrl(env: NodeJS.ProcessEnv = process.env): string {
   for (const key of DATABASE_URL_ENV_KEYS) {
-    const value = env[key];
+    const value = env[key]?.trim().replace(/^['"]|['"]$/g, "");
     if (value) return value;
   }
 
