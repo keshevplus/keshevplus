@@ -19,15 +19,15 @@ export interface LanguageInfo {
 }
 
 export const ALL_LANGUAGES: LanguageInfo[] = [
-  { code: "he", nativeName: "\u05e2\u05d1\u05e8\u05d9\u05ea", flag: "\ud83c\uddee\ud83c\uddf1", dir: "rtl" },
-  { code: "en", nativeName: "English", flag: "\ud83c\uddfa\ud83c\uddf8", dir: "ltr" },
+  { code: "he", nativeName: "\u05e2\u05d1\u05e8\u05d9\u05ea", flag: "HE", dir: "rtl" },
+  { code: "en", nativeName: "English", flag: "EN", dir: "ltr" },
   { code: "fr", nativeName: "Fran\u00e7ais", flag: "\ud83c\uddeb\ud83c\uddf7", dir: "ltr" },
   { code: "es", nativeName: "Espa\u00f1ol", flag: "\ud83c\uddea\ud83c\uddf8", dir: "ltr" },
   { code: "de", nativeName: "Deutsch", flag: "\ud83c\udde9\ud83c\uddea", dir: "ltr" },
   { code: "ru", nativeName: "\u0420\u0443\u0441\u0441\u043a\u0438\u0439", flag: "\ud83c\uddf7\ud83c\uddfa", dir: "ltr" },
   { code: "am", nativeName: "\u12a0\u121b\u122d\u129b", flag: "\ud83c\uddea\ud83c\uddf9", dir: "ltr" },
-  { code: "ar", nativeName: "\u0627\u0644\u0639\u0631\u0628\u064a\u0629", flag: "\ud83c\uddf8\ud83c\udde6", dir: "rtl" },
-  { code: "yi", nativeName: "\u05d9\u05d9\u05b4\u05d3\u05d9\u05e9", flag: "\ud83c\uddee\ud83c\uddf1", dir: "rtl" },
+  { code: "ar", nativeName: "\u0627\u0644\u0639\u0631\u0628\u064a\u0629", flag: "AR", dir: "rtl" },
+  { code: "yi", nativeName: "\u05d9\u05d9\u05b4\u05d3\u05d9\u05e9", flag: "YI", dir: "rtl" },
   { code: "it", nativeName: "Italiano", flag: "\ud83c\uddee\ud83c\uddf9", dir: "ltr" },
 ];
 
