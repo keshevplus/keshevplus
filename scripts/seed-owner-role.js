@@ -2,6 +2,7 @@
 
 import pg from "pg";
 import bcrypt from "bcryptjs";
+import { getDatabaseUrl } from "../server/database-url";
 
 const { Pool } = pg;
 
@@ -9,7 +10,7 @@ const EMAIL = process.env.OWNER_EMAIL || "dr@keshevplus.co.il";
 const PASSWORD = process.env.OWNER_PASSWORD || "12345678";
 
 async function seedOwnerRole() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool({ connectionString: getDatabaseUrl() });
 
   try {
     console.log("Seeding owner role...");
