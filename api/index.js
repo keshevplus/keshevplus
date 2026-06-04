@@ -230,7 +230,7 @@ var DATABASE_URL_ENV_KEYS = [
 ];
 function getDatabaseUrl(env = process.env) {
   for (const key of DATABASE_URL_ENV_KEYS) {
-    const value = env[key];
+    const value = env[key]?.trim().replace(/^['"]|['"]$/g, "");
     if (value) return value;
   }
   throw new Error(
@@ -3553,6 +3553,7 @@ RESPONSE BEHAVIOR:
 var PgSession = connectPgSimple(session);
 async function createApp() {
   const app2 = express();
+  app2.set("trust proxy", 1);
   app2.use(express.json());
   app2.use(express.urlencoded({ extended: false }));
   const isProduction = process.env.NODE_ENV === "production";
