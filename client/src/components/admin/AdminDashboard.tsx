@@ -8,13 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye, Phone } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useQuery } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/queryClient'
-import { ALL_LANGUAGES, type LanguageSettings, type SupportedLanguage, DEFAULT_LANGUAGE_SETTINGS, BILINGUAL_CODES, MULTILINGUAL_CODES } from '@/i18n/config'
+import { ALL_LANGUAGES, type LanguageSettings, type SupportedLanguage, DEFAULT_LANGUAGE_SETTINGS, BILINGUAL_CODES, getEnabledLanguageCodes } from '@/i18n/config'
 import type { WidgetSettings } from '@shared/schema'
 import TranslationManager from './TranslationManager'
 import QuestionnaireSubmissions from './QuestionnaireSubmissions'
@@ -81,7 +82,13 @@ const AdminDashboard = () => {
     fetch('/api/settings/language', { credentials: 'include' })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        if (data) setLangSettings(data)
+        if (data) {
+          const enabledLanguages = getEnabledLanguageCodes(data)
+          const defaultLanguage = enabledLanguages.includes(data.defaultLanguage)
+            ? data.defaultLanguage
+            : enabledLanguages[0]
+          setLangSettings({ ...DEFAULT_LANGUAGE_SETTINGS, ...data, enabledLanguages, defaultLanguage })
+        }
       })
       .catch(() => {})
       .finally(() => setLoaded(true))
@@ -94,7 +101,17 @@ const AdminDashboard = () => {
   const handleSaveLanguageSettings = async () => {
     setSaving(true)
     try {
-      await apiRequest('PUT', '/api/settings/language', langSettings)
+      const enabledLanguages = getEnabledLanguageCodes(langSettings)
+      const payload = {
+        ...langSettings,
+        enabledLanguages,
+        mode: isBilingualSelection(enabledLanguages) ? 'bilingual' : 'multilingual',
+        defaultLanguage: enabledLanguages.includes(langSettings.defaultLanguage)
+          ? langSettings.defaultLanguage
+          : enabledLanguages[0],
+      }
+      await apiRequest('PUT', '/api/settings/language', payload)
+      setLangSettings(payload)
       toast({
         title: isHe ? 'ההגדרות נשמרו' : 'Settings saved',
         description: isHe ? 'הגדרות השפה עודכנו בהצלחה.' : 'Language settings have been updated successfully.'
@@ -110,14 +127,36 @@ const AdminDashboard = () => {
     }
   }
 
-  const availableCodes = langSettings.mode === 'bilingual' ? BILINGUAL_CODES : MULTILINGUAL_CODES
+  const availableCodes = getEnabledLanguageCodes(langSettings)
   const availableForDefault = ALL_LANGUAGES.filter(l => availableCodes.includes(l.code))
 
   useEffect(() => {
     if (!availableCodes.includes(langSettings.defaultLanguage)) {
-      setLangSettings(prev => ({ ...prev, defaultLanguage: 'he' }))
+      setLangSettings(prev => ({ ...prev, defaultLanguage: availableCodes[0] ?? 'he' }))
     }
-  }, [langSettings.mode, langSettings.defaultLanguage, availableCodes])
+  }, [langSettings.defaultLanguage, availableCodes])
+
+  const handleToggleDisplayLanguage = (code: SupportedLanguage, checked: boolean) => {
+    setLangSettings(prev => {
+      const current = getEnabledLanguageCodes(prev)
+      const next = checked
+        ? Array.from(new Set([...current, code]))
+        : current.filter(item => item !== code)
+
+      if (!next.length) return prev
+
+      return {
+        ...prev,
+        enabledLanguages: next,
+        mode: isBilingualSelection(next) ? 'bilingual' : 'multilingual',
+        defaultLanguage: next.includes(prev.defaultLanguage) ? prev.defaultLanguage : next[0],
+      }
+    })
+  }
+
+  const isBilingualSelection = (codes: SupportedLanguage[]) => {
+    return codes.length === BILINGUAL_CODES.length && BILINGUAL_CODES.every(code => codes.includes(code))
+  }
 
   const tabs = [
     { value: 'overview', icon: BarChart3, he: 'סקירה כללית', en: 'Overview' },
@@ -355,28 +394,34 @@ const AdminDashboard = () => {
 
                   {langSettings.enabled && (
                     <>
-                      <div className="space-y-2">
-                        <Label htmlFor="language-mode" className="text-sm font-medium">
-                          {isHe ? 'מצב שפה' : 'Language Mode'}
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">
+                          {isHe ? 'שפות מוצגות' : 'Displayed Languages'}
                         </Label>
-                        <Select
-                          value={langSettings.mode}
-                          onValueChange={(value: 'bilingual' | 'multilingual') =>
-                            setLangSettings(prev => ({ ...prev, mode: value }))
-                          }
-                        >
-                          <SelectTrigger id="language-mode" data-testid="select-language-mode">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="bilingual" data-testid="option-bilingual">
-                              {isHe ? 'דו-לשוני (עברית / אנגלית)' : 'Bilingual (Hebrew / English)'}
-                            </SelectItem>
-                            <SelectItem value="multilingual" data-testid="option-multilingual">
-                              {isHe ? 'רב-לשוני (כל 10 השפות)' : 'Multilingual (All 10 languages)'}
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {ALL_LANGUAGES.map(lang => {
+                            const checked = availableCodes.includes(lang.code)
+                            const isLastSelected = checked && availableCodes.length === 1
+
+                            return (
+                              <label
+                                key={lang.code}
+                                className="flex items-center gap-3 rounded-md border p-3 text-sm cursor-pointer hover:bg-muted/50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60"
+                              >
+                                <Checkbox
+                                  checked={checked}
+                                  disabled={isLastSelected}
+                                  onCheckedChange={(value) => handleToggleDisplayLanguage(lang.code, value === true)}
+                                  data-testid={`checkbox-language-${lang.code}`}
+                                />
+                                <span className="flex items-center gap-2">
+                                  <span role="img" aria-hidden="true">{lang.flag}</span>
+                                  <span>{lang.nativeName}</span>
+                                </span>
+                              </label>
+                            )
+                          })}
+                        </div>
                       </div>
 
                       <div className="space-y-2">
@@ -403,14 +448,6 @@ const AdminDashboard = () => {
                             ))}
                           </SelectContent>
                         </Select>
-                      </div>
-
-                      <div className="rounded-md bg-muted/50 p-3">
-                        <p className="text-xs text-muted-foreground">
-                          {langSettings.mode === 'bilingual'
-                            ? (isHe ? 'המשתמשים יוכלו לעבור בין עברית לאנגלית.' : 'Users will be able to switch between Hebrew and English.')
-                            : (isHe ? 'המשתמשים יוכלו לבחור מתוך 10 שפות: עברית, אנגלית, צרפתית, ספרדית, גרמנית, רוסית, אמהרית, ערבית, יידיש ואיטלקית.' : 'Users will be able to choose from 10 languages: Hebrew, English, French, Spanish, German, Russian, Amharic, Arabic, Yiddish, and Italian.')}
-                        </p>
                       </div>
                     </>
                   )}

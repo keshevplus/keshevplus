@@ -214,7 +214,37 @@ const DEFAULT_LANGUAGE_SETTINGS = {
   enabled: false,
   mode: "bilingual" as const,
   defaultLanguage: "he",
+  enabledLanguages: ["he", "en"],
 };
+
+type LanguageSettingsMode = "bilingual" | "multilingual";
+
+function normalizeLanguageSettings(value: unknown) {
+  const raw = typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
+  const mode: LanguageSettingsMode = raw.mode === "multilingual" ? "multilingual" : "bilingual";
+  const fallbackLanguages = mode === "multilingual" ? [...SUPPORTED_LANGUAGES] : ["he", "en"];
+  const requestedLanguages = Array.isArray(raw.enabledLanguages) ? raw.enabledLanguages : fallbackLanguages;
+  const enabledLanguages = Array.from(new Set(requestedLanguages))
+    .filter((code): code is typeof SUPPORTED_LANGUAGES[number] =>
+      typeof code === "string" && (SUPPORTED_LANGUAGES as readonly string[]).includes(code)
+    );
+  const safeEnabledLanguages = enabledLanguages.length ? enabledLanguages : ["he"];
+  const requestedDefault = typeof raw.defaultLanguage === "string" ? raw.defaultLanguage : DEFAULT_LANGUAGE_SETTINGS.defaultLanguage;
+  const defaultLanguage = safeEnabledLanguages.includes(requestedDefault as typeof SUPPORTED_LANGUAGES[number])
+    ? requestedDefault
+    : safeEnabledLanguages[0];
+
+  return {
+    enabled: typeof raw.enabled === "boolean" ? raw.enabled : DEFAULT_LANGUAGE_SETTINGS.enabled,
+    mode: isBilingualLanguageList(safeEnabledLanguages) ? "bilingual" as const : "multilingual" as const,
+    defaultLanguage,
+    enabledLanguages: safeEnabledLanguages,
+  };
+}
+
+function isBilingualLanguageList(codes: readonly string[]) {
+  return codes.length === 2 && codes.includes("he") && codes.includes("en");
+}
 
 const DEFAULT_EMAIL_NOTIFICATION_SETTINGS = {
   contactForm: true,
@@ -429,7 +459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const setting = await storage.getSetting("language");
       if (setting) {
-        return res.json(setting.value);
+        return res.json(normalizeLanguageSettings(setting.value));
       }
       return res.json(DEFAULT_LANGUAGE_SETTINGS);
     } catch (error) {
@@ -454,7 +484,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: result.error.message });
       }
 
-      const setting = await storage.upsertSetting("language", result.data);
+      const normalized = normalizeLanguageSettings(result.data);
+      const setting = await storage.upsertSetting("language", normalized);
       return res.json(setting.value);
     } catch (error) {
       console.error("Error saving language settings:", error);

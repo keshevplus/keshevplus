@@ -184,11 +184,13 @@ var insertQuestionnaireSubmissionSchema = createInsertSchema2(questionnaireSubmi
 var insertAppointmentSchema = createInsertSchema2(appointments).omit({ id: true, createdAt: true });
 var insertClientSchema = createInsertSchema2(clients).omit({ id: true, createdAt: true });
 var insertClientActivitySchema = createInsertSchema2(clientActivities).omit({ id: true, createdAt: true });
-var SUPPORTED_LANGUAGES = ["he", "en", "fr", "es", "de", "ru", "am", "ar", "yi"];
+var SUPPORTED_LANGUAGES = ["he", "en", "fr", "es", "de", "ru", "am", "ar", "yi", "it"];
+var supportedLanguageSchema = z.enum(SUPPORTED_LANGUAGES);
 var languageSettingsSchema = z.object({
   enabled: z.boolean(),
   mode: z.enum(["bilingual", "multilingual"]),
-  defaultLanguage: z.enum(SUPPORTED_LANGUAGES)
+  defaultLanguage: supportedLanguageSchema,
+  enabledLanguages: z.array(supportedLanguageSchema).min(1).optional()
 });
 var widgetSettingsSchema = z.object({
   showChat: z.boolean().default(true),
@@ -2182,8 +2184,30 @@ var additionalTranslations = {
 var DEFAULT_LANGUAGE_SETTINGS = {
   enabled: false,
   mode: "bilingual",
-  defaultLanguage: "he"
+  defaultLanguage: "he",
+  enabledLanguages: ["he", "en"]
 };
+function normalizeLanguageSettings(value) {
+  const raw = typeof value === "object" && value !== null ? value : {};
+  const mode = raw.mode === "multilingual" ? "multilingual" : "bilingual";
+  const fallbackLanguages = mode === "multilingual" ? [...SUPPORTED_LANGUAGES] : ["he", "en"];
+  const requestedLanguages = Array.isArray(raw.enabledLanguages) ? raw.enabledLanguages : fallbackLanguages;
+  const enabledLanguages = Array.from(new Set(requestedLanguages)).filter(
+    (code) => typeof code === "string" && SUPPORTED_LANGUAGES.includes(code)
+  );
+  const safeEnabledLanguages = enabledLanguages.length ? enabledLanguages : ["he"];
+  const requestedDefault = typeof raw.defaultLanguage === "string" ? raw.defaultLanguage : DEFAULT_LANGUAGE_SETTINGS.defaultLanguage;
+  const defaultLanguage = safeEnabledLanguages.includes(requestedDefault) ? requestedDefault : safeEnabledLanguages[0];
+  return {
+    enabled: typeof raw.enabled === "boolean" ? raw.enabled : DEFAULT_LANGUAGE_SETTINGS.enabled,
+    mode: isBilingualLanguageList(safeEnabledLanguages) ? "bilingual" : "multilingual",
+    defaultLanguage,
+    enabledLanguages: safeEnabledLanguages
+  };
+}
+function isBilingualLanguageList(codes) {
+  return codes.length === 2 && codes.includes("he") && codes.includes("en");
+}
 var DEFAULT_EMAIL_NOTIFICATION_SETTINGS = {
   contactForm: true,
   appointments: true,
@@ -2381,7 +2405,7 @@ async function registerRoutes(app2) {
     try {
       const setting = await storage.getSetting("language");
       if (setting) {
-        return res.json(setting.value);
+        return res.json(normalizeLanguageSettings(setting.value));
       }
       return res.json(DEFAULT_LANGUAGE_SETTINGS);
     } catch (error) {
@@ -2403,7 +2427,8 @@ async function registerRoutes(app2) {
       if (!result.success) {
         return res.status(400).json({ error: result.error.message });
       }
-      const setting = await storage.upsertSetting("language", result.data);
+      const normalized = normalizeLanguageSettings(result.data);
+      const setting = await storage.upsertSetting("language", normalized);
       return res.json(setting.value);
     } catch (error) {
       console.error("Error saving language settings:", error);

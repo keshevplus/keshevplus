@@ -138,13 +138,16 @@ export type InsertClient = z.infer<typeof insertClientSchema>;
 export type ClientActivity = typeof clientActivities.$inferSelect;
 export type InsertClientActivity = z.infer<typeof insertClientActivitySchema>;
 
-export const SUPPORTED_LANGUAGES = ["he", "en", "fr", "es", "de", "ru", "am", "ar", "yi"] as const;
+export const SUPPORTED_LANGUAGES = ["he", "en", "fr", "es", "de", "ru", "am", "ar", "yi", "it"] as const;
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
+
+const supportedLanguageSchema = z.enum(SUPPORTED_LANGUAGES);
 
 export const languageSettingsSchema = z.object({
   enabled: z.boolean(),
   mode: z.enum(["bilingual", "multilingual"]),
-  defaultLanguage: z.enum(SUPPORTED_LANGUAGES),
+  defaultLanguage: supportedLanguageSchema,
+  enabledLanguages: z.array(supportedLanguageSchema).min(1).optional(),
 });
 
 export const widgetSettingsSchema = z.object({
