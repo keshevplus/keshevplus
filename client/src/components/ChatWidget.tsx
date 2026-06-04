@@ -331,7 +331,10 @@ const ChatWidget = () => {
   if (!open) {
     return (
       <div
-        className="fixed bottom-5 left-5 z-[9998]"
+        className={cn(
+          "fixed bottom-5 z-[9998] w-14",
+          isRTL ? "left-5" : "right-5"
+        )}
         style={{
           transition: 'opacity 0.3s ease, transform 0.3s ease',
           opacity: barVisible ? 1 : 0,
@@ -358,7 +361,10 @@ const ChatWidget = () => {
 
         {bubbleState === 'bar' && (
           <div
-            className="absolute bottom-1 left-[calc(100%+8px)] flex items-center gap-2 bg-background border border-border rounded-full py-2 px-4 shadow-md cursor-pointer whitespace-nowrap"
+            className={cn(
+              "absolute bottom-1 flex items-center gap-2 bg-background border border-border rounded-full py-2 px-4 shadow-md cursor-pointer whitespace-nowrap",
+              isRTL ? "left-[calc(100%+8px)]" : "right-[calc(100%+8px)]"
+            )}
             onClick={() => setOpen(true)}
             data-testid="chat-attention-bar"
           >
