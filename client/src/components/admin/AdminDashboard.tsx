@@ -27,6 +27,9 @@ import EmailNotificationSettings from './EmailNotificationSettings'
 import VisualEditor from './VisualEditor'
 import WhatsAppManager from './WhatsAppManager'
 
+const languageCodeClass = "inline-flex w-6 shrink-0 justify-center font-sans text-sm font-semibold leading-none text-muted-foreground"
+const languageNameClass = "font-sans text-sm leading-none"
+
 const AdminDashboard = () => {
   const { user, signOut } = useAuth()
   const { language } = useLanguage()
@@ -415,8 +418,8 @@ const AdminDashboard = () => {
                                   data-testid={`checkbox-language-${lang.code}`}
                                 />
                                 <span className="flex items-center gap-2">
-                                  <span role="img" aria-hidden="true">{lang.flag}</span>
-                                  <span>{lang.nativeName}</span>
+                                  <span className={languageCodeClass} aria-hidden="true">{lang.flag}</span>
+                                  <span className={languageNameClass}>{lang.nativeName}</span>
                                 </span>
                               </label>
                             )
@@ -441,8 +444,8 @@ const AdminDashboard = () => {
                             {availableForDefault.map(lang => (
                               <SelectItem key={lang.code} value={lang.code} data-testid={`option-default-${lang.code}`}>
                                 <span className="flex items-center gap-2">
-                                  <span role="img" aria-hidden="true">{lang.flag}</span>
-                                  <span>{lang.nativeName}</span>
+                                  <span className={languageCodeClass} aria-hidden="true">{lang.flag}</span>
+                                  <span className={languageNameClass}>{lang.nativeName}</span>
                                 </span>
                               </SelectItem>
                             ))}

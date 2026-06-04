@@ -29,6 +29,9 @@ import {
   Minimize2,
 } from 'lucide-react'
 
+const languageCodeClass = "inline-flex w-6 shrink-0 justify-center font-sans text-sm font-semibold leading-none text-muted-foreground"
+const languageNameClass = "font-sans text-sm leading-none"
+
 interface PendingEdit {
   key: string
   oldValue: string
@@ -414,8 +417,8 @@ export default function VisualEditor() {
                   {ALL_LANGUAGES.map((lang) => (
                     <SelectItem key={lang.code} value={lang.code} data-testid={`option-editor-lang-${lang.code}`}>
                       <span className="flex items-center gap-2">
-                        <span>{lang.flag}</span>
-                        <span>{lang.nativeName}</span>
+                        <span className={languageCodeClass} aria-hidden="true">{lang.flag}</span>
+                        <span className={languageNameClass}>{lang.nativeName}</span>
                       </span>
                     </SelectItem>
                   ))}

@@ -10,6 +10,9 @@ import { Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SupportedLanguage } from "@/i18n/config";
 
+const codeClass = "inline-flex w-6 shrink-0 justify-center font-sans text-sm font-semibold leading-none text-muted-foreground";
+const nameClass = "font-sans text-sm leading-none";
+
 export function LanguageSelector() {
   const { language, setLanguage, availableLanguages, settings, currentLanguageInfo } = useLanguage();
 
@@ -26,8 +29,8 @@ export function LanguageSelector() {
         data-testid="button-language-toggle"
         aria-label={`Switch to ${other.nativeName}`}
       >
-        <span className="text-base" role="img" aria-hidden="true">{other.flag}</span>
-        <span className="hidden sm:inline ml-1 text-sm">{other.nativeName}</span>
+        <span className={codeClass} aria-hidden="true">{other.flag}</span>
+        <span className={cn("hidden sm:inline ml-1", nameClass)}>{other.nativeName}</span>
       </Button>
     );
   }
@@ -43,8 +46,8 @@ export function LanguageSelector() {
         >
           {currentLanguageInfo ? (
             <>
-              <span className="text-base" role="img" aria-hidden="true">{currentLanguageInfo.flag}</span>
-              <span className="hidden sm:inline ml-1 text-sm">{currentLanguageInfo.nativeName}</span>
+              <span className={codeClass} aria-hidden="true">{currentLanguageInfo.flag}</span>
+              <span className={cn("hidden sm:inline ml-1", nameClass)}>{currentLanguageInfo.nativeName}</span>
             </>
           ) : (
             <Globe className="h-4 w-4" />
@@ -62,8 +65,8 @@ export function LanguageSelector() {
             )}
             data-testid={`menu-language-${lang.code}`}
           >
-            <span className="text-base" role="img" aria-hidden="true">{lang.flag}</span>
-            <span>{lang.nativeName}</span>
+            <span className={codeClass} aria-hidden="true">{lang.flag}</span>
+            <span className={nameClass}>{lang.nativeName}</span>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
