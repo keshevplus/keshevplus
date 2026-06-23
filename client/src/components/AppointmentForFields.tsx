@@ -18,11 +18,10 @@ interface AppointmentForFieldsProps {
 }
 
 const MIN_CHILD_AGE = 6
-const MAX_CHILD_AGE = 17
-const CHILD_AGE_OPTIONS = Array.from(
-  { length: MAX_CHILD_AGE - MIN_CHILD_AGE + 1 },
-  (_, index) => MIN_CHILD_AGE + index,
-)
+const minimumAgeMessage = {
+  he: 'הגיל המינימלי הוא 6',
+  en: 'Minimum age is 6',
+}
 
 export function AppointmentForFields({
   isHe,
@@ -42,10 +41,10 @@ export function AppointmentForFields({
 
     const next = Number(value)
     if (Number.isNaN(next)) return
-    if (next >= MIN_CHILD_AGE && next <= MAX_CHILD_AGE) {
-      onChildAgeChange(next)
-    }
+    onChildAgeChange(next)
   }
+
+  const showMinimumAgeMessage = childAge !== '' && childAge < MIN_CHILD_AGE
 
   return (
     <div className="space-y-3">
@@ -97,22 +96,27 @@ export function AppointmentForFields({
             <Label htmlFor="booking-child-age">{isHe ? 'גיל הילד' : 'Child Age'} *</Label>
             <Input
               id="booking-child-age"
-              type="text"
+              type="number"
               inputMode="numeric"
-              list="booking-child-age-options"
+              min={MIN_CHILD_AGE}
               value={childAge === '' ? '' : String(childAge)}
               onChange={(e) => handleAgeChange(e.target.value)}
-              placeholder={isHe ? '(בין 6-17)' : '(6-17)'}
-              pattern="^(6|7|8|9|1[0-7])$"
+              onInvalid={(e) => {
+                e.currentTarget.setCustomValidity(isHe ? minimumAgeMessage.he : minimumAgeMessage.en)
+              }}
+              onInput={(e) => e.currentTarget.setCustomValidity('')}
+              placeholder={isHe ? '(מינימום 6)' : '(minimum 6)'}
+              aria-invalid={showMinimumAgeMessage}
+              aria-describedby={showMinimumAgeMessage ? 'booking-child-age-error' : undefined}
               required
-              className={cn(inputClassName)}
+              className={cn(showMinimumAgeMessage && 'border-destructive focus-visible:ring-destructive', inputClassName)}
               data-testid="input-booking-child-age"
             />
-            <datalist id="booking-child-age-options">
-              {CHILD_AGE_OPTIONS.map((age) => (
-                <option key={age} value={age} />
-              ))}
-            </datalist>
+            {showMinimumAgeMessage && (
+              <p id="booking-child-age-error" className="rounded-md bg-destructive/10 px-2 py-1 text-xs text-destructive" role="tooltip">
+                {isHe ? minimumAgeMessage.he : minimumAgeMessage.en}
+              </p>
+            )}
           </div>
         </div>
       )}

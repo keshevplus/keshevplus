@@ -123,7 +123,7 @@ export const insertAppointmentSchema = createInsertSchema(appointments)
   .omit({ id: true, createdAt: true, approvedAt: true })
   .extend({
     appointmentFor: z.enum(["self", "child"]).default("self"),
-    childAge: z.number().int().min(6).max(17).optional().nullable(),
+    childAge: z.number().int().min(6).optional().nullable(),
   });
 export const insertClientSchema = createInsertSchema(clients).omit({ id: true, createdAt: true });
 export const insertClientActivitySchema = createInsertSchema(clientActivities).omit({ id: true, createdAt: true });

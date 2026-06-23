@@ -186,7 +186,7 @@ var insertTranslationSchema = createInsertSchema2(translations).omit({ id: true 
 var insertQuestionnaireSubmissionSchema = createInsertSchema2(questionnaireSubmissions).omit({ id: true, createdAt: true, reviewed: true });
 var insertAppointmentSchema = createInsertSchema2(appointments).omit({ id: true, createdAt: true, approvedAt: true }).extend({
   appointmentFor: z.enum(["self", "child"]).default("self"),
-  childAge: z.number().int().min(6).max(17).optional().nullable()
+  childAge: z.number().int().min(6).optional().nullable()
 });
 var insertClientSchema = createInsertSchema2(clients).omit({ id: true, createdAt: true });
 var insertClientActivitySchema = createInsertSchema2(clientActivities).omit({ id: true, createdAt: true });
@@ -3305,6 +3305,16 @@ ${resetUrl}
     try {
       const result = insertAppointmentSchema.safeParse(req.body);
       if (!result.success) {
+        const childAgeIssue = result.error.issues.find((issue) => issue.path.includes("childAge"));
+        if (childAgeIssue) {
+          return res.status(400).json({
+            success: false,
+            code: "minimum_child_age",
+            error: "Minimum age is 6.",
+            errorHe: "\u05D4\u05D2\u05D9\u05DC \u05D4\u05DE\u05D9\u05E0\u05D9\u05DE\u05DC\u05D9 \u05D4\u05D5\u05D0 6.",
+            errorEn: "Minimum age is 6."
+          });
+        }
         return res.status(400).json({ success: false, error: result.error.message });
       }
       const appointmentFor = result.data.appointmentFor || "self";

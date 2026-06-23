@@ -1329,6 +1329,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const result = insertAppointmentSchema.safeParse(req.body);
       if (!result.success) {
+        const childAgeIssue = result.error.issues.find((issue) => issue.path.includes("childAge"));
+        if (childAgeIssue) {
+          return res.status(400).json({
+            success: false,
+            code: "minimum_child_age",
+            error: "Minimum age is 6.",
+            errorHe: "הגיל המינימלי הוא 6.",
+            errorEn: "Minimum age is 6.",
+          });
+        }
         return res.status(400).json({ success: false, error: result.error.message });
       }
 
