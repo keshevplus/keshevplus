@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, Phone, Mail, User, Trash2, Filter } from "lucide-react";
+import { Calendar, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -77,6 +77,28 @@ const AppointmentsManager = () => {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  };
+
+  const formatAppointmentDate = (date: string) => {
+    const d = new Date(date);
+    return d.toLocaleDateString(isHe ? "he-IL" : "en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const formatCreatedAt = (date: string) => {
+    const d = new Date(date);
+    return d.toLocaleString(isHe ? "he-IL" : "en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
@@ -198,17 +220,35 @@ const AppointmentsManager = () => {
                         <span className="text-xs">WhatsApp</span>
                       </a>
                     )}
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {formatDate(appointment.date)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" />
-                      {appointment.time}
-                    </span>
                     <Badge variant="outline" className="no-default-hover-elevate no-default-active-elevate" data-testid={`badge-type-${appointment.id}`}>
                       {appointment.type}
                     </Badge>
+                  </div>
+                  <div className="border-t pt-3 mt-2 space-y-2">
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <span className="flex items-center gap-2 font-medium text-foreground">
+                        <CheckSquare className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        {isHe ? "הפגישה מתוזמנת ל:" : "Appointment scheduled for:"}
+                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center gap-1 font-semibold text-foreground">
+                          <Calendar className="w-4 h-4 text-primary" />
+                          {formatAppointmentDate(appointment.date)}
+                        </span>
+                        <span className="flex items-center gap-1 font-semibold text-foreground">
+                          <Clock className="w-4 h-4 text-primary" />
+                          {appointment.time}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 flex-wrap text-xs">
+                      <span className="text-muted-foreground">
+                        {isHe ? "בוקצה:" : "Booked on:"}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {formatCreatedAt(appointment.createdAt || new Date().toISOString())}
+                      </span>
+                    </div>
                   </div>
                 </div>
               );
