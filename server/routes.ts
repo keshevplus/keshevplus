@@ -5,6 +5,106 @@ import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, b
 import crypto from "crypto";
 import { z } from "zod";
 import nodemailer from "nodemailer";
+
+const APPOINTMENT_TIME_SLOTS = [
+  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+  "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
+  "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00",
+];
+
+const ACTIVE_APPOINTMENT_STATUSES = new Set(["pending", "confirmed"]);
+const CONTACT_PHONE = "055-27-399-27";
+const CONTACT_EMAIL = "info@keshevplus.co.il";
+const CONTACT_HOURS_HE = "א'-ה' 09:00-19:00";
+const CONTACT_HOURS_EN = "Sun-Thu 09:00-19:00";
+
+function normalizeName(value?: string | null) {
+  return (value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function normalizeEmail(value?: string | null) {
+  return (value || "").trim().toLowerCase();
+}
+
+function normalizePhone(value?: string | null) {
+  const digits = (value || "").replace(/\D/g, "");
+  if (digits.startsWith("972")) return `0${digits.slice(3)}`;
+  return digits;
+}
+
+function phonesMatch(a?: string | null, b?: string | null) {
+  const first = normalizePhone(a);
+  const second = normalizePhone(b);
+  if (!first || !second) return false;
+  return first === second || (first.length >= 7 && second.length >= 7 && (first.endsWith(second) || second.endsWith(first)));
+}
+
+function isActiveAppointmentStatus(status?: string | null) {
+  return ACTIVE_APPOINTMENT_STATUSES.has(status || "");
+}
+
+function sameAppointmentRequester(appointment: any, incoming: { clientName?: string | null; clientEmail?: string | null; clientPhone?: string | null }) {
+  const incomingName = normalizeName(incoming.clientName);
+  const incomingEmail = normalizeEmail(incoming.clientEmail);
+
+  return (
+    (!!incomingEmail && normalizeEmail(appointment.clientEmail) === incomingEmail) ||
+    (!!incomingName && normalizeName(appointment.clientName) === incomingName) ||
+    phonesMatch(appointment.clientPhone, incoming.clientPhone)
+  );
+}
+
+function getAvailableTimesForDate(allAppointments: any[], date: string) {
+  const bookedTimes = new Set(
+    allAppointments
+      .filter((appointment) => isActiveAppointmentStatus(appointment.status) && appointment.date === date)
+      .map((appointment) => appointment.time),
+  );
+
+  const now = new Date();
+  const today = now.toISOString().split("T")[0];
+
+  return APPOINTMENT_TIME_SLOTS.filter((time) => {
+    if (bookedTimes.has(time)) return false;
+    if (date !== today) return true;
+
+    const [hours, minutes] = time.split(":").map(Number);
+    const slotDate = new Date(now);
+    slotDate.setHours(hours || 0, minutes || 0, 0, 0);
+    return slotDate > now;
+  });
+}
+
+function findNextAvailableAppointmentDate(allAppointments: any[], fromDate = new Date()) {
+  const cursor = new Date(fromDate);
+  cursor.setHours(0, 0, 0, 0);
+
+  for (let i = 0; i < 180; i += 1) {
+    const date = cursor.toISOString().split("T")[0];
+    if (getAvailableTimesForDate(allAppointments, date).length > 0) return date;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return null;
+}
+
+function duplicateAppointmentMessage() {
+  return {
+    code: "existing_appointment",
+    error: `It looks like you already have a booked appointment or appointment request. To change it, please contact us: ${CONTACT_PHONE}, ${CONTACT_EMAIL}. Availability hours: ${CONTACT_HOURS_EN}.`,
+    errorHe: `נראה שכבר קיימת עבורך פגישה שנקבעה או ממתינה לאישור. אם תרצו לשנות אותה, צרו קשר: ${CONTACT_PHONE}, ${CONTACT_EMAIL}. שעות זמינות: ${CONTACT_HOURS_HE}.`,
+    errorEn: `It looks like you already have a booked appointment or appointment request. To change it, please contact us: ${CONTACT_PHONE}, ${CONTACT_EMAIL}. Availability hours: ${CONTACT_HOURS_EN}.`,
+  };
+}
+
+function unavailableSlotMessage() {
+  return {
+    code: "appointment_slot_unavailable",
+    error: "This appointment date and time are no longer available. Please choose another available time.",
+    errorHe: "התאריך והשעה שנבחרו כבר אינם זמינים. אנא בחרו מועד פנוי אחר.",
+    errorEn: "This appointment date and time are no longer available. Please choose another available time.",
+  };
+}
 import OpenAI from "openai";
 import { GoogleGenAI } from "@google/genai";
 import { eq } from "drizzle-orm";
@@ -1202,6 +1302,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ===== Appointment Routes =====
+  app.get("/api/appointments/availability", async (req, res) => {
+    try {
+      const requestedDate = typeof req.query.date === "string" ? req.query.date : undefined;
+      const allAppointments = await storage.getAppointments();
+      const nextAvailableDate = findNextAvailableAppointmentDate(allAppointments);
+      const date = requestedDate || nextAvailableDate || new Date().toISOString().split("T")[0];
+      const bookedTimes = allAppointments
+        .filter((appointment) => isActiveAppointmentStatus(appointment.status) && appointment.date === date)
+        .map((appointment) => appointment.time);
+
+      return res.json({
+        date,
+        availableTimes: getAvailableTimesForDate(allAppointments, date),
+        bookedTimes,
+        nextAvailableDate,
+        timeSlots: APPOINTMENT_TIME_SLOTS,
+      });
+    } catch (error) {
+      console.error("Appointment availability error:", error);
+      return res.status(500).json({ error: "Failed to fetch appointment availability" });
+    }
+  });
+
   app.post("/api/appointments", async (req, res) => {
     try {
       const result = insertAppointmentSchema.safeParse(req.body);
@@ -1219,8 +1342,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      const allAppointments = await storage.getAppointments();
+      const activeAppointments = allAppointments.filter((appointment) => isActiveAppointmentStatus(appointment.status));
+
+      const duplicateRequester = activeAppointments.find((appointment) => sameAppointmentRequester(appointment, result.data));
+      if (duplicateRequester) {
+        return res.status(400).json({ success: false, ...duplicateAppointmentMessage() });
+      }
+
+      const slotAlreadyBooked = activeAppointments.some((appointment) => (
+        appointment.date === result.data.date && appointment.time === result.data.time
+      ));
+      if (slotAlreadyBooked) {
+        return res.status(400).json({ success: false, ...unavailableSlotMessage() });
+      }
+
       if (childName && result.data.clientEmail) {
-        const existing = await storage.getActiveAppointmentForChild(result.data.clientEmail, childName);
+        const existing = allAppointments.find((appointment) => (
+          isActiveAppointmentStatus(appointment.status) &&
+          normalizeEmail(appointment.clientEmail) === normalizeEmail(result.data.clientEmail) &&
+          normalizeName(appointment.childName) === normalizeName(childName)
+        ));
         if (existing) {
           return res.status(400).json({ 
             success: false, 
