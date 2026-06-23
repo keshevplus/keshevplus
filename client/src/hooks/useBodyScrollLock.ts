@@ -2,6 +2,7 @@ import { useEffect } from "react";
 
 let activeLocks = 0;
 let previousBodyOverflow = "";
+let previousScrollbarGutter = "";
 
 export function useBodyScrollLock(locked: boolean) {
   useEffect(() => {
@@ -11,8 +12,10 @@ export function useBodyScrollLock(locked: boolean) {
 
     if (activeLocks === 0) {
       previousBodyOverflow = body.style.overflow;
+      previousScrollbarGutter = documentElement.style.scrollbarGutter;
 
       body.style.overflow = "hidden";
+      body.classList.add("app-modal-scroll-locked");
       documentElement.style.scrollbarGutter = "stable";
     }
 
@@ -23,6 +26,8 @@ export function useBodyScrollLock(locked: boolean) {
 
       if (activeLocks === 0) {
         body.style.overflow = previousBodyOverflow;
+        body.classList.remove("app-modal-scroll-locked");
+        documentElement.style.scrollbarGutter = previousScrollbarGutter;
       }
     };
   }, [locked]);

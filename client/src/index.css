@@ -188,6 +188,20 @@
     min-height: 100svh;
   }
 
+  body.app-modal-scroll-locked[data-scroll-locked] {
+    margin-right: 0 !important;
+    padding-right: 0 !important;
+    --removed-body-scroll-bar-size: 0px !important;
+  }
+
+  body.app-modal-scroll-locked .right-scroll-bar-position {
+    right: 0 !important;
+  }
+
+  body.app-modal-scroll-locked .width-before-scroll-bar {
+    margin-right: 0 !important;
+  }
+
   img, video, svg {
     max-width: 100%;
     height: auto;
