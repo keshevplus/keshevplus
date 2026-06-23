@@ -149,7 +149,9 @@ var appointments = pgTable2("appointments", {
   clientName: text2("client_name").notNull(),
   clientEmail: text2("client_email").notNull(),
   clientPhone: text2("client_phone").notNull(),
+  appointmentFor: text2("appointment_for").notNull().default("self"),
   childName: text2("child_name"),
+  childAge: integer2("child_age"),
   date: text2("date").notNull(),
   time: text2("time").notNull(),
   type: text2("type").notNull().default("consultation"),
@@ -182,7 +184,10 @@ var insertContactSchema = createInsertSchema2(contacts).omit({ id: true, created
 var insertSiteSettingSchema = createInsertSchema2(siteSettings).omit({ id: true });
 var insertTranslationSchema = createInsertSchema2(translations).omit({ id: true });
 var insertQuestionnaireSubmissionSchema = createInsertSchema2(questionnaireSubmissions).omit({ id: true, createdAt: true, reviewed: true });
-var insertAppointmentSchema = createInsertSchema2(appointments).omit({ id: true, createdAt: true, approvedAt: true });
+var insertAppointmentSchema = createInsertSchema2(appointments).omit({ id: true, createdAt: true, approvedAt: true }).extend({
+  appointmentFor: z.enum(["self", "child"]).default("self"),
+  childAge: z.number().int().min(6).max(17).optional().nullable()
+});
 var insertClientSchema = createInsertSchema2(clients).omit({ id: true, createdAt: true });
 var insertClientActivitySchema = createInsertSchema2(clientActivities).omit({ id: true, createdAt: true });
 var SUPPORTED_LANGUAGES = ["he", "en", "fr", "es", "de", "ru", "am", "ar", "yi", "it"];
@@ -3191,7 +3196,15 @@ ${resetUrl}
       if (!result.success) {
         return res.status(400).json({ success: false, error: result.error.message });
       }
-      const childName = result.data.childName || "";
+      const appointmentFor = result.data.appointmentFor || "self";
+      const childName = appointmentFor === "child" ? (result.data.childName || "").trim() : "";
+      const childAge = appointmentFor === "child" ? result.data.childAge : null;
+      if (appointmentFor === "child" && (!childName || !childAge)) {
+        return res.status(400).json({
+          success: false,
+          error: "\u05D9\u05E9 \u05DC\u05DE\u05DC\u05D0 \u05E9\u05DD \u05D9\u05DC\u05D3/\u05D4 \u05D5\u05D2\u05D9\u05DC \u05E2\u05D1\u05D5\u05E8 \u05E4\u05D2\u05D9\u05E9\u05D4 \u05DC\u05D9\u05DC\u05D3/\u05D4."
+        });
+      }
       if (childName && result.data.clientEmail) {
         const existing = await storage.getActiveAppointmentForChild(result.data.clientEmail, childName);
         if (existing) {
@@ -3212,7 +3225,12 @@ ${resetUrl}
       } catch (e) {
         console.error("Auto-register client error:", e);
       }
-      const appointment = await storage.createAppointment(result.data);
+      const appointment = await storage.createAppointment({
+        ...result.data,
+        appointmentFor,
+        childName: childName || null,
+        childAge
+      });
       const notifSettings = await getEmailNotificationSettings();
       if (notifSettings.appointments) {
         await sendNotificationEmail(
@@ -3220,6 +3238,9 @@ ${resetUrl}
           `\u05E9\u05DD: ${result.data.clientName}
 \u05D8\u05DC\u05E4\u05D5\u05DF: ${result.data.clientPhone}
 \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC: ${result.data.clientEmail}
+\u05E2\u05D1\u05D5\u05E8: ${appointmentFor === "child" ? "\u05D4\u05D9\u05DC\u05D3/\u05D4" : "\u05D4\u05E4\u05D5\u05E0\u05D4"}
+\u05E9\u05DD \u05D4\u05D9\u05DC\u05D3/\u05D4: ${childName || "\u05DC\u05D0 \u05E8\u05DC\u05D5\u05D5\u05E0\u05D8\u05D9"}
+\u05D2\u05D9\u05DC \u05D4\u05D9\u05DC\u05D3: ${childAge || "\u05DC\u05D0 \u05E8\u05DC\u05D5\u05D5\u05E0\u05D8\u05D9"}
 \u05EA\u05D0\u05E8\u05D9\u05DA: ${result.data.date}
 \u05E9\u05E2\u05D4: ${result.data.time}
 \u05E1\u05D5\u05D2: ${result.data.type || "consultation"}
