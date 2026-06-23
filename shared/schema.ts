@@ -81,7 +81,9 @@ export const appointments = pgTable("appointments", {
   clientName: text("client_name").notNull(),
   clientEmail: text("client_email").notNull(),
   clientPhone: text("client_phone").notNull(),
+  appointmentFor: text("appointment_for").notNull().default("self"),
   childName: text("child_name"),
+  childAge: integer("child_age"),
   date: text("date").notNull(),
   time: text("time").notNull(),
   type: text("type").notNull().default("consultation"),
@@ -117,7 +119,12 @@ export const insertContactSchema = createInsertSchema(contacts).omit({ id: true,
 export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({ id: true });
 export const insertTranslationSchema = createInsertSchema(translations).omit({ id: true });
 export const insertQuestionnaireSubmissionSchema = createInsertSchema(questionnaireSubmissions).omit({ id: true, createdAt: true, reviewed: true });
-export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true, createdAt: true, approvedAt: true });
+export const insertAppointmentSchema = createInsertSchema(appointments)
+  .omit({ id: true, createdAt: true, approvedAt: true })
+  .extend({
+    appointmentFor: z.enum(["self", "child"]).default("self"),
+    childAge: z.number().int().min(6).max(17).optional().nullable(),
+  });
 export const insertClientSchema = createInsertSchema(clients).omit({ id: true, createdAt: true });
 export const insertClientActivitySchema = createInsertSchema(clientActivities).omit({ id: true, createdAt: true });
 
