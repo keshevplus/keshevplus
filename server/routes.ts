@@ -1209,7 +1209,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, error: result.error.message });
       }
 
-      const childName = result.data.childName || '';
+      const appointmentFor = result.data.appointmentFor || 'self';
+      const childName = appointmentFor === 'child' ? (result.data.childName || '').trim() : '';
+      const childAge = appointmentFor === 'child' ? result.data.childAge : null;
+      if (appointmentFor === 'child' && (!childName || !childAge)) {
+        return res.status(400).json({
+          success: false,
+          error: "יש למלא שם ילד/ה וגיל עבור פגישה לילד/ה.",
+        });
+      }
+
       if (childName && result.data.clientEmail) {
         const existing = await storage.getActiveAppointmentForChild(result.data.clientEmail, childName);
         if (existing) {
@@ -1230,13 +1239,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } catch (e) { console.error("Auto-register client error:", e); }
 
-      const appointment = await storage.createAppointment(result.data);
+      const appointment = await storage.createAppointment({
+        ...result.data,
+        appointmentFor,
+        childName: childName || null,
+        childAge,
+      });
 
       const notifSettings = await getEmailNotificationSettings();
       if (notifSettings.appointments) {
         await sendNotificationEmail(
           `פגישה חדשה נקבעה - ${result.data.clientName}`,
-          `שם: ${result.data.clientName}\nטלפון: ${result.data.clientPhone}\nאימייל: ${result.data.clientEmail}\nתאריך: ${result.data.date}\nשעה: ${result.data.time}\nסוג: ${result.data.type || 'consultation'}\nהערות: ${result.data.notes || 'אין'}`
+          `שם: ${result.data.clientName}\nטלפון: ${result.data.clientPhone}\nאימייל: ${result.data.clientEmail}\nעבור: ${appointmentFor === 'child' ? 'הילד/ה' : 'הפונה'}\nשם הילד/ה: ${childName || 'לא רלוונטי'}\nגיל הילד: ${childAge || 'לא רלוונטי'}\nתאריך: ${result.data.date}\nשעה: ${result.data.time}\nסוג: ${result.data.type || 'consultation'}\nהערות: ${result.data.notes || 'אין'}`
         );
       }
 

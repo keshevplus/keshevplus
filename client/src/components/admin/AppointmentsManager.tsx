@@ -314,6 +314,18 @@ const AppointmentsManager = () => {
                     <Badge variant="outline" className="no-default-hover-elevate no-default-active-elevate" data-testid={`badge-type-${appointment.id}`}>
                       {appointment.type}
                     </Badge>
+                    <Badge variant="outline" className="no-default-hover-elevate no-default-active-elevate">
+                      {(appointment as any).appointmentFor === "child"
+                        ? (isHe ? "עבור הילד/ה" : "For the child")
+                        : (isHe ? "עבורי" : "For me")}
+                    </Badge>
+                    {(appointment as any).appointmentFor === "child" && appointment.childName && (
+                      <span className="flex items-center gap-1">
+                        <User className="w-3.5 h-3.5" />
+                        {appointment.childName}
+                        {(appointment as any).childAge ? `, ${isHe ? "גיל" : "age"} ${(appointment as any).childAge}` : ""}
+                      </span>
+                    )}
                   </div>
                   <div className="border-t pt-3 mt-2 space-y-2">
                     <div className="flex items-center justify-between gap-4 flex-wrap">
