@@ -9,6 +9,7 @@ import { Calendar, Clock, CheckCircle, X } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { apiRequest } from '@/lib/queryClient'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { AppointmentForFields, type AppointmentFor } from '@/components/AppointmentForFields'
 
 const APPOINTMENT_TYPES = [
   { value: 'consultation', he: 'ייעוץ ראשוני', en: 'Initial Consultation' },
@@ -38,7 +39,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
     clientName: '',
     clientEmail: '',
     clientPhone: '',
+    appointmentFor: 'self' as AppointmentFor,
     childName: '',
+    childAge: 6,
     date: '',
     time: '',
     type: 'consultation',
@@ -49,7 +52,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.clientName || !form.clientEmail || !form.clientPhone || !form.date || !form.time) {
+    if (!form.clientName || !form.clientEmail || !form.clientPhone || !form.date || !form.time || (form.appointmentFor === 'child' && !form.childName.trim())) {
       toast({
         title: isHe ? 'שגיאה' : 'Error',
         description: isHe ? 'אנא מלאו את כל השדות הנדרשים' : 'Please fill all required fields',
@@ -59,7 +62,11 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
     }
     setSubmitting(true)
     try {
-      await apiRequest('POST', '/api/appointments', form)
+      await apiRequest('POST', '/api/appointments', {
+        ...form,
+        childName: form.appointmentFor === 'child' ? form.childName.trim() : null,
+        childAge: form.appointmentFor === 'child' ? form.childAge : null,
+      })
       setSubmitted(true)
       toast({
         title: isHe ? 'הפגישה נקבעה!' : 'Appointment Booked!',
@@ -85,7 +92,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
         clientName: '',
         clientEmail: '',
         clientPhone: '',
+        appointmentFor: 'self',
         childName: '',
+        childAge: 6,
         date: '',
         time: '',
         type: 'consultation',
@@ -189,16 +198,20 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="booking-child">{isHe ? 'שם הילד/ה' : 'Child Name'}</Label>
-                <Input
-                  id="booking-child"
-                  value={form.childName}
-                  onChange={(e) => setForm(f => ({ ...f, childName: e.target.value }))}
-                  placeholder={isHe ? 'שם הילד/ה (אם רלוונטי)' : 'Child name (if applicable)'}
-                  data-testid="input-booking-child-name"
-                />
-              </div>
+              <AppointmentForFields
+                isHe={isHe}
+                appointmentFor={form.appointmentFor}
+                childName={form.childName}
+                childAge={form.childAge}
+                onAppointmentForChange={(appointmentFor) => setForm(f => ({
+                  ...f,
+                  appointmentFor,
+                  childName: appointmentFor === 'self' ? '' : f.childName,
+                  childAge: appointmentFor === 'self' ? 6 : f.childAge,
+                }))}
+                onChildNameChange={(childName) => setForm(f => ({ ...f, childName }))}
+                onChildAgeChange={(childAge) => setForm(f => ({ ...f, childAge }))}
+              />
 
               <div className="space-y-1.5">
                 <Label htmlFor="booking-type">{isHe ? 'סוג הפגישה' : 'Appointment Type'} *</Label>
