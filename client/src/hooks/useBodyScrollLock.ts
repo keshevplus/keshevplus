@@ -2,7 +2,6 @@ import { useEffect } from "react";
 
 let activeLocks = 0;
 let previousBodyOverflow = "";
-let previousBodyPaddingRight = "";
 
 export function useBodyScrollLock(locked: boolean) {
   useEffect(() => {
@@ -12,15 +11,9 @@ export function useBodyScrollLock(locked: boolean) {
 
     if (activeLocks === 0) {
       previousBodyOverflow = body.style.overflow;
-      previousBodyPaddingRight = body.style.paddingRight;
-
-      const scrollbarWidth = window.innerWidth - documentElement.clientWidth;
-      const bodyPaddingRight = parseFloat(window.getComputedStyle(body).paddingRight) || 0;
 
       body.style.overflow = "hidden";
-      if (scrollbarWidth > 0) {
-        body.style.paddingRight = `${bodyPaddingRight + scrollbarWidth}px`;
-      }
+      documentElement.style.scrollbarGutter = "stable";
     }
 
     activeLocks += 1;
@@ -30,7 +23,6 @@ export function useBodyScrollLock(locked: boolean) {
 
       if (activeLocks === 0) {
         body.style.overflow = previousBodyOverflow;
-        body.style.paddingRight = previousBodyPaddingRight;
       }
     };
   }, [locked]);

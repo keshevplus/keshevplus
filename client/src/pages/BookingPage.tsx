@@ -28,6 +28,7 @@ const TIME_SLOTS = [
 const BookingPage = () => {
   const { language } = useLanguage()
   const isHe = language === 'he'
+  const isRTL = language === 'he' || language === 'ar' || language === 'yi'
   const { toast } = useToast()
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -109,7 +110,7 @@ const BookingPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-primary/90" dir={isHe ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen bg-primary/90" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="max-w-2xl mx-auto px-4 py-12">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2 text-white">
@@ -194,13 +195,13 @@ const BookingPage = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="type">{isHe ? 'סוג הפגישה' : 'Appointment Type'} *</Label>
-                <Select value={form.type} onValueChange={(v) => setForm(f => ({ ...f, type: v }))}>
-                  <SelectTrigger data-testid="select-booking-type" className="bg-white dark:bg-white/90">
+                <Select value={form.type} onValueChange={(v) => setForm(f => ({ ...f, type: v }))} dir={isRTL ? 'rtl' : 'ltr'}>
+                  <SelectTrigger data-testid="select-booking-type" className={`bg-white dark:bg-white/90 ${isRTL ? 'text-right' : 'text-left'}`}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent dir={isRTL ? 'rtl' : 'ltr'} className={isRTL ? 'text-right' : 'text-left'}>
                     {APPOINTMENT_TYPES.map(t => (
-                      <SelectItem key={t.value} value={t.value}>
+                      <SelectItem key={t.value} value={t.value} className={isRTL ? 'pr-8 pl-2 text-right' : 'text-left'}>
                         {isHe ? t.he : t.en}
                       </SelectItem>
                     ))}
@@ -230,13 +231,13 @@ const BookingPage = () => {
                     <Clock className="h-4 w-4" />
                     {isHe ? 'שעה' : 'Time'} *
                   </Label>
-                  <Select value={form.time} onValueChange={(v) => setForm(f => ({ ...f, time: v }))}>
-                    <SelectTrigger data-testid="select-booking-time" className="bg-white dark:bg-white/90">
+                  <Select value={form.time} onValueChange={(v) => setForm(f => ({ ...f, time: v }))} dir={isRTL ? 'rtl' : 'ltr'}>
+                    <SelectTrigger data-testid="select-booking-time" className={`bg-white dark:bg-white/90 ${isRTL ? 'text-right' : 'text-left'}`}>
                       <SelectValue placeholder={isHe ? 'בחרו שעה' : 'Select time'} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent dir={isRTL ? 'rtl' : 'ltr'} className={isRTL ? 'text-right' : 'text-left'}>
                       {TIME_SLOTS.map(t => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                        <SelectItem key={t} value={t} className={isRTL ? 'pr-8 pl-2 text-right' : 'text-left'}>{t}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

@@ -32,6 +32,7 @@ interface BookingModalProps {
 const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
   const { language } = useLanguage()
   const isHe = language === 'he'
+  const isRTL = language === 'he' || language === 'ar' || language === 'yi'
   const { toast } = useToast()
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -117,7 +118,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
 
       <div
         className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl border-2 border-primary bg-background shadow-2xl pt-4 sm:pt-6"
-        dir={isHe ? 'rtl' : 'ltr'}
+        dir={isRTL ? 'rtl' : 'ltr'}
         data-testid="booking-modal-content"
       >
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 pt-5 pb-4 border-b border-border bg-background rounded-t-xl">
@@ -215,13 +216,13 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
 
               <div className="space-y-1.5">
                 <Label htmlFor="booking-type">{isHe ? 'סוג הפגישה' : 'Appointment Type'} *</Label>
-                <Select value={form.type} onValueChange={(v) => setForm(f => ({ ...f, type: v }))}>
-                  <SelectTrigger data-testid="select-booking-type">
+                <Select value={form.type} onValueChange={(v) => setForm(f => ({ ...f, type: v }))} dir={isRTL ? 'rtl' : 'ltr'}>
+                  <SelectTrigger data-testid="select-booking-type" className={isRTL ? 'text-right' : 'text-left'}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent dir={isRTL ? 'rtl' : 'ltr'} className={isRTL ? 'text-right' : 'text-left'}>
                     {APPOINTMENT_TYPES.map(t => (
-                      <SelectItem key={t.value} value={t.value}>
+                      <SelectItem key={t.value} value={t.value} className={isRTL ? 'pr-8 pl-2 text-right' : 'text-left'}>
                         {isHe ? t.he : t.en}
                       </SelectItem>
                     ))}
@@ -250,13 +251,13 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
                     <Clock className="h-4 w-4" />
                     {isHe ? 'שעה' : 'Time'} *
                   </Label>
-                  <Select value={form.time} onValueChange={(v) => setForm(f => ({ ...f, time: v }))}>
-                    <SelectTrigger data-testid="select-booking-time">
+                  <Select value={form.time} onValueChange={(v) => setForm(f => ({ ...f, time: v }))} dir={isRTL ? 'rtl' : 'ltr'}>
+                    <SelectTrigger data-testid="select-booking-time" className={isRTL ? 'text-right' : 'text-left'}>
                       <SelectValue placeholder={isHe ? 'בחרו שעה' : 'Select time'} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent dir={isRTL ? 'rtl' : 'ltr'} className={isRTL ? 'text-right' : 'text-left'}>
                       {TIME_SLOTS.map(t => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                        <SelectItem key={t} value={t} className={isRTL ? 'pr-8 pl-2 text-right' : 'text-left'}>{t}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
