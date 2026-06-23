@@ -88,6 +88,7 @@ export const appointments = pgTable("appointments", {
   status: text("status").notNull().default("pending"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  approvedAt: timestamp("approved_at"),
 });
 
 export const clients = pgTable("clients", {
@@ -116,7 +117,7 @@ export const insertContactSchema = createInsertSchema(contacts).omit({ id: true,
 export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({ id: true });
 export const insertTranslationSchema = createInsertSchema(translations).omit({ id: true });
 export const insertQuestionnaireSubmissionSchema = createInsertSchema(questionnaireSubmissions).omit({ id: true, createdAt: true, reviewed: true });
-export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true, createdAt: true });
+export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true, createdAt: true, approvedAt: true });
 export const insertClientSchema = createInsertSchema(clients).omit({ id: true, createdAt: true });
 export const insertClientActivitySchema = createInsertSchema(clientActivities).omit({ id: true, createdAt: true });
 

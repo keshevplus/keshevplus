@@ -155,7 +155,8 @@ var appointments = pgTable2("appointments", {
   type: text2("type").notNull().default("consultation"),
   status: text2("status").notNull().default("pending"),
   notes: text2("notes"),
-  createdAt: timestamp2("created_at").defaultNow().notNull()
+  createdAt: timestamp2("created_at").defaultNow().notNull(),
+  approvedAt: timestamp2("approved_at")
 });
 var clients = pgTable2("clients", {
   id: serial2("id").primaryKey(),
@@ -181,7 +182,7 @@ var insertContactSchema = createInsertSchema2(contacts).omit({ id: true, created
 var insertSiteSettingSchema = createInsertSchema2(siteSettings).omit({ id: true });
 var insertTranslationSchema = createInsertSchema2(translations).omit({ id: true });
 var insertQuestionnaireSubmissionSchema = createInsertSchema2(questionnaireSubmissions).omit({ id: true, createdAt: true, reviewed: true });
-var insertAppointmentSchema = createInsertSchema2(appointments).omit({ id: true, createdAt: true });
+var insertAppointmentSchema = createInsertSchema2(appointments).omit({ id: true, createdAt: true, approvedAt: true });
 var insertClientSchema = createInsertSchema2(clients).omit({ id: true, createdAt: true });
 var insertClientActivitySchema = createInsertSchema2(clientActivities).omit({ id: true, createdAt: true });
 var SUPPORTED_LANGUAGES = ["he", "en", "fr", "es", "de", "ru", "am", "ar", "yi", "it"];
@@ -402,7 +403,13 @@ var DatabaseStorage = class {
     return a || void 0;
   }
   async updateAppointmentStatus(id, status) {
-    const [updated] = await db.update(appointments).set({ status }).where(eq(appointments.id, id)).returning();
+    const existing = await this.getAppointment(id);
+    if (!existing) return void 0;
+    const updates = { status };
+    if (status === "confirmed" && !existing.approvedAt) {
+      updates.approvedAt = /* @__PURE__ */ new Date();
+    }
+    const [updated] = await db.update(appointments).set(updates).where(eq(appointments.id, id)).returning();
     return updated || void 0;
   }
   async createClient(client) {

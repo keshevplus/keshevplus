@@ -30,20 +30,21 @@ const AppointmentsManager = () => {
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const queryUrl = statusFilter === "all" ? "/api/appointments" : `/api/appointments?status=${statusFilter}`;
-  const { data: appointments = [], isLoading } = useQuery<Appointment[]>({
-    queryKey: [queryUrl],
+  const { data: allAppointments = [], isLoading } = useQuery<Appointment[]>({
+    queryKey: ["/api/appointments"],
   });
+
+  const appointments = useMemo(() => {
+    if (statusFilter === "all") return allAppointments;
+    return allAppointments.filter((appointment) => appointment.status === statusFilter);
+  }, [allAppointments, statusFilter]);
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
       await apiRequest("PATCH", `/api/appointments/${id}/status`, { status });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ predicate: (query) => {
-        const key = query.queryKey[0];
-        return typeof key === "string" && key.startsWith("/api/appointments");
-      }});
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
       toast({
         title: isHe ? "הסטטוס עודכן" : "Status updated",
         description: isHe ? "סטטוס הפגישה עודכן בהצלחה." : "Appointment status has been updated successfully.",
@@ -63,7 +64,7 @@ const AppointmentsManager = () => {
       await apiRequest("DELETE", `/api/appointments/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [queryUrl] });
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
       toast({
         title: isHe ? "הפגישה נמחקה" : "Appointment deleted",
         description: isHe ? "הפגישה נמחקה בהצלחה." : "Appointment has been deleted successfully.",
@@ -71,20 +72,16 @@ const AppointmentsManager = () => {
     },
   });
 
-  const formatDate = (date: string) => {
-    const d = new Date(date);
-    return d.toLocaleString(isHe ? "he-IL" : "en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
+  const parseDateOnly = (date: string) => {
+    const [year, month, day] = date.split("-").map(Number);
+    if (year && month && day) {
+      return new Date(year, month - 1, day);
+    }
+    return new Date(date);
   };
 
   const formatAppointmentDate = (date: string) => {
-    const d = new Date(date);
+    const d = parseDateOnly(date);
     return d.toLocaleDateString(isHe ? "he-IL" : "en-US", {
       weekday: "short",
       year: "numeric",
@@ -93,8 +90,26 @@ const AppointmentsManager = () => {
     });
   };
 
-  const formatCreatedAt = (date: string) => {
+  const formatAppointmentTime = (time: string) => {
+    return time ? time.slice(0, 5) : "";
+  };
+
+  const getAppointmentStart = (appointment: Appointment) => {
+    const [year, month, day] = appointment.date.split("-").map(Number);
+    const [hour = 0, minute = 0] = appointment.time.split(":").map(Number);
+
+    if (year && month && day) {
+      return new Date(year, month - 1, day, hour, minute);
+    }
+
+    return new Date(appointment.date);
+  };
+
+  const formatTimestamp = (date?: string | Date | null) => {
+    if (!date) return isHe ? "לא תועד" : "Not recorded";
     const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return isHe ? "לא תועד" : "Not recorded";
+
     return d.toLocaleString(isHe ? "he-IL" : "en-US", {
       year: "numeric",
       month: "short",
@@ -104,6 +119,27 @@ const AppointmentsManager = () => {
       second: "2-digit",
     });
   };
+
+  const upcomingAppointments = useMemo(() => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    return allAppointments
+      .filter((appointment) => {
+        if (!["pending", "confirmed"].includes(appointment.status)) return false;
+        return getAppointmentStart(appointment) >= startOfToday;
+      })
+      .sort((a, b) => getAppointmentStart(a).getTime() - getAppointmentStart(b).getTime());
+  }, [allAppointments]);
+
+  const groupedUpcomingAppointments = useMemo(() => {
+    return upcomingAppointments.reduce<Record<string, Appointment[]>>((groups, appointment) => {
+      const key = appointment.date;
+      groups[key] = groups[key] || [];
+      groups[key].push(appointment);
+      return groups;
+    }, {});
+  }, [upcomingAppointments]);
 
   return (
     <Card>
@@ -137,15 +173,70 @@ const AppointmentsManager = () => {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
-        ) : appointments.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground" data-testid="empty-appointments">
-            <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>{isHe ? "אין פגישות להצגה" : "No appointments to display"}</p>
-          </div>
         ) : (
-          <div className="space-y-3">
-            {appointments.map((appointment) => {
-              const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
+          <div className="space-y-4">
+            <div className="rounded-lg border bg-muted/20 p-4 space-y-3" data-testid="appointments-calendar">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-foreground">
+                    {isHe ? "יומן פגישות קרובות" : "Upcoming appointments calendar"}
+                  </h3>
+                </div>
+                <Badge variant="outline" className="no-default-hover-elevate no-default-active-elevate">
+                  {upcomingAppointments.length} {isHe ? "קרובות" : "upcoming"}
+                </Badge>
+              </div>
+              {upcomingAppointments.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {isHe ? "אין פגישות קרובות להצגה." : "No upcoming appointments to display."}
+                </p>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {Object.entries(groupedUpcomingAppointments).map(([date, items]) => (
+                    <div key={date} className="rounded-md border bg-background p-3">
+                      <div className="font-medium text-sm text-foreground">
+                        {formatAppointmentDate(date)}
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        {items.map((appointment) => {
+                          const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
+
+                          return (
+                            <div key={appointment.id} className="rounded-md bg-muted/50 p-2 text-sm">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="flex items-center gap-1 font-semibold text-foreground">
+                                  <Clock className="h-3.5 w-3.5 text-primary" />
+                                  {formatAppointmentTime(appointment.time)}
+                                </span>
+                                <Badge
+                                  variant="secondary"
+                                  className={`no-default-hover-elevate no-default-active-elevate ${statusInfo.color}`}
+                                >
+                                  {isHe ? statusInfo.he : statusInfo.en}
+                                </Badge>
+                              </div>
+                              <div className="mt-1 font-medium text-foreground">{appointment.clientName}</div>
+                              <div className="text-xs text-muted-foreground">{appointment.type}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {appointments.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground" data-testid="empty-appointments">
+                <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>{isHe ? "אין פגישות להצגה" : "No appointments to display"}</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {appointments.map((appointment) => {
+                  const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
 
               return (
                 <div
@@ -228,7 +319,7 @@ const AppointmentsManager = () => {
                     <div className="flex items-center justify-between gap-4 flex-wrap">
                       <span className="flex items-center gap-2 font-medium text-foreground">
                         <CheckSquare className="w-4 h-4 text-green-600 dark:text-green-400" />
-                        {isHe ? "הפגישה מתוזמנת ל:" : "Appointment scheduled for:"}
+                        {isHe ? "הפגישה נקבעה ל:" : "Appointment scheduled for:"}
                       </span>
                       <div className="flex items-center gap-3">
                         <span className="flex items-center gap-1 font-semibold text-foreground">
@@ -237,22 +328,32 @@ const AppointmentsManager = () => {
                         </span>
                         <span className="flex items-center gap-1 font-semibold text-foreground">
                           <Clock className="w-4 h-4 text-primary" />
-                          {appointment.time}
+                          {formatAppointmentTime(appointment.time)}
                         </span>
                       </div>
                     </div>
                     <div className="flex items-center justify-between gap-4 flex-wrap text-xs">
                       <span className="text-muted-foreground">
-                        {isHe ? "בוקצה:" : "Booked on:"}
+                        {isHe ? "הטופס נשלח ב:" : "Form submitted:"}
                       </span>
                       <span className="text-muted-foreground">
-                        {formatCreatedAt(appointment.createdAt || new Date().toISOString())}
+                        {formatTimestamp(appointment.createdAt)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 flex-wrap text-xs">
+                      <span className="text-muted-foreground">
+                        {isHe ? "אושר ב:" : "Approved on:"}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {formatTimestamp(appointment.approvedAt)}
                       </span>
                     </div>
                   </div>
                 </div>
               );
-            })}
+                })}
+              </div>
+            )}
           </div>
         )}
       </CardContent>

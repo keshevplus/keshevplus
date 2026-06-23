@@ -319,8 +319,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateAppointmentStatus(id: number, status: string): Promise<Appointment | undefined> {
+    const existing = await this.getAppointment(id);
+    if (!existing) return undefined;
+
+    const updates: Partial<Appointment> = { status };
+    if (status === "confirmed" && !existing.approvedAt) {
+      updates.approvedAt = new Date();
+    }
+
     const [updated] = await db.update(appointments)
-      .set({ status } as any)
+      .set(updates as any)
       .where(eq(appointments.id, id))
       .returning();
     return updated || undefined;
