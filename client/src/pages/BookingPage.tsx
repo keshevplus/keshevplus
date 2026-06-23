@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,6 +11,13 @@ import { useToast } from '@/hooks/use-toast'
 import { apiRequest } from '@/lib/queryClient'
 import { Link } from 'wouter'
 import { AppointmentForFields, type AppointmentFor } from '@/components/AppointmentForFields'
+import {
+  APPOINTMENT_TIME_SLOTS,
+  type AppointmentAvailability,
+  fetchAppointmentAvailability,
+  getAppointmentSubmitError,
+  getLocalDateInputValue,
+} from '@/lib/appointmentAvailability'
 
 const APPOINTMENT_TYPES = [
   { value: 'consultation', he: 'ייעוץ ראשוני', en: 'Initial Consultation' },
@@ -19,19 +26,16 @@ const APPOINTMENT_TYPES = [
   { value: 'treatment', he: 'טיפול', en: 'Treatment' },
 ]
 
-const TIME_SLOTS = [
-  '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-  '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-  '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00',
-]
-
 const BookingPage = () => {
   const { language } = useLanguage()
   const isHe = language === 'he'
   const isRTL = language === 'he' || language === 'ar' || language === 'yi'
   const { toast } = useToast()
+  const dateInputRef = useRef<HTMLInputElement>(null)
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [availability, setAvailability] = useState<AppointmentAvailability | null>(null)
+  const [availabilityLoading, setAvailabilityLoading] = useState(false)
   const [form, setForm] = useState({
     clientName: '',
     clientEmail: '',
@@ -44,6 +48,65 @@ const BookingPage = () => {
     type: 'consultation',
     notes: '',
   })
+
+  const loadAvailability = async (date?: string) => {
+    setAvailabilityLoading(true)
+    try {
+      const nextAvailability = await fetchAppointmentAvailability(date)
+      setAvailability(nextAvailability)
+      return nextAvailability
+    } finally {
+      setAvailabilityLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadAvailability().catch(() => undefined)
+  }, [])
+
+  const handleDatePickerOpen = async () => {
+    dateInputRef.current?.showPicker?.()
+
+    try {
+      const currentAvailability = availability || await loadAvailability()
+      if (!form.date && currentAvailability.nextAvailableDate) {
+        const nextAvailability = await loadAvailability(currentAvailability.nextAvailableDate)
+        setForm(f => ({
+          ...f,
+          date: currentAvailability.nextAvailableDate || '',
+          time: nextAvailability.availableTimes.includes(f.time) ? f.time : '',
+        }))
+      }
+    } catch {
+      // The server still validates availability during submission.
+    }
+  }
+
+  const handleDateChange = async (date: string) => {
+    setForm(f => ({ ...f, date, time: '' }))
+
+    try {
+      const nextAvailability = await loadAvailability(date)
+      if (nextAvailability.availableTimes.length === 0 && nextAvailability.nextAvailableDate && nextAvailability.nextAvailableDate !== date) {
+        const nearestAvailability = await loadAvailability(nextAvailability.nextAvailableDate)
+        setForm(f => ({
+          ...f,
+          date: nextAvailability.nextAvailableDate || f.date,
+          time: nearestAvailability.availableTimes.includes(f.time) ? f.time : '',
+        }))
+        toast({
+          title: isHe ? 'המועד אינו פנוי' : 'Date unavailable',
+          description: isHe ? 'בחרנו עבורך את התאריך הפנוי הקרוב ביותר.' : 'We selected the closest available date.',
+        })
+      }
+    } catch {
+      toast({
+        title: isHe ? 'שגיאה' : 'Error',
+        description: isHe ? 'לא הצלחנו לבדוק זמינות. נסו שוב.' : 'Could not check availability. Please try again.',
+        variant: 'destructive',
+      })
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -68,10 +131,10 @@ const BookingPage = () => {
         description: isHe ? 'נחזור אליכם לאישור בהקדם' : 'We will confirm your appointment shortly',
       })
     } catch (err: any) {
-      const msg = err?.message || '';
+      const msg = getAppointmentSubmitError(err, isHe)
       toast({
         title: isHe ? 'שגיאה' : 'Error',
-        description: msg.includes('תור פעיל') ? msg : (isHe ? 'קביעת הפגישה נכשלה. נסו שוב.' : 'Failed to book appointment. Please try again.'),
+        description: msg || (isHe ? 'קביעת הפגישה נכשלה. נסו שוב.' : 'Failed to book appointment. Please try again.'),
         variant: 'destructive',
       })
     } finally {
@@ -79,7 +142,8 @@ const BookingPage = () => {
     }
   }
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = getLocalDateInputValue()
+  const availableTimes = availability?.date === form.date ? availability.availableTimes : APPOINTMENT_TIME_SLOTS
 
   if (submitted) {
     return (
@@ -216,11 +280,14 @@ const BookingPage = () => {
                     {isHe ? 'תאריך' : 'Date'} *
                   </Label>
                   <Input
+                    ref={dateInputRef}
                     id="date"
                     type="date"
                     value={form.date}
                     min={today}
-                    onChange={(e) => setForm(f => ({ ...f, date: e.target.value }))}
+                    onClick={handleDatePickerOpen}
+                    onFocus={handleDatePickerOpen}
+                    onChange={(e) => handleDateChange(e.target.value)}
                     required
                     className="bg-white dark:bg-white/90"
                     data-testid="input-booking-date"
@@ -231,16 +298,21 @@ const BookingPage = () => {
                     <Clock className="h-4 w-4" />
                     {isHe ? 'שעה' : 'Time'} *
                   </Label>
-                  <Select value={form.time} onValueChange={(v) => setForm(f => ({ ...f, time: v }))} dir={isRTL ? 'rtl' : 'ltr'}>
+                  <Select value={form.time} onValueChange={(v) => setForm(f => ({ ...f, time: v }))} dir={isRTL ? 'rtl' : 'ltr'} disabled={!form.date || availabilityLoading || availableTimes.length === 0}>
                     <SelectTrigger data-testid="select-booking-time" className={`bg-white dark:bg-white/90 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      <SelectValue placeholder={isHe ? 'בחרו שעה' : 'Select time'} />
+                      <SelectValue placeholder={availabilityLoading ? (isHe ? 'בודק זמינות...' : 'Checking availability...') : (isHe ? 'בחרו שעה' : 'Select time')} />
                     </SelectTrigger>
                     <SelectContent dir={isRTL ? 'rtl' : 'ltr'} className={isRTL ? 'text-right' : 'text-left'}>
-                      {TIME_SLOTS.map(t => (
+                      {availableTimes.map(t => (
                         <SelectItem key={t} value={t} className={isRTL ? 'pr-8 pl-2 text-right' : 'text-left'}>{t}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {form.date && !availabilityLoading && availableTimes.length === 0 && (
+                    <p className="text-xs text-destructive">
+                      {isHe ? 'אין שעות פנויות בתאריך הזה.' : 'No available times on this date.'}
+                    </p>
+                  )}
                 </div>
               </div>
 
