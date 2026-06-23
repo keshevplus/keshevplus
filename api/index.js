@@ -2444,7 +2444,7 @@ async function sendNotificationEmail(subject, body) {
 }
 function hasAdminAccess(user) {
   if (!user) return false;
-  return user.role === "admin" || user.role === "owner" || user.email === "admin@keshevplus.co.il";
+  return user.role === "admin" || user.role === "owner" || user.role === "superadmin" || user.email === "admin@keshevplus.co.il" || user.email === "dr@keshevplus.co.il";
 }
 async function registerRoutes(app2) {
   app2.post("/api/contact", async (req, res) => {

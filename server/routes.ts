@@ -391,7 +391,13 @@ async function sendNotificationEmail(subject: string, body: string): Promise<voi
 
 function hasAdminAccess(user: { role: string; email: string } | undefined | null): boolean {
   if (!user) return false;
-  return user.role === "admin" || user.role === "owner" || user.email === "admin@keshevplus.co.il";
+  return (
+    user.role === "admin" ||
+    user.role === "owner" ||
+    user.role === "superadmin" ||
+    user.email === "admin@keshevplus.co.il" ||
+    user.email === "dr@keshevplus.co.il"
+  );
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {

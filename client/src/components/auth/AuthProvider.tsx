@@ -30,7 +30,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'owner' || user?.email === 'admin@keshevplus.co.il'
+  const isAdmin =
+    user?.role === 'admin' ||
+    user?.role === 'owner' ||
+    user?.role === 'superadmin' ||
+    user?.email === 'admin@keshevplus.co.il' ||
+    user?.email === 'dr@keshevplus.co.il'
 
   useEffect(() => {
     fetch('/api/auth/me', { credentials: 'include' })
