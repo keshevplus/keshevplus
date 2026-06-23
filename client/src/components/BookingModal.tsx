@@ -46,7 +46,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
     clientPhone: '',
     appointmentFor: 'self' as AppointmentFor,
     childName: '',
-    childAge: 6,
+    childAge: '' as number | '',
     date: '',
     time: '',
     type: 'consultation',
@@ -118,7 +118,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.clientName || !form.clientEmail || !form.clientPhone || !form.date || !form.time || (form.appointmentFor === 'child' && !form.childName.trim())) {
+    if (!form.clientName || !form.clientEmail || !form.clientPhone || !form.date || !form.time || (form.appointmentFor === 'child' && (!form.childName.trim() || form.childAge === ''))) {
       toast({
         title: isHe ? 'שגיאה' : 'Error',
         description: isHe ? 'אנא מלאו את כל השדות הנדרשים' : 'Please fill all required fields',
@@ -160,7 +160,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
         clientPhone: '',
         appointmentFor: 'self',
         childName: '',
-        childAge: 6,
+        childAge: '',
         date: '',
         time: '',
         type: 'consultation',
@@ -274,7 +274,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
                   ...f,
                   appointmentFor,
                   childName: appointmentFor === 'self' ? '' : f.childName,
-                  childAge: appointmentFor === 'self' ? 6 : f.childAge,
+                  childAge: appointmentFor === 'self' ? '' : f.childAge,
                 }))}
                 onChildNameChange={(childName) => setForm(f => ({ ...f, childName }))}
                 onChildAgeChange={(childAge) => setForm(f => ({ ...f, childAge }))}

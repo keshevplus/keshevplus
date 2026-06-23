@@ -10,15 +10,19 @@ interface AppointmentForFieldsProps {
   isHe: boolean
   appointmentFor: AppointmentFor
   childName: string
-  childAge: number
+  childAge: number | ''
   onAppointmentForChange: (value: AppointmentFor) => void
   onChildNameChange: (value: string) => void
-  onChildAgeChange: (value: number) => void
+  onChildAgeChange: (value: number | '') => void
   inputClassName?: string
 }
 
 const MIN_CHILD_AGE = 6
 const MAX_CHILD_AGE = 17
+const CHILD_AGE_OPTIONS = Array.from(
+  { length: MAX_CHILD_AGE - MIN_CHILD_AGE + 1 },
+  (_, index) => MIN_CHILD_AGE + index,
+)
 
 export function AppointmentForFields({
   isHe,
@@ -31,9 +35,16 @@ export function AppointmentForFields({
   inputClassName,
 }: AppointmentForFieldsProps) {
   const handleAgeChange = (value: string) => {
+    if (!value.trim()) {
+      onChildAgeChange('')
+      return
+    }
+
     const next = Number(value)
     if (Number.isNaN(next)) return
-    onChildAgeChange(Math.min(MAX_CHILD_AGE, Math.max(MIN_CHILD_AGE, next)))
+    if (next >= MIN_CHILD_AGE && next <= MAX_CHILD_AGE) {
+      onChildAgeChange(next)
+    }
   }
 
   return (
@@ -86,16 +97,22 @@ export function AppointmentForFields({
             <Label htmlFor="booking-child-age">{isHe ? 'גיל הילד' : 'Child Age'} *</Label>
             <Input
               id="booking-child-age"
-              type="number"
-              min={MIN_CHILD_AGE}
-              max={MAX_CHILD_AGE}
-              step={1}
-              value={childAge}
+              type="text"
+              inputMode="numeric"
+              list="booking-child-age-options"
+              value={childAge === '' ? '' : String(childAge)}
               onChange={(e) => handleAgeChange(e.target.value)}
+              placeholder={isHe ? '(בין 6-17)' : '(6-17)'}
+              pattern="^(6|7|8|9|1[0-7])$"
               required
               className={cn(inputClassName)}
               data-testid="input-booking-child-age"
             />
+            <datalist id="booking-child-age-options">
+              {CHILD_AGE_OPTIONS.map((age) => (
+                <option key={age} value={age} />
+              ))}
+            </datalist>
           </div>
         </div>
       )}
