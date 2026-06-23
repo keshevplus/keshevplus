@@ -2515,6 +2515,7 @@ var DEFAULT_EMAIL_NOTIFICATION_SETTINGS = {
   appointments: true,
   questionnaires: true
 };
+var PASSWORD_RESET_TOKEN_TTL_MS = 60 * 60 * 1e3;
 async function getEmailNotificationSettings() {
   try {
     const setting = await storage.getSetting("emailNotifications");
@@ -2523,7 +2524,7 @@ async function getEmailNotificationSettings() {
   }
   return DEFAULT_EMAIL_NOTIFICATION_SETTINGS;
 }
-async function sendNotificationEmail(subject, body) {
+async function sendEmail(to, subject, body) {
   if (!process.env.EMAIL_PASS) {
     console.warn("EMAIL_PASS not set, skipping email delivery");
     return;
@@ -2538,13 +2539,16 @@ async function sendNotificationEmail(subject, body) {
     });
     await transporter.sendMail({
       from: process.env.EMAIL_USER || "pluskeshev@gmail.com",
-      to: "pluskeshev@gmail.com",
+      to,
       subject,
       text: body
     });
   } catch (emailError) {
     console.error("Email delivery failed:", emailError);
   }
+}
+async function sendNotificationEmail(subject, body) {
+  await sendEmail(process.env.CONTACT_RECIPIENT_EMAIL || "pluskeshev@gmail.com", subject, body);
 }
 function hasAdminAccess(user) {
   if (!user) return false;
@@ -2922,14 +2926,19 @@ async function registerRoutes(app2) {
   app2.post("/api/auth/forgot-password", async (req, res) => {
     try {
       const { email } = req.body;
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
+      if (!email || typeof email !== "string") {
         return res.json({ success: true, message: "If the email exists, a reset link was sent." });
       }
-      const resetToken = Math.random().toString(36).substring(2, 15);
+      const normalizedEmail = email.trim().toLowerCase();
+      const user = await storage.getUserByEmail(normalizedEmail);
+      if (!user || !hasAdminAccess(user)) {
+        return res.json({ success: true, message: "If the email exists, a reset link was sent." });
+      }
+      const resetToken = `${Date.now() + PASSWORD_RESET_TOKEN_TTL_MS}.${crypto.randomBytes(32).toString("hex")}`;
       await storage.setResetToken(user.id, resetToken);
-      const resetUrl = `${req.protocol}://${req.get("host")}/admin/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
-      await sendNotificationEmail(
+      const resetUrl = `${req.protocol}://${req.get("host")}/admin/reset-password?token=${resetToken}&email=${encodeURIComponent(normalizedEmail)}`;
+      await sendEmail(
+        normalizedEmail,
         "\u05E9\u05D7\u05D6\u05D5\u05E8 \u05E1\u05D9\u05E1\u05DE\u05D4 - \u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1",
         `\u05E9\u05DC\u05D5\u05DD,
 
@@ -2948,9 +2957,21 @@ ${resetUrl}
   app2.post("/api/auth/reset-password", async (req, res) => {
     try {
       const { email, token, newPassword } = req.body;
-      const user = await storage.getUserByEmail(email);
-      if (!user || user.resetToken !== token) {
+      if (!email || !token || !newPassword) {
+        return res.status(400).json({ error: "Email, token, and new password are required" });
+      }
+      if (typeof newPassword !== "string" || newPassword.length < 8) {
+        return res.status(400).json({ error: "New password must be at least 8 characters" });
+      }
+      const user = await storage.getUserByEmail(String(email).trim().toLowerCase());
+      const storedToken = user?.resetToken;
+      if (!user || !storedToken || typeof token !== "string" || storedToken !== token) {
         return res.status(400).json({ error: "Invalid token or email" });
+      }
+      const expiresAt = Number(storedToken.split(".")[0]);
+      if (!Number.isFinite(expiresAt) || expiresAt < Date.now()) {
+        await storage.clearResetToken(user.id);
+        return res.status(400).json({ error: "Reset link has expired. Please request a new link." });
       }
       const bcrypt = await import("bcryptjs");
       const hash = bcrypt.default?.hash || bcrypt.hash;

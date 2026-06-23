@@ -455,6 +455,8 @@ const DEFAULT_EMAIL_NOTIFICATION_SETTINGS = {
   questionnaires: true,
 };
 
+const PASSWORD_RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
+
 type EmailNotificationSettings = typeof DEFAULT_EMAIL_NOTIFICATION_SETTINGS;
 
 async function getEmailNotificationSettings(): Promise<EmailNotificationSettings> {
@@ -465,7 +467,7 @@ async function getEmailNotificationSettings(): Promise<EmailNotificationSettings
   return DEFAULT_EMAIL_NOTIFICATION_SETTINGS;
 }
 
-async function sendNotificationEmail(subject: string, body: string): Promise<void> {
+async function sendEmail(to: string, subject: string, body: string): Promise<void> {
   if (!process.env.EMAIL_PASS) {
     console.warn("EMAIL_PASS not set, skipping email delivery");
     return;
@@ -480,13 +482,17 @@ async function sendNotificationEmail(subject: string, body: string): Promise<voi
     });
     await transporter.sendMail({
       from: process.env.EMAIL_USER || 'pluskeshev@gmail.com',
-      to: 'pluskeshev@gmail.com',
+      to,
       subject,
       text: body,
     });
   } catch (emailError) {
     console.error("Email delivery failed:", emailError);
   }
+}
+
+async function sendNotificationEmail(subject: string, body: string): Promise<void> {
+  await sendEmail(process.env.CONTACT_RECIPIENT_EMAIL || "pluskeshev@gmail.com", subject, body);
 }
 
 function hasAdminAccess(user: { role: string; email: string } | undefined | null): boolean {
@@ -919,17 +925,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/forgot-password", async (req, res) => {
     try {
       const { email } = req.body;
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
+      if (!email || typeof email !== "string") {
         return res.json({ success: true, message: "If the email exists, a reset link was sent." });
       }
 
-      const resetToken = Math.random().toString(36).substring(2, 15);
+      const normalizedEmail = email.trim().toLowerCase();
+      const user = await storage.getUserByEmail(normalizedEmail);
+      if (!user || !hasAdminAccess(user)) {
+        return res.json({ success: true, message: "If the email exists, a reset link was sent." });
+      }
+
+      const resetToken = `${Date.now() + PASSWORD_RESET_TOKEN_TTL_MS}.${crypto.randomBytes(32).toString("hex")}`;
       await storage.setResetToken(user.id, resetToken);
 
-      const resetUrl = `${req.protocol}://${req.get('host')}/admin/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
+      const resetUrl = `${req.protocol}://${req.get('host')}/admin/reset-password?token=${resetToken}&email=${encodeURIComponent(normalizedEmail)}`;
       
-      await sendNotificationEmail(
+      await sendEmail(
+        normalizedEmail,
         "שחזור סיסמה - קשב פלוס",
         `שלום,\n\nהתקבלה בקשה לשחזור סיסמה עבור המשתמש שלך.\nלחץ על הקישור הבא כדי לאפס את הסיסמה:\n${resetUrl}\n\nאם לא ביקשת זאת, ניתן להתעלם מהודעה זו.`
       );
@@ -944,9 +956,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/reset-password", async (req, res) => {
     try {
       const { email, token, newPassword } = req.body;
-      const user = await storage.getUserByEmail(email);
-      if (!user || (user as any).resetToken !== token) {
+      if (!email || !token || !newPassword) {
+        return res.status(400).json({ error: "Email, token, and new password are required" });
+      }
+      if (typeof newPassword !== "string" || newPassword.length < 8) {
+        return res.status(400).json({ error: "New password must be at least 8 characters" });
+      }
+
+      const user = await storage.getUserByEmail(String(email).trim().toLowerCase());
+      const storedToken = (user as any)?.resetToken;
+      if (!user || !storedToken || typeof token !== "string" || storedToken !== token) {
         return res.status(400).json({ error: "Invalid token or email" });
+      }
+      const expiresAt = Number(storedToken.split(".")[0]);
+      if (!Number.isFinite(expiresAt) || expiresAt < Date.now()) {
+        await storage.clearResetToken(user.id);
+        return res.status(400).json({ error: "Reset link has expired. Please request a new link." });
       }
 
       const bcrypt = await import("bcryptjs");

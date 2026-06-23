@@ -34,6 +34,7 @@ function Router() {
         <Route path="/" component={Index} />
         <Route path="/demo" component={DemoIndex} />
         <Route path="/questionnaire/:type" component={QuestionnairePage} />
+        <Route path="/admin/reset-password" component={AdminPage} />
         <Route path="/admin" component={AdminPage} />
         <Route component={NotFound} />
       </Switch>
