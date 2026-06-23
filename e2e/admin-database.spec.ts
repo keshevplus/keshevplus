@@ -8,8 +8,15 @@ test("owner can view database-backed appointments and clients in admin", async (
   const unique = Date.now();
   const clientName = `E2E Admin DB ${unique}`;
   const clientEmail = `e2e-admin-db-${unique}@example.com`;
-  const clientPhone = "0552739927";
+  const clientPhone = `055${String(unique).slice(-7)}`;
   const childName = `E2E Child ${unique}`;
+  const availabilityResponse = await request.get("/api/appointments/availability");
+  expect(availabilityResponse.ok()).toBeTruthy();
+  const availability = await availabilityResponse.json();
+  const appointmentDate = availability.nextAvailableDate || availability.date;
+  const appointmentTime = availability.availableTimes?.[0];
+  expect(appointmentDate).toBeTruthy();
+  expect(appointmentTime).toBeTruthy();
 
   const response = await request.post("/api/appointments", {
     data: {
@@ -17,14 +24,15 @@ test("owner can view database-backed appointments and clients in admin", async (
       clientEmail,
       clientPhone,
       childName,
-      date: "2030-01-15",
-      time: "10:00",
+      date: appointmentDate,
+      time: appointmentTime,
       type: "diagnosis",
       notes: "Created by E2E admin database smoke test",
     },
   });
 
   expect(response.ok()).toBeTruthy();
+  const { appointment } = await response.json();
 
   await page.goto("/admin");
   await page.getByTestId("input-admin-email").fill(testUserEmail);
@@ -41,10 +49,11 @@ test("owner can view database-backed appointments and clients in admin", async (
 
   await expect(page.getByTestId("tab-appointments")).toBeVisible();
   await page.getByTestId("tab-appointments").click();
-  await expect(page.getByText(clientName)).toBeVisible();
-  await expect(page.getByText(clientEmail)).toBeVisible();
-  await expect(page.getByText(clientPhone)).toBeVisible();
-  await expect(page.getByText("10:00")).toBeVisible();
+  const appointmentRow = page.getByTestId(`appointment-${appointment.id}`);
+  await expect(appointmentRow.getByText(clientName)).toBeVisible();
+  await expect(appointmentRow.getByText(clientEmail)).toBeVisible();
+  await expect(appointmentRow.getByText(clientPhone)).toBeVisible();
+  await expect(appointmentRow.getByText(appointmentTime)).toBeVisible();
 
   await page.getByTestId("tab-clients").click();
   await expect(page.getByText(clientName)).toBeVisible();
