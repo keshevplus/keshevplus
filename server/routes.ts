@@ -285,6 +285,11 @@ import ru from "../client/src/i18n/locales/ru";
 import am from "../client/src/i18n/locales/am";
 import ar from "../client/src/i18n/locales/ar";
 import yi from "../client/src/i18n/locales/yi";
+import it from "../client/src/i18n/locales/it";
+
+const staticLocales: Record<string, Record<string, string>> = {
+  en, he, fr, es, de, ru, am, ar, yi, it,
+};
 
 const additionalTranslations: Record<string, Record<string, string>> = {
   he: {
@@ -559,8 +564,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/settings/widgets", async (req, res) => {
-    const settings = await storage.getWidgetSettings();
-    res.json(settings);
+    try {
+      const settings = await storage.getWidgetSettings();
+      return res.json(settings);
+    } catch (error) {
+      console.error("Error fetching widget settings:", error);
+      return res.json({ showChat: true, showAccessibility: true, showWhatsApp: true });
+    }
   });
 
   app.put("/api/settings/widgets", async (req, res) => {
@@ -1015,7 +1025,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json(grouped);
     } catch (error) {
       console.error("Error fetching translations:", error);
-      return res.status(500).json({ error: "Failed to fetch translations" });
+      const lang = req.query.lang as string | undefined;
+      if (lang) {
+        return res.json(staticLocales[lang] || {});
+      }
+      const grouped: Record<string, Record<string, string>> = {};
+      for (const [language, translations] of Object.entries(staticLocales)) {
+        for (const [key, value] of Object.entries(translations)) {
+          grouped[key] ||= {};
+          grouped[key][language] = value;
+        }
+      }
+      return res.json(grouped);
     }
   });
 
@@ -1098,13 +1119,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
 
-      const locales: Record<string, Record<string, string>> = {
-        en, he, fr, es, de, ru, am, ar, yi,
-      };
-
       const items: { key: string; language: string; value: string }[] = [];
 
-      for (const [lang, translations] of Object.entries(locales)) {
+      for (const [lang, translations] of Object.entries(staticLocales)) {
         for (const [key, value] of Object.entries(translations)) {
           items.push({ key, language: lang, value });
         }
