@@ -227,14 +227,14 @@ var insertWhatsAppMessageSchema = createInsertSchema2(whatsappMessages).omit({ i
 
 // server/database-url.ts
 var DATABASE_URL_ENV_KEYS = [
-  "DATABASE_URL",
-  "POSTGRES_URL",
   "KESHEVPLUS_POSTGRES_URL",
-  "POSTGRES_PRISMA_URL",
   "KESHEVPLUS_POSTGRES_PRISMA_URL",
-  "POSTGRES_URL_NON_POOLING",
   "KESHEVPLUS_POSTGRES_URL_NON_POOLING",
-  "KESHEVPLUS_DATABASE_URL"
+  "KESHEVPLUS_DATABASE_URL",
+  "POSTGRES_URL",
+  "POSTGRES_PRISMA_URL",
+  "POSTGRES_URL_NON_POOLING",
+  "DATABASE_URL"
 ];
 function getDatabaseUrl(env = process.env) {
   for (const key of DATABASE_URL_ENV_KEYS) {
