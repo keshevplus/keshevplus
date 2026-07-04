@@ -1,6 +1,0 @@
-onlyBuiltDependencies:
-  - '@google/genai'
-  - '@swc/core'
-  - esbuild
-  - protobufjs
-  - sharp
