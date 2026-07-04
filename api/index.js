@@ -56,7 +56,7 @@ import { z } from "zod";
 // shared/models/chat.ts
 import { pgTable, serial, integer, text, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { sql as sql2 } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 var conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
   visitorName: text("visitor_name").notNull(),
@@ -64,14 +64,14 @@ var conversations = pgTable("conversations", {
   visitorPhone: text("visitor_phone").default(""),
   title: text("title").notNull(),
   reviewed: boolean("reviewed").default(false).notNull(),
-  createdAt: timestamp("created_at").default(sql2`CURRENT_TIMESTAMP`).notNull()
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull()
 });
 var messages = pgTable("messages", {
   id: serial("id").primaryKey(),
   conversationId: integer("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
   role: text("role").notNull(),
   content: text("content").notNull(),
-  createdAt: timestamp("created_at").default(sql2`CURRENT_TIMESTAMP`).notNull()
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull()
 });
 var insertConversationSchema = createInsertSchema(conversations).omit({
   id: true,
@@ -255,7 +255,7 @@ var db = drizzle(pool, { schema: schema_exports });
 import { createServer } from "http";
 
 // server/storage.ts
-import { eq, desc, and, sql as sql3, lt, inArray } from "drizzle-orm";
+import { eq, desc, and, sql as sql2, lt, inArray } from "drizzle-orm";
 var DatabaseStorage = class {
   async getUser(id) {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -330,7 +330,7 @@ var DatabaseStorage = class {
       const batch = items.slice(i, i + batchSize);
       await db.insert(translations).values(batch).onConflictDoUpdate({
         target: [translations.key, translations.language],
-        set: { value: sql3`excluded.value` }
+        set: { value: sql2`excluded.value` }
       });
       count += batch.length;
     }
@@ -484,11 +484,11 @@ var DatabaseStorage = class {
     );
   }
   async getAdminBadgeCounts() {
-    const [contactsResult] = await db.select({ count: sql3`count(*)::int` }).from(contacts).where(eq(contacts.read, false));
-    const [appointmentsResult] = await db.select({ count: sql3`count(*)::int` }).from(appointments).where(eq(appointments.status, "pending"));
-    const [questionnairesResult] = await db.select({ count: sql3`count(*)::int` }).from(questionnaireSubmissions).where(eq(questionnaireSubmissions.reviewed, false));
-    const [conversationsResult] = await db.select({ count: sql3`count(*)::int` }).from(conversations).where(eq(conversations.reviewed, false));
-    const [leadsResult] = await db.select({ count: sql3`count(*)::int` }).from(clients).where(eq(clients.status, "lead"));
+    const [contactsResult] = await db.select({ count: sql2`count(*)::int` }).from(contacts).where(eq(contacts.read, false));
+    const [appointmentsResult] = await db.select({ count: sql2`count(*)::int` }).from(appointments).where(eq(appointments.status, "pending"));
+    const [questionnairesResult] = await db.select({ count: sql2`count(*)::int` }).from(questionnaireSubmissions).where(eq(questionnaireSubmissions.reviewed, false));
+    const [conversationsResult] = await db.select({ count: sql2`count(*)::int` }).from(conversations).where(eq(conversations.reviewed, false));
+    const [leadsResult] = await db.select({ count: sql2`count(*)::int` }).from(clients).where(eq(clients.status, "lead"));
     return {
       unreadContacts: contactsResult?.count ?? 0,
       pendingAppointments: appointmentsResult?.count ?? 0,
@@ -592,7 +592,7 @@ var DatabaseStorage = class {
     return await db.select().from(whatsappMessages).where(eq(whatsappMessages.phone, phone)).orderBy(whatsappMessages.createdAt);
   }
   async getWhatsAppConversations() {
-    const result = await db.execute(sql3`
+    const result = await db.execute(sql2`
       SELECT 
         phone,
         (SELECT client_id FROM whatsapp_messages w2 WHERE w2.phone = w.phone AND w2.client_id IS NOT NULL LIMIT 1) as client_id,
@@ -623,7 +623,7 @@ import { z as z2 } from "zod";
 import nodemailer from "nodemailer";
 import OpenAI from "openai";
 import { GoogleGenAI } from "@google/genai";
-import { eq as eq2 } from "drizzle-orm";
+import { eq as eq2, sql as sql3 } from "drizzle-orm";
 
 // client/src/i18n/locales/en.ts
 var en = {
@@ -2262,7 +2262,7 @@ function getAvailableTimesForDate(allAppointments, date) {
   });
 }
 async function getAppointmentAvailabilityRows() {
-  const result = await db.execute(sql`
+  const result = await db.execute(sql3`
     select status, date, time
     from appointments
   `);
