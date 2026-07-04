@@ -75,6 +75,19 @@ function getAvailableTimesForDate(allAppointments: any[], date: string) {
   });
 }
 
+async function getAppointmentAvailabilityRows() {
+  const result = await db.execute(sql`
+    select status, date, time
+    from appointments
+  `);
+
+  return (result.rows as Array<{ status: string | null; date: string; time: string }>).map((row) => ({
+    status: row.status || "pending",
+    date: row.date,
+    time: row.time,
+  }));
+}
+
 function findNextAvailableAppointmentDate(allAppointments: any[], fromDate = new Date()) {
   const cursor = new Date(fromDate);
   cursor.setHours(0, 0, 0, 0);
@@ -1347,7 +1360,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/appointments/availability", async (req, res) => {
     try {
       const requestedDate = typeof req.query.date === "string" ? req.query.date : undefined;
-      const allAppointments = await storage.getAppointments();
+      const allAppointments = await getAppointmentAvailabilityRows();
       const nextAvailableDate = findNextAvailableAppointmentDate(allAppointments);
       const date = requestedDate || nextAvailableDate || new Date().toISOString().split("T")[0];
       const bookedTimes = allAppointments

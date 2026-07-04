@@ -72,8 +72,14 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
     }
   }, [open])
 
-  const handleDatePickerOpen = async () => {
-    dateInputRef.current?.showPicker?.()
+  const handleDatePickerOpen = async (openPicker = false) => {
+    if (openPicker) {
+      try {
+        dateInputRef.current?.showPicker?.()
+      } catch {
+        // Some browsers only allow showPicker from a direct pointer gesture.
+      }
+    }
 
     try {
       const currentAvailability = availability || await loadAvailability()
@@ -308,8 +314,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
                     type="date"
                     value={form.date}
                     min={today}
-                    onClick={handleDatePickerOpen}
-                    onFocus={handleDatePickerOpen}
+                    onClick={() => handleDatePickerOpen(true)}
+                    onFocus={() => handleDatePickerOpen(false)}
                     onChange={(e) => handleDateChange(e.target.value)}
                     required
                     data-testid="input-booking-date"
