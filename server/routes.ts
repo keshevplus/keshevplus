@@ -2,21 +2,22 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, APPOINTMENT_STATUSES, insertWhatsAppMessageSchema } from "@shared/schema";
+import {
+  APPOINTMENT_TIME_SLOTS,
+  APPOINTMENT_WORKING_HOURS_EN,
+  APPOINTMENT_WORKING_HOURS_HE,
+  isAppointmentDateStringWorkingDay,
+  isAppointmentTimeSlot,
+} from "@shared/appointmentSchedule";
 import crypto from "crypto";
 import { z } from "zod";
 import nodemailer from "nodemailer";
 
-const APPOINTMENT_TIME_SLOTS = [
-  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-  "12:00", "12:30", "13:00", "13:30", "14:00", "14:30",
-  "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00",
-];
-
 const ACTIVE_APPOINTMENT_STATUSES = new Set(["pending", "confirmed"]);
 const CONTACT_PHONE = "055-27-399-27";
 const CONTACT_EMAIL = "office@keshevplus.co.il";
-const CONTACT_HOURS_HE = "א'-ה' 09:00-19:00";
-const CONTACT_HOURS_EN = "Sun-Thu 09:00-19:00";
+const CONTACT_HOURS_HE = APPOINTMENT_WORKING_HOURS_HE;
+const CONTACT_HOURS_EN = APPOINTMENT_WORKING_HOURS_EN;
 
 function normalizeName(value?: string | null) {
   return (value || "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -55,6 +56,8 @@ function sameAppointmentRequester(appointment: any, incoming: { clientName?: str
 }
 
 function getAvailableTimesForDate(allAppointments: any[], date: string) {
+  if (!isAppointmentDateStringWorkingDay(date)) return [];
+
   const bookedTimes = new Set(
     allAppointments
       .filter((appointment) => isActiveAppointmentStatus(appointment.status) && appointment.date === date)
@@ -142,6 +145,15 @@ function unavailableSlotMessage() {
     error: "This appointment date and time are no longer available. Please choose another available time.",
     errorHe: "התאריך והשעה שנבחרו כבר אינם זמינים. אנא בחרו מועד פנוי אחר.",
     errorEn: "This appointment date and time are no longer available. Please choose another available time.",
+  };
+}
+
+function closedAppointmentDateMessage() {
+  return {
+    code: "appointment_date_closed",
+    error: `Appointments are available during clinic hours only: ${CONTACT_HOURS_EN}. Please choose another date.`,
+    errorHe: `ניתן לקבוע פגישות רק בשעות פעילות המרפאה: ${CONTACT_HOURS_HE}. אנא בחרו תאריך אחר.`,
+    errorEn: `Appointments are available during clinic hours only: ${CONTACT_HOURS_EN}. Please choose another date.`,
   };
 }
 import OpenAI from "openai";
@@ -1442,6 +1454,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           success: false,
           error: "יש למלא שם ילד/ה וגיל עבור פגישה לילד/ה.",
         });
+      }
+
+      if (!isAppointmentDateStringWorkingDay(result.data.date) || !isAppointmentTimeSlot(result.data.time)) {
+        return res.status(400).json({ success: false, ...closedAppointmentDateMessage() });
       }
 
       const allAppointments = await storage.getAppointments();
