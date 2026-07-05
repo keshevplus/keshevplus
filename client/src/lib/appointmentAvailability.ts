@@ -1,8 +1,10 @@
-export const APPOINTMENT_TIME_SLOTS = [
-  '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-  '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-  '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00',
-]
+export {
+  APPOINTMENT_TIME_SLOTS,
+  APPOINTMENT_WORKING_HOURS_EN,
+  APPOINTMENT_WORKING_HOURS_HE,
+  getLocalDateInputValue,
+  isAppointmentDateStringWorkingDay,
+} from '@shared/appointmentSchedule'
 
 export interface AppointmentAvailability {
   date: string
@@ -10,13 +12,6 @@ export interface AppointmentAvailability {
   bookedTimes: string[]
   nextAvailableDate: string | null
   timeSlots: string[]
-}
-
-export function getLocalDateInputValue(date = new Date()) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
 export async function fetchAppointmentAvailability(date?: string): Promise<AppointmentAvailability> {

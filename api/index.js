@@ -617,6 +617,54 @@ var DatabaseStorage = class {
 };
 var storage = new DatabaseStorage();
 
+// shared/appointmentSchedule.ts
+var APPOINTMENT_TIME_SLOTS = [
+  "09:00",
+  "09:30",
+  "10:00",
+  "10:30",
+  "11:00",
+  "11:30",
+  "12:00",
+  "12:30",
+  "13:00",
+  "13:30",
+  "14:00",
+  "14:30",
+  "15:00",
+  "15:30",
+  "16:00",
+  "16:30",
+  "17:00",
+  "17:30",
+  "18:00"
+];
+var APPOINTMENT_WORKING_DAYS = [0, 1, 2, 3, 4];
+var APPOINTMENT_WORKING_HOURS_HE = "\u05D0'-\u05D4' 09:00-19:00";
+var APPOINTMENT_WORKING_HOURS_EN = "Sun-Thu 09:00-19:00";
+function parseLocalDateInputValue(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return null;
+  }
+  return date;
+}
+function isAppointmentWorkingDay(date) {
+  return APPOINTMENT_WORKING_DAYS.includes(date.getDay());
+}
+function isAppointmentDateStringWorkingDay(value) {
+  const date = parseLocalDateInputValue(value);
+  return !!date && isAppointmentWorkingDay(date);
+}
+function isAppointmentTimeSlot(value) {
+  return APPOINTMENT_TIME_SLOTS.includes(value);
+}
+
 // server/routes.ts
 import crypto from "crypto";
 import { z as z2 } from "zod";
@@ -2195,32 +2243,11 @@ var it = {
 var it_default = it;
 
 // server/routes.ts
-var APPOINTMENT_TIME_SLOTS = [
-  "09:00",
-  "09:30",
-  "10:00",
-  "10:30",
-  "11:00",
-  "11:30",
-  "12:00",
-  "12:30",
-  "13:00",
-  "13:30",
-  "14:00",
-  "14:30",
-  "15:00",
-  "15:30",
-  "16:00",
-  "16:30",
-  "17:00",
-  "17:30",
-  "18:00"
-];
 var ACTIVE_APPOINTMENT_STATUSES = /* @__PURE__ */ new Set(["pending", "confirmed"]);
 var CONTACT_PHONE = "055-27-399-27";
 var CONTACT_EMAIL = "office@keshevplus.co.il";
-var CONTACT_HOURS_HE = "\u05D0'-\u05D4' 09:00-19:00";
-var CONTACT_HOURS_EN = "Sun-Thu 09:00-19:00";
+var CONTACT_HOURS_HE = APPOINTMENT_WORKING_HOURS_HE;
+var CONTACT_HOURS_EN = APPOINTMENT_WORKING_HOURS_EN;
 function normalizeName(value) {
   return (value || "").trim().toLowerCase().replace(/\s+/g, " ");
 }
@@ -2247,6 +2274,7 @@ function sameAppointmentRequester(appointment, incoming) {
   return !!incomingEmail && normalizeEmail(appointment.clientEmail) === incomingEmail || !!incomingName && normalizeName(appointment.clientName) === incomingName || phonesMatch(appointment.clientPhone, incoming.clientPhone);
 }
 function getAvailableTimesForDate(allAppointments, date) {
+  if (!isAppointmentDateStringWorkingDay(date)) return [];
   const bookedTimes = new Set(
     allAppointments.filter((appointment) => isActiveAppointmentStatus(appointment.status) && appointment.date === date).map((appointment) => appointment.time)
   );
@@ -2313,6 +2341,14 @@ function unavailableSlotMessage() {
     error: "This appointment date and time are no longer available. Please choose another available time.",
     errorHe: "\u05D4\u05EA\u05D0\u05E8\u05D9\u05DA \u05D5\u05D4\u05E9\u05E2\u05D4 \u05E9\u05E0\u05D1\u05D7\u05E8\u05D5 \u05DB\u05D1\u05E8 \u05D0\u05D9\u05E0\u05DD \u05D6\u05DE\u05D9\u05E0\u05D9\u05DD. \u05D0\u05E0\u05D0 \u05D1\u05D7\u05E8\u05D5 \u05DE\u05D5\u05E2\u05D3 \u05E4\u05E0\u05D5\u05D9 \u05D0\u05D7\u05E8.",
     errorEn: "This appointment date and time are no longer available. Please choose another available time."
+  };
+}
+function closedAppointmentDateMessage() {
+  return {
+    code: "appointment_date_closed",
+    error: `Appointments are available during clinic hours only: ${CONTACT_HOURS_EN}. Please choose another date.`,
+    errorHe: `\u05E0\u05D9\u05EA\u05DF \u05DC\u05E7\u05D1\u05D5\u05E2 \u05E4\u05D2\u05D9\u05E9\u05D5\u05EA \u05E8\u05E7 \u05D1\u05E9\u05E2\u05D5\u05EA \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA \u05D4\u05DE\u05E8\u05E4\u05D0\u05D4: ${CONTACT_HOURS_HE}. \u05D0\u05E0\u05D0 \u05D1\u05D7\u05E8\u05D5 \u05EA\u05D0\u05E8\u05D9\u05DA \u05D0\u05D7\u05E8.`,
+    errorEn: `Appointments are available during clinic hours only: ${CONTACT_HOURS_EN}. Please choose another date.`
   };
 }
 var geminiAi = null;
@@ -3585,6 +3621,9 @@ ${resetUrl}
           success: false,
           error: "\u05D9\u05E9 \u05DC\u05DE\u05DC\u05D0 \u05E9\u05DD \u05D9\u05DC\u05D3/\u05D4 \u05D5\u05D2\u05D9\u05DC \u05E2\u05D1\u05D5\u05E8 \u05E4\u05D2\u05D9\u05E9\u05D4 \u05DC\u05D9\u05DC\u05D3/\u05D4."
         });
+      }
+      if (!isAppointmentDateStringWorkingDay(result.data.date) || !isAppointmentTimeSlot(result.data.time)) {
+        return res.status(400).json({ success: false, ...closedAppointmentDateMessage() });
       }
       const allAppointments = await storage.getAppointments();
       const activeAppointments = allAppointments.filter((appointment2) => isActiveAppointmentStatus(appointment2.status));

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast'
 import { apiRequest } from '@/lib/queryClient'
 import { Link } from 'wouter'
 import { AppointmentForFields, type AppointmentFor } from '@/components/AppointmentForFields'
+import { AppointmentDatePicker } from '@/components/AppointmentDatePicker'
 import {
   APPOINTMENT_TIME_SLOTS,
   type AppointmentAvailability,
@@ -31,7 +32,6 @@ const BookingPage = () => {
   const isHe = language === 'he'
   const isRTL = language === 'he' || language === 'ar' || language === 'yi'
   const { toast } = useToast()
-  const dateInputRef = useRef<HTMLInputElement>(null)
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [availability, setAvailability] = useState<AppointmentAvailability | null>(null)
@@ -61,18 +61,10 @@ const BookingPage = () => {
   }
 
   useEffect(() => {
-    loadAvailability().catch(() => undefined)
+    prepareInitialDate().catch(() => undefined)
   }, [])
 
-  const handleDatePickerOpen = async (openPicker = false) => {
-    if (openPicker) {
-      try {
-        dateInputRef.current?.showPicker?.()
-      } catch {
-        // Some browsers only allow showPicker from a direct pointer gesture.
-      }
-    }
-
+  async function prepareInitialDate() {
     try {
       const currentAvailability = availability || await loadAvailability()
       if (!form.date && currentAvailability.nextAvailableDate) {
@@ -285,18 +277,14 @@ const BookingPage = () => {
                     <Calendar className="h-4 w-4" />
                     {isHe ? 'תאריך' : 'Date'} *
                   </Label>
-                  <Input
-                    ref={dateInputRef}
+                  <AppointmentDatePicker
                     id="date"
-                    type="date"
                     value={form.date}
                     min={today}
-                    onClick={() => handleDatePickerOpen(true)}
-                    onFocus={() => handleDatePickerOpen(false)}
-                    onChange={(e) => handleDateChange(e.target.value)}
-                    required
                     className="bg-white dark:bg-white/90"
-                    data-testid="input-booking-date"
+                    isHe={isHe}
+                    isRTL={isRTL}
+                    onChange={handleDateChange}
                   />
                 </div>
                 <div className="space-y-2">
