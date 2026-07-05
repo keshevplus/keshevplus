@@ -132,7 +132,7 @@ const he: Record<string, string> = {
 
   "contact.title": "\u05e6\u05e8\u05d5 \u05e7\u05e9\u05e8",
   "contact.phone": "055-27-399-27",
-  "contact.email": "info@keshevplus.co.il",
+  "contact.email": "office@keshevplus.co.il",
   "contact.address": "\u05ea\u05dc \u05d0\u05d1\u05d9\u05d1, \u05d9\u05e9\u05e8\u05d0\u05dc",
 
   "questionnaires.title": "שאלונים",

@@ -56,7 +56,7 @@ const fr: Record<string, string> = {
 
   "contact.title": "Contactez-nous",
   "contact.phone": "055-27-399-27",
-  "contact.email": "info@keshevplus.co.il",
+  "contact.email": "office@keshevplus.co.il",
   "contact.address": "Tel Aviv, Israël",
   "contact.subtitle": "Laissez vos coordonnées et nous vous recontacterons dès que possible",
   "contact.leave_details": "Laissez vos coordonnées",

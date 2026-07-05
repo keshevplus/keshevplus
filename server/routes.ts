@@ -14,7 +14,7 @@ const APPOINTMENT_TIME_SLOTS = [
 
 const ACTIVE_APPOINTMENT_STATUSES = new Set(["pending", "confirmed"]);
 const CONTACT_PHONE = "055-27-399-27";
-const CONTACT_EMAIL = "info@keshevplus.co.il";
+const CONTACT_EMAIL = "office@keshevplus.co.il";
 const CONTACT_HOURS_HE = "א'-ה' 09:00-19:00";
 const CONTACT_HOURS_EN = "Sun-Thu 09:00-19:00";
 

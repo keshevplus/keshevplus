@@ -56,7 +56,7 @@ const am: Record<string, string> = {
 
   "contact.title": "እየና ያግኙን",
   "contact.phone": "055-27-399-27",
-  "contact.email": "info@keshevplus.co.il",
+  "contact.email": "office@keshevplus.co.il",
   "contact.address": "ተል አቢብ፣ እስራኤል",
   "contact.subtitle": "ዝርዝሮችዎን ይተዉ እና በተቻለ ፍጥነት እናገኝዎታለን",
   "contact.leave_details": "ዝርዝሮችዎን ይተዉ",

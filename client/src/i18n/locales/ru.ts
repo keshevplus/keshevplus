@@ -56,7 +56,7 @@ const ru: Record<string, string> = {
 
   "contact.title": "Свяжитесь с нами",
   "contact.phone": "055-27-399-27",
-  "contact.email": "info@keshevplus.co.il",
+  "contact.email": "office@keshevplus.co.il",
   "contact.address": "Тель-Авив, Израиль",
   "contact.subtitle": "Оставьте свои данные, и мы свяжемся с вами как можно скорее",
   "contact.leave_details": "Оставьте свои данные",

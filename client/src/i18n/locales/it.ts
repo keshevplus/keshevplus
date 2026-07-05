@@ -120,7 +120,7 @@ const it: Record<string, string> = {
 
   "contact.title": "Contattaci",
   "contact.phone": "055-27-399-27",
-  "contact.email": "info@keshevplus.co.il",
+  "contact.email": "office@keshevplus.co.il",
   "contact.address": "Tel Aviv, Israele",
 
   "questionnaires.title": "Questionari",

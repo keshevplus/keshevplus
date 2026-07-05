@@ -744,7 +744,7 @@ var en = {
   "services.list_label": "Our services",
   "contact.title": "Contact Us",
   "contact.phone": "055-27-399-27",
-  "contact.email": "info@keshevplus.co.il",
+  "contact.email": "office@keshevplus.co.il",
   "contact.address": "Tel Aviv, Israel",
   "questionnaires.title": "Questionnaires",
   "questionnaires.subtitle": "Questionnaires for identifying signs of ADHD",
@@ -939,7 +939,7 @@ var he = {
   "services.list_label": "\u05D4\u05E9\u05D9\u05E8\u05D5\u05EA\u05D9\u05DD \u05E9\u05DC\u05E0\u05D5",
   "contact.title": "\u05E6\u05E8\u05D5 \u05E7\u05E9\u05E8",
   "contact.phone": "055-27-399-27",
-  "contact.email": "info@keshevplus.co.il",
+  "contact.email": "office@keshevplus.co.il",
   "contact.address": "\u05EA\u05DC \u05D0\u05D1\u05D9\u05D1, \u05D9\u05E9\u05E8\u05D0\u05DC",
   "questionnaires.title": "\u05E9\u05D0\u05DC\u05D5\u05E0\u05D9\u05DD",
   "questionnaires.subtitle": "\u05E9\u05D0\u05DC\u05D5\u05E0\u05D9\u05DD \u05DC\u05D6\u05D9\u05D4\u05D5\u05D9 \u05E1\u05D9\u05DE\u05E0\u05D9\u05DD \u05E9\u05DC \u05D4\u05E4\u05E8\u05E2\u05EA \u05E7\u05E9\u05D1 \u05D5\u05E8\u05D9\u05DB\u05D5\u05D6 (ADHD)",
@@ -1058,7 +1058,7 @@ var fr = {
   "services.counseling_desc": "Orientation et soutien pour les familles et les proches",
   "contact.title": "Contactez-nous",
   "contact.phone": "055-27-399-27",
-  "contact.email": "info@keshevplus.co.il",
+  "contact.email": "office@keshevplus.co.il",
   "contact.address": "Tel Aviv, Isra\xEBl",
   "contact.subtitle": "Laissez vos coordonn\xE9es et nous vous recontacterons d\xE8s que possible",
   "contact.leave_details": "Laissez vos coordonn\xE9es",
@@ -1202,7 +1202,7 @@ var es = {
   "services.counseling_desc": "Orientaci\xF3n y apoyo para familias y seres queridos",
   "contact.title": "Cont\xE1ctenos",
   "contact.phone": "055-27-399-27",
-  "contact.email": "info@keshevplus.co.il",
+  "contact.email": "office@keshevplus.co.il",
   "contact.address": "Tel Aviv, Israel",
   "contact.subtitle": "Deje sus datos y nos pondremos en contacto con usted lo antes posible",
   "contact.leave_details": "Deje sus datos",
@@ -1346,7 +1346,7 @@ var de = {
   "services.counseling_desc": "Begleitung und Unterst\xFCtzung f\xFCr Familien und Angeh\xF6rige",
   "contact.title": "Kontaktieren Sie uns",
   "contact.phone": "055-27-399-27",
-  "contact.email": "info@keshevplus.co.il",
+  "contact.email": "office@keshevplus.co.il",
   "contact.address": "Tel Aviv, Israel",
   "contact.subtitle": "Hinterlassen Sie Ihre Daten und wir melden uns so schnell wie m\xF6glich bei Ihnen",
   "contact.leave_details": "Hinterlassen Sie Ihre Daten",
@@ -1490,7 +1490,7 @@ var ru = {
   "services.counseling_desc": "\u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430 \u0438 \u043F\u043E\u043C\u043E\u0449\u044C \u0441\u0435\u043C\u044C\u044F\u043C \u0438 \u0431\u043B\u0438\u0437\u043A\u0438\u043C",
   "contact.title": "\u0421\u0432\u044F\u0436\u0438\u0442\u0435\u0441\u044C \u0441 \u043D\u0430\u043C\u0438",
   "contact.phone": "055-27-399-27",
-  "contact.email": "info@keshevplus.co.il",
+  "contact.email": "office@keshevplus.co.il",
   "contact.address": "\u0422\u0435\u043B\u044C-\u0410\u0432\u0438\u0432, \u0418\u0437\u0440\u0430\u0438\u043B\u044C",
   "contact.subtitle": "\u041E\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u0441\u0432\u043E\u0438 \u0434\u0430\u043D\u043D\u044B\u0435, \u0438 \u043C\u044B \u0441\u0432\u044F\u0436\u0435\u043C\u0441\u044F \u0441 \u0432\u0430\u043C\u0438 \u043A\u0430\u043A \u043C\u043E\u0436\u043D\u043E \u0441\u043A\u043E\u0440\u0435\u0435",
   "contact.leave_details": "\u041E\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u0441\u0432\u043E\u0438 \u0434\u0430\u043D\u043D\u044B\u0435",
@@ -1634,7 +1634,7 @@ var am = {
   "services.counseling_desc": "\u1208\u1260\u1270\u1230\u1260\u127D \u12A5\u1293 \u1208\u1241\u1228\u1263\u127D \u12F5\u1308\u134D \u12A5\u1293 \u121D\u1228\u1275",
   "contact.title": "\u12A5\u12E8\u1293 \u12EB\u130D\u1299\u1295",
   "contact.phone": "055-27-399-27",
-  "contact.email": "info@keshevplus.co.il",
+  "contact.email": "office@keshevplus.co.il",
   "contact.address": "\u1270\u120D \u12A0\u1262\u1265\u1363 \u12A5\u1235\u122B\u12A4\u120D",
   "contact.subtitle": "\u12DD\u122D\u12DD\u122E\u127D\u12CE\u1295 \u12ED\u1270\u12C9 \u12A5\u1293 \u1260\u1270\u127B\u1208 \u134D\u1325\u1290\u1275 \u12A5\u1293\u1308\u129D\u12CE\u1273\u1208\u1295",
   "contact.leave_details": "\u12DD\u122D\u12DD\u122E\u127D\u12CE\u1295 \u12ED\u1270\u12C9",
@@ -1778,7 +1778,7 @@ var ar = {
   "services.counseling_desc": "\u062A\u0648\u062C\u064A\u0647 \u0648\u062F\u0639\u0645 \u0644\u0644\u0639\u0627\u0626\u0644\u0627\u062A \u0648\u0627\u0644\u0623\u0642\u0627\u0631\u0628",
   "contact.title": "\u0627\u062A\u0651\u0635\u0644 \u0628\u0646\u0627",
   "contact.phone": "055-27-399-27",
-  "contact.email": "info@keshevplus.co.il",
+  "contact.email": "office@keshevplus.co.il",
   "contact.address": "\u062A\u0644 \u0623\u0628\u064A\u0628\u060C \u0625\u0633\u0631\u0627\u0626\u064A\u0644",
   "contact.subtitle": "\u0627\u062A\u0631\u0643 \u0628\u064A\u0627\u0646\u0627\u062A\u0643 \u0648\u0633\u0646\u0639\u0648\u062F \u0625\u0644\u064A\u0643 \u0641\u064A \u0623\u0642\u0631\u0628 \u0648\u0642\u062A \u0645\u0645\u0643\u0646",
   "contact.leave_details": "\u0627\u062A\u0631\u0643 \u0628\u064A\u0627\u0646\u0627\u062A\u0643",
@@ -1922,7 +1922,7 @@ var yi = {
   "services.counseling_desc": "\u05D0\u05E0\u05DC\u05D9\u05D9\u05D8\u05D5\u05E0\u05D2 \u05D0\u05D5\u05DF \u05D4\u05D9\u05DC\u05E3 \u05E4\u05BF\u05D0\u05B7\u05E8 \u05DE\u05E9\u05E4\u05BC\u05D7\u05D5\u05EA \u05D0\u05D5\u05DF \u05E0\u05D0\u05B8\u05E2\u05E0\u05D8\u05E2",
   "contact.title": "\u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8",
   "contact.phone": "055-27-399-27",
-  "contact.email": "info@keshevplus.co.il",
+  "contact.email": "office@keshevplus.co.il",
   "contact.address": "\u05EA\u05DC \u05D0\u05D1\u05D9\u05D1, \u05D9\u05E9\u05E8\u05D0\u05DC",
   "contact.subtitle": "\u05DC\u05D0\u05B8\u05D6\u05D8 \u05D0\u05F2\u05B7\u05E2\u05E8\u05E2 \u05E4\u05BC\u05E8\u05D8\u05D9\u05DD \u05D0\u05D5\u05DF \u05DE\u05D9\u05E8 \u05D5\u05D5\u05E2\u05DC\u05DF \u05D6\u05D9\u05DA \u05E6\u05D5\u05E8\u05D9\u05E7 \u05DE\u05E2\u05DC\u05D3\u05DF \u05D5\u05D5\u05D9 \u05E9\u05E0\u05E2\u05DC \u05D5\u05D5\u05D9 \u05DE\u05E2\u05D2\u05DC\u05E2\u05DA",
   "contact.leave_details": "\u05DC\u05D0\u05B8\u05D6\u05D8 \u05D0\u05F2\u05B7\u05E2\u05E8\u05E2 \u05E4\u05BC\u05E8\u05D8\u05D9\u05DD",
@@ -2130,7 +2130,7 @@ var it = {
   "services.list_label": "I nostri servizi",
   "contact.title": "Contattaci",
   "contact.phone": "055-27-399-27",
-  "contact.email": "info@keshevplus.co.il",
+  "contact.email": "office@keshevplus.co.il",
   "contact.address": "Tel Aviv, Israele",
   "questionnaires.title": "Questionari",
   "questionnaires.subtitle": "Questionari per identificare i segni dell'ADHD",
@@ -2218,7 +2218,7 @@ var APPOINTMENT_TIME_SLOTS = [
 ];
 var ACTIVE_APPOINTMENT_STATUSES = /* @__PURE__ */ new Set(["pending", "confirmed"]);
 var CONTACT_PHONE = "055-27-399-27";
-var CONTACT_EMAIL = "info@keshevplus.co.il";
+var CONTACT_EMAIL = "office@keshevplus.co.il";
 var CONTACT_HOURS_HE = "\u05D0'-\u05D4' 09:00-19:00";
 var CONTACT_HOURS_EN = "Sun-Thu 09:00-19:00";
 function normalizeName(value) {

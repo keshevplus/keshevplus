@@ -56,7 +56,7 @@ const yi: Record<string, string> = {
 
   "contact.title": "קאָנטאַקט",
   "contact.phone": "055-27-399-27",
-  "contact.email": "info@keshevplus.co.il",
+  "contact.email": "office@keshevplus.co.il",
   "contact.address": "תל אביב, ישראל",
   "contact.subtitle": "לאָזט אײַערע פּרטים און מיר וועלן זיך צוריק מעלדן ווי שנעל ווי מעגלעך",
   "contact.leave_details": "לאָזט אײַערע פּרטים",
