@@ -2282,12 +2282,29 @@ function findNextAvailableAppointmentDate(allAppointments, fromDate = /* @__PURE
   }
   return null;
 }
-function duplicateAppointmentMessage() {
+function renderAppointmentMessage(template, hours) {
+  return template.replaceAll("{phone}", CONTACT_PHONE).replaceAll("{email}", CONTACT_EMAIL).replaceAll("{hours}", hours);
+}
+async function duplicateAppointmentMessage() {
+  const fallbackHe = additionalTranslations.he?.["appointments.errors.existingAppointment"] || "\u05E0\u05E8\u05D0\u05D4 \u05E9\u05DB\u05D1\u05E8 \u05E7\u05D9\u05D9\u05DE\u05EA \u05E2\u05D1\u05D5\u05E8\u05DA \u05E4\u05D2\u05D9\u05E9\u05D4 \u05E9\u05E0\u05E7\u05D1\u05E2\u05D4 \u05D0\u05D5 \u05DE\u05DE\u05EA\u05D9\u05E0\u05D4 \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8. \u05D0\u05DD \u05EA\u05E8\u05E6\u05D5 \u05DC\u05E9\u05E0\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4, \u05E6\u05E8\u05D5 \u05E7\u05E9\u05E8: {phone}, {email}. \u05E9\u05E2\u05D5\u05EA \u05D6\u05DE\u05D9\u05E0\u05D5\u05EA: {hours}.";
+  const fallbackEn = additionalTranslations.en?.["appointments.errors.existingAppointment"] || "It looks like you already have a booked appointment or appointment request. To change it, please contact us: {phone}, {email}. Availability hours: {hours}.";
+  const [heTranslations, enTranslations] = await Promise.all([
+    storage.getTranslationsByLanguage("he").catch(() => ({})),
+    storage.getTranslationsByLanguage("en").catch(() => ({}))
+  ]);
+  const heMessage = renderAppointmentMessage(
+    heTranslations["appointments.errors.existingAppointment"] || fallbackHe,
+    CONTACT_HOURS_HE
+  );
+  const enMessage = renderAppointmentMessage(
+    enTranslations["appointments.errors.existingAppointment"] || fallbackEn,
+    CONTACT_HOURS_EN
+  );
   return {
     code: "existing_appointment",
-    error: `It looks like you already have a booked appointment or appointment request. To change it, please contact us: ${CONTACT_PHONE}, ${CONTACT_EMAIL}. Availability hours: ${CONTACT_HOURS_EN}.`,
-    errorHe: `\u05E0\u05E8\u05D0\u05D4 \u05E9\u05DB\u05D1\u05E8 \u05E7\u05D9\u05D9\u05DE\u05EA \u05E2\u05D1\u05D5\u05E8\u05DA \u05E4\u05D2\u05D9\u05E9\u05D4 \u05E9\u05E0\u05E7\u05D1\u05E2\u05D4 \u05D0\u05D5 \u05DE\u05DE\u05EA\u05D9\u05E0\u05D4 \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8. \u05D0\u05DD \u05EA\u05E8\u05E6\u05D5 \u05DC\u05E9\u05E0\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4, \u05E6\u05E8\u05D5 \u05E7\u05E9\u05E8: ${CONTACT_PHONE}, ${CONTACT_EMAIL}. \u05E9\u05E2\u05D5\u05EA \u05D6\u05DE\u05D9\u05E0\u05D5\u05EA: ${CONTACT_HOURS_HE}.`,
-    errorEn: `It looks like you already have a booked appointment or appointment request. To change it, please contact us: ${CONTACT_PHONE}, ${CONTACT_EMAIL}. Availability hours: ${CONTACT_HOURS_EN}.`
+    error: enMessage,
+    errorHe: heMessage,
+    errorEn: enMessage
   };
 }
 function unavailableSlotMessage() {
@@ -2624,7 +2641,8 @@ var additionalTranslations = {
     "footer.privacy_policy": "\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA",
     "footer.terms_of_use": "\u05EA\u05E0\u05D0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9",
     "footer.address": "\u05D9\u05D2\u05D0\u05DC \u05D0\u05DC\u05D5\u05DF 94, \u05EA\u05DC \u05D0\u05D1\u05D9\u05D1",
-    "footer.hours": "\u05D0'-\u05D4' 09:00-19:00"
+    "footer.hours": "\u05D0'-\u05D4' 09:00-19:00",
+    "appointments.errors.existingAppointment": "\u05E0\u05E8\u05D0\u05D4 \u05E9\u05DB\u05D1\u05E8 \u05E7\u05D9\u05D9\u05DE\u05EA \u05E2\u05D1\u05D5\u05E8\u05DA \u05E4\u05D2\u05D9\u05E9\u05D4 \u05E9\u05E0\u05E7\u05D1\u05E2\u05D4 \u05D0\u05D5 \u05DE\u05DE\u05EA\u05D9\u05E0\u05D4 \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8. \u05D0\u05DD \u05EA\u05E8\u05E6\u05D5 \u05DC\u05E9\u05E0\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4, \u05E6\u05E8\u05D5 \u05E7\u05E9\u05E8: {phone}, {email}. \u05E9\u05E2\u05D5\u05EA \u05D6\u05DE\u05D9\u05E0\u05D5\u05EA: {hours}."
   },
   en: {
     "hero.welcome_line1": "Welcome to",
@@ -2686,7 +2704,8 @@ var additionalTranslations = {
     "footer.privacy_policy": "Privacy Policy",
     "footer.terms_of_use": "Terms of Use",
     "footer.address": "94 Yigal Alon St., Tel Aviv",
-    "footer.hours": "Sun-Thu 09:00-19:00"
+    "footer.hours": "Sun-Thu 09:00-19:00",
+    "appointments.errors.existingAppointment": "It looks like you already have a booked appointment or appointment request. To change it, please contact us: {phone}, {email}. Availability hours: {hours}."
   }
 };
 var DEFAULT_LANGUAGE_SETTINGS = {
@@ -3208,10 +3227,19 @@ ${resetUrl}
       const lang = req.query.lang;
       if (lang) {
         const translations2 = await storage.getTranslationsByLanguage(lang);
-        return res.json(translations2);
+        return res.json({
+          ...additionalTranslations[lang] || {},
+          ...translations2
+        });
       }
       const allTranslations = await storage.getAllTranslations();
       const grouped = {};
+      for (const [language, translations2] of Object.entries(additionalTranslations)) {
+        for (const [key, value] of Object.entries(translations2)) {
+          grouped[key] ||= {};
+          grouped[key][language] = value;
+        }
+      }
       for (const t of allTranslations) {
         if (!grouped[t.key]) {
           grouped[t.key] = {};
@@ -3562,7 +3590,7 @@ ${resetUrl}
       const activeAppointments = allAppointments.filter((appointment2) => isActiveAppointmentStatus(appointment2.status));
       const duplicateRequester = activeAppointments.find((appointment2) => sameAppointmentRequester(appointment2, result.data));
       if (duplicateRequester) {
-        return res.status(400).json({ success: false, ...duplicateAppointmentMessage() });
+        return res.status(400).json({ success: false, ...await duplicateAppointmentMessage() });
       }
       const slotAlreadyBooked = activeAppointments.some((appointment2) => appointment2.date === result.data.date && appointment2.time === result.data.time);
       if (slotAlreadyBooked) {

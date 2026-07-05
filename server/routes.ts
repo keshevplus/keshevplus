@@ -101,12 +101,38 @@ function findNextAvailableAppointmentDate(allAppointments: any[], fromDate = new
   return null;
 }
 
-function duplicateAppointmentMessage() {
+function renderAppointmentMessage(template: string, hours: string) {
+  return template
+    .replaceAll("{phone}", CONTACT_PHONE)
+    .replaceAll("{email}", CONTACT_EMAIL)
+    .replaceAll("{hours}", hours);
+}
+
+async function duplicateAppointmentMessage() {
+  const fallbackHe = additionalTranslations.he?.["appointments.errors.existingAppointment"]
+    || "נראה שכבר קיימת עבורך פגישה שנקבעה או ממתינה לאישור. אם תרצו לשנות אותה, צרו קשר: {phone}, {email}. שעות זמינות: {hours}.";
+  const fallbackEn = additionalTranslations.en?.["appointments.errors.existingAppointment"]
+    || "It looks like you already have a booked appointment or appointment request. To change it, please contact us: {phone}, {email}. Availability hours: {hours}.";
+
+  const [heTranslations, enTranslations] = await Promise.all([
+    storage.getTranslationsByLanguage("he").catch(() => ({} as Record<string, string>)),
+    storage.getTranslationsByLanguage("en").catch(() => ({} as Record<string, string>)),
+  ]);
+
+  const heMessage = renderAppointmentMessage(
+    heTranslations["appointments.errors.existingAppointment"] || fallbackHe,
+    CONTACT_HOURS_HE,
+  );
+  const enMessage = renderAppointmentMessage(
+    enTranslations["appointments.errors.existingAppointment"] || fallbackEn,
+    CONTACT_HOURS_EN,
+  );
+
   return {
     code: "existing_appointment",
-    error: `It looks like you already have a booked appointment or appointment request. To change it, please contact us: ${CONTACT_PHONE}, ${CONTACT_EMAIL}. Availability hours: ${CONTACT_HOURS_EN}.`,
-    errorHe: `נראה שכבר קיימת עבורך פגישה שנקבעה או ממתינה לאישור. אם תרצו לשנות אותה, צרו קשר: ${CONTACT_PHONE}, ${CONTACT_EMAIL}. שעות זמינות: ${CONTACT_HOURS_HE}.`,
-    errorEn: `It looks like you already have a booked appointment or appointment request. To change it, please contact us: ${CONTACT_PHONE}, ${CONTACT_EMAIL}. Availability hours: ${CONTACT_HOURS_EN}.`,
+    error: enMessage,
+    errorHe: heMessage,
+    errorEn: enMessage,
   };
 }
 
@@ -366,6 +392,7 @@ const additionalTranslations: Record<string, Record<string, string>> = {
     "footer.terms_of_use": "תנאי שימוש",
     "footer.address": "יגאל אלון 94, תל אביב",
     "footer.hours": "א'-ה' 09:00-19:00",
+    "appointments.errors.existingAppointment": "נראה שכבר קיימת עבורך פגישה שנקבעה או ממתינה לאישור. אם תרצו לשנות אותה, צרו קשר: {phone}, {email}. שעות זמינות: {hours}.",
   },
   en: {
     "hero.welcome_line1": "Welcome to",
@@ -428,6 +455,7 @@ const additionalTranslations: Record<string, Record<string, string>> = {
     "footer.terms_of_use": "Terms of Use",
     "footer.address": "94 Yigal Alon St., Tel Aviv",
     "footer.hours": "Sun-Thu 09:00-19:00",
+    "appointments.errors.existingAppointment": "It looks like you already have a booked appointment or appointment request. To change it, please contact us: {phone}, {email}. Availability hours: {hours}.",
   },
 };
 
@@ -1025,10 +1053,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lang = req.query.lang as string | undefined;
       if (lang) {
         const translations = await storage.getTranslationsByLanguage(lang);
-        return res.json(translations);
+        return res.json({
+          ...(additionalTranslations[lang] || {}),
+          ...translations,
+        });
       }
       const allTranslations = await storage.getAllTranslations();
       const grouped: Record<string, Record<string, string>> = {};
+      for (const [language, translations] of Object.entries(additionalTranslations)) {
+        for (const [key, value] of Object.entries(translations)) {
+          grouped[key] ||= {};
+          grouped[key][language] = value;
+        }
+      }
       for (const t of allTranslations) {
         if (!grouped[t.key]) {
           grouped[t.key] = {};
@@ -1412,7 +1449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const duplicateRequester = activeAppointments.find((appointment) => sameAppointmentRequester(appointment, result.data));
       if (duplicateRequester) {
-        return res.status(400).json({ success: false, ...duplicateAppointmentMessage() });
+        return res.status(400).json({ success: false, ...(await duplicateAppointmentMessage()) });
       }
 
       const slotAlreadyBooked = activeAppointments.some((appointment) => (
