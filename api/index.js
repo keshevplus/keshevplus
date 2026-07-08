@@ -289,6 +289,10 @@ var DatabaseStorage = class {
     const [contact] = await db.update(contacts).set({ read: true }).where(eq(contacts.id, id)).returning();
     return contact || void 0;
   }
+  async markContactUnread(id) {
+    const [contact] = await db.update(contacts).set({ read: false }).where(eq(contacts.id, id)).returning();
+    return contact || void 0;
+  }
   async getSetting(key) {
     const [setting] = await db.select().from(siteSettings).where(eq(siteSettings.key, key));
     return setting || void 0;
@@ -519,6 +523,10 @@ var DatabaseStorage = class {
   }
   async markConversationReviewed(id) {
     const [updated] = await db.update(conversations).set({ reviewed: true }).where(eq(conversations.id, id)).returning();
+    return updated || void 0;
+  }
+  async markConversationUnreviewed(id) {
+    const [updated] = await db.update(conversations).set({ reviewed: false }).where(eq(conversations.id, id)).returning();
     return updated || void 0;
   }
   async addMessage(message) {
@@ -2918,6 +2926,24 @@ async function registerRoutes(app2) {
       return res.status(500).json({ error: "Failed to update contact" });
     }
   });
+  app2.patch("/api/contacts/:id/unread", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const contact = await storage.markContactUnread(id);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      return res.json(contact);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update contact" });
+    }
+  });
   app2.patch("/api/contacts/:id/status", async (req, res) => {
     try {
       const userId = req.session?.userId;
@@ -4073,6 +4099,22 @@ RESPONSE BEHAVIOR:
       }
       const id = parseInt(req.params.id);
       const updated = await storage.markConversationReviewed(id);
+      if (!updated) return res.status(404).json({ error: "Conversation not found" });
+      return res.json(updated);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update conversation" });
+    }
+  });
+  app2.patch("/api/conversations/:id/unreviewed", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const updated = await storage.markConversationUnreviewed(id);
       if (!updated) return res.status(404).json({ error: "Conversation not found" });
       return res.json(updated);
     } catch (error) {
