@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useQuery } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/queryClient'
 import { ALL_LANGUAGES, type LanguageSettings, type SupportedLanguage, DEFAULT_LANGUAGE_SETTINGS, BILINGUAL_CODES, getEnabledLanguageCodes } from '@/i18n/config'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import type { WidgetSettings } from '@shared/schema'
 import TranslationManager from './TranslationManager'
 import QuestionnaireSubmissions from './QuestionnaireSubmissions'
@@ -194,15 +195,38 @@ const AdminDashboard = () => {
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               {totalBadges > 0 && (
-                <div className="flex items-center gap-1.5" data-testid="header-notifications">
-                  <Bell className="h-4 w-4 text-muted-foreground" />
-                  <Badge variant="destructive" data-testid="badge-total">{totalBadges}</Badge>
-                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center gap-1.5 rounded-full border border-transparent bg-muted/70 px-2 py-1 text-sm transition hover:bg-muted" type="button" data-testid="header-notifications">
+                      <Bell className="h-4 w-4 text-muted-foreground" />
+                      <Badge variant="destructive">{totalBadges}</Badge>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72">
+                    <p className="text-sm font-semibold mb-2">{isHe ? 'התראות' : 'Notifications'}</p>
+                    <ul className="space-y-1 text-sm text-muted-foreground">
+                      <li>{isHe ? `פניות חדשות: ${badgeCounts?.unreadContacts ?? 0}` : `New contacts: ${badgeCounts?.unreadContacts ?? 0}`}</li>
+                      <li>{isHe ? `פגישות ממתינות: ${badgeCounts?.pendingAppointments ?? 0}` : `Pending appointments: ${badgeCounts?.pendingAppointments ?? 0}`}</li>
+                      <li>{isHe ? `שיחות חדשות: ${badgeCounts?.unreviewedConversations ?? 0}` : `New conversations: ${badgeCounts?.unreviewedConversations ?? 0}`}</li>
+                      <li>{isHe ? `שאלונים חדשים: ${badgeCounts?.unreviewedQuestionnaires ?? 0}` : `New questionnaires: ${badgeCounts?.unreviewedQuestionnaires ?? 0}`}</li>
+                    </ul>
+                  </PopoverContent>
+                </Popover>
               )}
               {leadBadgeCount > 0 && (
-                <div className="flex items-center gap-1.5" data-testid="header-lead-notifications">
-                  <Badge className="bg-purple-600 text-white hover:bg-purple-700" data-testid="badge-total-leads">👥 {leadBadgeCount}</Badge>
-                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center gap-1.5 rounded-full border border-transparent bg-muted/70 px-2 py-1 text-sm transition hover:bg-muted" type="button" data-testid="header-lead-notifications">
+                      <Badge className="bg-purple-600 text-white hover:bg-purple-700">👥 {leadBadgeCount}</Badge>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-60">
+                    <p className="text-sm font-semibold mb-2">{isHe ? 'לידים חדשים' : 'New leads'}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {isHe ? `יש לך ${leadBadgeCount} לידים חדשים.` : `You have ${leadBadgeCount} new leads.`}
+                    </p>
+                  </PopoverContent>
+                </Popover>
               )}
               <LanguageSelector />
               <ThemeToggle />
@@ -230,12 +254,33 @@ const AdminDashboard = () => {
                   <tab.icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{isHe ? tab.he : tab.en}</span>
                   {count > 0 && (
-                    <Badge
-                      variant={tab.value === 'clients' ? 'default' : 'destructive'}
-                      className={tab.value === 'clients' ? 'bg-purple-600 text-white hover:bg-purple-700 text-[10px] leading-none px-1.5 py-0.5 min-w-[18px] text-center' : 'text-[10px] leading-none px-1.5 py-0.5 min-w-[18px] text-center'}
-                      data-testid={`badge-tab-${tab.value}`}>
-                      {tab.value === 'clients' ? `👥 ${count}` : count}
-                    </Badge>
+                    tab.value === 'clients' ? (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="rounded-full" type="button">
+                            <Badge
+                              variant="default"
+                              className="bg-purple-600 text-white hover:bg-purple-700 text-[10px] leading-none px-1.5 py-0.5 min-w-[18px] text-center"
+                              data-testid={`badge-tab-${tab.value}`}>
+                              👥 {count}
+                            </Badge>
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-56">
+                          <p className="text-sm font-semibold mb-2">{isHe ? 'לידים ולקוחות' : 'Leads & Clients'}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {isHe ? `יש ${leadBadgeCount} לידים חדשים.` : `There are ${leadBadgeCount} new leads.`}
+                          </p>
+                        </PopoverContent>
+                      </Popover>
+                    ) : (
+                      <Badge
+                        variant="destructive"
+                        className="text-[10px] leading-none px-1.5 py-0.5 min-w-[18px] text-center"
+                        data-testid={`badge-tab-${tab.value}`}>
+                        {count}
+                      </Badge>
+                    )
                   )}
                 </TabsTrigger>
               )
