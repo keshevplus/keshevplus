@@ -201,8 +201,7 @@ const AdminDashboard = () => {
               )}
               {leadBadgeCount > 0 && (
                 <div className="flex items-center gap-1.5" data-testid="header-lead-notifications">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <Badge className="bg-purple-600 text-white hover:bg-purple-700" data-testid="badge-total-leads">{leadBadgeCount}</Badge>
+                  <Badge className="bg-purple-600 text-white hover:bg-purple-700" data-testid="badge-total-leads">👥 {leadBadgeCount}</Badge>
                 </div>
               )}
               <LanguageSelector />
@@ -235,7 +234,7 @@ const AdminDashboard = () => {
                       variant={tab.value === 'clients' ? 'default' : 'destructive'}
                       className={tab.value === 'clients' ? 'bg-purple-600 text-white hover:bg-purple-700 text-[10px] leading-none px-1.5 py-0.5 min-w-[18px] text-center' : 'text-[10px] leading-none px-1.5 py-0.5 min-w-[18px] text-center'}
                       data-testid={`badge-tab-${tab.value}`}>
-                      {count}
+                      {tab.value === 'clients' ? `👥 ${count}` : count}
                     </Badge>
                   )}
                 </TabsTrigger>
