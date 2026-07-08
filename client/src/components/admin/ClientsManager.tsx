@@ -307,20 +307,11 @@ const ClientsManager = () => {
     }
 
     if (inter && inter.appointments.length > 0) {
-      const active = inter.appointments.find(a => a.status === 'pending' || a.status === 'confirmed');
-      if (active) {
-        badges.push({
-          label: isHe ? "תור פעיל" : "Appointment",
-          variant: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-          icon: Calendar,
-        });
-      } else {
-        badges.push({
-          label: isHe ? "תור קודם" : "Past Appt",
-          variant: "bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400",
-          icon: Calendar,
-        });
-      }
+      badges.push({
+        label: isHe ? "תור" : "Appointment",
+        variant: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+        icon: Calendar,
+      });
     }
 
     if (inter && inter.questionnaires.length > 0) {
@@ -563,6 +554,7 @@ const ClientsManager = () => {
               const clientInter = clientInteractionsMap[client.id] || null;
               const statusBadges = getStatusBadges(client, clientInter);
               const sourceLabel = SOURCE_LABELS[client.source || 'manual'];
+              const showSourceLabel = client.source !== 'appointment' || !(clientInter?.appointments?.length > 0);
 
               return (
                 <div
@@ -625,13 +617,15 @@ const ClientsManager = () => {
                           >
                             {client.status === 'client' ? (isHe ? "לקוח" : "Client") : (isHe ? "ליד" : "Lead")}
                           </Badge>
-                          <Badge
-                            variant="secondary"
-                            className="no-default-hover-elevate no-default-active-elevate text-xs"
-                            data-testid={`badge-source-${client.id}`}
-                          >
-                            {isHe ? sourceLabel?.he : sourceLabel?.en}
-                          </Badge>
+                          {showSourceLabel && (
+                            <Badge
+                              variant="secondary"
+                              className="no-default-hover-elevate no-default-active-elevate text-xs"
+                              data-testid={`badge-source-${client.id}`}
+                            >
+                              {isHe ? sourceLabel?.he : sourceLabel?.en}
+                            </Badge>
+                          )}
                           {statusBadges.map((badge, i) => {
                             const Icon = badge.icon;
                             return (
