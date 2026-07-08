@@ -12,6 +12,7 @@ export interface IStorage {
   createContact(contact: InsertContact): Promise<Contact>;
   getContacts(): Promise<Contact[]>;
   markContactRead(id: number): Promise<Contact | undefined>;
+  markContactUnread(id: number): Promise<Contact | undefined>;
   getSetting(key: string): Promise<SiteSetting | undefined>;
   upsertSetting(key: string, value: unknown): Promise<SiteSetting>;
   getTranslationsByLanguage(language: string): Promise<Record<string, string>>;
@@ -49,6 +50,7 @@ export interface IStorage {
   getConversations(): Promise<Conversation[]>;
   getConversation(id: number): Promise<Conversation | undefined>;
   markConversationReviewed(id: number): Promise<Conversation | undefined>;
+  markConversationUnreviewed(id: number): Promise<Conversation | undefined>;
   addMessage(message: InsertMessage): Promise<Message>;
   getMessages(conversationId: number): Promise<Message[]>;
   deleteContact(id: number): Promise<boolean>;
@@ -125,6 +127,15 @@ export class DatabaseStorage implements IStorage {
     const [contact] = await db
       .update(contacts)
       .set({ read: true } as any)
+      .where(eq(contacts.id, id))
+      .returning();
+    return contact || undefined;
+  }
+
+  async markContactUnread(id: number): Promise<Contact | undefined> {
+    const [contact] = await db
+      .update(contacts)
+      .set({ read: false } as any)
       .where(eq(contacts.id, id))
       .returning();
     return contact || undefined;
@@ -461,6 +472,14 @@ export class DatabaseStorage implements IStorage {
   async markConversationReviewed(id: number): Promise<Conversation | undefined> {
     const [updated] = await db.update(conversations)
       .set({ reviewed: true } as any)
+      .where(eq(conversations.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async markConversationUnreviewed(id: number): Promise<Conversation | undefined> {
+    const [updated] = await db.update(conversations)
+      .set({ reviewed: false } as any)
       .where(eq(conversations.id, id))
       .returning();
     return updated || undefined;

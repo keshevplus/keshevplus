@@ -675,6 +675,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/contacts/:id/unread", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const contact = await storage.markContactUnread(id);
+      if (!contact) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      return res.json(contact);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update contact" });
+    }
+  });
+
   app.patch("/api/contacts/:id/status", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
@@ -1933,6 +1952,23 @@ RESPONSE BEHAVIOR:
       }
       const id = parseInt(req.params.id);
       const updated = await storage.markConversationReviewed(id);
+      if (!updated) return res.status(404).json({ error: "Conversation not found" });
+      return res.json(updated);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update conversation" });
+    }
+  });
+
+  app.patch("/api/conversations/:id/unreviewed", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const updated = await storage.markConversationUnreviewed(id);
       if (!updated) return res.status(404).json({ error: "Conversation not found" });
       return res.json(updated);
     } catch (error) {

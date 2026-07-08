@@ -53,15 +53,20 @@ const AdminDashboard = () => {
     refetchInterval: 30000,
   })
 
+  const leadBadgeCount = badgeCounts?.newLeads ?? 0
+
   const tabBadgeMap: Record<string, number> = {
     contacts: badgeCounts?.unreadContacts ?? 0,
     appointments: badgeCounts?.pendingAppointments ?? 0,
-    clients: badgeCounts?.newLeads ?? 0,
+    clients: leadBadgeCount,
     conversations: badgeCounts?.unreviewedConversations ?? 0,
     questionnaires: badgeCounts?.unreviewedQuestionnaires ?? 0,
   }
 
-  const totalBadges = Object.values(tabBadgeMap).reduce((a, b) => a + b, 0)
+  const totalBadges = (badgeCounts?.unreadContacts ?? 0)
+    + (badgeCounts?.pendingAppointments ?? 0)
+    + (badgeCounts?.unreviewedConversations ?? 0)
+    + (badgeCounts?.unreviewedQuestionnaires ?? 0)
 
   const [widgetSettings, setWidgetSettings] = useState<WidgetSettings>({ showChat: true, showAccessibility: true, showWhatsApp: true })
 
@@ -194,6 +199,12 @@ const AdminDashboard = () => {
                   <Badge variant="destructive" data-testid="badge-total">{totalBadges}</Badge>
                 </div>
               )}
+              {leadBadgeCount > 0 && (
+                <div className="flex items-center gap-1.5" data-testid="header-lead-notifications">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <Badge className="bg-purple-600 text-white hover:bg-purple-700" data-testid="badge-total-leads">{leadBadgeCount}</Badge>
+                </div>
+              )}
               <LanguageSelector />
               <ThemeToggle />
               <Button variant="outline" onClick={handleSignOut} data-testid="button-signout">
@@ -220,7 +231,10 @@ const AdminDashboard = () => {
                   <tab.icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{isHe ? tab.he : tab.en}</span>
                   {count > 0 && (
-                    <Badge variant="destructive" className="text-[10px] leading-none px-1.5 py-0.5 min-w-[18px] text-center" data-testid={`badge-tab-${tab.value}`}>
+                    <Badge
+                      variant={tab.value === 'clients' ? 'default' : 'destructive'}
+                      className={tab.value === 'clients' ? 'bg-purple-600 text-white hover:bg-purple-700 text-[10px] leading-none px-1.5 py-0.5 min-w-[18px] text-center' : 'text-[10px] leading-none px-1.5 py-0.5 min-w-[18px] text-center'}
+                      data-testid={`badge-tab-${tab.value}`}>
                       {count}
                     </Badge>
                   )}
@@ -266,7 +280,7 @@ const AdminDashboard = () => {
                   <CardTitle className="text-sm font-medium">{isHe ? 'לידים ולקוחות' : 'Leads & Clients'}</CardTitle>
                   <div className="flex items-center gap-2">
                     {(badgeCounts?.newLeads ?? 0) > 0 && (
-                      <Badge variant="destructive" data-testid="badge-card-leads">{badgeCounts!.newLeads} {isHe ? 'לידים' : 'leads'}</Badge>
+                      <Badge className="bg-purple-600 text-white hover:bg-purple-700" data-testid="badge-card-leads">{badgeCounts!.newLeads} {isHe ? 'לידים' : 'leads'}</Badge>
                     )}
                     <Users className="h-4 w-4 text-muted-foreground shrink-0" />
                   </div>

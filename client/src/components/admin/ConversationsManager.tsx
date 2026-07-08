@@ -42,17 +42,47 @@ const ConversationsManager = () => {
     enabled: expandedId !== null,
   })
 
+  const invalidateConversationsQueries = () => {
+    queryClient.invalidateQueries({ predicate: (query) => Array.isArray(query.queryKey) && query.queryKey[0] === '/api/conversations' })
+    queryClient.invalidateQueries({ queryKey: ['/api/admin/badge-counts'] })
+  }
+
+  const setConversationReviewedState = (id: number, reviewed: boolean) => {
+    queryClient.setQueriesData({ predicate: (query) => Array.isArray(query.queryKey) && query.queryKey[0] === '/api/conversations' }, (oldData) => {
+      if (!Array.isArray(oldData)) return oldData
+      return oldData.map((conversation) => conversation.id === id ? { ...conversation, reviewed } : conversation)
+    })
+    queryClient.setQueryData(['/api/admin/badge-counts'], (oldData: any) => {
+      if (!oldData) return oldData
+      const delta = reviewed ? -1 : 1
+      return { ...oldData, unreviewedConversations: Math.max(0, (oldData.unreviewedConversations ?? 0) + delta) }
+    })
+  }
+
   const markReviewed = useMutation({
     mutationFn: (id: number) => apiRequest('PATCH', `/api/conversations/${id}/reviewed`),
+    onMutate: (id: number) => {
+      setConversationReviewedState(id, true)
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
+      invalidateConversationsQueries()
+    },
+  })
+
+  const markUnreviewed = useMutation({
+    mutationFn: (id: number) => apiRequest('PATCH', `/api/conversations/${id}/unreviewed`),
+    onMutate: (id: number) => {
+      setConversationReviewedState(id, false)
+    },
+    onSuccess: () => {
+      invalidateConversationsQueries()
     },
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => apiRequest('DELETE', `/api/conversations/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
+      invalidateConversationsQueries()
       setExpandedId(null)
     },
   })
@@ -192,7 +222,12 @@ const ConversationsManager = () => {
                     )}
                     <div
                       className="flex items-center justify-between gap-2 p-3 cursor-pointer hover-elevate flex-1"
-                      onClick={() => setExpandedId(isExpanded ? null : conv.id)}
+                      onClick={() => {
+                        if (!selectMode && !conv.reviewed) {
+                          markReviewed.mutate(conv.id)
+                        }
+                        setExpandedId(isExpanded ? null : conv.id)
+                      }}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1 flex-wrap">
                         <div className="shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -272,7 +307,18 @@ const ConversationsManager = () => {
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        {!conv.reviewed && (
+                        {conv.reviewed ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => markUnreviewed.mutate(conv.id)}
+                            disabled={markUnreviewed.isPending}
+                            data-testid={`button-unreview-${conv.id}`}
+                          >
+                            <CheckCircle className="h-4 w-4 me-1" />
+                            {isHe ? 'סמן כלא נבדק' : 'Mark as Unreviewed'}
+                          </Button>
+                        ) : (
                           <Button
                             variant="outline"
                             size="sm"

@@ -43,25 +43,55 @@ export default function ContactsManager() {
     }
   })
 
+  const invalidateContactsQueries = () => {
+    queryClient.invalidateQueries({ predicate: (query) => Array.isArray(query.queryKey) && query.queryKey[0] === '/api/contacts' })
+    queryClient.invalidateQueries({ queryKey: ['/api/admin/badge-counts'] })
+  }
+
+  const setContactReadState = (id: number, read: boolean) => {
+    queryClient.setQueriesData({ predicate: (query) => Array.isArray(query.queryKey) && query.queryKey[0] === '/api/contacts' }, (oldData) => {
+      if (!Array.isArray(oldData)) return oldData
+      return oldData.map((contact) => contact.id === id ? { ...contact, read } : contact)
+    })
+    queryClient.setQueryData(['/api/admin/badge-counts'], (oldData: any) => {
+      if (!oldData) return oldData
+      const delta = read ? -1 : 1
+      return { ...oldData, unreadContacts: Math.max(0, (oldData.unreadContacts ?? 0) + delta) }
+    })
+  }
+
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) => 
       apiRequest('PATCH', `/api/contacts/${id}/status`, { status }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] })
+      invalidateContactsQueries()
     },
   })
 
   const markReadMutation = useMutation({
     mutationFn: (id: number) => apiRequest('PATCH', `/api/contacts/${id}/read`),
+    onMutate: (id: number) => {
+      setContactReadState(id, true)
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] })
+      invalidateContactsQueries()
+    },
+  })
+
+  const markUnreadMutation = useMutation({
+    mutationFn: (id: number) => apiRequest('PATCH', `/api/contacts/${id}/unread`),
+    onMutate: (id: number) => {
+      setContactReadState(id, false)
+    },
+    onSuccess: () => {
+      invalidateContactsQueries()
     },
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => apiRequest('DELETE', `/api/contacts/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] })
+      invalidateContactsQueries()
       setExpandedId(null)
     },
   })
@@ -227,7 +257,12 @@ export default function ContactsManager() {
                     <div className="flex items-center justify-between gap-3 p-3 flex-1">
                       <button
                         className="flex-1 text-start flex items-center gap-3 min-w-0"
-                        onClick={() => setExpandedId(isExpanded ? null : contact.id)}
+                        onClick={() => {
+                          if (!contact.read) {
+                            markReadMutation.mutate(contact.id)
+                          }
+                          setExpandedId(isExpanded ? null : contact.id)
+                        }}
                         data-testid={`button-toggle-contact-${contact.id}`}
                       >
                         {!contact.read ? (
@@ -329,7 +364,18 @@ export default function ContactsManager() {
                             </a>
                           </Button>
                         )}
-                        {!contact.read && (
+                        {contact.read ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => markUnreadMutation.mutate(contact.id)}
+                            disabled={markUnreadMutation.isPending}
+                            data-testid={`button-mark-unread-${contact.id}`}
+                          >
+                            <EyeOff className="h-4 w-4 mr-1" />
+                            {isHe ? 'סמן כלא נקרא' : 'Mark as Unread'}
+                          </Button>
+                        ) : (
                           <Button
                             size="sm"
                             variant="outline"
