@@ -41,6 +41,7 @@ const AdminDashboard = () => {
   const [loaded, setLoaded] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
   const [focusedClientId, setFocusedClientId] = useState<number | null>(null)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
 
   interface BadgeCounts {
     unreadContacts: number
@@ -67,6 +68,11 @@ const AdminDashboard = () => {
   const openLead = (clientId: number) => {
     setFocusedClientId(clientId)
     setActiveTab('clients')
+  }
+
+  const openFromNotification = (tab: string) => {
+    setActiveTab(tab)
+    setNotificationsOpen(false)
   }
 
   const tabBadgeMap: Record<string, number> = {
@@ -207,7 +213,7 @@ const AdminDashboard = () => {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <Popover>
+              <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
                 <PopoverTrigger asChild>
                   <button className="flex items-center gap-1.5 rounded-full border border-transparent bg-muted/70 px-2 py-1 text-sm transition hover:bg-muted" type="button" data-testid="header-notifications">
                     <Bell className="h-4 w-4 text-muted-foreground" />
@@ -216,11 +222,51 @@ const AdminDashboard = () => {
                 </PopoverTrigger>
                 <PopoverContent className="w-72">
                   <p className="text-sm font-semibold mb-2">{isHe ? 'התראות' : 'Notifications'}</p>
-                  <ul className="space-y-1 text-sm text-muted-foreground">
-                    <li>{isHe ? `פניות חדשות: ${badgeCounts?.unreadContacts ?? 0}` : `New contacts: ${badgeCounts?.unreadContacts ?? 0}`}</li>
-                    <li>{isHe ? `פגישות ממתינות: ${badgeCounts?.pendingAppointments ?? 0}` : `Pending appointments: ${badgeCounts?.pendingAppointments ?? 0}`}</li>
-                    <li>{isHe ? `שיחות חדשות: ${badgeCounts?.unreviewedConversations ?? 0}` : `New conversations: ${badgeCounts?.unreviewedConversations ?? 0}`}</li>
-                    <li>{isHe ? `שאלונים חדשים: ${badgeCounts?.unreviewedQuestionnaires ?? 0}` : `New questionnaires: ${badgeCounts?.unreviewedQuestionnaires ?? 0}`}</li>
+                  <ul className="space-y-1.5 text-sm">
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => openFromNotification('contacts')}
+                        disabled={(badgeCounts?.unreadContacts ?? 0) === 0}
+                        className="w-full rounded-md border p-2 text-start transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                        data-testid="notification-go-contacts"
+                      >
+                        {isHe ? `פניות חדשות: ${badgeCounts?.unreadContacts ?? 0}` : `New contacts: ${badgeCounts?.unreadContacts ?? 0}`}
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => openFromNotification('appointments')}
+                        disabled={(badgeCounts?.pendingAppointments ?? 0) === 0}
+                        className="w-full rounded-md border p-2 text-start transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                        data-testid="notification-go-appointments"
+                      >
+                        {isHe ? `פגישות ממתינות: ${badgeCounts?.pendingAppointments ?? 0}` : `Pending appointments: ${badgeCounts?.pendingAppointments ?? 0}`}
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => openFromNotification('conversations')}
+                        disabled={(badgeCounts?.unreviewedConversations ?? 0) === 0}
+                        className="w-full rounded-md border p-2 text-start transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                        data-testid="notification-go-conversations"
+                      >
+                        {isHe ? `שיחות חדשות: ${badgeCounts?.unreviewedConversations ?? 0}` : `New conversations: ${badgeCounts?.unreviewedConversations ?? 0}`}
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => openFromNotification('questionnaires')}
+                        disabled={(badgeCounts?.unreviewedQuestionnaires ?? 0) === 0}
+                        className="w-full rounded-md border p-2 text-start transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                        data-testid="notification-go-questionnaires"
+                      >
+                        {isHe ? `שאלונים חדשים: ${badgeCounts?.unreviewedQuestionnaires ?? 0}` : `New questionnaires: ${badgeCounts?.unreviewedQuestionnaires ?? 0}`}
+                      </button>
+                    </li>
                   </ul>
                 </PopoverContent>
               </Popover>
