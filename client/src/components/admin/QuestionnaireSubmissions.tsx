@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,12 +23,23 @@ const STATUS_CONFIG: Record<string, { he: string; en: string; color: string }> =
   archived: { he: "בארכיון", en: "Archived", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300" },
 };
 
-const QuestionnaireSubmissions = () => {
+type ManagerFilter = 'all' | 'new'
+
+interface QuestionnaireSubmissionsProps {
+  initialFilter?: ManagerFilter
+}
+
+const QuestionnaireSubmissions = ({ initialFilter = 'all' }: QuestionnaireSubmissionsProps) => {
   const { language } = useLanguage();
   const isHe = language === 'he';
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [filter, setFilter] = useState<ManagerFilter>(initialFilter)
+
+  useEffect(() => {
+    setFilter(initialFilter)
+  }, [initialFilter])
 
   const { data: submissions = [], isLoading } = useQuery<QuestionnaireSubmission[]>({
     queryKey: ["/api/questionnaires", typeFilter, statusFilter],
@@ -85,6 +96,13 @@ const QuestionnaireSubmissions = () => {
     });
   };
 
+  const visibleSubmissions = useMemo(() => {
+    if (filter === 'new') {
+      return submissions.filter((s) => s.status === 'new') // unreviewed/new
+    }
+    return submissions
+  }, [submissions, filter])
+
   return (
     <Card>
       <CardHeader>
@@ -135,14 +153,14 @@ const QuestionnaireSubmissions = () => {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
-        ) : submissions.length === 0 ? (
+        ) : visibleSubmissions.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <ClipboardList className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p>{isHe ? "אין שאלונים להצגה" : "No questionnaires to display"}</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {submissions.map((sub) => {
+            {visibleSubmissions.map((sub) => {
               const typeInfo = TYPE_LABELS[sub.type] || TYPE_LABELS.parent;
               const statusInfo = STATUS_CONFIG[sub.status] || STATUS_CONFIG.new;
               const isExpanded = expandedId === sub.id;
