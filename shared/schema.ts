@@ -95,6 +95,8 @@ export const appointments = pgTable("appointments", {
 
 export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
+  leadNumber: integer("lead_number").unique(),
+  clientNumber: integer("client_number").unique(),
   name: text("name").notNull(),
   email: text("email"),
   phone: text("phone"),
