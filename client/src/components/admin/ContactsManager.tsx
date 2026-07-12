@@ -25,7 +25,19 @@ function formatWhatsAppUrl(phone: string, message?: string) {
   return `https://wa.me/${cleaned}${params}`
 }
 
-export default function ContactsManager() {
+type ManagerFilter = 'all' | 'new'
+
+interface ContactsManagerProps {
+  initialFilter?: ManagerFilter
+}
+
+const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
+  const [filter, setFilter] = useState<ManagerFilter>(initialFilter)
+
+  useEffect(() => {
+    setFilter(initialFilter)
+  }, [initialFilter])
+
   const { language } = useLanguage()
   const isHe = language === 'he'
   const [expandedId, setExpandedId] = useState<number | null>(null)
