@@ -70,6 +70,7 @@
     "react-intersection-observer": "^9.16.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
+    "typecheck": "^0.1.2",
     "wouter": "^3.9.0",
     "zod": "^3.25.76",
     "zod-validation-error": "^5.0.0"

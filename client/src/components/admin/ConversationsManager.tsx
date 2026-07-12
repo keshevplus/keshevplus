@@ -1,35 +1,34 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { queryClient, apiRequest } from '@/lib/queryClient'
-import { useLanguage } from '@/hooks/useLanguage'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
-import { MessageCircle, Mail, Phone, User, ChevronDown, ChevronUp, CheckCircle, Bot, Trash2 } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Calendar, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare } from 'lucide-react'
+import { SiWhatsapp } from 'react-icons/si'
+import { useToast } from '@/hooks/use-toast'
+import { ChevronDown, ChevronUp, CheckCircle, Bot, Trash2 } from 'lucide-react'
+import { useLanguage } from '@/hooks/useLanguage'
+import { apiRequest, queryClient } from '@/lib/queryClient'
+import type { Appointment } from '@shared/schema'
 
-interface Conversation {
-  id: number
-  visitorName: string
-  visitorEmail: string
-  visitorPhone: string | null
-  title: string
-  reviewed: boolean
-  createdAt: string
+function formatWhatsAppUrl(phone: string, message?: string) {
+  const cleaned = phone.replace(/[^0-9+]/g, '').replace(/^0/, '972')
+  const params = message ? `?text=${encodeURIComponent(message)}` : ''
+  return `https://wa.me/${cleaned}${params}`
 }
 
-interface Message {
-  id: number
-  conversationId: number
-  role: string
-  content: string
-  createdAt: string
+const STATUS_CONFIG: Record<string, { he: string; en: string; color: string }> = {
+  pending: { he: 'ממתינה', en: 'Pending', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
+  confirmed: { he: 'מאושרת', en: 'Confirmed', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
+  cancelled: { he: 'בוטלה', en: 'Cancelled', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
+  completed: { he: 'הושלמה', en: 'Completed', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
 }
 
-type ManagerFilter = 'all' | 'new'
+type ConversationFilter = 'all' | 'new'
 
 interface ConversationsManagerProps {
-  initialFilter?: ManagerFilter
+  initialFilter?: ConversationFilter
 }
 
 const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerProps) => {
@@ -38,7 +37,7 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [selectMode, setSelectMode] = useState(false)
-  const [filter, setFilter] = useState<ManagerFilter>(initialFilter)
+  const [filter, setFilter] = useState<ConversationFilter>(initialFilter)
 
   useEffect(() => {
     setFilter(initialFilter)
@@ -60,129 +59,156 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
     })
   }, [visibleConversations])
 
-  const invalidateConversationsQueries = () => {
-    queryClient.invalidateQueries({ predicate: (query) => Array.isArray(query.queryKey) && query.queryKey[0] === '/api/conversations' })
-    queryClient.invalidateQueries({ queryKey: ['/api/admin/badge-counts'] })
-  }
-
-  const setConversationReviewedState = (id: number, reviewed: boolean) => {
-    queryClient.setQueriesData({ predicate: (query) => Array.isArray(query.queryKey) && query.queryKey[0] === '/api/conversations' }, (oldData) => {
-      if (!Array.isArray(oldData)) return oldData
-      return oldData.map((conversation) => conversation.id === id ? { ...conversation, reviewed } : conversation)
-    })
-    queryClient.setQueryData(['/api/admin/badge-counts'], (oldData: any) => {
-      if (!oldData) return oldData
-      const delta = reviewed ? -1 : 1
-      return { ...oldData, unreviewedConversations: Math.max(0, (oldData.unreviewedConversations ?? 0) + delta) }
-    })
-  }
-
-  const markReviewed = useMutation({
-    mutationFn: (id: number) => apiRequest('PATCH', `/api/conversations/${id}/reviewed`),
-    onMutate: (id: number) => {
-      setConversationReviewedState(id, true)
+  const updateStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      await apiRequest('PATCH', `/api/conversations/${id}/status`, { status })
     },
     onSuccess: () => {
-      invalidateConversationsQueries()
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
+      toast({
+        title: isHe ? 'הסטטוס עודכן' : 'Status updated',
+        description: isHe ? 'סטטוס השיחה עודכן בהצלחה.' : 'Conversation status has been updated successfully.',
+      })
+    },
+    onError: () => {
+      toast({
+        title: isHe ? 'שגיאה' : 'Error',
+        description: isHe ? 'עדכון הסטטוס נכשל.' : 'Failed to update status.',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest('DELETE', `/api/conversations/${id}`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
+      toast({
+        title: isHe ? 'השיחה נמחקה' : 'Conversation deleted',
+        description: isHe ? 'השיחה נמחקה בהצלחה.' : 'Conversation has been deleted successfully.',
+      })
     },
   })
 
   const markUnreviewed = useMutation({
     mutationFn: (id: number) => apiRequest('PATCH', `/api/conversations/${id}/unreviewed`),
-    onMutate: (id: number) => {
-      setConversationReviewedState(id, false)
-    },
-    onSuccess: () => {
-      invalidateConversationsQueries()
-    },
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiRequest('DELETE', `/api/conversations/${id}`),
-    onSuccess: () => {
-      invalidateConversationsQueries()
-      setExpandedId(null)
-    },
-  })
-
-  const bulkDeleteMutation = useMutation({
-    mutationFn: (ids: number[]) => apiRequest('POST', '/api/conversations/bulk-delete', { ids }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
       setSelectedIds(new Set())
-      setSelectMode(false)
-      setExpandedId(null)
     },
   })
 
-  const unreviewedCount = conversations.filter(c => !c.reviewed).length
+  const parseDateOnly = (date: string) => {
+    const [year, month, day] = date.split('-').map(Number)
+    if (year && month && day) {
+      return new Date(year, month - 1, day)
+    }
+    return null
+  }
 
-  const toggleSelect = (id: number) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
+  const formatAppointmentDate = (date: string) => {
+    const d = parseDateOnly(date)
+    return d.toLocaleDateString(isHe ? 'he-IL' : 'en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
     })
   }
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === visibleConversations.length) {
-      setSelectedIds(new Set())
-    } else {
-      setSelectedIds(new Set(visibleConversations.map(c => c.id)))
+  const formatAppointmentTime = (time: string) => {
+    return time ? time.slice(0, 5) : ''
+  }
+
+  const getAppointmentStart = (appointment: Appointment) => {
+    const [year, month, day] = appointment.date.split('-').map(Number)
+    const [hour = 0, minute = 0] = appointment.time.split(':').map(Number)
+    if (year && month && day) {
+      return new Date(year, month - 1, day, hour, minute)
     }
+    return null
+  }
+
+  const toggleSelect = (id: number) => {
+    return new Date(appointment.date)
+  }
+
+  const next = new Set(selectedIds)
+  if (next.has(id)) next.delete(id)
+
+  const formatTimestamp = (date?: string | Date | null) => {
+    if (!date) return isHe ? 'לא תועד' : 'Not recorded'
+    const d = new Date(date)
+    if (Number.isNaN(d.getTime())) return isHe ? 'לא תועד' : 'Not recorded'
+
+    return d.toLocaleString(isHe ? 'he-IL' : 'en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
   }
 
   const handleBulkDelete = () => {
     if (selectedIds.size === 0) return
     const msg = isHe
-      ? `למחוק ${selectedIds.size} שיחות?`
-      : `Delete ${selectedIds.size} conversations?`
+      ? `האם אתה בטוח שברצונך למחוק ${selectedIds.size} שיחות?`
+      : `Are you sure you want to delete ${selectedIds.size} conversations?`
     if (window.confirm(msg)) {
-      bulkDeleteMutation.mutate(Array.from(selectedIds))
+      deleteMutation.mutate(Array.from(selectedIds))
     }
   }
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="p-6 text-center text-muted-foreground">
-          {isHe ? 'טוען שיחות...' : 'Loading conversations...'}
-        </CardContent>
-      </Card>
-    )
-  }
+  const upcomingAppointments = useMemo(() => {
+    const startOfToday = new Date()
+    startOfToday.setHours(0, 0, 0, 0)
+    return allAppointments
+      .filter(appointment => {
+        if (!['pending', 'confirmed'].includes(appointment.status)) return false
+        return getAppointmentStart(appointment) >= startOfToday
+      })
+      .sort((a, b) => getAppointmentStart(a).getTime() - getAppointmentStart(b).getTime())
+  }, [allAppointments])
+
+  const groupedUpcomingAppointments = useMemo(() => {
+    return upcomingAppointments.reduce<Record<string, Appointment[]>>((groups, appointment) => {
+      const key = appointment.date
+      groups[key] = groups[key] || []
+      groups[key].push(appointment)
+      return groups
+    }, {})
+  }, [upcomingAppointments])
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
-            <MessageCircle className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>
-              {isHe ? 'שיחות צ׳אט' : 'Chat Conversations'}
-              {unreviewedCount > 0 && (
-                <Badge variant="secondary" className="ms-2">{unreviewedCount}</Badge>
-              )}
-            </CardTitle>
+            <Calendar className="h-5 w-5 text-muted-foreground" />
+            <CardTitle>{isHe ? 'ניהול פגישות' : 'Appointment Manager'}</CardTitle>
           </div>
-          {conversations.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setSelectMode(!selectMode)
-                if (selectMode) setSelectedIds(new Set())
-              }}
-              data-testid="button-toggle-select-conversations"
-            >
-              {selectMode ? (isHe ? 'ביטול' : 'Cancel') : (isHe ? 'בחירה מרובה' : 'Multi-Select')}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            <Select value={filter} onValueChange={value => setFilter(value as ConversationFilter)}>
+              <SelectTrigger className="w-[150px] h-8 text-xs" data-testid="select-appointment-filter">
+                <div className="flex items-center gap-1.5">
+                  <Filter className="h-3.5 w-3.5" />
+                  <SelectValue placeholder={isHe ? 'סינון' : 'Filter'} />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{isHe ? 'הכל' : 'All'}</SelectItem>
+                <SelectItem value="new">{isHe ? 'חדשות בלבד' : 'New only'}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+        <CardDescription>{isHe ? 'צפייה וניהול פגישות עם לקוחות' : 'View and manage client appointments'}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-6 text-center text-muted-foreground">
         {selectMode && visibleConversations.length > 0 && (
           <div className="flex items-center gap-3 mb-3 p-2 border rounded-md bg-muted/30 flex-wrap">
             <div className="flex items-center gap-2">
@@ -191,26 +217,60 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
                 onCheckedChange={toggleSelectAll}
                 data-testid="checkbox-select-all-conversations"
               />
-              <span className="text-sm">
-                {isHe ? 'בחר הכל' : 'Select All'}
-              </span>
+              <span className="text-sm">{isHe ? 'בחר הכל' : 'Select All'}</span>
             </div>
-            <span className="text-sm text-muted-foreground">
-              {selectedIds.size} {isHe ? 'נבחרו' : 'selected'}
-            </span>
-            {selectedIds.size > 0 && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-destructive border-destructive/30"
-                onClick={handleBulkDelete}
-                disabled={bulkDeleteMutation.isPending}
-                data-testid="button-bulk-delete-conversations"
-              >
-                <Trash2 className="h-4 w-4 me-1" />
-                {isHe ? `מחק (${selectedIds.size})` : `Delete (${selectedIds.size})`}
-              </Button>
-            )}
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={handleBulkDelete}
+              disabled={deleteMutation.isPending}
+              className="text-destructive border-destructive/30"
+            >
+              <Trash2 className="h-4 w-4 me-1" />
+              {upcomingAppointments.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {isHe ? 'אין פגישות קרובות למחיקה.' : 'No upcoming appointments to delete.'}
+                </p>
+              ) : (
+                <>
+                  {isHe ? `מחק (${selectedIds.size})` : `Delete (${selectedIds.size})`}
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {Object.entries(groupedUpcomingAppointments).map(([date, items]) => (
+                      <div key={date} className="rounded-md border bg-background p-3">
+                        <div className="font-medium text-sm text-foreground">{formatAppointmentDate(date)}</div>
+                        {items.length === 0 ? (
+                          <div className="mt-3 space-y-2">
+                            <p className="text-sm text-muted-foreground">{isHe ? 'אין פרטים להצגה' : 'No details to display'}</p>
+                          </div>
+                        ) : (
+                          items.map(appointment => {
+                            const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending
+                            return (
+                              <div key={appointment.id} className="rounded-md bg-muted/50 p-2 text-sm">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="flex items-center gap-1 font-semibold text-foreground">
+                                    <Clock className="h-3.5 w-3.5 text-primary" />
+                                    {formatAppointmentTime(appointment.time)}
+                                  </span>
+                                  <Badge
+                                    variant="secondary"
+                                    className={`no-default-hover-elevate no-default-active-elevate ${statusInfo.color}`}
+                                  >
+                                    {isHe ? statusInfo.he : statusInfo.en}
+                                  </Badge>
+                                </div>
+                                <div className="mt-1 font-medium text-foreground">{appointment.clientName}</div>
+                                <div className="text-xs text-muted-foreground">{appointment.type}</div>
+                              </div>
+                            )
+                          })
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </Button>
           </div>
         )}
 
@@ -221,148 +281,136 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
         ) : (
           <div className="space-y-3">
             {visibleConversations.map(conv => {
-              const isExpanded = expandedId === conv.id
+              const statusInfo = STATUS_CONFIG[conv.status] || STATUS_CONFIG.pending
               return (
                 <div
                   key={conv.id}
-                  className={`border rounded-md overflow-visible ${selectedIds.has(conv.id) ? 'ring-2 ring-primary/40' : ''}`}
-                  data-testid={`conversation-${conv.id}`}
+                  className={`rounded-md overflow-visible cursor-pointer ${
+                    selectedIds.has(conv.id) ? 'ring-2 ring-primary/40' : ''
+                  }`}
+                  onClick={() => {
+                    if (selectMode) {
+                      setSelectedIds(prev => {
+                        const next = new Set(prev)
+                        if (next.has(conv.id)) next.delete(conv.id)
+                        else next.add(conv.id)
+                        return next
+                      })
+                    } else {
+                      setExpandedId(expandedId === conv.id ? null : conv.id)
+                    }
+                  }}
                 >
-                  <div className="flex items-center gap-2">
-                    {selectMode && (
-                      <div className="ps-3">
-                        <Checkbox
-                          checked={selectedIds.has(conv.id)}
-                          onCheckedChange={() => toggleSelect(conv.id)}
-                          data-testid={`checkbox-conversation-${conv.id}`}
-                        />
+                  <div className="flex items-center justify-between gap-2 p-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <User className="h-4 w-4 text-primary" />
+                        <span className="font-medium text-foreground">{conv.visitorName}</span>
                       </div>
-                    )}
-                    <div
-                      className="flex items-center justify-between gap-2 p-3 cursor-pointer hover-elevate flex-1"
-                      onClick={() => {
-                        if (!selectMode && !conv.reviewed) {
-                          markReviewed.mutate(conv.id)
-                        }
-                        setExpandedId(isExpanded ? null : conv.id)
-                      }}
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1 flex-wrap">
-                        <div className="shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <User className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium text-sm">{conv.visitorName}</span>
-                            {!conv.reviewed && (
-                              <Badge variant="default" className="text-xs">
-                                {isHe ? 'חדש' : 'New'}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                            <span className="flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
-                              {conv.visitorEmail}
-                            </span>
-                            {conv.visitorPhone && (
-                              <span className="flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
-                                {conv.visitorPhone}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(conv.createdAt).toLocaleString('he-IL', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                        </span>
-                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                      </div>
+                      <Badge
+                        variant="outline"
+                        className="no-default-hover-elevate no-default-active-elevate"
+                        data-testid={`badge-status-${conv.id}`}
+                      >
+                        {isHe ? statusInfo.he : statusInfo.en}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="whitespace-nowrap"
+                        onClick={e => {
+                          e.stopPropagation()
+                          const url = formatWhatsAppUrl(conv.visitorPhone, isHe ? 'שלום, איך אפשר לעזור?' : 'Hello, how can I help?')
+                          window.open(url, '_blank')
+                        }}
+                      >
+                        <SiWhatsapp className="h-4 w-4 me-1" />
+                        {isHe ? 'צור קשר' : 'Contact'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={e => {
+                          e.stopPropagation()
+                          setExpandedId(expandedId === conv.id ? null : conv.id)
+                        }}
+                      >
+                        {expandedId === conv.id ? (
+                          <>
+                            <ChevronUp className="h-4 w-4 me-1" />
+                            {isHe ? 'סגור פרטים' : 'Close details'}
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4 me-1" />
+                            {isHe ? 'הצג פרטים' : 'Show details'}
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </div>
-
-                  {isExpanded && (
-                    <div className="border-t p-3 space-y-3">
-                      <div className="max-h-[500px] overflow-y-auto space-y-4 bg-muted/30 rounded-md p-4">
-                        {expandedMessages.length === 0 ? (
-                          <p className="text-center text-muted-foreground text-xs py-4">
-                            {isHe ? 'אין הודעות בשיחה זו' : 'No messages in this conversation'}
-                          </p>
-                        ) : (
-                          expandedMessages.map(message => (
-                            <div
-                              key={message.id}
-                              className={`flex flex-col gap-1 ${message.role === 'user' ? 'items-end' : 'items-start'}`}
-                              data-testid={`msg-${message.id}`}
-                            >
-                              <div className={`flex gap-2 ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                {message.role === 'assistant' ? (
-                                  <div className="shrink-0 h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center mt-1">
-                                    <Bot className="h-3 w-3 text-primary" />
-                                  </div>
-                                ) : (
-                                  <div className="shrink-0 h-5 w-5 rounded-full bg-muted flex items-center justify-center mt-1">
-                                    <User className="h-3 w-3 text-muted-foreground" />
-                                  </div>
-                                )}
-                                <div
-                                  className={`rounded-lg px-3 py-1.5 max-w-[90%] text-xs whitespace-pre-wrap ${
-                                    message.role === 'user'
-                                      ? 'bg-primary text-primary-foreground'
-                                      : 'bg-background border shadow-sm'
-                                  }`}
-                                >
-                                  {message.content}
-                                </div>
-                              </div>
-                              <span className="text-[10px] text-muted-foreground px-7">
-                                {new Date(message.createdAt).toLocaleString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                              </span>
-                            </div>
-                          ))
-                        )}
+                  {expandedId === conv.id && (
+                    <div className="border-t border-muted py-3 px-4 text-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-foreground">{conv.visitorPhone}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-foreground">{conv.visitorEmail}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            onClick={e => {
+                              e.stopPropagation()
+                              const url = formatWhatsAppUrl(conv.visitorPhone, isHe ? 'שלום, איך אפשר לעזור?' : 'Hello, how can I help?')
+                              window.open(url, '_blank')
+                            }}
+                          >
+                            <SiWhatsapp className="h-4 w-4 me-1" />
+                            {isHe ? 'שלח הודעה' : 'Send message'}
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant="destructive"
+                            onClick={e => {
+                              e.stopPropagation()
+                              if (window.confirm(isHe ? 'האם אתה בטוח שברצונך למחוק שיחה זו?' : 'Are you sure you want to delete this conversation?')) {
+                                deleteMutation.mutate(conv.id)
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 me-1" />
+                            {isHe ? 'מחק שיחה' : 'Delete conversation'}
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {conv.reviewed ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => markUnreviewed.mutate(conv.id)}
-                            disabled={markUnreviewed.isPending}
-                            data-testid={`button-unreview-${conv.id}`}
-                          >
-                            <CheckCircle className="h-4 w-4 me-1" />
-                            {isHe ? 'סמן כלא נבדק' : 'Mark as Unreviewed'}
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => markReviewed.mutate(conv.id)}
-                            disabled={markReviewed.isPending}
-                            data-testid={`button-review-${conv.id}`}
-                          >
-                            <CheckCircle className="h-4 w-4 me-1" />
-                            {isHe ? 'סמן כנקרא' : 'Mark as Reviewed'}
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-destructive border-destructive/30"
-                          onClick={() => {
-                            if (window.confirm(isHe ? `למחוק את השיחה עם ${conv.visitorName}?` : `Delete conversation with ${conv.visitorName}?`)) {
-                              deleteMutation.mutate(conv.id)
-                            }
-                          }}
-                          disabled={deleteMutation.isPending}
-                          data-testid={`button-delete-conversation-${conv.id}`}
-                        >
-                          <Trash2 className="h-4 w-4 me-1" />
-                          {isHe ? 'מחק' : 'Delete'}
-                        </Button>
+                      <div className="mt-2 flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs text-muted-foreground">{isHe ? 'סטטוס:' : 'Status:'}</div>
+                          <Badge variant="outline" className="no-default-hover-elevate no-default-active-elevate">
+                            {isHe ? statusInfo.he : statusInfo.en}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs text-muted-foreground">{isHe ? 'תאריך יצירה:' : 'Creation date:'}</div>
+                          <div className="font-medium text-foreground">
+                            {formatTimestamp(conv.createdAt)}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs text-muted-foreground">{isHe ? 'תאריך עדכון:' : 'Update date:'}</div>
+                          <div className="font-medium text-foreground">
+                            {formatTimestamp(conv.updatedAt)}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}

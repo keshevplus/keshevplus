@@ -25,10 +25,10 @@ const STATUS_CONFIG: Record<string, { he: string; en: string; color: string }> =
 };
 
 type ManagerFilter = 'all' | 'new'
-type AppointmentFilter = ManagerFilter | 'pending' | 'confirmed' | 'cancelled' | 'completed'
+type AppointmentFilter = 'all' | 'new' | 'pending' | 'confirmed' | 'cancelled' | 'completed'
 
 interface AppointmentsManagerProps {
-  initialFilter?: ManagerFilter
+  initialFilter?: 'all' | 'new'
 }
 
 const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps) => {
@@ -157,6 +157,12 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
     }, {});
   }, [upcomingAppointments]);
 
+  const visibleAppointments = useMemo(() => {
+    if (filter === 'new') return appointments.filter(a => a.status === 'pending')
+    if (filter === 'all') return appointments
+    return appointments.filter(a => a.status === filter)
+  }, [appointments, filter])
+
   return (
     <Card>
       <CardHeader>
@@ -245,14 +251,14 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
               )}
             </div>
 
-            {appointments.length === 0 ? (
+            {visibleAppointments.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground" data-testid="empty-appointments">
                 <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
                 <p>{isHe ? "אין פגישות להצגה" : "No appointments to display"}</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {appointments.map((appointment) => {
+                {visibleAppointments.map((appointment) => {
                   const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
 
               return (
