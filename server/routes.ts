@@ -1659,7 +1659,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const updated = await storage.updateClient(id, req.body);
+      const result = insertClientSchema.partial().extend({
+        status: z.enum(["lead", "client"]).optional(),
+      }).safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.message });
+      }
+
+      const updated = await storage.updateClient(id, result.data);
       if (!updated) return res.status(404).json({ error: "Client not found" });
       return res.json(updated);
     } catch (error) {

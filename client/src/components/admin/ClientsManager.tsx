@@ -11,7 +11,7 @@ import { Users, Plus, Save, ChevronDown, ChevronUp, Phone, Mail, StickyNote, Pho
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Client, ClientActivity, Contact, Appointment, QuestionnaireSubmission, Conversation } from "@shared/schema";
 
 function formatWhatsAppUrl(phone: string, message?: string) {
@@ -86,7 +86,12 @@ function groupInteractions(inter: ClientInteractions): GroupedInteraction[] {
   return items;
 }
 
-const ClientsManager = () => {
+interface ClientsManagerProps {
+  focusClientId?: number | null;
+  onFocusHandled?: () => void;
+}
+
+const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) => {
   const { language } = useLanguage();
   const isHe = language === "he";
   const { toast } = useToast();
@@ -154,6 +159,20 @@ const ClientsManager = () => {
     fetchClients();
   }, []);
 
+  useEffect(() => {
+    if (!focusClientId || clients.length === 0) return;
+    const client = clients.find((item) => item.id === focusClientId);
+    if (!client) return;
+    setExpandedClientId(client.id);
+    setEditNotes(client.notes || "");
+    fetchActivities(client.id);
+    fetchInteractions(client.id);
+    setTimeout(() => {
+      document.querySelector(`[data-testid="client-${client.id}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+    onFocusHandled?.();
+  }, [focusClientId, clients]);
+
   const handleExpand = (client: Client) => {
     if (expandedClientId === client.id) {
       setExpandedClientId(null);
@@ -186,6 +205,7 @@ const ClientsManager = () => {
       setNewNotes("");
       setShowAddForm(false);
       fetchClients();
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/badge-counts'] });
     } catch {
       toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "הוספת ליד נכשלה" : "Failed to add lead", variant: "destructive" });
     }
@@ -212,6 +232,7 @@ const ClientsManager = () => {
           : (isHe ? "הלקוח הוחזר לסטטוס ליד" : "Client reverted to lead status"),
       });
       fetchClients();
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/badge-counts'] });
     } catch {
       toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "עדכון סטטוס נכשל" : "Failed to update status", variant: "destructive" });
     }
@@ -616,7 +637,9 @@ const ClientsManager = () => {
                             className={`no-default-hover-elevate no-default-active-elevate text-xs ${client.status === 'client' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'}`}
                             data-testid={`badge-status-type-${client.id}`}
                           >
-                            {client.status === 'client' ? (isHe ? "לקוח" : "Client") : (isHe ? "ליד" : "Lead")}
+                            {client.status === 'client'
+                              ? `${isHe ? "לקוח" : "Client"} #${client.clientNumber ?? client.id}`
+                              : `${isHe ? "ליד" : "Lead"} #${client.leadNumber ?? client.id}`}
                           </Badge>
                           {showSourceLabel && (
                             <Badge

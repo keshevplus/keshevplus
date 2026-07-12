@@ -127,7 +127,7 @@ export const insertAppointmentSchema = createInsertSchema(appointments)
     appointmentFor: z.enum(["self", "child"]).default("self"),
     childAge: z.number().int().min(6).optional().nullable(),
   });
-export const insertClientSchema = createInsertSchema(clients).omit({ id: true, createdAt: true });
+export const insertClientSchema = createInsertSchema(clients).omit({ id: true, leadNumber: true, clientNumber: true, createdAt: true });
 export const insertClientActivitySchema = createInsertSchema(clientActivities).omit({ id: true, createdAt: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

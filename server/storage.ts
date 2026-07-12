@@ -401,7 +401,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createClient(client: InsertClient): Promise<Client> {
-    const [created] = await db.insert(clients).values(client as any).returning();
+    const existing = await this.findClientByIdentity(client);
+    if (existing) {
+      const updates: Record<string, any> = {};
+      if (client.name && existing.name !== client.name) updates.name = existing.name || client.name;
+      if (client.email && !existing.email) updates.email = client.email;
+      if (client.phone && !existing.phone) updates.phone = client.phone;
+      if ((client as any).childName && !existing.childName) updates.childName = (client as any).childName;
+      if (client.notes && !existing.notes) updates.notes = client.notes;
+      if (Object.keys(updates).length > 0) {
+        const [updated] = await db.update(clients).set(updates).where(eq(clients.id, existing.id)).returning();
+        return updated || existing;
+      }
+      return existing;
+    }
+
+    const status = (client as any).status || "lead";
+    const values: Record<string, any> = { ...client, status };
+    if (status === "client") {
+      values.clientNumber = await this.getNextClientNumber();
+    } else {
+      values.leadNumber = await this.getNextLeadNumber();
+    }
+
+    const [created] = await db.insert(clients).values(values as any).returning();
     return created;
   }
 
@@ -415,8 +438,53 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateClient(id: number, data: Partial<InsertClient>): Promise<Client | undefined> {
+    const existing = await this.getClient(id);
+    if (!existing) return undefined;
+
+    const updates: Record<string, any> = { ...data };
+    const requestedStatus = (data as any).status;
+    if (requestedStatus && !["lead", "client"].includes(requestedStatus)) {
+      throw new Error("Invalid client status");
+    }
+
+    const nextIdentity = {
+      email: updates.email !== undefined ? updates.email : existing.email,
+      phone: updates.phone !== undefined ? updates.phone : existing.phone,
+    };
+    const duplicate = await this.findClientByIdentity(nextIdentity, id);
+    if (duplicate) {
+      const target = duplicate.status === "client" ? duplicate : existing;
+      const source = target.id === duplicate.id ? existing : duplicate;
+      const merged: Record<string, any> = {};
+
+      if (!target.email && source.email) merged.email = source.email;
+      if (!target.phone && source.phone) merged.phone = source.phone;
+      if (!target.childName && source.childName) merged.childName = source.childName;
+      if (!target.notes && source.notes) merged.notes = source.notes;
+      if (updates.name && target.name !== updates.name) merged.name = target.name || updates.name;
+      if (requestedStatus === "client" && target.status !== "client") merged.status = "client";
+      if ((merged.status === "client" || target.status === "client") && !target.clientNumber) {
+        merged.clientNumber = await this.getNextClientNumber();
+      }
+
+      const updatedRows = Object.keys(merged).length > 0
+        ? await db.update(clients).set(merged as any).where(eq(clients.id, target.id)).returning()
+        : [target];
+      const [updated] = updatedRows;
+      await db.update(clientActivities).set({ clientId: target.id } as any).where(eq(clientActivities.clientId, source.id));
+      await db.delete(clients).where(eq(clients.id, source.id));
+      return updated || target;
+    }
+
+    if (requestedStatus === "client" && existing.status !== "client" && !existing.clientNumber) {
+      updates.clientNumber = await this.getNextClientNumber();
+    }
+    if (!requestedStatus && existing.status === "lead" && !existing.leadNumber) {
+      updates.leadNumber = await this.getNextLeadNumber();
+    }
+
     const [updated] = await db.update(clients)
-      .set(data as any)
+      .set(updates as any)
       .where(eq(clients.id, id))
       .returning();
     return updated || undefined;
@@ -434,9 +502,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertClientByEmail(data: { name: string; email: string; phone?: string; source: string; childName?: string }): Promise<Client> {
-    const existing = await this.getClientByEmail(data.email);
+    const existing = await this.findClientByIdentity({ email: data.email, phone: data.phone });
     if (existing) {
       const updates: Record<string, any> = {};
+      if (data.email && !existing.email) updates.email = data.email;
       if (data.phone && !existing.phone) updates.phone = data.phone;
       if (data.childName && !existing.childName) updates.childName = data.childName;
       if (Object.keys(updates).length > 0) {
@@ -446,6 +515,7 @@ export class DatabaseStorage implements IStorage {
       return existing;
     }
     const [created] = await db.insert(clients).values({
+      leadNumber: await this.getNextLeadNumber(),
       name: data.name,
       email: data.email,
       phone: data.phone || null,
@@ -484,18 +554,31 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
-  async getAdminBadgeCounts(): Promise<{ unreadContacts: number; pendingAppointments: number; unreviewedQuestionnaires: number; unreviewedConversations: number; newLeads: number }> {
+  async getAdminBadgeCounts(): Promise<{ unreadContacts: number; pendingAppointments: number; unreviewedQuestionnaires: number; unreviewedConversations: number; newLeads: number; newLeadItems: Array<{ id: number; name: string; email: string | null; phone: string | null; leadNumber: number | null }> }> {
     const [contactsResult] = await db.select({ count: sql<number>`count(*)::int` }).from(contacts).where(eq(contacts.read, false));
     const [appointmentsResult] = await db.select({ count: sql<number>`count(*)::int` }).from(appointments).where(eq(appointments.status, 'pending'));
     const [questionnairesResult] = await db.select({ count: sql<number>`count(*)::int` }).from(questionnaireSubmissions).where(eq(questionnaireSubmissions.reviewed, false));
     const [conversationsResult] = await db.select({ count: sql<number>`count(*)::int` }).from(conversations).where(eq(conversations.reviewed, false));
     const [leadsResult] = await db.select({ count: sql<number>`count(*)::int` }).from(clients).where(eq(clients.status, 'lead'));
+    const newLeadItems = await db
+      .select({
+        id: clients.id,
+        name: clients.name,
+        email: clients.email,
+        phone: clients.phone,
+        leadNumber: clients.leadNumber,
+      })
+      .from(clients)
+      .where(eq(clients.status, 'lead'))
+      .orderBy(desc(clients.createdAt))
+      .limit(10);
     return {
       unreadContacts: contactsResult?.count ?? 0,
       pendingAppointments: appointmentsResult?.count ?? 0,
       unreviewedQuestionnaires: questionnairesResult?.count ?? 0,
       unreviewedConversations: conversationsResult?.count ?? 0,
       newLeads: leadsResult?.count ?? 0,
+      newLeadItems,
     };
   }
 
