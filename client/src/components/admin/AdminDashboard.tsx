@@ -40,6 +40,7 @@ const AdminDashboard = () => {
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
+  const [focusedClientId, setFocusedClientId] = useState<number | null>(null)
 
   interface BadgeCounts {
     unreadContacts: number
@@ -47,6 +48,13 @@ const AdminDashboard = () => {
     unreviewedQuestionnaires: number
     unreviewedConversations: number
     newLeads: number
+    newLeadItems: Array<{
+      id: number
+      name: string
+      email: string | null
+      phone: string | null
+      leadNumber: number | null
+    }>
   }
 
   const { data: badgeCounts } = useQuery<BadgeCounts>({
@@ -55,6 +63,11 @@ const AdminDashboard = () => {
   })
 
   const leadBadgeCount = badgeCounts?.newLeads ?? 0
+  const newLeadItems = badgeCounts?.newLeadItems ?? []
+  const openLead = (clientId: number) => {
+    setFocusedClientId(clientId)
+    setActiveTab('clients')
+  }
 
   const tabBadgeMap: Record<string, number> = {
     contacts: badgeCounts?.unreadContacts ?? 0,
@@ -214,14 +227,42 @@ const AdminDashboard = () => {
               <Popover>
                 <PopoverTrigger asChild>
                   <button className="flex items-center gap-1.5 rounded-full border border-transparent bg-muted/70 px-2 py-1 text-sm transition hover:bg-muted" type="button" data-testid="header-lead-notifications">
-                    <Badge className="bg-purple-600 text-white hover:bg-purple-700">👥 {leadBadgeCount}</Badge>
+                    <Badge className={leadBadgeCount > 0 ? "bg-purple-600 text-white hover:bg-purple-700" : "border border-purple-200 bg-white text-purple-700 hover:bg-purple-50"}>
+                      👥 {leadBadgeCount}
+                    </Badge>
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-60">
+                <PopoverContent className="w-72">
                   <p className="text-sm font-semibold mb-2">{isHe ? 'לידים חדשים' : 'New leads'}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {isHe ? `יש לך ${leadBadgeCount} לידים חדשים.` : `You have ${leadBadgeCount} new leads.`}
-                  </p>
+                  {leadBadgeCount === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      {isHe ? 'אין לידים חדשים כרגע.' : 'No new leads right now.'}
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {newLeadItems.map((lead) => (
+                        <button
+                          key={lead.id}
+                          type="button"
+                          className="w-full rounded-md border p-2 text-start transition hover:bg-muted"
+                          onClick={() => openLead(lead.id)}
+                          data-testid={`button-open-new-lead-${lead.id}`}
+                        >
+                          <span className="block text-sm font-medium">
+                            #{lead.leadNumber ?? lead.id} {lead.name}
+                          </span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {lead.email || lead.phone || (isHe ? 'ללא פרטי קשר' : 'No contact details')}
+                          </span>
+                        </button>
+                      ))}
+                      {leadBadgeCount > newLeadItems.length && (
+                        <p className="text-xs text-muted-foreground">
+                          {isHe ? `ועוד ${leadBadgeCount - newLeadItems.length} לידים...` : `And ${leadBadgeCount - newLeadItems.length} more leads...`}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </PopoverContent>
               </Popover>
               <LanguageSelector />
@@ -262,11 +303,21 @@ const AdminDashboard = () => {
                             </Badge>
                           </button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-56">
+                        <PopoverContent className="w-72">
                           <p className="text-sm font-semibold mb-2">{isHe ? 'לידים ולקוחות' : 'Leads & Clients'}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {isHe ? `יש ${leadBadgeCount} לידים חדשים.` : `There are ${leadBadgeCount} new leads.`}
-                          </p>
+                          <div className="space-y-1.5">
+                            {newLeadItems.map((lead) => (
+                              <button
+                                key={lead.id}
+                                type="button"
+                                className="w-full rounded-md border p-2 text-start transition hover:bg-muted"
+                                onClick={() => openLead(lead.id)}
+                              >
+                                <span className="block text-sm font-medium">#{lead.leadNumber ?? lead.id} {lead.name}</span>
+                                <span className="block truncate text-xs text-muted-foreground">{lead.email || lead.phone || ''}</span>
+                              </button>
+                            ))}
+                          </div>
                         </PopoverContent>
                       </Popover>
                     ) : (
@@ -396,7 +447,7 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="clients" className="mt-0">
-            <ClientsManager />
+            <ClientsManager focusClientId={focusedClientId} onFocusHandled={() => setFocusedClientId(null)} />
           </TabsContent>
 
           <TabsContent value="conversations" className="mt-0">
