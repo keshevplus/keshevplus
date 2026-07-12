@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,20 +24,32 @@ const STATUS_CONFIG: Record<string, { he: string; en: string; color: string }> =
   completed: { he: "הושלמה", en: "Completed", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
 };
 
-const AppointmentsManager = () => {
+type ManagerFilter = 'all' | 'new'
+
+interface AppointmentsManagerProps {
+  initialFilter?: ManagerFilter
+}
+
+const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps) => {
   const { language } = useLanguage();
   const isHe = language === "he";
   const { toast } = useToast();
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [filter, setFilter] = useState<ManagerFilter>(initialFilter)
+
+  useEffect(() => {
+    setFilter(initialFilter)
+  }, [initialFilter])
 
   const { data: allAppointments = [], isLoading } = useQuery<Appointment[]>({
     queryKey: ["/api/appointments"],
   });
 
   const appointments = useMemo(() => {
-    if (statusFilter === "all") return allAppointments;
-    return allAppointments.filter((appointment) => appointment.status === statusFilter);
-  }, [allAppointments, statusFilter]);
+    if (filter === 'new') {
+      return allAppointments.filter(a => a.status === 'pending') // pending/new bookings
+    }
+    return allAppointments
+  }, [appointments, filter]);
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
@@ -150,7 +162,7 @@ const AppointmentsManager = () => {
             <CardTitle>{isHe ? "ניהול פגישות" : "Appointment Manager"}</CardTitle>
           </div>
           <div className="flex items-center gap-2">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={filter} onValueChange={setFilter}>
               <SelectTrigger className="w-[150px] h-8 text-xs" data-testid="select-appointment-filter">
                 <div className="flex items-center gap-1.5">
                   <Filter className="h-3.5 w-3.5" />
