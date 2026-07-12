@@ -1,6 +1,6 @@
 import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, conversations, messages, whatsappMessages, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type WhatsAppMessage, type InsertWhatsAppMessage } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, sql, lt, inArray } from "drizzle-orm";
+import { eq, desc, and, sql, lt, inArray } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -558,13 +558,7 @@ export class DatabaseStorage implements IStorage {
     const [contactsNew] = await db
       .select({ count: sql<number>`count(*)` })
       .from(contacts)
-      .where(
-        or(
-          eq(contacts.read, false),
-          eq(contacts.status, "new"),
-          eq(contacts.status, "unread")
-        )
-      );
+      .where(eq(contacts.status, "new"));
 
     const [appointmentsPending] = await db
       .select({ count: sql<number>`count(*)` })
@@ -581,13 +575,26 @@ export class DatabaseStorage implements IStorage {
       .from(questionnaireSubmissions)
       .where(eq(questionnaireSubmissions.status, "new"));
 
+    const newLeadRows = await db
+      .select({
+        id: clients.id,
+        name: clients.name,
+        email: clients.email,
+        phone: clients.phone,
+        leadNumber: clients.leadNumber,
+      })
+      .from(clients)
+      .where(eq(clients.status, "lead"))
+      .orderBy(desc(clients.createdAt))
+      .limit(10);
+
     return {
       unreadContacts: Number(contactsNew?.count ?? 0),
       pendingAppointments: Number(appointmentsPending?.count ?? 0),
       unreviewedConversations: Number(conversationsNew?.count ?? 0),
       unreviewedQuestionnaires: Number(questionnairesNew?.count ?? 0),
-      newLeads: 0,
-      newLeadItems: [],
+      newLeads: newLeadRows.length,
+      newLeadItems: newLeadRows,
     };
   }
 
