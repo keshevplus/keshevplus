@@ -1,6 +1,6 @@
 import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, conversations, messages, whatsappMessages, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type WhatsAppMessage, type InsertWhatsAppMessage } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, lt, inArray } from "drizzle-orm";
+import { eq, desc, and, or, sql, lt, inArray } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -557,11 +557,12 @@ export class DatabaseStorage implements IStorage {
   async getAdminBadgeCounts(): Promise<{ unreadContacts: number; pendingAppointments: number; unreviewedQuestionnaires: number; unreviewedConversations: number; newLeads: number; newLeadItems: Array<{ id: number; name: string; email: string | null; phone: string | null; leadNumber: number | null }> }> {
     const [contactsNew] = await db
       .select({ count: sql<number>`count(*)` })
-      .from(contactSubmissions)
+      .from(contacts)
       .where(
         or(
-          eq(contactSubmissions.status, "new"),
-          eq(contactSubmissions.status, "unread")
+          eq(contacts.read, false),
+          eq(contacts.status, "new"),
+          eq(contacts.status, "unread")
         )
       );
 
@@ -585,6 +586,8 @@ export class DatabaseStorage implements IStorage {
       pendingAppointments: Number(appointmentsPending?.count ?? 0),
       unreviewedConversations: Number(conversationsNew?.count ?? 0),
       unreviewedQuestionnaires: Number(questionnairesNew?.count ?? 0),
+      newLeads: 0,
+      newLeadItems: [],
     };
   }
 
