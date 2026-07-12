@@ -43,7 +43,7 @@ export interface IStorage {
   getClientByEmail(email: string): Promise<Client | undefined>;
   getClientInteractions(clientId: number): Promise<{ contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[] }>;
   getActiveAppointmentForChild(email: string, childName: string): Promise<Appointment | undefined>;
-  getAdminBadgeCounts(): Promise<{ unreadContacts: number; pendingAppointments: number; unreviewedQuestionnaires: number; unreviewedConversations: number; newLeads: number }>;
+  getAdminBadgeCounts(): Promise<{ unreadContacts: number; pendingAppointments: number; unreviewedQuestionnaires: number; unreviewedConversations: number; newLeads: number; newLeadItems: Array<{ id: number; name: string; email: string | null; phone: string | null; leadNumber: number | null }> }>;
   getWidgetSettings(): Promise<WidgetSettings>;
   updateWidgetSettings(settings: WidgetSettings): Promise<WidgetSettings>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
@@ -69,6 +69,31 @@ export interface IStorage {
   getWhatsAppMessages(phone: string): Promise<WhatsAppMessage[]>;
   getWhatsAppConversations(): Promise<{ phone: string; clientId: number | null; lastMessage: string; lastMessageAt: Date; unreadCount: number }[]>;
   updateWhatsAppMessageStatus(waMessageId: string, status: string): Promise<void>;
+}
+
+function normalizeCrmEmail(value?: string | null) {
+  return (value || "").trim().toLowerCase();
+}
+
+function normalizeCrmPhone(value?: string | null) {
+  const digits = (value || "").replace(/\D/g, "");
+  if (digits.startsWith("972")) return `0${digits.slice(3)}`;
+  return digits;
+}
+
+function clientMatchesIdentity(client: Client, identity: { email?: string | null; phone?: string | null }) {
+  const email = normalizeCrmEmail(identity.email);
+  const phone = normalizeCrmPhone(identity.phone);
+  const clientEmail = normalizeCrmEmail(client.email);
+  const clientPhone = normalizeCrmPhone(client.phone);
+
+  return (
+    (!!email && !!clientEmail && clientEmail === email) ||
+    (!!phone && !!clientPhone && (
+      clientPhone === phone ||
+      (clientPhone.length >= 7 && phone.length >= 7 && (clientPhone.endsWith(phone) || phone.endsWith(clientPhone)))
+    ))
+  );
 }
 
 export class DatabaseStorage implements IStorage {
@@ -161,6 +186,36 @@ export class DatabaseStorage implements IStorage {
       .values({ key, value } as any)
       .returning();
     return created;
+  }
+
+  private async getNextCrmNumber(key: string, start: number): Promise<number> {
+    const result = await db.execute(sql`
+      insert into site_settings (key, value)
+      values (${key}, ${JSON.stringify(start + 1)}::jsonb)
+      on conflict (key)
+      do update set value = to_jsonb(((site_settings.value #>> '{}')::int + 1))
+      returning ((value #>> '{}')::int - 1) as number
+    `);
+    const row = (result.rows as Array<{ number: number }>)[0];
+
+    return Number(row?.number || start);
+  }
+
+  private async getNextLeadNumber() {
+    return this.getNextCrmNumber("crm_next_lead_number", 5000);
+  }
+
+  private async getNextClientNumber() {
+    return this.getNextCrmNumber("crm_next_client_number", 200);
+  }
+
+  private async findClientByIdentity(identity: { email?: string | null; phone?: string | null }, excludeId?: number): Promise<Client | undefined> {
+    const email = normalizeCrmEmail(identity.email);
+    const phone = normalizeCrmPhone(identity.phone);
+    if (!email && !phone) return undefined;
+
+    const allClients = await this.getClients();
+    return allClients.find((client) => client.id !== excludeId && clientMatchesIdentity(client, identity));
   }
 
   async getTranslationsByLanguage(language: string): Promise<Record<string, string>> {
