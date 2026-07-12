@@ -130,7 +130,8 @@ const ClientsManager = () => {
       const res = await fetch(`/api/clients/${clientId}/activities`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch activities");
       const data = await res.json();
-      setActivities(data);
+      const sorted = data.sort((a: ClientActivity, b: ClientActivity) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setActivities(sorted);
     } catch {
       setActivities([]);
     } finally {
@@ -787,31 +788,35 @@ const ClientsManager = () => {
                             {isHe ? "אין פעילויות עדיין" : "No activities yet"}
                           </p>
                         ) : (
-                          <div className="space-y-2">
-                            {activities.map((activity) => {
-                              const typeInfo = ACTIVITY_TYPES[activity.type] || ACTIVITY_TYPES.note;
-                              const TypeIcon = typeInfo.icon;
-                              return (
-                                <div
-                                  key={activity.id}
-                                  className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border"
-                                  data-testid={`activity-${activity.id}`}
-                                >
-                                  <Badge
-                                    variant="secondary"
-                                    className={`shrink-0 no-default-hover-elevate no-default-active-elevate ${typeInfo.color}`}
-                                    data-testid={`badge-activity-type-${activity.id}`}
+                          <div className="max-h-[280px] overflow-y-auto rounded-xl border border-muted/40 bg-background p-2 shadow-sm">
+                            <div className="space-y-2">
+                              {activities.map((activity) => {
+                                const typeInfo = ACTIVITY_TYPES[activity.type] || ACTIVITY_TYPES.note;
+                                const TypeIcon = typeInfo.icon;
+                                return (
+                                  <div
+                                    key={activity.id}
+                                    className="flex items-start gap-2 text-sm rounded-lg border p-2 bg-muted/70"
+                                    data-testid={`activity-${activity.id}`}
                                   >
-                                    <TypeIcon className="w-3 h-3 mr-1" />
-                                    {isHe ? typeInfo.he : typeInfo.en}
-                                  </Badge>
-                                  <span className="flex-1">{activity.description}</span>
-                                  <span className="text-xs text-muted-foreground shrink-0">
-                                    {formatDateTime(activity.createdAt)}
-                                  </span>
-                                </div>
-                              );
-                            })}
+                                    <Badge
+                                      variant="secondary"
+                                      className={`shrink-0 no-default-hover-elevate no-default-active-elevate ${typeInfo.color}`}
+                                      data-testid={`badge-activity-type-${activity.id}`}
+                                    >
+                                      <TypeIcon className="w-3 h-3 mr-1" />
+                                      {isHe ? typeInfo.he : typeInfo.en}
+                                    </Badge>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm leading-snug text-foreground">{activity.description}</div>
+                                      <div className="mt-1 text-[11px] text-muted-foreground">
+                                        {formatDateTime(activity.createdAt)}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
                         )}
                       </div>

@@ -194,40 +194,36 @@ const AdminDashboard = () => {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              {totalBadges > 0 && (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="flex items-center gap-1.5 rounded-full border border-transparent bg-muted/70 px-2 py-1 text-sm transition hover:bg-muted" type="button" data-testid="header-notifications">
-                      <Bell className="h-4 w-4 text-muted-foreground" />
-                      <Badge variant="destructive">{totalBadges}</Badge>
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-72">
-                    <p className="text-sm font-semibold mb-2">{isHe ? 'התראות' : 'Notifications'}</p>
-                    <ul className="space-y-1 text-sm text-muted-foreground">
-                      <li>{isHe ? `פניות חדשות: ${badgeCounts?.unreadContacts ?? 0}` : `New contacts: ${badgeCounts?.unreadContacts ?? 0}`}</li>
-                      <li>{isHe ? `פגישות ממתינות: ${badgeCounts?.pendingAppointments ?? 0}` : `Pending appointments: ${badgeCounts?.pendingAppointments ?? 0}`}</li>
-                      <li>{isHe ? `שיחות חדשות: ${badgeCounts?.unreviewedConversations ?? 0}` : `New conversations: ${badgeCounts?.unreviewedConversations ?? 0}`}</li>
-                      <li>{isHe ? `שאלונים חדשים: ${badgeCounts?.unreviewedQuestionnaires ?? 0}` : `New questionnaires: ${badgeCounts?.unreviewedQuestionnaires ?? 0}`}</li>
-                    </ul>
-                  </PopoverContent>
-                </Popover>
-              )}
-              {leadBadgeCount > 0 && (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="flex items-center gap-1.5 rounded-full border border-transparent bg-muted/70 px-2 py-1 text-sm transition hover:bg-muted" type="button" data-testid="header-lead-notifications">
-                      <Badge className="bg-purple-600 text-white hover:bg-purple-700">👥 {leadBadgeCount}</Badge>
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-60">
-                    <p className="text-sm font-semibold mb-2">{isHe ? 'לידים חדשים' : 'New leads'}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {isHe ? `יש לך ${leadBadgeCount} לידים חדשים.` : `You have ${leadBadgeCount} new leads.`}
-                    </p>
-                  </PopoverContent>
-                </Popover>
-              )}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="flex items-center gap-1.5 rounded-full border border-transparent bg-muted/70 px-2 py-1 text-sm transition hover:bg-muted" type="button" data-testid="header-notifications">
+                    <Bell className="h-4 w-4 text-muted-foreground" />
+                    <Badge variant="destructive">{totalBadges}</Badge>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72">
+                  <p className="text-sm font-semibold mb-2">{isHe ? 'התראות' : 'Notifications'}</p>
+                  <ul className="space-y-1 text-sm text-muted-foreground">
+                    <li>{isHe ? `פניות חדשות: ${badgeCounts?.unreadContacts ?? 0}` : `New contacts: ${badgeCounts?.unreadContacts ?? 0}`}</li>
+                    <li>{isHe ? `פגישות ממתינות: ${badgeCounts?.pendingAppointments ?? 0}` : `Pending appointments: ${badgeCounts?.pendingAppointments ?? 0}`}</li>
+                    <li>{isHe ? `שיחות חדשות: ${badgeCounts?.unreviewedConversations ?? 0}` : `New conversations: ${badgeCounts?.unreviewedConversations ?? 0}`}</li>
+                    <li>{isHe ? `שאלונים חדשים: ${badgeCounts?.unreviewedQuestionnaires ?? 0}` : `New questionnaires: ${badgeCounts?.unreviewedQuestionnaires ?? 0}`}</li>
+                  </ul>
+                </PopoverContent>
+              </Popover>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="flex items-center gap-1.5 rounded-full border border-transparent bg-muted/70 px-2 py-1 text-sm transition hover:bg-muted" type="button" data-testid="header-lead-notifications">
+                    <Badge className="bg-purple-600 text-white hover:bg-purple-700">👥 {leadBadgeCount}</Badge>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-60">
+                  <p className="text-sm font-semibold mb-2">{isHe ? 'לידים חדשים' : 'New leads'}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isHe ? `יש לך ${leadBadgeCount} לידים חדשים.` : `You have ${leadBadgeCount} new leads.`}
+                  </p>
+                </PopoverContent>
+              </Popover>
               <LanguageSelector />
               <ThemeToggle />
               <Button variant="outline" onClick={handleSignOut} data-testid="button-signout">
