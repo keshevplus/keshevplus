@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { useLanguage } from '@/hooks/useLanguage'
 import { LanguageSelector } from '../LanguageSelector'
@@ -32,6 +32,9 @@ const languageCodeClass = "inline-flex w-6 shrink-0 justify-center font-sans tex
 const languageNameClass = "font-sans text-sm leading-none"
 
 type FilterableTab = 'contacts' | 'appointments' | 'conversations' | 'questionnaires'
+
+const isFilterableTab = (tab: string): tab is FilterableTab =>
+  tab === 'contacts' || tab === 'appointments' || tab === 'conversations' || tab === 'questionnaires'
 
 const AdminDashboard = () => {
   const { user, signOut } = useAuth()
@@ -204,6 +207,21 @@ const AdminDashboard = () => {
     { value: 'translations', icon: Languages, he: 'תרגומים', en: 'Translations' },
     { value: 'settings', icon: Settings, he: 'הגדרות', en: 'Settings' },
   ]
+
+  const previousTabRef = useRef(activeTab)
+
+  useEffect(() => {
+    const prevTab = previousTabRef.current
+
+    if (prevTab !== activeTab && isFilterableTab(prevTab)) {
+      setTabInitialFilters((prev) => {
+        if (prev[prevTab] !== 'new') return prev
+        return { ...prev, [prevTab]: 'all' }
+      })
+    }
+
+    previousTabRef.current = activeTab
+  }, [activeTab])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
