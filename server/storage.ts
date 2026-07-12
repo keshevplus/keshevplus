@@ -576,6 +576,11 @@ export class DatabaseStorage implements IStorage {
       .from(questionnaireSubmissions)
       .where(eq(questionnaireSubmissions.status, "new"));
 
+    const [newLeadsCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(clients)
+      .where(and(eq(clients.status, "lead"), eq(clients.adminSeen, false)));
+
     const newLeadRows = await db
       .select({
         id: clients.id,
@@ -594,7 +599,7 @@ export class DatabaseStorage implements IStorage {
       pendingAppointments: Number(appointmentsPending?.count ?? 0),
       unreviewedConversations: Number(conversationsNew?.count ?? 0),
       unreviewedQuestionnaires: Number(questionnairesNew?.count ?? 0),
-      newLeads: newLeadRows.length,
+      newLeads: Number(newLeadsCount?.count ?? 0),
       newLeadItems: newLeadRows,
     };
   }
