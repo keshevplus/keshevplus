@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { queryClient, apiRequest } from '@/lib/queryClient'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -26,21 +26,39 @@ interface Message {
   createdAt: string
 }
 
-const ConversationsManager = () => {
+type ManagerFilter = 'all' | 'new'
+
+interface ConversationsManagerProps {
+  initialFilter?: ManagerFilter
+}
+
+const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerProps) => {
   const { language } = useLanguage()
   const isHe = language === 'he'
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [selectMode, setSelectMode] = useState(false)
+  const [filter, setFilter] = useState<ManagerFilter>(initialFilter)
+
+  useEffect(() => {
+    setFilter(initialFilter)
+  }, [initialFilter])
 
   const { data: conversations = [], isLoading } = useQuery<Conversation[]>({
     queryKey: ['/api/conversations'],
   })
 
-  const { data: expandedMessages = [] } = useQuery<Message[]>({
-    queryKey: [`/api/conversations/${expandedId}/messages`],
-    enabled: expandedId !== null,
-  })
+  const visibleConversations = useMemo(() => {
+    if (filter === 'new') return conversations.filter(c => !c.reviewed)
+    return conversations
+  }, [conversations, filter])
+
+  useEffect(() => {
+    setSelectedIds(prev => {
+      const visibleIds = new Set(visibleConversations.map(c => c.id))
+      return new Set([...prev].filter(id => visibleIds.has(id)))
+    })
+  }, [visibleConversations])
 
   const invalidateConversationsQueries = () => {
     queryClient.invalidateQueries({ predicate: (query) => Array.isArray(query.queryKey) && query.queryKey[0] === '/api/conversations' })
@@ -109,10 +127,10 @@ const ConversationsManager = () => {
   }
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === conversations.length) {
+    if (selectedIds.size === visibleConversations.length) {
       setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(conversations.map(c => c.id)))
+      setSelectedIds(new Set(visibleConversations.map(c => c.id)))
     }
   }
 
@@ -165,11 +183,11 @@ const ConversationsManager = () => {
         </div>
       </CardHeader>
       <CardContent>
-        {selectMode && conversations.length > 0 && (
+        {selectMode && visibleConversations.length > 0 && (
           <div className="flex items-center gap-3 mb-3 p-2 border rounded-md bg-muted/30 flex-wrap">
             <div className="flex items-center gap-2">
               <Checkbox
-                checked={selectedIds.size === conversations.length && conversations.length > 0}
+                checked={selectedIds.size === visibleConversations.length && visibleConversations.length > 0}
                 onCheckedChange={toggleSelectAll}
                 data-testid="checkbox-select-all-conversations"
               />
@@ -196,13 +214,13 @@ const ConversationsManager = () => {
           </div>
         )}
 
-        {conversations.length === 0 ? (
+        {visibleConversations.length === 0 ? (
           <p className="text-center text-muted-foreground text-sm py-8">
-            {isHe ? 'אין שיחות עדיין' : 'No conversations yet'}
+            {isHe ? 'אין שיחות להצגה' : 'No conversations to display'}
           </p>
         ) : (
           <div className="space-y-3">
-            {conversations.map(conv => {
+            {visibleConversations.map(conv => {
               const isExpanded = expandedId === conv.id
               return (
                 <div
