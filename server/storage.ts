@@ -69,6 +69,7 @@ export interface IStorage {
   getWhatsAppMessages(phone: string): Promise<WhatsAppMessage[]>;
   getWhatsAppConversations(): Promise<{ phone: string; clientId: number | null; lastMessage: string; lastMessageAt: Date; unreadCount: number }[]>;
   updateWhatsAppMessageStatus(waMessageId: string, status: string): Promise<void>;
+  markClientSeen(id: number): Promise<void>;
 }
 
 function normalizeCrmEmail(value?: string | null) {
@@ -584,7 +585,7 @@ export class DatabaseStorage implements IStorage {
         leadNumber: clients.leadNumber,
       })
       .from(clients)
-      .where(eq(clients.status, "lead"))
+      .where(and(eq(clients.status, "lead"), eq(clients.adminSeen, false)))
       .orderBy(desc(clients.createdAt))
       .limit(10);
 
@@ -746,6 +747,10 @@ export class DatabaseStorage implements IStorage {
       lastMessageAt: new Date(r.last_message_at),
       unreadCount: Number(r.unread_count || 0),
     }));
+  }
+
+  async markClientSeen(id: number): Promise<void> {
+    await db.update(clients).set({ adminSeen: true } as any).where(eq(clients.id, id));
   }
 
   async updateWhatsAppMessageStatus(waMessageId: string, status: string): Promise<void> {

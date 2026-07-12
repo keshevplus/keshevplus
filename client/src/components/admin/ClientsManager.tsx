@@ -167,6 +167,11 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
     setEditNotes(client.notes || "");
     fetchActivities(client.id);
     fetchInteractions(client.id);
+    if (!client.adminSeen) {
+      fetch(`/api/clients/${client.id}/seen`, { method: "PATCH", credentials: "include" })
+        .then(() => queryClient.invalidateQueries({ queryKey: ["admin-badges"] }))
+        .catch(() => {});
+    }
     setTimeout(() => {
       document.querySelector(`[data-testid="client-${client.id}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 50);
@@ -184,6 +189,11 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
     setEditNotes(client.notes || "");
     fetchActivities(client.id);
     fetchInteractions(client.id);
+    if (!client.adminSeen) {
+      fetch(`/api/clients/${client.id}/seen`, { method: "PATCH", credentials: "include" })
+        .then(() => queryClient.invalidateQueries({ queryKey: ["admin-badges"] }))
+        .catch(() => {});
+    }
   };
 
   const handleAddClient = async () => {

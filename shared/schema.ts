@@ -104,6 +104,7 @@ export const clients = pgTable("clients", {
   status: text("status").notNull().default("lead"),
   source: text("source").notNull().default("manual"),
   childName: text("child_name"),
+  adminSeen: boolean("admin_seen").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

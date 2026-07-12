@@ -1674,6 +1674,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/clients/:id/seen", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+      await storage.markClientSeen(parseInt(req.params.id));
+      return res.json({ ok: true });
+    } catch {
+      return res.status(500).json({ error: "Failed to mark client seen" });
+    }
+  });
+
   app.get("/api/clients/:id/interactions", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;

@@ -103,6 +103,7 @@ const AdminDashboard = () => {
     + (badgeCounts?.pendingAppointments ?? 0)
     + (badgeCounts?.unreviewedConversations ?? 0)
     + (badgeCounts?.unreviewedQuestionnaires ?? 0)
+    + (badgeCounts?.newLeads ?? 0)
 
   const [widgetSettings, setWidgetSettings] = useState<WidgetSettings>({ showChat: true, showAccessibility: true, showWhatsApp: true })
 
@@ -293,6 +294,16 @@ const AdminDashboard = () => {
                         className="w-full rounded-md border p-2 text-start transition hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isHe ? `שאלונים חדשים: ${badgeCounts?.unreviewedQuestionnaires ?? 0}` : `New questionnaires: ${badgeCounts?.unreviewedQuestionnaires ?? 0}`}
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => { setActiveTab('clients'); setNotificationsOpen(false) }}
+                        disabled={(badgeCounts?.newLeads ?? 0) === 0}
+                        className="w-full rounded-md border p-2 text-start transition hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isHe ? `לידים חדשים: ${badgeCounts?.newLeads ?? 0}` : `New leads: ${badgeCounts?.newLeads ?? 0}`}
                       </button>
                     </li>
                   </ul>
