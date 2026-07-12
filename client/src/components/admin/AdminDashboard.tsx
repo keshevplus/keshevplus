@@ -42,6 +42,9 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview')
   const [focusedClientId, setFocusedClientId] = useState<number | null>(null)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [tabInitialFilters, setTabInitialFilters] = useState<
+    Partial<Record<'contacts' | 'appointments' | 'conversations' | 'questionnaires', 'all' | 'new'>>
+  >({})
 
   interface BadgeCounts {
     unreadContacts: number
@@ -71,6 +74,9 @@ const AdminDashboard = () => {
   }
 
   const openFromNotification = (tab: string) => {
+    if (tab === 'contacts' || tab === 'appointments' || tab === 'conversations' || tab === 'questionnaires') {
+      setTabInitialFilters(prev => ({ ...prev, [tab]: 'new' }))
+    }
     setActiveTab(tab)
     setNotificationsOpen(false)
   }
@@ -479,17 +485,17 @@ const AdminDashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ContactsManager />
-              <AppointmentsManager />
+              <ContactsManager initialFilter="all" />
+              <AppointmentsManager initialFilter="all" />
             </div>
           </TabsContent>
 
           <TabsContent value="contacts" className="mt-0">
-            <ContactsManager />
+            <ContactsManager initialFilter={tabInitialFilters.contacts ?? 'all'} />
           </TabsContent>
 
           <TabsContent value="appointments" className="mt-0">
-            <AppointmentsManager />
+            <AppointmentsManager initialFilter={tabInitialFilters.appointments ?? 'all'} />
           </TabsContent>
 
           <TabsContent value="clients" className="mt-0">
@@ -497,7 +503,7 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="conversations" className="mt-0">
-            <ConversationsManager />
+            <ConversationsManager initialFilter={tabInitialFilters.conversations ?? 'all'} />
           </TabsContent>
 
           <TabsContent value="whatsapp" className="mt-0">
@@ -505,7 +511,7 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="questionnaires" className="mt-0">
-            <QuestionnaireSubmissions />
+            <QuestionnaireSubmissions initialFilter={tabInitialFilters.questionnaires ?? 'all'} />
           </TabsContent>
 
           <TabsContent value="visual-editor" className="mt-0">
