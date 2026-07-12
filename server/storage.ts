@@ -555,30 +555,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAdminBadgeCounts(): Promise<{ unreadContacts: number; pendingAppointments: number; unreviewedQuestionnaires: number; unreviewedConversations: number; newLeads: number; newLeadItems: Array<{ id: number; name: string; email: string | null; phone: string | null; leadNumber: number | null }> }> {
-    const [contactsResult] = await db.select({ count: sql<number>`count(*)::int` }).from(contacts).where(eq(contacts.read, false));
-    const [appointmentsResult] = await db.select({ count: sql<number>`count(*)::int` }).from(appointments).where(eq(appointments.status, 'pending'));
-    const [questionnairesResult] = await db.select({ count: sql<number>`count(*)::int` }).from(questionnaireSubmissions).where(eq(questionnaireSubmissions.reviewed, false));
-    const [conversationsResult] = await db.select({ count: sql<number>`count(*)::int` }).from(conversations).where(eq(conversations.reviewed, false));
-    const [leadsResult] = await db.select({ count: sql<number>`count(*)::int` }).from(clients).where(eq(clients.status, 'lead'));
-    const newLeadItems = await db
-      .select({
-        id: clients.id,
-        name: clients.name,
-        email: clients.email,
-        phone: clients.phone,
-        leadNumber: clients.leadNumber,
-      })
-      .from(clients)
-      .where(eq(clients.status, 'lead'))
-      .orderBy(desc(clients.createdAt))
-      .limit(10);
+    const [contactsNew] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(contactSubmissions)
+      .where(
+        or(
+          eq(contactSubmissions.status, "new"),
+          eq(contactSubmissions.status, "unread")
+        )
+      );
+
+    const [appointmentsPending] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(appointments)
+      .where(eq(appointments.status, "pending"));
+
+    const [conversationsNew] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(conversations)
+      .where(eq(conversations.reviewed, false));
+
+    const [questionnairesNew] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(questionnaireSubmissions)
+      .where(eq(questionnaireSubmissions.status, "new"));
+
     return {
-      unreadContacts: contactsResult?.count ?? 0,
-      pendingAppointments: appointmentsResult?.count ?? 0,
-      unreviewedQuestionnaires: questionnairesResult?.count ?? 0,
-      unreviewedConversations: conversationsResult?.count ?? 0,
-      newLeads: leadsResult?.count ?? 0,
-      newLeadItems,
+      unreadContacts: Number(contactsNew?.count ?? 0),
+      pendingAppointments: Number(appointmentsPending?.count ?? 0),
+      unreviewedConversations: Number(conversationsNew?.count ?? 0),
+      unreviewedQuestionnaires: Number(questionnairesNew?.count ?? 0),
     };
   }
 

@@ -36,6 +36,11 @@ type FilterableTab = 'contacts' | 'appointments' | 'conversations' | 'questionna
 const isFilterableTab = (tab: string): tab is FilterableTab =>
   tab === 'contacts' || tab === 'appointments' || tab === 'conversations' || tab === 'questionnaires'
 
+const fetchAdminBadges = async () => {
+  const res = await apiRequest('GET', '/api/admin/badge-counts')
+  return res.json()
+}
+
 const AdminDashboard = () => {
   const { user, signOut } = useAuth()
   const { language } = useLanguage()
@@ -66,9 +71,11 @@ const AdminDashboard = () => {
     }>
   }
 
-  const { data: badgeCounts } = useQuery<BadgeCounts>({
-    queryKey: ['/api/admin/badge-counts'],
-    refetchInterval: 30000,
+  const { data: badgeCounts } = useQuery({
+    queryKey: ['admin-badges'],
+    queryFn: fetchAdminBadges,
+    refetchInterval: 15000, // keep header in sync
+    refetchOnWindowFocus: true,
   })
 
   const leadBadgeCount = badgeCounts?.newLeads ?? 0
