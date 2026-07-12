@@ -25,6 +25,7 @@ const STATUS_CONFIG: Record<string, { he: string; en: string; color: string }> =
 };
 
 type ManagerFilter = 'all' | 'new'
+type AppointmentFilter = ManagerFilter | 'pending' | 'confirmed' | 'cancelled' | 'completed'
 
 interface AppointmentsManagerProps {
   initialFilter?: ManagerFilter
@@ -34,7 +35,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
   const { language } = useLanguage();
   const isHe = language === "he";
   const { toast } = useToast();
-  const [filter, setFilter] = useState<ManagerFilter>(initialFilter)
+  const [filter, setFilter] = useState<AppointmentFilter>(initialFilter)
 
   useEffect(() => {
     setFilter(initialFilter)
@@ -48,8 +49,11 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
     if (filter === 'new') {
       return allAppointments.filter(a => a.status === 'pending') // pending/new bookings
     }
-    return allAppointments
-  }, [appointments, filter]);
+    if (filter === 'all') {
+      return allAppointments
+    }
+    return allAppointments.filter(a => a.status === filter)
+  }, [allAppointments, filter]);
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
@@ -162,7 +166,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
             <CardTitle>{isHe ? "ניהול פגישות" : "Appointment Manager"}</CardTitle>
           </div>
           <div className="flex items-center gap-2">
-            <Select value={filter} onValueChange={setFilter}>
+            <Select value={filter} onValueChange={(value) => setFilter(value as AppointmentFilter)}>
               <SelectTrigger className="w-[150px] h-8 text-xs" data-testid="select-appointment-filter">
                 <div className="flex items-center gap-1.5">
                   <Filter className="h-3.5 w-3.5" />
@@ -171,6 +175,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{isHe ? "הכל" : "All"}</SelectItem>
+                <SelectItem value="new">{isHe ? "חדשות בלבד" : "New only"}</SelectItem>
                 {Object.entries(STATUS_CONFIG).map(([key, config]) => (
                   <SelectItem key={key} value={key}>{isHe ? config.he : config.en}</SelectItem>
                 ))}
