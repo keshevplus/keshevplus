@@ -61,6 +61,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
       toast({
         title: isHe ? "הסטטוס עודכן" : "Status updated",
         description: isHe ? "סטטוס הפגישה עודכן בהצלחה." : "Appointment status has been updated successfully.",
@@ -81,6 +82,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
       toast({
         title: isHe ? "הפגישה נמחקה" : "Appointment deleted",
         description: isHe ? "הפגישה נמחקה בהצלחה." : "Appointment has been deleted successfully.",

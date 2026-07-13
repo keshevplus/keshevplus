@@ -57,7 +57,7 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
 
   const invalidateContactsQueries = () => {
     queryClient.invalidateQueries({ predicate: (query) => Array.isArray(query.queryKey) && query.queryKey[0] === '/api/contacts' })
-    queryClient.invalidateQueries({ queryKey: ['/api/admin/badge-counts'] })
+    queryClient.invalidateQueries({ queryKey: ["admin-badges"] })
   }
 
   const setContactReadState = (id: number, read: boolean) => {
@@ -65,7 +65,7 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
       if (!Array.isArray(oldData)) return oldData
       return oldData.map((contact) => contact.id === id ? { ...contact, read } : contact)
     })
-    queryClient.setQueryData(['/api/admin/badge-counts'], (oldData: any) => {
+    queryClient.setQueryData(["admin-badges"], (oldData: any) => {
       if (!oldData) return oldData
       const delta = read ? -1 : 1
       return { ...oldData, unreadContacts: Math.max(0, (oldData.unreadContacts ?? 0) + delta) }

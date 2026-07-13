@@ -70,6 +70,7 @@ const QuestionnaireSubmissions = ({ initialFilter = 'all' }: QuestionnaireSubmis
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/questionnaires"] });
       queryClient.invalidateQueries({ queryKey: ["/api/questionnaires/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
     },
   });
 
@@ -80,6 +81,7 @@ const QuestionnaireSubmissions = ({ initialFilter = 'all' }: QuestionnaireSubmis
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/questionnaires"] });
       queryClient.invalidateQueries({ queryKey: ["/api/questionnaires/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
       setExpandedId(null);
     },
   });

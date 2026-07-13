@@ -215,7 +215,7 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
       setNewNotes("");
       setShowAddForm(false);
       fetchClients();
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/badge-counts'] });
+      queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
     } catch {
       toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "הוספת ליד נכשלה" : "Failed to add lead", variant: "destructive" });
     }
@@ -242,7 +242,7 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
           : (isHe ? "הלקוח הוחזר לסטטוס ליד" : "Client reverted to lead status"),
       });
       fetchClients();
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/badge-counts'] });
+      queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
     } catch {
       toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "עדכון סטטוס נכשל" : "Failed to update status", variant: "destructive" });
     }

@@ -65,6 +65,7 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-badges'] })
       toast({
         title: isHe ? 'הסטטוס עודכן' : 'Status updated',
         description: isHe ? 'סטטוס השיחה עודכן בהצלחה.' : 'Conversation status has been updated successfully.',
@@ -85,6 +86,7 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-badges'] })
       toast({
         title: isHe ? 'השיחה נמחקה' : 'Conversation deleted',
         description: isHe ? 'השיחה נמחקה בהצלחה.' : 'Conversation has been deleted successfully.',
@@ -96,6 +98,7 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
     mutationFn: (id: number) => apiRequest('PATCH', `/api/conversations/${id}/unreviewed`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-badges'] })
       setSelectedIds(new Set())
     },
   })
