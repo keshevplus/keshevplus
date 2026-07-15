@@ -23,6 +23,8 @@ export const contacts = pgTable("contacts", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   read: boolean("read").default(false).notNull(),
   status: text("status").notNull().default("new"),
+  archived: boolean("archived").default(false).notNull(),
+  isTest: boolean("is_test").default(false).notNull(),
 });
 
 export const siteSettings = pgTable("site_settings", {
@@ -62,6 +64,8 @@ export const questionnaireSubmissions = pgTable("questionnaire_submissions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   reviewed: boolean("reviewed").default(false).notNull(),
   status: text("status").notNull().default("new"),
+  archived: boolean("archived").default(false).notNull(),
+  isTest: boolean("is_test").default(false).notNull(),
 });
 
 export const smsVerifications = pgTable("sms_verifications", {
@@ -91,6 +95,8 @@ export const appointments = pgTable("appointments", {
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   approvedAt: timestamp("approved_at"),
+  archived: boolean("archived").default(false).notNull(),
+  isTest: boolean("is_test").default(false).notNull(),
 });
 
 export const clients = pgTable("clients", {
@@ -106,6 +112,8 @@ export const clients = pgTable("clients", {
   childName: text("child_name"),
   adminSeen: boolean("admin_seen").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  archived: boolean("archived").default(false).notNull(),
+  isTest: boolean("is_test").default(false).notNull(),
 });
 
 export const clientActivities = pgTable("client_activities", {

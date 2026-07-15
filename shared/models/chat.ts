@@ -11,6 +11,8 @@ export const conversations = pgTable("conversations", {
   title: text("title").notNull(),
   reviewed: boolean("reviewed").default(false).notNull(),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  archived: boolean("archived").default(false).notNull(),
+  isTest: boolean("is_test").default(false).notNull(),
 });
 
 export const messages = pgTable("messages", {
