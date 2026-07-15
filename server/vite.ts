@@ -1,7 +1,8 @@
 import express, { type Express } from "express";
 import fs from "fs";
+import { createRequire } from "module";
 import path, { dirname } from "path";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 import { type Server } from "http";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -19,8 +20,15 @@ export function log(message: string, source = "express") {
 }
 
 export async function setupVite(app: Express, server: Server) {
-  const { createServer: createViteServer } = await import("vite");
   const clientRoot = path.resolve(__dirname, "..", "client");
+  // Root and client have separate node_modules trees (not an npm workspace).
+  // Vite must be resolved from client's install so its CSS toolchain (postcss,
+  // tailwindcss, autoprefixer) all comes from the same tree — mixing a root-installed
+  // vite with client-installed tailwindcss breaks PostCSS's internal AST checks.
+  const clientRequire = createRequire(path.join(clientRoot, "package.json"));
+  const viteEntry = clientRequire.resolve("vite");
+  const viteModule: any = await import(pathToFileURL(viteEntry).href);
+  const createViteServer = viteModule.createServer ?? viteModule.default.createServer;
   const vite = await createViteServer({
     configFile: path.resolve(clientRoot, "vite.config.ts"),
     root: clientRoot,
