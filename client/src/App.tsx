@@ -11,6 +11,9 @@ import Index from "./pages/Index";
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const QuestionnairePage = lazy(() => import("./pages/QuestionnairePage"));
 const DemoIndex = lazy(() => import("./pages/DemoIndex"));
+const AccessibilityStatementPage = lazy(() => import("./pages/AccessibilityStatementPage"));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
+const TermsOfUsePage = lazy(() => import("./pages/TermsOfUsePage"));
 const NotFound = lazy(() => import("./pages/not-found"));
 const CookiesBanner = lazy(() => import("@/components/CookiesBanner"));
 const AccessibilityWidget = lazy(() => import("@/components/AccessibilityWidget"));
@@ -34,6 +37,9 @@ function Router() {
         <Route path="/" component={Index} />
         <Route path="/demo" component={DemoIndex} />
         <Route path="/questionnaire/:type" component={QuestionnairePage} />
+        <Route path="/accessibility" component={AccessibilityStatementPage} />
+        <Route path="/privacy-policy" component={PrivacyPolicyPage} />
+        <Route path="/terms-of-use" component={TermsOfUsePage} />
         <Route path="/admin/reset-password" component={AdminPage} />
         <Route path="/admin" component={AdminPage} />
         <Route component={NotFound} />

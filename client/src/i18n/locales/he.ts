@@ -88,6 +88,7 @@ const he: Record<string, string> = {
   "footer.follow_us": "\u05e2\u05e7\u05d1\u05d5 \u05d0\u05d7\u05e8\u05d9\u05e0\u05d5",
   "footer.privacy_policy": "\u05de\u05d3\u05d9\u05e0\u05d9\u05d5\u05ea \u05e4\u05e8\u05d8\u05d9\u05d5\u05ea",
   "footer.terms_of_use": "\u05ea\u05e0\u05d0\u05d9 \u05e9\u05d9\u05de\u05d5\u05e9",
+  "footer.accessibility_statement": "\u05d4\u05e6\u05d4\u05e8\u05ea \u05e0\u05d2\u05d9\u05e9\u05d5\u05ea",
   "footer.address": "\u05d9\u05d2\u05d0\u05dc \u05d0\u05dc\u05d5\u05df 94, \u05ea\u05dc \u05d0\u05d1\u05d9\u05d1",
   "footer.hours": "\u05d0'-\u05d4' 09:00-19:00",
 

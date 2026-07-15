@@ -401,3 +401,26 @@
   scroll-behavior: auto !important;
 }
 
+.a11y-line-spacing-1 * {
+  line-height: 1.6 !important;
+}
+.a11y-line-spacing-2 * {
+  line-height: 1.9 !important;
+}
+.a11y-line-spacing-3 * {
+  line-height: 2.2 !important;
+}
+
+.a11y-letter-spacing-1 * {
+  letter-spacing: 0.05em !important;
+  word-spacing: 0.1em !important;
+}
+.a11y-letter-spacing-2 * {
+  letter-spacing: 0.1em !important;
+  word-spacing: 0.2em !important;
+}
+.a11y-letter-spacing-3 * {
+  letter-spacing: 0.15em !important;
+  word-spacing: 0.3em !important;
+}
+

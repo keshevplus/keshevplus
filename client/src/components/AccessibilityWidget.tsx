@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Minus, X, RotateCcw, Moon, Sun } from "lucide-react";
+import { Link } from "wouter";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,34 @@ const translations: Record<string, Record<string, string>> = {
   increaseText: {
     he: "הגדל טקסט",
     en: "Increase text",
+  },
+  lineHeight: {
+    he: "גובה שורה",
+    en: "Line Height",
+  },
+  decreaseLineHeight: {
+    he: "הקטן גובה שורה",
+    en: "Decrease line height",
+  },
+  increaseLineHeight: {
+    he: "הגדל גובה שורה",
+    en: "Increase line height",
+  },
+  letterSpacing: {
+    he: "מרווח אותיות",
+    en: "Letter Spacing",
+  },
+  decreaseLetterSpacing: {
+    he: "הקטן מרווח אותיות",
+    en: "Decrease letter spacing",
+  },
+  increaseLetterSpacing: {
+    he: "הגדל מרווח אותיות",
+    en: "Increase letter spacing",
+  },
+  readingGuide: {
+    he: "מדריך קריאה",
+    en: "Reading Guide",
   },
   highContrast: {
     he: "ניגודיות גבוהה",
@@ -78,21 +107,27 @@ const translations: Record<string, Record<string, string>> = {
 
 interface A11yState {
   fontSize: number;
+  lineHeight: number;
+  letterSpacing: number;
   highContrast: boolean;
   linkHighlight: boolean;
   grayscale: boolean;
   readableFont: boolean;
   largeCursor: boolean;
+  readingGuide: boolean;
   stopAnimations: boolean;
 }
 
 const defaultState: A11yState = {
   fontSize: 0,
+  lineHeight: 0,
+  letterSpacing: 0,
   highContrast: false,
   linkHighlight: false,
   grayscale: false,
   readableFont: false,
   largeCursor: false,
+  readingGuide: false,
   stopAnimations: false,
 };
 
@@ -127,6 +162,10 @@ const AccessibilityWidget = () => {
     root.classList.toggle("a11y-readable-font", s.readableFont);
     root.classList.toggle("a11y-large-cursor", s.largeCursor);
     root.classList.toggle("a11y-stop-animations", s.stopAnimations);
+    for (let i = 1; i <= 3; i++) {
+      root.classList.toggle(`a11y-line-spacing-${i}`, s.lineHeight === i);
+      root.classList.toggle(`a11y-letter-spacing-${i}`, s.letterSpacing === i);
+    }
   }, []);
 
   useEffect(() => {
@@ -134,11 +173,27 @@ const AccessibilityWidget = () => {
     localStorage.setItem("a11y-settings", JSON.stringify(state));
   }, [state, applyStyles]);
 
+  const [guideY, setGuideY] = useState(0);
+  useEffect(() => {
+    if (!state.readingGuide) return;
+    const handler = (e: MouseEvent) => setGuideY(e.clientY);
+    window.addEventListener("mousemove", handler);
+    return () => window.removeEventListener("mousemove", handler);
+  }, [state.readingGuide]);
+
   const increaseFontSize = () =>
     setState((p) => ({ ...p, fontSize: Math.min(p.fontSize + 1, 5) }));
   const decreaseFontSize = () =>
     setState((p) => ({ ...p, fontSize: Math.max(p.fontSize - 1, -3) }));
-  const toggle = (key: keyof Omit<A11yState, "fontSize">) =>
+  const increaseLineHeight = () =>
+    setState((p) => ({ ...p, lineHeight: Math.min(p.lineHeight + 1, 3) }));
+  const decreaseLineHeight = () =>
+    setState((p) => ({ ...p, lineHeight: Math.max(p.lineHeight - 1, 0) }));
+  const increaseLetterSpacing = () =>
+    setState((p) => ({ ...p, letterSpacing: Math.min(p.letterSpacing + 1, 3) }));
+  const decreaseLetterSpacing = () =>
+    setState((p) => ({ ...p, letterSpacing: Math.max(p.letterSpacing - 1, 0) }));
+  const toggle = (key: keyof Omit<A11yState, "fontSize" | "lineHeight" | "letterSpacing">) =>
     setState((p) => ({ ...p, [key]: !p[key] }));
   const reset = () => {
     setState(defaultState);
@@ -149,6 +204,14 @@ const AccessibilityWidget = () => {
 
   return (
     <>
+      {state.readingGuide && (
+        <div
+          className="fixed left-0 right-0 z-[9998] pointer-events-none border-y-2 border-yellow-400 bg-yellow-300/20"
+          style={{ top: guideY - 20, height: 40 }}
+          aria-hidden="true"
+        />
+      )}
+
       <button
         onClick={() => setOpen(!open)}
         className={cn(
@@ -159,6 +222,8 @@ const AccessibilityWidget = () => {
           isRTL ? "right-5" : "left-5"
         )}
         aria-label={t("accessibilityMenu")}
+        aria-haspopup="dialog"
+        aria-expanded={open}
       >
         <svg viewBox="0 0 16 16" className="w-8 h-8" fill="white" xmlns="http://www.w3.org/2000/svg">
           <path d="M10.4 10h-0.5c0.1 0.3 0.1 0.7 0.1 1 0 2.2-1.8 4-4 4s-4-1.8-4-4c0-2.1 1.6-3.8 3.7-4l-0.2-1c-2.6 0.4-4.5 2.4-4.5 5 0 2.8 2.2 5 5 5 2.4 0 4.4-1.7 4.9-3.9l-0.5-2.1z"/>
@@ -174,10 +239,13 @@ const AccessibilityWidget = () => {
             isRTL ? "right-5" : "left-5"
           )}
           dir={isRTL ? "rtl" : "ltr"}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("accessibilitySettings")}
         >
           <div className="flex items-center justify-between bg-[#1565C0] text-white px-4 py-3">
             <h3 className="font-bold text-sm">{t("accessibilitySettings")}</h3>
-            <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-white/20 transition-colors">
+            <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-white/20 transition-colors" aria-label={t("close")}>
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -186,6 +254,7 @@ const AccessibilityWidget = () => {
             <button
               onClick={toggleTheme}
               className="w-full flex items-center justify-between py-2 px-3 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-foreground hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border"
+              aria-pressed={theme === 'dark'}
             >
               <div className="flex items-center gap-2">
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -199,9 +268,27 @@ const AccessibilityWidget = () => {
             <div className="flex items-center justify-between gap-2 border-b pb-3">
               <span className="text-sm font-medium">{t("textSize")}</span>
               <div className="flex items-center gap-1">
-                <button onClick={decreaseFontSize} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Minus className="w-4 h-4" /></button>
-                <span className="text-xs w-8 text-center">{state.fontSize > 0 ? `+${state.fontSize}` : state.fontSize}</span>
-                <button onClick={increaseFontSize} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Plus className="w-4 h-4" /></button>
+                <button onClick={decreaseFontSize} aria-label={t("decreaseText")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Minus className="w-4 h-4" /></button>
+                <span className="text-xs w-8 text-center" aria-live="polite">{state.fontSize > 0 ? `+${state.fontSize}` : state.fontSize}</span>
+                <button onClick={increaseFontSize} aria-label={t("increaseText")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Plus className="w-4 h-4" /></button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 border-b pb-3">
+              <span className="text-sm font-medium">{t("lineHeight")}</span>
+              <div className="flex items-center gap-1">
+                <button onClick={decreaseLineHeight} aria-label={t("decreaseLineHeight")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Minus className="w-4 h-4" /></button>
+                <span className="text-xs w-8 text-center" aria-live="polite">{state.lineHeight}</span>
+                <button onClick={increaseLineHeight} aria-label={t("increaseLineHeight")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Plus className="w-4 h-4" /></button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 border-b pb-3">
+              <span className="text-sm font-medium">{t("letterSpacing")}</span>
+              <div className="flex items-center gap-1">
+                <button onClick={decreaseLetterSpacing} aria-label={t("decreaseLetterSpacing")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Minus className="w-4 h-4" /></button>
+                <span className="text-xs w-8 text-center" aria-live="polite">{state.letterSpacing}</span>
+                <button onClick={increaseLetterSpacing} aria-label={t("increaseLetterSpacing")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Plus className="w-4 h-4" /></button>
               </div>
             </div>
 
@@ -210,12 +297,25 @@ const AccessibilityWidget = () => {
             <ToggleRow label={t("grayscale")} active={state.grayscale} onClick={() => toggle("grayscale")} />
             <ToggleRow label={t("readableFont")} active={state.readableFont} onClick={() => toggle("readableFont")} />
             <ToggleRow label={t("largeCursor")} active={state.largeCursor} onClick={() => toggle("largeCursor")} />
+            <ToggleRow label={t("readingGuide")} active={state.readingGuide} onClick={() => toggle("readingGuide")} />
             <ToggleRow label={t("stopAnimations")} active={state.stopAnimations} onClick={() => toggle("stopAnimations")} />
 
             <button onClick={reset} className="w-full mt-2 flex items-center justify-center gap-2 py-2 px-3 rounded text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-foreground transition-colors">
               <RotateCcw className="w-3.5 h-3.5" />
               {t("reset")}
             </button>
+
+            <div className="pt-2 border-t text-center space-y-1">
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{t("accessibilityStatementText")}</p>
+              <Link
+                href="/accessibility"
+                onClick={() => setOpen(false)}
+                className="inline-block text-xs font-medium text-[#1565C0] hover:underline"
+                data-testid="link-accessibility-statement"
+              >
+                {t("accessibilityStatement")}
+              </Link>
+            </div>
           </div>
         </div>
       )}
@@ -225,7 +325,7 @@ const AccessibilityWidget = () => {
 
 function ToggleRow({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} className={cn("w-full flex items-center justify-between py-2 px-3 rounded text-sm transition-colors", active ? "bg-[#1565C0]/10 text-[#1565C0] font-medium" : "bg-gray-50 dark:bg-gray-800 text-foreground hover:bg-gray-100")}>
+    <button onClick={onClick} aria-pressed={active} className={cn("w-full flex items-center justify-between py-2 px-3 rounded text-sm transition-colors", active ? "bg-[#1565C0]/10 text-[#1565C0] font-medium" : "bg-gray-50 dark:bg-gray-800 text-foreground hover:bg-gray-100")}>
       <span>{label}</span>
       <span className={cn("w-4 h-4 rounded-sm border-2 flex items-center justify-center transition-colors", active ? "bg-[#1565C0] border-[#1565C0]" : "border-gray-300")}>
         {active && <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 text-white fill-current"><path d="M10 3L4.5 8.5 2 6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>}

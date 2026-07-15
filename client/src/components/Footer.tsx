@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'wouter';
 import { useLanguage } from '@/hooks/useLanguage';
 import { Phone, Mail, MapPin, Clock, Facebook, Instagram, Linkedin } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
@@ -169,12 +170,15 @@ const Footer: React.FC = () => {
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 text-xs sm:text-sm text-primary-foreground/60">
           <p>{t('footer.rights').replace('2025', new Date().getFullYear().toString())}</p>
           <div className="flex gap-4">
-            <a href="#" className="hover:text-primary-foreground transition-colors">
+            <Link href="/accessibility" className="hover:text-primary-foreground transition-colors" data-testid="link-footer-accessibility">
+              {t('footer.accessibility_statement')}
+            </Link>
+            <Link href="/privacy-policy" className="hover:text-primary-foreground transition-colors" data-testid="link-footer-privacy">
               {t('footer.privacy_policy')}
-            </a>
-            <a href="#" className="hover:text-primary-foreground transition-colors">
+            </Link>
+            <Link href="/terms-of-use" className="hover:text-primary-foreground transition-colors" data-testid="link-footer-terms">
               {t('footer.terms_of_use')}
-            </a>
+            </Link>
           </div>
         </div>
       </div>

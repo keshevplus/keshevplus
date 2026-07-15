@@ -77,6 +77,7 @@ const en: Record<string, string> = {
   "footer.follow_us": "Follow Us",
   "footer.privacy_policy": "Privacy Policy",
   "footer.terms_of_use": "Terms of Use",
+  "footer.accessibility_statement": "Accessibility Statement",
   "footer.address": "94 Yigal Alon St., Tel Aviv",
   "footer.hours": "Sun-Thu 09:00-19:00",
 
