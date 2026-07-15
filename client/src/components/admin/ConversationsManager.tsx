@@ -84,6 +84,21 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
     },
   })
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: number[]) => {
+      await apiRequest('POST', '/api/conversations/bulk-delete', { ids })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-badges'] })
+      setSelectedIds(new Set())
+      toast({
+        title: isHe ? 'השיחות נמחקו' : 'Conversations deleted',
+        description: isHe ? 'השיחות שנבחרו נמחקו בהצלחה.' : 'Selected conversations have been deleted successfully.',
+      })
+    },
+  })
+
   const toggleSelectAll = () => {
     setSelectedIds(prev =>
       prev.size === visibleConversations.length
