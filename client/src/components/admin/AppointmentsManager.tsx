@@ -233,8 +233,8 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="rounded-lg border bg-muted/20 p-4 space-y-3" data-testid="appointments-calendar">
+          <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 md:items-start">
+            <div className="md:order-2 rounded-lg border bg-muted/20 p-4 space-y-3" data-testid="appointments-calendar">
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-primary" />
@@ -280,7 +280,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                   <div
                     key={day.value}
                     className={cn(
-                      "min-h-[92px] rounded-md border p-1.5 align-top",
+                      "min-h-[92px] md:min-h-[46px] rounded-md border p-1.5 align-top",
                       day.closed ? "bg-muted/60 border-transparent" : "bg-background",
                       day.outsideMonth && "opacity-40",
                     )}
@@ -334,6 +334,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
               </p>
             </div>
 
+            <div className="md:order-1">
             {visibleAppointments.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground" data-testid="empty-appointments">
                 <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -481,6 +482,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                 })}
               </div>
             )}
+            </div>
           </div>
         )}
       </CardContent>
