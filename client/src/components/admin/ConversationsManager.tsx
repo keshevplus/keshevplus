@@ -4,12 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare, ChevronDown, ChevronUp, CheckCircle, Bot } from 'lucide-react'
+import { MessageCircle, Phone, Mail, User, Trash2, Filter, ChevronDown, ChevronUp } from 'lucide-react'
 import { SiWhatsapp } from 'react-icons/si'
 import { useToast } from '@/hooks/use-toast'
 import { useLanguage } from '@/hooks/useLanguage'
 import { apiRequest, queryClient } from '@/lib/queryClient'
-import type { Appointment } from '@shared/schema'
+import type { Conversation } from '@shared/schema'
 
 function formatWhatsAppUrl(phone: string, message?: string) {
   const cleaned = phone.replace(/[^0-9+]/g, '').replace(/^0/, '972')
@@ -33,6 +33,7 @@ interface ConversationsManagerProps {
 const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerProps) => {
   const { language } = useLanguage()
   const isHe = language === 'he'
+  const { toast } = useToast()
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [selectMode, setSelectMode] = useState(false)
@@ -102,43 +103,13 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
     },
   })
 
-  const parseDateOnly = (date: string) => {
-    const [year, month, day] = date.split('-').map(Number)
-    if (year && month && day) {
-      return new Date(year, month - 1, day)
-    }
-    return null
+  const toggleSelectAll = () => {
+    setSelectedIds(prev =>
+      prev.size === visibleConversations.length
+        ? new Set()
+        : new Set(visibleConversations.map(c => c.id))
+    )
   }
-
-  const formatAppointmentDate = (date: string) => {
-    const d = parseDateOnly(date)
-    return d.toLocaleDateString(isHe ? 'he-IL' : 'en-US', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
-  }
-
-  const formatAppointmentTime = (time: string) => {
-    return time ? time.slice(0, 5) : ''
-  }
-
-  const getAppointmentStart = (appointment: Appointment) => {
-    const [year, month, day] = appointment.date.split('-').map(Number)
-    const [hour = 0, minute = 0] = appointment.time.split(':').map(Number)
-    if (year && month && day) {
-      return new Date(year, month - 1, day, hour, minute)
-    }
-    return null
-  }
-
-  const toggleSelect = (id: number) => {
-    return new Date(appointment.date)
-  }
-
-  const next = new Set(selectedIds)
-  if (next.has(id)) next.delete(id)
 
   const formatTimestamp = (date?: string | Date | null) => {
     if (!date) return isHe ? 'לא תועד' : 'Not recorded'
@@ -164,26 +135,6 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
       deleteMutation.mutate(Array.from(selectedIds))
     }
   }
-
-  const upcomingAppointments = useMemo(() => {
-    const startOfToday = new Date()
-    startOfToday.setHours(0, 0, 0, 0)
-    return allAppointments
-      .filter(appointment => {
-        if (!['pending', 'confirmed'].includes(appointment.status)) return false
-        return getAppointmentStart(appointment) >= startOfToday
-      })
-      .sort((a, b) => getAppointmentStart(a).getTime() - getAppointmentStart(b).getTime())
-  }, [allAppointments])
-
-  const groupedUpcomingAppointments = useMemo(() => {
-    return upcomingAppointments.reduce<Record<string, Appointment[]>>((groups, appointment) => {
-      const key = appointment.date
-      groups[key] = groups[key] || []
-      groups[key].push(appointment)
-      return groups
-    }, {})
-  }, [upcomingAppointments])
 
   return (
     <Card>
