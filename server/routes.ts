@@ -732,7 +732,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ error: "IDs array is required" });
       }
-      const count = await storage.bulkDeleteContacts(ids.map(Number));
+      const numericIds = ids.map(Number);
+      const count = isOwner(user)
+        ? await storage.bulkDeleteContacts(numericIds)
+        : await storage.bulkArchiveContacts(numericIds);
       return res.json({ success: true, deleted: count });
     } catch (error) {
       return res.status(500).json({ error: "Failed to bulk delete contacts" });
@@ -748,13 +751,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteContact(id);
+      const deleted = isOwner(user) ? await storage.deleteContact(id) : await storage.archiveContact(id);
       if (!deleted) {
         return res.status(404).json({ error: "Contact not found" });
       }
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete contact" });
+    }
+  });
+
+  app.patch("/api/contacts/:id/mark-test", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const isTest = req.body?.isTest !== false;
+      const updated = await storage.setContactTest(id, isTest);
+      if (!updated) return res.status(404).json({ error: "Contact not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update contact" });
     }
   });
 
@@ -998,6 +1019,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Delete failed" });
+    }
+  });
+
+  // --- Recycle bin: owner-only view of archived/test items across all entities ---
+
+  app.get("/api/admin/bin", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!isOwner(user)) return res.status(403).json({ error: "Owner access required" });
+
+      const items = await storage.getBinItems();
+      return res.json(items);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch bin items" });
+    }
+  });
+
+  app.post("/api/admin/bin/:type/:id/restore", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!isOwner(user)) return res.status(403).json({ error: "Owner access required" });
+
+      const { type } = req.params;
+      const id = parseInt(req.params.id);
+      const restored = await storage.restoreBinItem(type, id);
+      if (!restored) return res.status(404).json({ error: "Item not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to restore item" });
+    }
+  });
+
+  app.delete("/api/admin/bin/:type/:id", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!isOwner(user)) return res.status(403).json({ error: "Owner access required" });
+
+      const { type } = req.params;
+      const id = parseInt(req.params.id);
+      const deleted = await storage.permanentlyDeleteBinItem(type, id);
+      if (!deleted) return res.status(404).json({ error: "Item not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to permanently delete item" });
     }
   });
 
@@ -1372,13 +1443,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteQuestionnaire(id);
+      const deleted = isOwner(user) ? await storage.deleteQuestionnaire(id) : await storage.archiveQuestionnaire(id);
       if (!deleted) {
         return res.status(404).json({ error: "Questionnaire not found" });
       }
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete questionnaire" });
+    }
+  });
+
+  app.patch("/api/questionnaires/:id/mark-test", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const isTest = req.body?.isTest !== false;
+      const updated = await storage.setQuestionnaireTest(id, isTest);
+      if (!updated) return res.status(404).json({ error: "Questionnaire not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update questionnaire" });
     }
   });
 
@@ -1391,13 +1480,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteAppointment(id);
+      const deleted = isOwner(user) ? await storage.deleteAppointment(id) : await storage.archiveAppointment(id);
       if (!deleted) {
         return res.status(404).json({ error: "Appointment not found" });
       }
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete appointment" });
+    }
+  });
+
+  app.patch("/api/appointments/:id/mark-test", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const isTest = req.body?.isTest !== false;
+      const updated = await storage.setAppointmentTest(id, isTest);
+      if (!updated) return res.status(404).json({ error: "Appointment not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update appointment" });
     }
   });
 
@@ -1659,10 +1766,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ error: "IDs array is required" });
       }
-      const count = await storage.bulkDeleteClients(ids.map(Number));
+      const numericIds = ids.map(Number);
+      const count = isOwner(user)
+        ? await storage.bulkDeleteClients(numericIds)
+        : await storage.bulkArchiveClients(numericIds);
       return res.json({ success: true, deleted: count });
     } catch (error) {
       return res.status(500).json({ error: "Failed to bulk delete clients" });
+    }
+  });
+
+  app.delete("/api/clients/:id", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const deleted = isOwner(user) ? await storage.deleteClient(id) : await storage.archiveClient(id);
+      if (!deleted) return res.status(404).json({ error: "Client not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to delete client" });
+    }
+  });
+
+  app.patch("/api/clients/:id/mark-test", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const isTest = req.body?.isTest !== false;
+      const updated = await storage.setClientTest(id, isTest);
+      if (!updated) return res.status(404).json({ error: "Client not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update client" });
     }
   });
 
@@ -2056,7 +2201,10 @@ RESPONSE BEHAVIOR:
       if (!Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ error: "IDs array is required" });
       }
-      const count = await storage.bulkDeleteConversations(ids.map(Number));
+      const numericIds = ids.map(Number);
+      const count = isOwner(user)
+        ? await storage.bulkDeleteConversations(numericIds)
+        : await storage.bulkArchiveConversations(numericIds);
       return res.json({ success: true, deleted: count });
     } catch (error) {
       return res.status(500).json({ error: "Failed to bulk delete conversations" });
@@ -2072,13 +2220,31 @@ RESPONSE BEHAVIOR:
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteConversation(id);
+      const deleted = isOwner(user) ? await storage.deleteConversation(id) : await storage.archiveConversation(id);
       if (!deleted) {
         return res.status(404).json({ error: "Conversation not found" });
       }
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete conversation" });
+    }
+  });
+
+  app.patch("/api/conversations/:id/mark-test", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const isTest = req.body?.isTest !== false;
+      const updated = await storage.setConversationTest(id, isTest);
+      if (!updated) return res.status(404).json({ error: "Conversation not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update conversation" });
     }
   });
 
@@ -2217,7 +2383,7 @@ RESPONSE BEHAVIOR:
         return res.status(500).json({ error: "Failed to send WhatsApp message", details: waData });
       }
 
-      const waMessageId = waData.messages?.[0]?.id;
+      const waMessageId = (waData as any)?.messages?.[0]?.id;
       
       let clientId: number | null = null;
       try {

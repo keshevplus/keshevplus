@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye, Phone, UserCog } from 'lucide-react'
+import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye, Phone, UserCog, Archive } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useQuery } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/queryClient'
@@ -27,6 +27,7 @@ import ConversationsManager from './ConversationsManager'
 import EmailNotificationSettings from './EmailNotificationSettings'
 import ChangePasswordSettings from './ChangePasswordSettings'
 import UsersManager from './UsersManager'
+import BinManager from './BinManager'
 import VisualEditor from './VisualEditor'
 import WhatsAppManager from './WhatsAppManager'
 
@@ -149,7 +150,7 @@ const AdminDashboard = () => {
     setSaving(true)
     try {
       const enabledLanguages = getEnabledLanguageCodes(langSettings)
-      const payload = {
+      const payload: LanguageSettings = {
         ...langSettings,
         enabledLanguages,
         mode: isBilingualSelection(enabledLanguages) ? 'bilingual' : 'multilingual',
@@ -217,7 +218,10 @@ const AdminDashboard = () => {
     { value: 'translations', icon: Languages, he: 'תרגומים', en: 'Translations' },
     { value: 'settings', icon: Settings, he: 'הגדרות', en: 'Settings' },
     ...(user?.email === 'dr@keshevplus.co.il'
-      ? [{ value: 'users', icon: UserCog, he: 'משתמשים', en: 'Users' }]
+      ? [
+          { value: 'users', icon: UserCog, he: 'משתמשים', en: 'Users' },
+          { value: 'bin', icon: Archive, he: 'סל מיחזור', en: 'Recycle Bin' },
+        ]
       : []),
   ]
 
@@ -703,9 +707,14 @@ const AdminDashboard = () => {
           </TabsContent>
 
           {user?.email === 'dr@keshevplus.co.il' && (
-            <TabsContent value="users" className="mt-0">
-              <UsersManager />
-            </TabsContent>
+            <>
+              <TabsContent value="users" className="mt-0">
+                <UsersManager />
+              </TabsContent>
+              <TabsContent value="bin" className="mt-0">
+                <BinManager />
+              </TabsContent>
+            </>
           )}
         </Tabs>
       </main>

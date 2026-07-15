@@ -146,7 +146,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getContacts(): Promise<Contact[]> {
-    return await db.select().from(contacts).orderBy(desc(contacts.createdAt));
+    return await db.select().from(contacts)
+      .where(and(eq(contacts.archived, false), eq(contacts.isTest, false)))
+      .orderBy(desc(contacts.createdAt));
   }
 
   async markContactRead(id: number): Promise<Contact | undefined> {
@@ -294,12 +296,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getQuestionnaireSubmissions(type?: string): Promise<QuestionnaireSubmission[]> {
+    const visible = and(eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false));
     if (type) {
       return await db.select().from(questionnaireSubmissions)
-        .where(eq(questionnaireSubmissions.type, type))
+        .where(and(eq(questionnaireSubmissions.type, type), visible))
         .orderBy(desc(questionnaireSubmissions.createdAt));
     }
     return await db.select().from(questionnaireSubmissions)
+      .where(visible)
       .orderBy(desc(questionnaireSubmissions.createdAt));
   }
 
@@ -372,12 +376,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAppointments(status?: string): Promise<Appointment[]> {
+    const visible = and(eq(appointments.archived, false), eq(appointments.isTest, false));
     if (status) {
       return await db.select().from(appointments)
-        .where(eq(appointments.status, status))
+        .where(and(eq(appointments.status, status), visible))
         .orderBy(desc(appointments.createdAt));
     }
-    return await db.select().from(appointments).orderBy(desc(appointments.createdAt));
+    return await db.select().from(appointments).where(visible).orderBy(desc(appointments.createdAt));
   }
 
   async getAppointment(id: number): Promise<Appointment | undefined> {
@@ -430,7 +435,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getClients(): Promise<Client[]> {
-    return await db.select().from(clients).orderBy(desc(clients.createdAt));
+    return await db.select().from(clients)
+      .where(and(eq(clients.archived, false), eq(clients.isTest, false)))
+      .orderBy(desc(clients.createdAt));
   }
 
   async getClient(id: number): Promise<Client | undefined> {
@@ -559,27 +566,27 @@ export class DatabaseStorage implements IStorage {
     const [contactsNew] = await db
       .select({ count: sql<number>`count(*)` })
       .from(contacts)
-      .where(eq(contacts.status, "new"));
+      .where(and(eq(contacts.status, "new"), eq(contacts.archived, false), eq(contacts.isTest, false)));
 
     const [appointmentsPending] = await db
       .select({ count: sql<number>`count(*)` })
       .from(appointments)
-      .where(eq(appointments.status, "pending"));
+      .where(and(eq(appointments.status, "pending"), eq(appointments.archived, false), eq(appointments.isTest, false)));
 
     const [conversationsNew] = await db
       .select({ count: sql<number>`count(*)` })
       .from(conversations)
-      .where(eq(conversations.reviewed, false));
+      .where(and(eq(conversations.reviewed, false), eq(conversations.archived, false), eq(conversations.isTest, false)));
 
     const [questionnairesNew] = await db
       .select({ count: sql<number>`count(*)` })
       .from(questionnaireSubmissions)
-      .where(eq(questionnaireSubmissions.status, "new"));
+      .where(and(eq(questionnaireSubmissions.status, "new"), eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false)));
 
     const [newLeadsCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(clients)
-      .where(and(eq(clients.status, "lead"), eq(clients.adminSeen, false)));
+      .where(and(eq(clients.status, "lead"), eq(clients.adminSeen, false), eq(clients.archived, false), eq(clients.isTest, false)));
 
     const newLeadRows = await db
       .select({
@@ -590,7 +597,7 @@ export class DatabaseStorage implements IStorage {
         leadNumber: clients.leadNumber,
       })
       .from(clients)
-      .where(and(eq(clients.status, "lead"), eq(clients.adminSeen, false)))
+      .where(and(eq(clients.status, "lead"), eq(clients.adminSeen, false), eq(clients.archived, false), eq(clients.isTest, false)))
       .orderBy(desc(clients.createdAt))
       .limit(10);
 
@@ -621,7 +628,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getConversations(): Promise<Conversation[]> {
-    return await db.select().from(conversations).orderBy(desc(conversations.createdAt));
+    return await db.select().from(conversations)
+      .where(and(eq(conversations.archived, false), eq(conversations.isTest, false)))
+      .orderBy(desc(conversations.createdAt));
   }
 
   async getConversation(id: number): Promise<Conversation | undefined> {
@@ -722,6 +731,144 @@ export class DatabaseStorage implements IStorage {
     if (ids.length === 0) return 0;
     const result = await db.delete(questionnaireSubmissions).where(inArray(questionnaireSubmissions.id, ids)).returning();
     return result.length;
+  }
+
+  // --- Archive (soft delete), restore, and "mark as test" ---
+  // Used so manager/admin "deletes" are recoverable in the owner-only recycle bin
+  // instead of immediately destroying data.
+
+  async archiveContact(id: number): Promise<boolean> {
+    const result = await db.update(contacts).set({ archived: true } as any).where(eq(contacts.id, id)).returning();
+    return result.length > 0;
+  }
+  async bulkArchiveContacts(ids: number[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const result = await db.update(contacts).set({ archived: true } as any).where(inArray(contacts.id, ids)).returning();
+    return result.length;
+  }
+  async restoreContact(id: number): Promise<boolean> {
+    const result = await db.update(contacts).set({ archived: false, isTest: false } as any).where(eq(contacts.id, id)).returning();
+    return result.length > 0;
+  }
+  async setContactTest(id: number, isTest: boolean): Promise<boolean> {
+    const result = await db.update(contacts).set({ isTest } as any).where(eq(contacts.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async archiveConversation(id: number): Promise<boolean> {
+    const result = await db.update(conversations).set({ archived: true } as any).where(eq(conversations.id, id)).returning();
+    return result.length > 0;
+  }
+  async bulkArchiveConversations(ids: number[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const result = await db.update(conversations).set({ archived: true } as any).where(inArray(conversations.id, ids)).returning();
+    return result.length;
+  }
+  async restoreConversation(id: number): Promise<boolean> {
+    const result = await db.update(conversations).set({ archived: false, isTest: false } as any).where(eq(conversations.id, id)).returning();
+    return result.length > 0;
+  }
+  async setConversationTest(id: number, isTest: boolean): Promise<boolean> {
+    const result = await db.update(conversations).set({ isTest } as any).where(eq(conversations.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async archiveClient(id: number): Promise<boolean> {
+    const result = await db.update(clients).set({ archived: true } as any).where(eq(clients.id, id)).returning();
+    return result.length > 0;
+  }
+  async bulkArchiveClients(ids: number[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const result = await db.update(clients).set({ archived: true } as any).where(inArray(clients.id, ids)).returning();
+    return result.length;
+  }
+  async restoreClient(id: number): Promise<boolean> {
+    const result = await db.update(clients).set({ archived: false, isTest: false } as any).where(eq(clients.id, id)).returning();
+    return result.length > 0;
+  }
+  async setClientTest(id: number, isTest: boolean): Promise<boolean> {
+    const result = await db.update(clients).set({ isTest } as any).where(eq(clients.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async archiveAppointment(id: number): Promise<boolean> {
+    const result = await db.update(appointments).set({ archived: true } as any).where(eq(appointments.id, id)).returning();
+    return result.length > 0;
+  }
+  async bulkArchiveAppointments(ids: number[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const result = await db.update(appointments).set({ archived: true } as any).where(inArray(appointments.id, ids)).returning();
+    return result.length;
+  }
+  async restoreAppointment(id: number): Promise<boolean> {
+    const result = await db.update(appointments).set({ archived: false, isTest: false } as any).where(eq(appointments.id, id)).returning();
+    return result.length > 0;
+  }
+  async setAppointmentTest(id: number, isTest: boolean): Promise<boolean> {
+    const result = await db.update(appointments).set({ isTest } as any).where(eq(appointments.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async archiveQuestionnaire(id: number): Promise<boolean> {
+    const result = await db.update(questionnaireSubmissions).set({ archived: true } as any).where(eq(questionnaireSubmissions.id, id)).returning();
+    return result.length > 0;
+  }
+  async bulkArchiveQuestionnaires(ids: number[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const result = await db.update(questionnaireSubmissions).set({ archived: true } as any).where(inArray(questionnaireSubmissions.id, ids)).returning();
+    return result.length;
+  }
+  async restoreQuestionnaire(id: number): Promise<boolean> {
+    const result = await db.update(questionnaireSubmissions).set({ archived: false, isTest: false } as any).where(eq(questionnaireSubmissions.id, id)).returning();
+    return result.length > 0;
+  }
+  async setQuestionnaireTest(id: number, isTest: boolean): Promise<boolean> {
+    const result = await db.update(questionnaireSubmissions).set({ isTest } as any).where(eq(questionnaireSubmissions.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getBinItems(): Promise<Array<{ type: string; id: number; label: string; archived: boolean; isTest: boolean; createdAt: Date }>> {
+    const hidden = (archived: boolean, isTest: boolean) => archived || isTest;
+
+    const [contactRows, conversationRows, clientRows, appointmentRows, questionnaireRows] = await Promise.all([
+      db.select().from(contacts).where(sql`${contacts.archived} = true OR ${contacts.isTest} = true`),
+      db.select().from(conversations).where(sql`${conversations.archived} = true OR ${conversations.isTest} = true`),
+      db.select().from(clients).where(sql`${clients.archived} = true OR ${clients.isTest} = true`),
+      db.select().from(appointments).where(sql`${appointments.archived} = true OR ${appointments.isTest} = true`),
+      db.select().from(questionnaireSubmissions).where(sql`${questionnaireSubmissions.archived} = true OR ${questionnaireSubmissions.isTest} = true`),
+    ]);
+
+    const items = [
+      ...contactRows.map(r => ({ type: "contact", id: r.id, label: r.name, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt })),
+      ...conversationRows.map(r => ({ type: "conversation", id: r.id, label: r.visitorName, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt })),
+      ...clientRows.map(r => ({ type: "client", id: r.id, label: r.name, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt })),
+      ...appointmentRows.map(r => ({ type: "appointment", id: r.id, label: r.clientName, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt })),
+      ...questionnaireRows.map(r => ({ type: "questionnaire", id: r.id, label: r.respondentName, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt })),
+    ].filter(item => hidden(item.archived, item.isTest));
+
+    return items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async permanentlyDeleteBinItem(type: string, id: number): Promise<boolean> {
+    switch (type) {
+      case "contact": return this.deleteContact(id);
+      case "conversation": return this.deleteConversation(id);
+      case "client": return this.deleteClient(id);
+      case "appointment": return this.deleteAppointment(id);
+      case "questionnaire": return this.deleteQuestionnaire(id);
+      default: throw new Error(`Unknown bin item type: ${type}`);
+    }
+  }
+
+  async restoreBinItem(type: string, id: number): Promise<boolean> {
+    switch (type) {
+      case "contact": return this.restoreContact(id);
+      case "conversation": return this.restoreConversation(id);
+      case "client": return this.restoreClient(id);
+      case "appointment": return this.restoreAppointment(id);
+      case "questionnaire": return this.restoreQuestionnaire(id);
+      default: throw new Error(`Unknown bin item type: ${type}`);
+    }
   }
 
   async createWhatsAppMessage(message: InsertWhatsAppMessage): Promise<WhatsAppMessage> {

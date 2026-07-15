@@ -99,6 +99,18 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
     },
   })
 
+  const markTestMutation = useMutation({
+    mutationFn: (id: number) => apiRequest('PATCH', `/api/conversations/${id}/mark-test`, { isTest: true }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-badges'] })
+      toast({
+        title: isHe ? 'סומן כבדיקה' : 'Marked as test',
+        description: isHe ? 'הפריט הוסתר מהרשימה הרגילה.' : 'The item has been hidden from the normal list.',
+      })
+    },
+  })
+
   const toggleSelectAll = () => {
     setSelectedIds(prev =>
       prev.size === visibleConversations.length
@@ -306,6 +318,17 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
                             }}
                           >
                             {conv.reviewed ? (isHe ? 'סמן כלא נסקר' : 'Mark unreviewed') : (isHe ? 'סמן כנסקר' : 'Mark reviewed')}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={e => {
+                              e.stopPropagation()
+                              markTestMutation.mutate(conv.id)
+                            }}
+                            data-testid={`button-mark-test-conversation-${conv.id}`}
+                          >
+                            {isHe ? 'סמן כבדיקה' : 'Mark as test'}
                           </Button>
                           <Button
                             size="sm"

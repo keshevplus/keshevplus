@@ -75,7 +75,12 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
     }
     setIsSubmitting(true);
     try {
-      const response = await contentApi.submitContactForm(result.data);
+      const response = await contentApi.submitContactForm({
+        name: result.data.name,
+        phone: result.data.phone,
+        email: result.data.email,
+        message: result.data.message,
+      });
       if (response.success) {
         setIsSubmitted(true);
         toast({ title: t('contact.success_title'), description: t('contact.success_desc') });

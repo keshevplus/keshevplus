@@ -17,5 +17,6 @@
       "@shared/*": ["./shared/*"]
     }
   },
-  "include": ["client/vite.config.ts", "server", "shared"]
+  "include": ["client/vite.config.ts", "server", "shared"],
+  "exclude": ["server/replit_integrations"]
 }

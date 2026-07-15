@@ -287,6 +287,16 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
     }
   };
 
+  const handleMarkTest = async (clientId: number) => {
+    try {
+      await apiRequest("PATCH", `/api/clients/${clientId}/mark-test`, { isTest: true });
+      toast({ title: isHe ? "סומן כבדיקה" : "Marked as test", description: isHe ? "הפריט הוסתר מהרשימה הרגילה." : "The item has been hidden from the normal list." });
+      fetchClients();
+    } catch {
+      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "הסימון נכשל" : "Failed to mark as test", variant: "destructive" });
+    }
+  };
+
   const toggleSelect = (id: number) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -734,6 +744,14 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
                               ? (isHe ? "החזר לליד" : "Revert to Lead")
                               : (isHe ? "המר ללקוח" : "Convert to Client")}
                           </span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => { e.stopPropagation(); handleMarkTest(client.id); }}
+                          data-testid={`button-mark-test-client-${client.id}`}
+                        >
+                          {isHe ? "סמן כבדיקה" : "Mark as test"}
                         </Button>
                       </div>
 

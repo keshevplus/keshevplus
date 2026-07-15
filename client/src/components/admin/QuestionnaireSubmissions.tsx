@@ -86,6 +86,17 @@ const QuestionnaireSubmissions = ({ initialFilter = 'all' }: QuestionnaireSubmis
     },
   });
 
+  const markTestMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("PATCH", `/api/questionnaires/${id}/mark-test`, { isTest: true });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/questionnaires"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/questionnaires/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
+    },
+  });
+
   const formatDate = (date: string | Date) => {
     const d = new Date(date);
     return d.toLocaleString("he-IL", {
@@ -225,6 +236,16 @@ const QuestionnaireSubmissions = ({ initialFilter = 'all' }: QuestionnaireSubmis
                           ))}
                         </SelectContent>
                       </Select>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8"
+                        onClick={() => markTestMutation.mutate(sub.id)}
+                        disabled={markTestMutation.isPending}
+                        data-testid={`button-mark-test-questionnaire-${sub.id}`}
+                      >
+                        {isHe ? "בדיקה" : "Test"}
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"

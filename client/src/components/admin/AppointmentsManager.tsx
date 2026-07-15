@@ -90,6 +90,20 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
     },
   });
 
+  const markTestMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("PATCH", `/api/appointments/${id}/mark-test`, { isTest: true });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
+      toast({
+        title: isHe ? "סומן כבדיקה" : "Marked as test",
+        description: isHe ? "הפריט הוסתר מהרשימה הרגילה." : "The item has been hidden from the normal list.",
+      });
+    },
+  });
+
   const parseDateOnly = (date: string) => {
     const [year, month, day] = date.split("-").map(Number);
     if (year && month && day) {
@@ -299,6 +313,15 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                           ))}
                         </SelectContent>
                       </Select>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => markTestMutation.mutate(appointment.id)}
+                        disabled={markTestMutation.isPending}
+                        data-testid={`button-mark-test-appt-${appointment.id}`}
+                      >
+                        {isHe ? "סמן כבדיקה" : "Mark as test"}
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"

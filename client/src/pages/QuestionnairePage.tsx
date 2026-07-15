@@ -26,8 +26,9 @@ interface RespondentInfo {
 }
 
 const QuestionnairePage = () => {
-  const [, params] = useRoute("/questionnaire/:type");
-  const type = (params?.type || "parent") as QuestionnaireType;
+  const [, rawParams] = useRoute<{ type: string }>("/questionnaire/:type");
+  const params: { type?: string } = rawParams ?? {};
+  const type = (params.type || "parent") as QuestionnaireType;
   const config = QUESTIONNAIRES[type];
   const { isRTL } = useLanguage();
   const { toast } = useToast();

@@ -118,6 +118,14 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
     },
   })
 
+  const markTestMutation = useMutation({
+    mutationFn: (id: number) => apiRequest('PATCH', `/api/contacts/${id}/mark-test`, { isTest: true }),
+    onSuccess: () => {
+      invalidateContactsQueries()
+      setExpandedId(null)
+    },
+  })
+
   const unreadCount = contacts.filter(c => !c.read).length
 
   const toggleSelect = (id: number) => {
@@ -399,6 +407,15 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
                             {isHe ? 'סמן כנקרא' : 'Mark as Read'}
                           </Button>
                         )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => markTestMutation.mutate(contact.id)}
+                          disabled={markTestMutation.isPending}
+                          data-testid={`button-mark-test-contact-${contact.id}`}
+                        >
+                          {isHe ? 'סמן כבדיקה' : 'Mark as test'}
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
