@@ -25,6 +25,7 @@ import ClientsManager from './ClientsManager'
 import ContactsManager from './ContactsManager'
 import ConversationsManager from './ConversationsManager'
 import EmailNotificationSettings from './EmailNotificationSettings'
+import ChangePasswordSettings from './ChangePasswordSettings'
 import VisualEditor from './VisualEditor'
 import WhatsAppManager from './WhatsAppManager'
 
@@ -687,6 +688,8 @@ const AdminDashboard = () => {
                   </Button>
                 </CardContent>
               </Card>
+
+              <ChangePasswordSettings />
             </div>
           </TabsContent>
         </Tabs>
