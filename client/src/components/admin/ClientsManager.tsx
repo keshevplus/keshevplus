@@ -403,7 +403,24 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
             <Icon className="w-3 h-3 mr-1" />
             {isHe ? config.he : config.en}
           </Badge>
-          <span className="flex-1 truncate">{c.message}</span>
+          <div className="flex-1 min-w-0 space-y-0.5">
+            <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+              {c.name && <span className="font-medium text-foreground">{c.name}</span>}
+              {c.phone && (
+                <span className="flex items-center gap-1">
+                  <Phone className="w-3 h-3" />
+                  {c.phone}
+                </span>
+              )}
+              {c.email && (
+                <span className="flex items-center gap-1">
+                  <Mail className="w-3 h-3" />
+                  {c.email}
+                </span>
+              )}
+            </div>
+            <p className="truncate">{c.message}</p>
+          </div>
           <span className="text-xs text-muted-foreground shrink-0">{formatDate(c.createdAt)}</span>
         </div>
       );
