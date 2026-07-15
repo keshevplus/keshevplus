@@ -310,20 +310,14 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
                       <div className="mt-2 flex flex-col gap-1">
                         <div className="flex items-center gap-2">
                           <div className="text-xs text-muted-foreground">{isHe ? 'סטטוס:' : 'Status:'}</div>
-                          <Badge variant="outline" className="no-default-hover-elevate no-default-active-elevate">
-                            {isHe ? statusInfo.he : statusInfo.en}
+                          <Badge variant={conv.reviewed ? 'outline' : 'destructive'} className="no-default-hover-elevate no-default-active-elevate">
+                            {conv.reviewed ? (isHe ? 'נסקר' : 'Reviewed') : (isHe ? 'חדש' : 'New')}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="text-xs text-muted-foreground">{isHe ? 'תאריך יצירה:' : 'Creation date:'}</div>
                           <div className="font-medium text-foreground">
                             {formatTimestamp(conv.createdAt)}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-xs text-muted-foreground">{isHe ? 'תאריך עדכון:' : 'Update date:'}</div>
-                          <div className="font-medium text-foreground">
-                            {formatTimestamp(conv.updatedAt)}
                           </div>
                         </div>
                       </div>
