@@ -1,0 +1,135 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - link "דלג לתוכן הראשי" [ref=e4] [cursor=pointer]:
+      - /url: "#main-content"
+    - navigation "ניווט ראשי" [ref=e5]:
+      - generic [ref=e7]:
+        - button "חזרה לדף הבית":
+          - img "קשב פלוס"
+        - generic [ref=e8]:
+          - button "אודותינו" [ref=e9] [cursor=pointer]
+          - button "שירותים" [ref=e10] [cursor=pointer]
+          - button "מה זה ADHD?" [ref=e11] [cursor=pointer]
+          - button "שאלונים" [ref=e12] [cursor=pointer]
+          - button "יצירת קשר" [ref=e13] [cursor=pointer]
+        - generic [ref=e14]:
+          - button "קביעת תור" [ref=e15] [cursor=pointer]:
+            - img [ref=e16]
+            - text: קביעת תור
+          - 'link "התקשרו אלינו: 055-27-399-27" [ref=e19] [cursor=pointer]':
+            - /url: tel:055-27-399-27
+            - img [ref=e20]
+            - text: 055-27-399-27
+          - button "Switch to English" [ref=e22] [cursor=pointer]: ENEnglish
+          - button "Switch to dark mode" [ref=e23] [cursor=pointer]:
+            - img [ref=e24]
+        - generic [ref=e26]:
+          - button "Switch to English" [ref=e27] [cursor=pointer]: ENEnglish
+          - button "Switch to dark mode" [ref=e28] [cursor=pointer]:
+            - img [ref=e29]
+          - button "פתח תפריט" [ref=e31] [cursor=pointer]:
+            - img [ref=e32]
+    - generic [ref=e34]:
+      - generic [ref=e35]:
+        - heading "קביעת פגישה" [level=2] [ref=e36]:
+          - img [ref=e37]
+          - text: קביעת פגישה
+        - button [ref=e39] [cursor=pointer]:
+          - img [ref=e40]
+      - generic [ref=e43]:
+        - paragraph [ref=e44]: מלאו את הפרטים ונחזור אליכם לאישור הפגישה. שדות עם * הם חובה.
+        - generic [ref=e45]:
+          - generic [ref=e46]:
+            - generic [ref=e47]:
+              - generic [ref=e48]: שם מלא *
+              - textbox "שם מלא *" [ref=e49]:
+                - /placeholder: הכניסו את שמכם
+                - text: Appointment Tester
+            - generic [ref=e50]:
+              - generic [ref=e51]: טלפון *
+              - textbox "טלפון *" [ref=e52]:
+                - /placeholder: מספר הטלפון שלכם
+                - text: "0551234567"
+          - generic [ref=e53]:
+            - generic [ref=e54]: דוא"ל *
+            - textbox "דוא\"ל *" [ref=e55]:
+              - /placeholder: כתובת הדוא"ל שלכם
+              - text: appointment@example.com
+          - generic [ref=e56]:
+            - generic [ref=e57]:
+              - text: עבור מי הפגישה?
+              - radiogroup [ref=e58]:
+                - radio "עבורי" [ref=e59] [cursor=pointer]:
+                  - img [ref=e60]
+                  - text: עבורי
+                - radio "עבור הילד/ה" [checked] [ref=e63] [cursor=pointer]:
+                  - img [ref=e64]
+                  - text: עבור הילד/ה
+            - generic [ref=e67]:
+              - generic [ref=e68]:
+                - generic [ref=e69]: שם הילד/ה *
+                - textbox "שם הילד/ה *" [ref=e70]:
+                  - /placeholder: שם הילד/ה
+                  - text: Child Tester
+              - generic [ref=e71]:
+                - generic [ref=e72]: גיל הילד *
+                - spinbutton "גיל הילד *" [active] [ref=e73]: "9"
+          - generic [ref=e74]:
+            - generic [ref=e75]: סוג הפגישה *
+            - combobox [ref=e76] [cursor=pointer]:
+              - text: ייעוץ ראשוני
+              - img [ref=e77]
+            - combobox [ref=e79]
+          - generic [ref=e80]:
+            - generic [ref=e81]:
+              - generic [ref=e82]:
+                - img [ref=e83]
+                - text: תאריך *
+              - button "תאריך *" [ref=e86] [cursor=pointer]:
+                - text: 1.7.2026
+                - img [ref=e87]
+            - generic [ref=e89]:
+              - generic [ref=e90]:
+                - img [ref=e91]
+                - text: שעה *
+              - combobox [ref=e94] [cursor=pointer]:
+                - text: בחרו שעה
+                - img [ref=e95]
+              - combobox [ref=e97]
+          - generic [ref=e98]:
+            - text: הערות (אופציונלי)
+            - textbox "הערות (אופציונלי)" [ref=e99]:
+              - /placeholder: מידע נוסף שתרצו לשתף...
+          - button "קביעת פגישה" [ref=e100] [cursor=pointer]
+    - main [ref=e101]:
+      - region "ברוכים הבאים למרפאת \"קשב פלוס\"" [ref=e102]:
+        - generic [ref=e104]:
+          - generic [ref=e105]:
+            - heading "ברוכים הבאים למרפאת \"קשב פלוס\"" [level=1] [ref=e106]
+            - generic:
+              - img "קשב פלוס"
+            - paragraph [ref=e107]: מרפאה לאבחון וטיפול של הפרעות קשב וריכוז
+            - paragraph [ref=e108]: בילדים
+            - paragraph [ref=e109]:
+              - text: ב"קשב פלוס" תקבלו אבחון מדויק
+              - text: ותוכנית טיפול אישית
+            - generic [ref=e110]:
+              - paragraph [ref=e111]: הצעד הראשון מתחיל כאן
+              - paragraph [ref=e112]: קבעו פגישת ייעוץ - בואו לגלות את הדרך להצלחה
+            - generic [ref=e113]:
+              - button "התחל/י את האבחון עכשיו" [ref=e114] [cursor=pointer]
+              - button "קראו עוד עלינו" [ref=e115] [cursor=pointer]
+          - img "רופאה מומחית באבחון ADHD" [ref=e117]
+        - region "מוכנים להתחיל?" [ref=e118]:
+          - generic [ref=e120]:
+            - heading "מוכנים להתחיל?" [level=2] [ref=e121]
+            - paragraph [ref=e122]: פנה/י אלינו היום כדי לקבוע את האבחון שלך ולקחת את הצעד הראשון לקראת חיים טובים יותר.
+            - button "צרו קשר עכשיו" [ref=e124] [cursor=pointer]
+  - button "תפריט נגישות":
+    - img
+  - region "Notifications (F8)":
+    - list
+```
