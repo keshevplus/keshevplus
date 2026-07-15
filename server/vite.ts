@@ -20,7 +20,10 @@ export function log(message: string, source = "express") {
 
 export async function setupVite(app: Express, server: Server) {
   const { createServer: createViteServer } = await import("vite");
+  const clientRoot = path.resolve(__dirname, "..", "client");
   const vite = await createViteServer({
+    configFile: path.resolve(clientRoot, "vite.config.ts"),
+    root: clientRoot,
     server: {
       middlewareMode: true,
       hmr: { server },
