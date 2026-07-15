@@ -135,9 +135,9 @@ export default function UsersManager() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">{isHe ? ROLE_LABEL.admin.he : ROLE_LABEL.admin.en}</SelectItem>
-                <SelectItem value="manager">{isHe ? ROLE_LABEL.manager.he : ROLE_LABEL.manager.en}</SelectItem>
-                <SelectItem value="user">{isHe ? ROLE_LABEL.user.he : ROLE_LABEL.user.en}</SelectItem>
+                <SelectItem value="admin" data-testid="option-role-admin">{isHe ? ROLE_LABEL.admin.he : ROLE_LABEL.admin.en}</SelectItem>
+                <SelectItem value="manager" data-testid="option-role-manager">{isHe ? ROLE_LABEL.manager.he : ROLE_LABEL.manager.en}</SelectItem>
+                <SelectItem value="user" data-testid="option-role-user">{isHe ? ROLE_LABEL.user.he : ROLE_LABEL.user.en}</SelectItem>
               </SelectContent>
             </Select>
           </div>
