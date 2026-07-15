@@ -4,12 +4,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Calendar, ChevronLeft, ChevronRight, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
+import { getLocalDateInputValue, isAppointmentWorkingDay } from "@shared/appointmentSchedule";
 import type { Appointment } from "@shared/schema";
+
+const weekDaysHe = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
+const weekDaysEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function formatWhatsAppUrl(phone: string, message?: string) {
   const cleaned = phone.replace(/[^0-9+]/g, '').replace(/^0/, '972')
@@ -18,10 +24,10 @@ function formatWhatsAppUrl(phone: string, message?: string) {
 }
 
 const STATUS_CONFIG: Record<string, { he: string; en: string; color: string }> = {
-  pending: { he: "ממתינה", en: "Pending", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" },
-  confirmed: { he: "מאושרת", en: "Confirmed", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
+  pending: { he: "ממתינה", en: "Pending", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" },
+  confirmed: { he: "מאושרת", en: "Confirmed", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
   cancelled: { he: "בוטלה", en: "Cancelled", color: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
-  completed: { he: "הושלמה", en: "Completed", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
+  completed: { he: "הושלמה", en: "Completed", color: "bg-green-100 text-green-900 dark:bg-green-900/50 dark:text-green-100 font-semibold" },
 };
 
 type ManagerFilter = 'all' | 'new'
@@ -32,10 +38,15 @@ interface AppointmentsManagerProps {
 }
 
 const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps) => {
-  const { language } = useLanguage();
+  const { language, isRTL } = useLanguage();
   const isHe = language === "he";
   const { toast } = useToast();
   const [filter, setFilter] = useState<AppointmentFilter>(initialFilter)
+  const [visibleMonth, setVisibleMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  })
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null)
 
   useEffect(() => {
     setFilter(initialFilter)
@@ -126,17 +137,6 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
     return time ? time.slice(0, 5) : "";
   };
 
-  const getAppointmentStart = (appointment: Appointment) => {
-    const [year, month, day] = appointment.date.split("-").map(Number);
-    const [hour = 0, minute = 0] = appointment.time.split(":").map(Number);
-
-    if (year && month && day) {
-      return new Date(year, month - 1, day, hour, minute);
-    }
-
-    return new Date(appointment.date);
-  };
-
   const formatTimestamp = (date?: string | Date | null) => {
     if (!date) return isHe ? "לא תועד" : "Not recorded";
     const d = new Date(date);
@@ -152,26 +152,46 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
     });
   };
 
-  const upcomingAppointments = useMemo(() => {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-
-    return allAppointments
-      .filter((appointment) => {
-        if (!["pending", "confirmed"].includes(appointment.status)) return false;
-        return getAppointmentStart(appointment) >= startOfToday;
-      })
-      .sort((a, b) => getAppointmentStart(a).getTime() - getAppointmentStart(b).getTime());
-  }, [allAppointments]);
-
-  const groupedUpcomingAppointments = useMemo(() => {
-    return upcomingAppointments.reduce<Record<string, Appointment[]>>((groups, appointment) => {
+  const appointmentsByDate = useMemo(() => {
+    return allAppointments.reduce<Record<string, Appointment[]>>((groups, appointment) => {
       const key = appointment.date;
       groups[key] = groups[key] || [];
       groups[key].push(appointment);
       return groups;
     }, {});
-  }, [upcomingAppointments]);
+  }, [allAppointments]);
+
+  const monthLabel = visibleMonth.toLocaleDateString(isHe ? "he-IL" : "en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
+  const calendarDays = useMemo(() => {
+    const firstDay = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
+    const start = new Date(firstDay);
+    start.setDate(firstDay.getDate() - firstDay.getDay());
+
+    return Array.from({ length: 42 }, (_, index) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + index);
+      const value = getLocalDateInputValue(date);
+      const outsideMonth = date.getMonth() !== visibleMonth.getMonth();
+      const closed = !isAppointmentWorkingDay(date);
+      const dayAppointments = (appointmentsByDate[value] || [])
+        .slice()
+        .sort((a, b) => a.time.localeCompare(b.time));
+
+      return { date, value, label: date.getDate(), outsideMonth, closed, appointments: dayAppointments };
+    });
+  }, [visibleMonth, appointmentsByDate]);
+
+  const goToMonth = (offset: number) => {
+    setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
+  };
+
+  const selectedAppointment = selectedAppointmentId
+    ? allAppointments.find((a) => a.id === selectedAppointmentId) || null
+    : null;
 
   const visibleAppointments = useMemo(() => {
     if (filter === 'new') return appointments.filter(a => a.status === 'pending')
@@ -219,52 +239,99 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-primary" />
                   <h3 className="font-semibold text-foreground">
-                    {isHe ? "יומן פגישות קרובות" : "Upcoming appointments calendar"}
+                    {isHe ? "יומן פגישות" : "Appointments calendar"}
                   </h3>
                 </div>
-                <Badge variant="outline" className="no-default-hover-elevate no-default-active-elevate">
-                  {upcomingAppointments.length} {isHe ? "קרובות" : "upcoming"}
-                </Badge>
-              </div>
-              {upcomingAppointments.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {isHe ? "אין פגישות קרובות להצגה." : "No upcoming appointments to display."}
-                </p>
-              ) : (
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  {Object.entries(groupedUpcomingAppointments).map(([date, items]) => (
-                    <div key={date} className="rounded-md border bg-background p-3">
-                      <div className="font-medium text-sm text-foreground">
-                        {formatAppointmentDate(date)}
-                      </div>
-                      <div className="mt-3 space-y-2">
-                        {items.map((appointment) => {
-                          const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
-
-                          return (
-                            <div key={appointment.id} className="rounded-md bg-muted/50 p-2 text-sm">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="flex items-center gap-1 font-semibold text-foreground">
-                                  <Clock className="h-3.5 w-3.5 text-primary" />
-                                  {formatAppointmentTime(appointment.time)}
-                                </span>
-                                <Badge
-                                  variant="secondary"
-                                  className={`no-default-hover-elevate no-default-active-elevate ${statusInfo.color}`}
-                                >
-                                  {isHe ? statusInfo.he : statusInfo.en}
-                                </Badge>
-                              </div>
-                              <div className="mt-1 font-medium text-foreground">{appointment.clientName}</div>
-                              <div className="text-xs text-muted-foreground">{appointment.type}</div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => goToMonth(isRTL ? 1 : -1)}
+                    data-testid="button-calendar-prev-month"
+                  >
+                    {isRTL ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                  </Button>
+                  <div className="min-w-[8.5rem] text-center text-sm font-medium text-foreground">
+                    {monthLabel}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => goToMonth(isRTL ? -1 : 1)}
+                    data-testid="button-calendar-next-month"
+                  >
+                    {isRTL ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  </Button>
                 </div>
-              )}
+              </div>
+
+              <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground">
+                {(isHe ? weekDaysHe : weekDaysEn).map((day) => (
+                  <div key={day} className="py-1">{day}</div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-7 gap-1">
+                {calendarDays.map((day) => (
+                  <div
+                    key={day.value}
+                    className={cn(
+                      "min-h-[92px] rounded-md border p-1.5 align-top",
+                      day.closed ? "bg-muted/60 border-transparent" : "bg-background",
+                      day.outsideMonth && "opacity-40",
+                    )}
+                    data-testid={`calendar-day-${day.value}`}
+                  >
+                    <div
+                      className={cn(
+                        "mb-1 text-xs font-medium",
+                        day.closed
+                          ? "text-muted-foreground"
+                          : day.appointments.length === 0
+                            ? "text-muted-foreground/50"
+                            : "text-foreground",
+                      )}
+                    >
+                      {day.label}
+                    </div>
+                    <div className="space-y-1">
+                      {day.appointments.slice(0, 3).map((appointment) => {
+                        const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
+
+                        return (
+                          <button
+                            key={appointment.id}
+                            type="button"
+                            onClick={() => setSelectedAppointmentId(appointment.id)}
+                            className={cn(
+                              "block w-full truncate rounded px-1 py-0.5 text-left text-[10px] font-medium transition-opacity hover:opacity-80",
+                              statusInfo.color,
+                            )}
+                            data-testid={`calendar-appointment-${appointment.id}`}
+                          >
+                            {formatAppointmentTime(appointment.time)} {appointment.clientName}
+                          </button>
+                        );
+                      })}
+                      {day.appointments.length > 3 && (
+                        <div className="text-[10px] text-muted-foreground">
+                          +{day.appointments.length - 3} {isHe ? "נוספות" : "more"}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                {isHe
+                  ? "ימים אפורים מחוץ לשעות הפעילות. לחיצה על פגישה פותחת את פרטיה."
+                  : "Greyed-out days are outside working hours. Click an appointment to view or update it."}
+              </p>
             </div>
 
             {visibleAppointments.length === 0 ? (
@@ -417,6 +484,88 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
           </div>
         )}
       </CardContent>
+
+      <Dialog open={!!selectedAppointment} onOpenChange={(open) => !open && setSelectedAppointmentId(null)}>
+        <DialogContent className="max-w-sm">
+          {selectedAppointment && (() => {
+            const statusInfo = STATUS_CONFIG[selectedAppointment.status] || STATUS_CONFIG.pending;
+
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    {selectedAppointment.clientName}
+                  </DialogTitle>
+                  <DialogDescription className="flex items-center gap-3">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {formatAppointmentDate(selectedAppointment.date)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" />
+                      {formatAppointmentTime(selectedAppointment.time)}
+                    </span>
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={selectedAppointment.status}
+                      onValueChange={(status) => updateStatus.mutate({ id: selectedAppointment.id, status })}
+                    >
+                      <SelectTrigger className="h-8 text-xs w-[130px]" data-testid="select-appointment-status-dialog">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                          <SelectItem key={key} value={key} className="text-xs">
+                            {isHe ? config.he : config.en}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Badge
+                      variant="secondary"
+                      className={`no-default-hover-elevate no-default-active-elevate ${statusInfo.color}`}
+                    >
+                      {isHe ? statusInfo.he : statusInfo.en}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-1.5 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Mail className="w-3.5 h-3.5" />
+                      {selectedAppointment.clientEmail}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Phone className="w-3.5 h-3.5" />
+                      {selectedAppointment.clientPhone}
+                    </div>
+                    {selectedAppointment.clientPhone && (
+                      <a
+                        href={formatWhatsAppUrl(selectedAppointment.clientPhone, isHe ? `שלום ${selectedAppointment.clientName}, פונה אליך מקשב פלוס בנוגע לפגישה שלך` : `Hi ${selectedAppointment.clientName}, reaching out from KeshevPlus regarding your appointment`)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[#25D366] hover:underline"
+                        data-testid="link-whatsapp-appointment-dialog"
+                      >
+                        <SiWhatsapp className="w-3.5 h-3.5" />
+                        <span className="text-xs">WhatsApp</span>
+                      </a>
+                    )}
+                  </div>
+
+                  <Badge variant="outline" className="no-default-hover-elevate no-default-active-elevate">
+                    {selectedAppointment.type}
+                  </Badge>
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
