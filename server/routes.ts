@@ -558,10 +558,16 @@ function hasAdminAccess(user: { role: string; email: string } | undefined | null
   return (
     user.role === "admin" ||
     user.role === "owner" ||
+    user.role === "manager" ||
     user.role === "superadmin" ||
     user.email === "admin@keshevplus.co.il" ||
     user.email === "dr@keshevplus.co.il"
   );
+}
+
+function isOwner(user: { role: string; email: string } | undefined | null): boolean {
+  if (!user) return false;
+  return user.role === "owner" || user.email === "dr@keshevplus.co.il";
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
