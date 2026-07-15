@@ -235,7 +235,7 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       <header className="bg-background/80 backdrop-blur-sm border-b sticky top-0 z-40 pt-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:h-16 sm:py-0">
             <div className="flex items-center gap-4">
               <div>
                 <h1 className="text-xl font-semibold">{isHe ? 'לוח בקרה' : 'Admin Dashboard'}</h1>
@@ -355,8 +355,8 @@ const AdminDashboard = () => {
               <LanguageSelector />
               <ThemeToggle />
               <Button variant="outline" onClick={handleSignOut} data-testid="button-signout">
-                <LogOut className="w-4 h-4 mr-2" />
-                {isHe ? 'התנתקות' : 'Sign Out'}
+                <LogOut className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">{isHe ? 'התנתקות' : 'Sign Out'}</span>
               </Button>
             </div>
           </div>
