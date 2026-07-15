@@ -285,7 +285,7 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
                         </div>
                         <div className="flex items-center gap-2">
                           <Button
-                            size="xs"
+                            size="sm"
                             variant="outline"
                             onClick={e => {
                               e.stopPropagation()
@@ -297,7 +297,7 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
                             {isHe ? 'שלח הודעה' : 'Send message'}
                           </Button>
                           <Button
-                            size="xs"
+                            size="sm"
                             variant="outline"
                             onClick={e => {
                               e.stopPropagation()
@@ -308,7 +308,7 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
                             {conv.reviewed ? (isHe ? 'סמן כלא נסקר' : 'Mark unreviewed') : (isHe ? 'סמן כנסקר' : 'Mark reviewed')}
                           </Button>
                           <Button
-                            size="xs"
+                            size="sm"
                             variant="destructive"
                             onClick={e => {
                               e.stopPropagation()
