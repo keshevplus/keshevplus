@@ -426,3 +426,5 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
     </Card>
   )
 }
+
+export default ContactsManager
