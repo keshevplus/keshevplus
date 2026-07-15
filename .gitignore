@@ -41,3 +41,7 @@ dist-ssr
 .env.production.local
 .env.*
 .vercel
+
+# Playwright e2e output
+test-results/
+playwright-report/
