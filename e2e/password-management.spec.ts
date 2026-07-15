@@ -19,7 +19,7 @@ test("login form's eye icon toggles password visibility", async ({ page }) => {
   await expect(passwordInput).toHaveAttribute("type", "password");
 });
 
-// Uses a disposable "user"-role account created and torn down within the test,
+// Uses a disposable manager-role account created and torn down within the test,
 // rather than the shared owner account, so this can run in parallel with other
 // spec files that also log in as the owner without racing on its password.
 test("a user can change their own password from the Settings tab and log in with the new one", async ({ page }) => {
@@ -29,19 +29,23 @@ test("a user can change their own password from the Settings tab and log in with
   await page.getByTestId("button-admin-login").click();
 
   const changePasswordPrompt = page.getByTestId("text-change-password-title");
-  if (await changePasswordPrompt.isVisible({ timeout: 5000 }).catch(() => false)) {
+  const signOutButton = page.getByTestId("button-signout");
+  // isVisible() alone doesn't wait/retry, so we'd race the post-login render here without this.
+  await expect(changePasswordPrompt.or(signOutButton)).toBeVisible({ timeout: 15000 });
+
+  if (await changePasswordPrompt.isVisible()) {
     await page.getByTestId("input-current-password").fill(ownerPassword);
     await page.getByTestId("input-new-password").fill(ownerPassword);
     await page.getByTestId("input-confirm-password").fill(ownerPassword);
     await page.getByTestId("button-change-password").click();
   }
-  await expect(page.getByTestId("button-signout")).toBeVisible({ timeout: 15000 });
+  await expect(signOutButton).toBeVisible({ timeout: 15000 });
 
   await page.getByTestId("tab-users").click();
   await page.getByTestId("input-new-user-email").fill(disposableEmail);
   await page.getByTestId("input-new-user-password").fill(disposableTempPassword);
   await page.getByTestId("select-new-user-role").click();
-  await page.getByTestId("option-role-user").click();
+  await page.getByTestId("option-role-manager").click();
   await page.getByTestId("button-add-user").click();
   await expect(page.getByText(disposableEmail)).toBeVisible({ timeout: 10000 });
 
@@ -52,6 +56,7 @@ test("a user can change their own password from the Settings tab and log in with
   await page.getByTestId("input-admin-email").fill(disposableEmail);
   await page.getByTestId("input-admin-password").fill(disposableTempPassword);
   await page.getByTestId("button-admin-login").click();
+  await expect(page.getByTestId("text-change-password-title")).toBeVisible({ timeout: 15000 });
   await page.getByTestId("input-current-password").fill(disposableTempPassword);
   await page.getByTestId("input-new-password").fill(disposableTempPassword);
   await page.getByTestId("input-confirm-password").fill(disposableTempPassword);

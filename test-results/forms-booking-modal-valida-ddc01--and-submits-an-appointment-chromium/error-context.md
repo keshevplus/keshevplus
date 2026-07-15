@@ -7,129 +7,461 @@
       - /url: "#main-content"
     - navigation "ניווט ראשי" [ref=e5]:
       - generic [ref=e7]:
-        - button "חזרה לדף הבית":
-          - img "קשב פלוס"
-        - generic [ref=e8]:
-          - button "אודותינו" [ref=e9] [cursor=pointer]
-          - button "שירותים" [ref=e10] [cursor=pointer]
-          - button "מה זה ADHD?" [ref=e11] [cursor=pointer]
-          - button "שאלונים" [ref=e12] [cursor=pointer]
-          - button "יצירת קשר" [ref=e13] [cursor=pointer]
-        - generic [ref=e14]:
-          - button "קביעת תור" [ref=e15] [cursor=pointer]:
-            - img [ref=e16]
+        - button "חזרה לדף הבית" [ref=e8] [cursor=pointer]:
+          - img "קשב פלוס" [ref=e9]
+        - generic [ref=e10]:
+          - button "אודותינו" [ref=e11] [cursor=pointer]
+          - button "שירותים" [ref=e12] [cursor=pointer]
+          - button "מה זה ADHD?" [ref=e13] [cursor=pointer]
+          - button "שאלונים" [ref=e14] [cursor=pointer]
+          - button "יצירת קשר" [ref=e15] [cursor=pointer]
+        - generic [ref=e16]:
+          - button "קביעת תור" [ref=e17] [cursor=pointer]:
+            - img [ref=e18]
             - text: קביעת תור
-          - 'link "התקשרו אלינו: 055-27-399-27" [ref=e19] [cursor=pointer]':
+          - 'link "התקשרו אלינו: 055-27-399-27" [ref=e21] [cursor=pointer]':
             - /url: tel:055-27-399-27
-            - img [ref=e20]
+            - img [ref=e22]
             - text: 055-27-399-27
-          - button "Switch to English" [ref=e22] [cursor=pointer]: ENEnglish
-          - button "Switch to dark mode" [ref=e23] [cursor=pointer]:
-            - img [ref=e24]
-        - generic [ref=e26]:
-          - button "Switch to English" [ref=e27] [cursor=pointer]: ENEnglish
-          - button "Switch to dark mode" [ref=e28] [cursor=pointer]:
-            - img [ref=e29]
-          - button "פתח תפריט" [ref=e31] [cursor=pointer]:
-            - img [ref=e32]
-    - generic [ref=e34]:
-      - generic [ref=e35]:
-        - heading "קביעת פגישה" [level=2] [ref=e36]:
-          - img [ref=e37]
+          - button "Switch to English" [ref=e24] [cursor=pointer]: ENEnglish
+          - button "Switch to dark mode" [ref=e25] [cursor=pointer]:
+            - img [ref=e26]
+        - generic [ref=e28]:
+          - button "Switch to English" [ref=e29] [cursor=pointer]: ENEnglish
+          - button "Switch to dark mode" [ref=e30] [cursor=pointer]:
+            - img [ref=e31]
+          - button "פתח תפריט" [ref=e33] [cursor=pointer]:
+            - img [ref=e34]
+    - generic [ref=e36]:
+      - generic [ref=e37]:
+        - heading "קביעת פגישה" [level=2] [ref=e38]:
+          - img [ref=e39]
           - text: קביעת פגישה
-        - button [ref=e39] [cursor=pointer]:
-          - img [ref=e40]
-      - generic [ref=e43]:
-        - paragraph [ref=e44]: מלאו את הפרטים ונחזור אליכם לאישור הפגישה. שדות עם * הם חובה.
-        - generic [ref=e45]:
-          - generic [ref=e46]:
-            - generic [ref=e47]:
-              - generic [ref=e48]: שם מלא *
-              - textbox "שם מלא *" [ref=e49]:
+        - button [ref=e41] [cursor=pointer]:
+          - img [ref=e42]
+      - generic [ref=e45]:
+        - paragraph [ref=e46]: מלאו את הפרטים ונחזור אליכם לאישור הפגישה. שדות עם * הם חובה.
+        - generic [ref=e47]:
+          - generic [ref=e48]:
+            - generic [ref=e49]:
+              - generic [ref=e50]: שם מלא *
+              - textbox "שם מלא *" [ref=e51]:
                 - /placeholder: הכניסו את שמכם
                 - text: Appointment Tester
-            - generic [ref=e50]:
-              - generic [ref=e51]: טלפון *
-              - textbox "טלפון *" [ref=e52]:
+            - generic [ref=e52]:
+              - generic [ref=e53]: טלפון *
+              - textbox "טלפון *" [ref=e54]:
                 - /placeholder: מספר הטלפון שלכם
                 - text: "0551234567"
-          - generic [ref=e53]:
-            - generic [ref=e54]: דוא"ל *
-            - textbox "דוא\"ל *" [ref=e55]:
+          - generic [ref=e55]:
+            - generic [ref=e56]: דוא"ל *
+            - textbox "דוא\"ל *" [ref=e57]:
               - /placeholder: כתובת הדוא"ל שלכם
               - text: appointment@example.com
-          - generic [ref=e56]:
-            - generic [ref=e57]:
+          - generic [ref=e58]:
+            - generic [ref=e59]:
               - text: עבור מי הפגישה?
-              - radiogroup [ref=e58]:
-                - radio "עבורי" [ref=e59] [cursor=pointer]:
-                  - img [ref=e60]
+              - radiogroup [ref=e60]:
+                - radio "עבורי" [ref=e61] [cursor=pointer]:
+                  - img [ref=e62]
                   - text: עבורי
-                - radio "עבור הילד/ה" [checked] [ref=e63] [cursor=pointer]:
-                  - img [ref=e64]
+                - radio "עבור הילד/ה" [checked] [ref=e65] [cursor=pointer]:
+                  - img [ref=e66]
                   - text: עבור הילד/ה
-            - generic [ref=e67]:
-              - generic [ref=e68]:
-                - generic [ref=e69]: שם הילד/ה *
-                - textbox "שם הילד/ה *" [ref=e70]:
+            - generic [ref=e69]:
+              - generic [ref=e70]:
+                - generic [ref=e71]: שם הילד/ה *
+                - textbox "שם הילד/ה *" [ref=e72]:
                   - /placeholder: שם הילד/ה
                   - text: Child Tester
-              - generic [ref=e71]:
-                - generic [ref=e72]: גיל הילד *
-                - spinbutton "גיל הילד *" [active] [ref=e73]: "9"
-          - generic [ref=e74]:
-            - generic [ref=e75]: סוג הפגישה *
-            - combobox [ref=e76] [cursor=pointer]:
+              - generic [ref=e73]:
+                - generic [ref=e74]: גיל הילד *
+                - spinbutton "גיל הילד *" [active] [ref=e75]: "9"
+          - generic [ref=e76]:
+            - generic [ref=e77]: סוג הפגישה *
+            - combobox [ref=e78] [cursor=pointer]:
               - text: ייעוץ ראשוני
-              - img [ref=e77]
-            - combobox [ref=e79]
-          - generic [ref=e80]:
-            - generic [ref=e81]:
-              - generic [ref=e82]:
-                - img [ref=e83]
+              - img [ref=e79]
+            - combobox [ref=e81]
+          - generic [ref=e82]:
+            - generic [ref=e83]:
+              - generic [ref=e84]:
+                - img [ref=e85]
                 - text: תאריך *
-              - button "תאריך *" [ref=e86] [cursor=pointer]:
+              - button "תאריך *" [ref=e88] [cursor=pointer]:
                 - text: 1.7.2026
-                - img [ref=e87]
-            - generic [ref=e89]:
-              - generic [ref=e90]:
-                - img [ref=e91]
+                - img [ref=e89]
+            - generic [ref=e91]:
+              - generic [ref=e92]:
+                - img [ref=e93]
                 - text: שעה *
-              - combobox [ref=e94] [cursor=pointer]:
+              - combobox [ref=e96] [cursor=pointer]:
                 - text: בחרו שעה
-                - img [ref=e95]
-              - combobox [ref=e97]
-          - generic [ref=e98]:
+                - img [ref=e97]
+              - combobox [ref=e99]
+          - generic [ref=e100]:
             - text: הערות (אופציונלי)
-            - textbox "הערות (אופציונלי)" [ref=e99]:
+            - textbox "הערות (אופציונלי)" [ref=e101]:
               - /placeholder: מידע נוסף שתרצו לשתף...
-          - button "קביעת פגישה" [ref=e100] [cursor=pointer]
-    - main [ref=e101]:
-      - region "ברוכים הבאים למרפאת \"קשב פלוס\"" [ref=e102]:
-        - generic [ref=e104]:
-          - generic [ref=e105]:
-            - heading "ברוכים הבאים למרפאת \"קשב פלוס\"" [level=1] [ref=e106]
-            - generic:
-              - img "קשב פלוס"
-            - paragraph [ref=e107]: מרפאה לאבחון וטיפול של הפרעות קשב וריכוז
-            - paragraph [ref=e108]: בילדים
-            - paragraph [ref=e109]:
+          - button "קביעת פגישה" [ref=e102] [cursor=pointer]
+    - main [ref=e103]:
+      - region "ברוכים הבאים למרפאת \"קשב פלוס\"" [ref=e104]:
+        - generic [ref=e106]:
+          - generic [ref=e107]:
+            - heading "ברוכים הבאים למרפאת \"קשב פלוס\"" [level=1] [ref=e108]
+            - img "קשב פלוס" [ref=e110]
+            - paragraph [ref=e111]: מרפאה לאבחון וטיפול של הפרעות קשב וריכוז
+            - paragraph [ref=e112]: בילדים
+            - paragraph [ref=e113]:
               - text: ב"קשב פלוס" תקבלו אבחון מדויק
               - text: ותוכנית טיפול אישית
-            - generic [ref=e110]:
-              - paragraph [ref=e111]: הצעד הראשון מתחיל כאן
-              - paragraph [ref=e112]: קבעו פגישת ייעוץ - בואו לגלות את הדרך להצלחה
-            - generic [ref=e113]:
-              - button "התחל/י את האבחון עכשיו" [ref=e114] [cursor=pointer]
-              - button "קראו עוד עלינו" [ref=e115] [cursor=pointer]
-          - img "רופאה מומחית באבחון ADHD" [ref=e117]
-        - region "מוכנים להתחיל?" [ref=e118]:
-          - generic [ref=e120]:
-            - heading "מוכנים להתחיל?" [level=2] [ref=e121]
-            - paragraph [ref=e122]: פנה/י אלינו היום כדי לקבוע את האבחון שלך ולקחת את הצעד הראשון לקראת חיים טובים יותר.
-            - button "צרו קשר עכשיו" [ref=e124] [cursor=pointer]
+            - generic [ref=e114]:
+              - paragraph [ref=e115]: הצעד הראשון מתחיל כאן
+              - paragraph [ref=e116]: קבעו פגישת ייעוץ - בואו לגלות את הדרך להצלחה
+            - generic [ref=e117]:
+              - button "התחל/י את האבחון עכשיו" [ref=e118] [cursor=pointer]
+              - button "קראו עוד עלינו" [ref=e119] [cursor=pointer]
+          - img "רופאה מומחית באבחון ADHD" [ref=e121]
+        - region "מוכנים להתחיל?" [ref=e122]:
+          - generic [ref=e124]:
+            - heading "מוכנים להתחיל?" [level=2] [ref=e125]
+            - paragraph [ref=e126]: פנה/י אלינו היום כדי לקבוע את האבחון שלך ולקחת את הצעד הראשון לקראת חיים טובים יותר.
+            - button "צרו קשר עכשיו" [ref=e128] [cursor=pointer]
+    - region "אודותינו" [ref=e129]:
+      - generic [ref=e130]:
+        - heading "אודותינו" [level=2] [ref=e131]
+        - paragraph [ref=e132]: מומחים באבחון וטיפול בהפרעות קשב וריכוז
+      - generic [ref=e133]:
+        - generic [ref=e134]:
+          - img "ד\"ר איירין כוכב-רייפמן" [ref=e137]
+          - generic [ref=e140]:
+            - heading "ד\"ר איירין כוכב-רייפמן" [level=3] [ref=e141]
+            - paragraph [ref=e142]: רופאה מומחית
+            - paragraph [ref=e143]: בעלת ניסיון עשיר באבחון של ילדים, מתבגרים ובוגרים. ליוותה מטופלים רבים במסע להגשמה אישית ותפקוד מיטבי.
+            - list [ref=e144]:
+              - listitem [ref=e145]:
+                - img [ref=e146]
+                - text: מומחית באבחון וטיפול ב-ADHD
+              - listitem [ref=e149]:
+                - img [ref=e150]
+                - text: ניסיון של למעלה מ-15 שנה
+              - listitem [ref=e153]:
+                - img [ref=e154]
+                - text: התמחות בילדים, נוער ומבוגרים
+        - paragraph [ref=e158]: "\"המשימה שלנו היא לספק אבחון מדויק ותוכניות טיפול מותאמות אישית, המאפשרים למטופלים שלנו להגיע למיצוי הפוטנציאל האישי שלהם.\""
+        - generic [ref=e159]:
+          - generic [ref=e162]:
+            - img [ref=e164]
+            - heading "יחס אישי" [level=4] [ref=e166]
+            - paragraph [ref=e167]: כל מטופל מקבל יחס אישי ומותאם לצרכיו הייחודיים
+          - generic [ref=e170]:
+            - img [ref=e172]
+            - heading "מקצועיות" [level=4] [ref=e175]
+            - paragraph [ref=e176]: צוות מומחים עם ניסיון רב ועדכון מתמיד
+          - generic [ref=e179]:
+            - img [ref=e181]
+            - heading "דיסקרטיות" [level=4] [ref=e183]
+            - paragraph [ref=e184]: שמירה על פרטיות מלאה וסביבה בטוחה
+    - region "השירותים שלנו" [ref=e185]:
+      - generic [ref=e186]:
+        - heading "השירותים שלנו" [level=2] [ref=e187]
+        - paragraph [ref=e188]: אנו מציעים מגוון רחב של שירותים מקצועיים בתחום אבחון וטיפול בהפרעות קשב
+      - generic [ref=e189]:
+        - list "השירותים שלנו" [ref=e190]:
+          - listitem [ref=e191]:
+            - generic [ref=e192]:
+              - generic [ref=e193]:
+                - img [ref=e195]
+                - heading "אבחון מקיף" [level=3] [ref=e205]
+              - paragraph [ref=e207]: אבחון מותאם אישית באמצעות כלים מתקדמים, ראיונות קליניים ומבחנים ממוחשבים
+          - listitem [ref=e208]:
+            - generic [ref=e209]:
+              - generic [ref=e210]:
+                - img [ref=e212]
+                - heading "התאמת טיפול תרופתי" [level=3] [ref=e215]
+              - paragraph [ref=e217]: התאמת טיפול תרופתי אישי עם מעקב בטיחות מתמשך
+          - listitem [ref=e218]:
+            - generic [ref=e219]:
+              - generic [ref=e220]:
+                - img [ref=e222]
+                - heading "מבחן MOXO ממוחשב" [level=3] [ref=e224]
+              - paragraph [ref=e226]: הערכה אובייקטיבית של תפקודי הקשב והריכוז
+          - listitem [ref=e227]:
+            - generic [ref=e228]:
+              - generic [ref=e229]:
+                - img [ref=e231]
+                - heading "ייעוץ ומעקב" [level=3] [ref=e234]
+              - paragraph [ref=e236]: תמיכה מקצועית מתמשכת ומעקב אחר הטיפול
+          - listitem [ref=e237]:
+            - generic [ref=e238]:
+              - generic [ref=e239]:
+                - img [ref=e241]
+                - heading "הפניות לטיפולים משלימים" [level=3] [ref=e246]
+              - paragraph [ref=e248]: הפניות לריפוי בעיסוק, טיפול רגשי ותמיכה פסיכולוגית
+        - generic "תהליך האבחון" [ref=e249]:
+          - heading "תהליך האבחון" [level=3] [ref=e250]
+          - list "שלבי תהליך האבחון" [ref=e251]:
+            - listitem [ref=e252]:
+              - generic [ref=e253]: "1"
+              - heading "יצירת קשר" [level=4] [ref=e254]
+              - paragraph [ref=e255]: פנייה ראשונית טלפונית או באמצעות הטופס באתר
+            - listitem [ref=e256]:
+              - generic [ref=e257]: "2"
+              - heading "פגישת היכרות" [level=4] [ref=e258]
+              - paragraph [ref=e259]: שיחה ראשונית, איסוף היסטוריה רפואית ומילוי שאלונים
+            - listitem [ref=e260]:
+              - generic [ref=e261]: "3"
+              - heading "אבחון מקיף" [level=4] [ref=e262]
+              - paragraph [ref=e263]: ביצוע מבחנים ממוחשבים והערכה קלינית מעמיקה
+            - listitem [ref=e264]:
+              - generic [ref=e265]: "4"
+              - heading "דוח ותוכנית טיפול" [level=4] [ref=e266]
+              - paragraph [ref=e267]: קבלת דוח מפורט והמלצות לתוכנית טיפול אישית
+    - region "מה זה ADHD?" [ref=e268]:
+      - generic [ref=e269]:
+        - heading "מה זה ADHD?" [level=2] [ref=e270]
+        - paragraph [ref=e271]: הפרעת קשב וריכוז (ADHD) היא הפרעה נוירו-התפתחותית שמשפיעה על ילדים ומבוגרים כאחד
+      - generic [ref=e272]:
+        - generic [ref=e273]:
+          - heading "ADHD = Attention Deficit Hyperactivity Disorder" [level=3] [ref=e274]
+          - heading "מהי הפרעת קשב ופעלתנות יתר (ADHD)" [level=4] [ref=e275]
+        - generic [ref=e276]:
+          - heading "התסמינים של ADHD" [level=3] [ref=e277]
+          - paragraph [ref=e278]: "הפרעת קשב ופעלתנות יתר מתאפיינת בשלושה סוגי תסמינים עיקריים:"
+        - generic [ref=e279]:
+          - generic [ref=e282]:
+            - img [ref=e284]
+            - heading "קשיי ריכוז" [level=3] [ref=e294]
+            - paragraph [ref=e295]: קושי לשמור על ריכוז לאורך זמן, הסחת דעת קלה ושכחנות
+          - generic [ref=e298]:
+            - img [ref=e300]
+            - heading "היפראקטיביות" [level=3] [ref=e302]
+            - paragraph [ref=e303]: חוסר שקט, קושי לשבת במקום ותחושת אי-מנוחה פנימית
+          - generic [ref=e306]:
+            - img [ref=e308]
+            - heading "אימפולסיביות" [level=3] [ref=e312]
+            - paragraph [ref=e313]: קושי בבקרה עצמית, קבלת החלטות מהירות ללא מחשבה מוקדמת
+        - generic [ref=e314]:
+          - generic [ref=e317]:
+            - img [ref=e319]
+            - heading "ADHD ניתן לטיפול!" [level=3] [ref=e321]
+            - paragraph [ref=e322]: עם אבחון מדויק ותוכנית טיפול מותאמת אישית, ניתן לשפר משמעותית את איכות החיים. הצעד הראשון הוא פנייה למומחה.
+          - generic [ref=e325]:
+            - img [ref=e327]
+            - heading "קשיים חברתיים" [level=3] [ref=e332]
+            - paragraph [ref=e333]: קושי בתקשורת חברתית, ביצירת קשרים ובשמירה עליהם
+          - generic [ref=e336]:
+            - img [ref=e338]
+            - heading "זיהוי מוקדם" [level=3] [ref=e341]
+            - paragraph [ref=e342]: אבחון מוקדם של ADHD יכול לסייע בהתמודדות טובה יותר עם האתגרים ובמציאת דרכים מתאימות להצלחה בלימודים ובחיים.
+        - generic [ref=e343]:
+          - generic [ref=e344]:
+            - heading "שאלות נפוצות" [level=3] [ref=e345]
+            - paragraph [ref=e346]: תשובות לשאלות הנפוצות ביותר
+          - generic [ref=e348]:
+            - heading "מהו ADHD?" [level=3] [ref=e350]:
+              - button "מהו ADHD?" [ref=e351] [cursor=pointer]:
+                - text: מהו ADHD?
+                - img [ref=e352]
+            - heading "כמה זמן לוקח תהליך האבחון?" [level=3] [ref=e355]:
+              - button "כמה זמן לוקח תהליך האבחון?" [ref=e356] [cursor=pointer]:
+                - text: כמה זמן לוקח תהליך האבחון?
+                - img [ref=e357]
+            - heading "האם האבחון מתאים לכל הגילאים?" [level=3] [ref=e360]:
+              - button "האם האבחון מתאים לכל הגילאים?" [ref=e361] [cursor=pointer]:
+                - text: האם האבחון מתאים לכל הגילאים?
+                - img [ref=e362]
+            - heading "מה כלול בתוכנית הטיפול?" [level=3] [ref=e365]:
+              - button "מה כלול בתוכנית הטיפול?" [ref=e366] [cursor=pointer]:
+                - text: מה כלול בתוכנית הטיפול?
+                - img [ref=e367]
+            - heading "האם יש צורך בהפניה מרופא?" [level=3] [ref=e370]:
+              - button "האם יש צורך בהפניה מרופא?" [ref=e371] [cursor=pointer]:
+                - text: האם יש צורך בהפניה מרופא?
+                - img [ref=e372]
+            - heading "מה ההבדל בין ADD ל-ADHD?" [level=3] [ref=e375]:
+              - button "מה ההבדל בין ADD ל-ADHD?" [ref=e376] [cursor=pointer]:
+                - text: מה ההבדל בין ADD ל-ADHD?
+                - img [ref=e377]
+          - link "לא מצאתם תשובה? צרו איתנו קשר" [ref=e380] [cursor=pointer]:
+            - /url: "#contact"
+    - region "שאלונים" [ref=e381]:
+      - generic [ref=e382]:
+        - heading "שאלונים" [level=2] [ref=e383]
+        - paragraph [ref=e384]: שאלונים לזיהוי סימנים של הפרעת קשב וריכוז (ADHD)
+      - generic [ref=e385]:
+        - generic [ref=e386]:
+          - generic [ref=e389]:
+            - img [ref=e391]
+            - heading "שאלון להורים" [level=3] [ref=e396]
+            - paragraph [ref=e397]: שאלון זה מיועד להורים ומספק תובנות על התנהגות הילד בבית ובסביבה המשפחתית.
+            - button "מלא/י שאלון אונליין" [ref=e398] [cursor=pointer]:
+              - img [ref=e399]
+              - text: מלא/י שאלון אונליין
+            - generic [ref=e401]:
+              - paragraph [ref=e402]: קבצים להורדה
+              - generic [ref=e403]:
+                - link "הורדת Word" [ref=e404] [cursor=pointer]:
+                  - /url: /docs/vanderbilt_parent_form.docx
+                  - img [ref=e406]:
+                    - generic [ref=e408]: W
+                - link "הורדת PDF" [ref=e409] [cursor=pointer]:
+                  - /url: /docs/vanderbilt_parent_form.pdf
+                  - img [ref=e411]:
+                    - generic [ref=e413]: PDF
+          - generic [ref=e416]:
+            - img [ref=e418]
+            - heading "שאלון למורה" [level=3] [ref=e421]
+            - paragraph [ref=e422]: שאלון זה מיועד למורים ומספק תובנות על התנהגות הילד בכיתה ובסביבה החינוכית.
+            - button "מלא/י שאלון אונליין" [ref=e423] [cursor=pointer]:
+              - img [ref=e424]
+              - text: מלא/י שאלון אונליין
+            - generic [ref=e426]:
+              - paragraph [ref=e427]: קבצים להורדה
+              - generic [ref=e428]:
+                - link "הורדת Word" [ref=e429] [cursor=pointer]:
+                  - /url: /docs/vanderbilt_teacher_form.docx
+                  - img [ref=e431]:
+                    - generic [ref=e433]: W
+                - link "הורדת PDF" [ref=e434] [cursor=pointer]:
+                  - /url: /docs/vanderbilt_teacher_form.pdf
+                  - img [ref=e436]:
+                    - generic [ref=e438]: PDF
+          - generic [ref=e441]:
+            - img [ref=e443]
+            - heading "שאלון דיווח עצמי" [level=3] [ref=e446]
+            - paragraph [ref=e447]: שאלון זה מיועד למילוי על ידי מבוגר מעל גיל 18 להערכת הפרעות קשב ופעלתנות יתר.
+            - button "מלא/י שאלון אונליין" [ref=e448] [cursor=pointer]:
+              - img [ref=e449]
+              - text: מלא/י שאלון אונליין
+            - generic [ref=e451]:
+              - paragraph [ref=e452]: קבצים להורדה
+              - generic [ref=e453]:
+                - link "הורדת Word" [ref=e454] [cursor=pointer]:
+                  - /url: /docs/vanderbilt_self_form.docx
+                  - img [ref=e456]:
+                    - generic [ref=e458]: W
+                - link "הורדת PDF" [ref=e459] [cursor=pointer]:
+                  - /url: /docs/vanderbilt_self_form.pdf
+                  - img [ref=e461]:
+                    - generic [ref=e463]: PDF
+        - paragraph [ref=e464]: ניתן להוריד את השאלונים ולמלא אותם לפני הפגישה במרפאה
+    - region "יצירת קשר" [ref=e465]:
+      - generic [ref=e466]:
+        - heading "יצירת קשר" [level=2] [ref=e467]
+        - paragraph [ref=e468]: השאירו פרטים ונחזור אליכם בהקדם האפשרי
+      - generic [ref=e469]:
+        - generic [ref=e470]:
+          - button "לחצו לפתיחת טופס יצירת קשר" [ref=e472] [cursor=pointer]:
+            - generic [ref=e473]:
+              - paragraph [ref=e474]: לחצו לפתיחת הטופס
+              - generic [ref=e475]: הכניסו את שמכם המלא
+              - generic [ref=e476]: הזינו מספר טלפון
+              - generic [ref=e477]: הזינו כתובת דוא"ל
+              - generic [ref=e478]: ספרו לנו במה נוכל לעזור...
+              - button "שליחת הודעה" [ref=e479]
+          - generic [ref=e481]:
+            - heading "פרטי התקשרות" [level=3] [ref=e482]
+            - generic [ref=e483]:
+              - generic [ref=e484]:
+                - paragraph [ref=e485]: "כתובת:"
+                - paragraph [ref=e486]: יגאל אלון 94, תל אביב
+                - paragraph [ref=e487]: מגדלי אלון 1, קומה 12, משרד 1202
+              - generic [ref=e488]:
+                - paragraph [ref=e489]: "דוא\"ל:"
+                - link "dr@keshevplus.co.il" [ref=e490] [cursor=pointer]:
+                  - /url: mailto:dr@keshevplus.co.il
+              - generic [ref=e491]:
+                - paragraph [ref=e492]: טלפון
+                - link "055-27-399-27" [ref=e493] [cursor=pointer]:
+                  - /url: tel:055-27-399-27
+            - generic [ref=e494]:
+              - button "דרכי הגעה ואפשרויות חניה" [ref=e495] [cursor=pointer]
+              - generic [ref=e496]:
+                - link "נווט עם Waze" [ref=e497] [cursor=pointer]:
+                  - /url: https://waze.com/ul?q=%D7%99%D7%92%D7%90%D7%9C%20%D7%90%D7%9C%D7%95%D7%9F%2094%2C%20%D7%AA%D7%9C%20%D7%90%D7%91%D7%99%D7%91&navigate=yes
+                - link "נווט עם Google Maps" [ref=e498] [cursor=pointer]:
+                  - /url: https://maps.google.com/?q=%D7%99%D7%92%D7%90%D7%9C%20%D7%90%D7%9C%D7%95%D7%9F%2094%2C%20%D7%AA%D7%9C%20%D7%90%D7%91%D7%99%D7%91
+        - iframe [ref=e500]:
+          
+    - contentinfo [ref=e501]:
+      - generic [ref=e503]:
+        - generic [ref=e504]:
+          - img "Keshev Plus Logo" [ref=e505]
+          - paragraph [ref=e506]: מרפאה מובילה לאבחון וטיפול בהפרעות קשב וריכוז בילדים, בני נוער ומבוגרים.
+        - generic [ref=e507]:
+          - heading "ניווט מהיר" [level=3] [ref=e508]
+          - navigation "ניווט מהיר" [ref=e509]:
+            - list [ref=e510]:
+              - listitem [ref=e511]:
+                - link "אודותינו" [ref=e512] [cursor=pointer]:
+                  - /url: "#about"
+              - listitem [ref=e513]:
+                - link "שירותים" [ref=e514] [cursor=pointer]:
+                  - /url: "#services"
+              - listitem [ref=e515]:
+                - link "מה זה ADHD?" [ref=e516] [cursor=pointer]:
+                  - /url: "#adhd"
+              - listitem [ref=e517]:
+                - link "שאלונים" [ref=e518] [cursor=pointer]:
+                  - /url: "#questionnaires"
+              - listitem [ref=e519]:
+                - link "יצירת קשר" [ref=e520] [cursor=pointer]:
+                  - /url: "#contact"
+        - generic [ref=e521]:
+          - heading "פרטי התקשרות" [level=3] [ref=e522]
+          - list [ref=e523]:
+            - listitem [ref=e524]:
+              - link "055-27-399-27" [ref=e525] [cursor=pointer]:
+                - /url: tel:0552739927
+                - img [ref=e526]
+                - text: 055-27-399-27
+            - listitem [ref=e528]:
+              - link "dr@keshevplus.co.il" [ref=e529] [cursor=pointer]:
+                - /url: mailto:dr@keshevplus.co.il
+                - img [ref=e530]
+                - text: dr@keshevplus.co.il
+            - listitem [ref=e533]:
+              - img [ref=e534]
+              - text: יגאל אלון 94, תל אביב
+            - listitem [ref=e537]:
+              - img [ref=e538]
+              - text: א'-ה' 09:00-19:00
+        - generic [ref=e541]:
+          - heading "עקבו אחרינו" [level=3] [ref=e542]
+          - generic [ref=e543]:
+            - link "Facebook" [ref=e544] [cursor=pointer]:
+              - /url: https://facebook.com/keshevplus
+              - img [ref=e545]
+            - link "Instagram" [ref=e547] [cursor=pointer]:
+              - /url: https://instagram.com/keshevplus
+              - img [ref=e548]
+            - link "LinkedIn" [ref=e551] [cursor=pointer]:
+              - /url: https://linkedin.com/company/keshevplus
+              - img [ref=e552]
+          - link "WhatsApp" [ref=e556] [cursor=pointer]:
+            - /url: https://wa.me/972552739927?text=%D7%A9%D7%9C%D7%95%D7%9D%2C%20%D7%90%D7%A9%D7%9E%D7%97%20%D7%9C%D7%A7%D7%91%D7%9C%20%D7%A4%D7%A8%D7%98%D7%99%D7%9D%20%D7%A0%D7%95%D7%A1%D7%A4%D7%99%D7%9D%20%D7%A2%D7%9C%20%D7%90%D7%91%D7%97%D7%95%D7%9F%20ADHD
+            - img [ref=e557]
+            - text: WhatsApp
+      - generic [ref=e561]:
+        - img [ref=e562]
+        - generic [ref=e565]: מוסמכי Moxoאבחון ADHD ממוחשב
+      - generic [ref=e567]:
+        - paragraph [ref=e568]: © 2026 כל הזכויות שמורות לקשב פלוס
+        - generic [ref=e569]:
+          - link "מדיניות פרטיות" [ref=e570] [cursor=pointer]:
+            - /url: "#"
+          - link "תנאי שימוש" [ref=e571] [cursor=pointer]:
+            - /url: "#"
   - button "תפריט נגישות":
     - img
+  - generic [ref=e574]:
+    - button "פתח צ׳אט" [ref=e576] [cursor=pointer]:
+      - img [ref=e577]
+    - generic [ref=e579]:
+      - text: איך אוכל לעזור?
+      - button "סגור" [ref=e580] [cursor=pointer]:
+        - img [ref=e581]
   - region "Notifications (F8)":
     - list
 ```

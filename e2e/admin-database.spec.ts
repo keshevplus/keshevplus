@@ -40,7 +40,11 @@ test("owner can view database-backed appointments and clients in admin", async (
   await page.getByTestId("button-admin-login").click();
 
   const changePasswordPrompt = page.getByTestId("text-change-password-title");
-  if (await changePasswordPrompt.isVisible().catch(() => false)) {
+  const signOutButton = page.getByTestId("button-signout");
+  // isVisible() alone doesn't wait/retry, so we'd race the post-login render here without this.
+  await expect(changePasswordPrompt.or(signOutButton)).toBeVisible({ timeout: 15000 });
+
+  if (await changePasswordPrompt.isVisible()) {
     await page.getByTestId("input-current-password").fill(testUserPassword);
     await page.getByTestId("input-new-password").fill(changedPassword);
     await page.getByTestId("input-confirm-password").fill(changedPassword);

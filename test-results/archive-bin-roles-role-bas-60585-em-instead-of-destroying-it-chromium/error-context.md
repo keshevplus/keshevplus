@@ -1,0 +1,331 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e6]:
+        - generic [ref=e8]:
+          - heading "לוח בקרה" [level=1] [ref=e9]
+          - paragraph [ref=e10]: ברוך הבא, e2e-manager-1784146157809@example.com
+        - generic [ref=e11]:
+          - button "12" [ref=e12] [cursor=pointer]:
+            - img [ref=e13]
+            - generic [ref=e16]: "12"
+          - button "👥 6" [ref=e17] [cursor=pointer]:
+            - generic [ref=e18]: 👥 6
+          - button "Switch to English" [ref=e19] [cursor=pointer]: ENEnglish
+          - button "Switch to dark mode" [ref=e20] [cursor=pointer]:
+            - img [ref=e21]
+          - button "התנתקות" [ref=e23] [cursor=pointer]:
+            - img [ref=e24]
+            - text: התנתקות
+    - main [ref=e27]:
+      - generic [ref=e28]:
+        - tablist [ref=e29]:
+          - tab "סקירה כללית" [ref=e30] [cursor=pointer]:
+            - img [ref=e31]
+            - text: סקירה כללית
+          - tab "פניות באתר" [ref=e33] [cursor=pointer]:
+            - img [ref=e34]
+            - text: פניות באתר
+          - tab "פגישות 6" [selected] [ref=e37] [cursor=pointer]:
+            - img [ref=e38]
+            - text: פגישות
+            - generic [ref=e40]: "6"
+          - tab "לידים ולקוחות 👥 6" [ref=e41] [cursor=pointer]:
+            - img [ref=e42]
+            - text: לידים ולקוחות
+            - button "👥 6" [ref=e47]:
+              - generic [ref=e48]: 👥 6
+          - tab "שיחות צ׳אט" [ref=e49] [cursor=pointer]:
+            - img [ref=e50]
+            - text: שיחות צ׳אט
+          - tab "וואטסאפ" [ref=e52] [cursor=pointer]:
+            - img [ref=e53]
+            - text: וואטסאפ
+          - tab "שאלונים" [ref=e55] [cursor=pointer]:
+            - img [ref=e56]
+            - text: שאלונים
+          - tab "עורך ויזואלי" [ref=e59] [cursor=pointer]:
+            - img [ref=e60]
+            - text: עורך ויזואלי
+          - tab "תרגומים" [ref=e63] [cursor=pointer]:
+            - img [ref=e64]
+            - text: תרגומים
+          - tab "הגדרות" [ref=e68] [cursor=pointer]:
+            - img [ref=e69]
+            - text: הגדרות
+        - tabpanel "פגישות 6" [ref=e72]:
+          - generic [ref=e73]:
+            - generic [ref=e74]:
+              - generic [ref=e75]:
+                - generic [ref=e76]:
+                  - img [ref=e77]
+                  - heading "ניהול פגישות" [level=3] [ref=e79]
+                - combobox [ref=e81] [cursor=pointer]:
+                  - generic [ref=e82]:
+                    - img [ref=e83]
+                    - text: הכל
+                  - img [ref=e85]
+              - paragraph [ref=e87]: צפייה וניהול פגישות עם לקוחות
+            - generic [ref=e89]:
+              - generic [ref=e90]:
+                - generic [ref=e91]:
+                  - generic [ref=e92]:
+                    - img [ref=e93]
+                    - heading "יומן פגישות קרובות" [level=3] [ref=e95]
+                  - generic [ref=e96]: 0 קרובות
+                - paragraph [ref=e97]: אין פגישות קרובות להצגה.
+              - generic [ref=e98]:
+                - generic [ref=e99]:
+                  - generic [ref=e100]:
+                    - generic [ref=e101]:
+                      - generic [ref=e102]:
+                        - img [ref=e103]
+                        - text: E2E Test-Mark Target 1784146157809
+                      - generic [ref=e106]: ממתינה
+                    - generic [ref=e107]:
+                      - combobox [ref=e108] [cursor=pointer]:
+                        - text: ממתינה
+                        - img [ref=e109]
+                      - button "סמן כבדיקה" [ref=e111] [cursor=pointer]
+                      - button [ref=e112] [cursor=pointer]:
+                        - img [ref=e113]
+                  - generic [ref=e116]:
+                    - generic [ref=e117]:
+                      - img [ref=e118]
+                      - text: e2e-testmark-1784146157809@example.com
+                    - generic [ref=e121]:
+                      - img [ref=e122]
+                      - text: "0551578099"
+                    - link "WhatsApp" [ref=e124] [cursor=pointer]:
+                      - /url: https://wa.me/972551578099?text=%D7%A9%D7%9C%D7%95%D7%9D%20E2E%20Test-Mark%20Target%201784146157809%2C%20%D7%A4%D7%95%D7%A0%D7%94%20%D7%90%D7%9C%D7%99%D7%9A%20%D7%9E%D7%A7%D7%A9%D7%91%20%D7%A4%D7%9C%D7%95%D7%A1%20%D7%91%D7%A0%D7%95%D7%92%D7%A2%20%D7%9C%D7%A4%D7%92%D7%99%D7%A9%D7%94%20%D7%A9%D7%9C%D7%9A
+                      - img [ref=e125]
+                      - text: WhatsApp
+                    - generic [ref=e127]: diagnosis
+                    - generic [ref=e128]: עבורי
+                  - generic [ref=e129]:
+                    - generic [ref=e130]:
+                      - generic [ref=e131]:
+                        - img [ref=e132]
+                        - text: "הפגישה נקבעה ל:"
+                      - generic [ref=e135]:
+                        - generic [ref=e136]:
+                          - img [ref=e137]
+                          - text: יום ג׳, 14 ביולי 2026
+                        - generic [ref=e139]:
+                          - img [ref=e140]
+                          - text: 11:30
+                    - generic [ref=e143]: הטופס נשלח ב:15 ביולי 2026, 23:09:28
+                    - generic [ref=e144]: אושר ב:לא תועד
+                - generic [ref=e145]:
+                  - generic [ref=e146]:
+                    - generic [ref=e147]:
+                      - generic [ref=e148]:
+                        - img [ref=e149]
+                        - text: E2E Archive Target 1784146157809
+                      - generic [ref=e152]: ממתינה
+                    - generic [ref=e153]:
+                      - combobox [ref=e154] [cursor=pointer]:
+                        - text: ממתינה
+                        - img [ref=e155]
+                      - button "סמן כבדיקה" [ref=e157] [cursor=pointer]
+                      - button [active] [ref=e158] [cursor=pointer]:
+                        - img [ref=e159]
+                  - generic [ref=e162]:
+                    - generic [ref=e163]:
+                      - img [ref=e164]
+                      - text: e2e-archive-1784146157809@example.com
+                    - generic [ref=e167]:
+                      - img [ref=e168]
+                      - text: "0556157809"
+                    - link "WhatsApp" [ref=e170] [cursor=pointer]:
+                      - /url: https://wa.me/972556157809?text=%D7%A9%D7%9C%D7%95%D7%9D%20E2E%20Archive%20Target%201784146157809%2C%20%D7%A4%D7%95%D7%A0%D7%94%20%D7%90%D7%9C%D7%99%D7%9A%20%D7%9E%D7%A7%D7%A9%D7%91%20%D7%A4%D7%9C%D7%95%D7%A1%20%D7%91%D7%A0%D7%95%D7%92%D7%A2%20%D7%9C%D7%A4%D7%92%D7%99%D7%A9%D7%94%20%D7%A9%D7%9C%D7%9A
+                      - img [ref=e171]
+                      - text: WhatsApp
+                    - generic [ref=e173]: diagnosis
+                    - generic [ref=e174]: עבורי
+                  - generic [ref=e175]:
+                    - generic [ref=e176]:
+                      - generic [ref=e177]:
+                        - img [ref=e178]
+                        - text: "הפגישה נקבעה ל:"
+                      - generic [ref=e181]:
+                        - generic [ref=e182]:
+                          - img [ref=e183]
+                          - text: יום ג׳, 14 ביולי 2026
+                        - generic [ref=e185]:
+                          - img [ref=e186]
+                          - text: 11:00
+                    - generic [ref=e189]: הטופס נשלח ב:15 ביולי 2026, 23:09:28
+                    - generic [ref=e190]: אושר ב:לא תועד
+                - generic [ref=e191]:
+                  - generic [ref=e192]:
+                    - generic [ref=e193]:
+                      - generic [ref=e194]:
+                        - img [ref=e195]
+                        - text: E2E Admin DB 1784146159058
+                      - generic [ref=e198]: ממתינה
+                    - generic [ref=e199]:
+                      - combobox [ref=e200] [cursor=pointer]:
+                        - text: ממתינה
+                        - img [ref=e201]
+                      - button "סמן כבדיקה" [ref=e203] [cursor=pointer]
+                      - button [ref=e204] [cursor=pointer]:
+                        - img [ref=e205]
+                  - generic [ref=e208]:
+                    - generic [ref=e209]:
+                      - img [ref=e210]
+                      - text: e2e-admin-db-1784146159058@example.com
+                    - generic [ref=e213]:
+                      - img [ref=e214]
+                      - text: "0556159058"
+                    - link "WhatsApp" [ref=e216] [cursor=pointer]:
+                      - /url: https://wa.me/972556159058?text=%D7%A9%D7%9C%D7%95%D7%9D%20E2E%20Admin%20DB%201784146159058%2C%20%D7%A4%D7%95%D7%A0%D7%94%20%D7%90%D7%9C%D7%99%D7%9A%20%D7%9E%D7%A7%D7%A9%D7%91%20%D7%A4%D7%9C%D7%95%D7%A1%20%D7%91%D7%A0%D7%95%D7%92%D7%A2%20%D7%9C%D7%A4%D7%92%D7%99%D7%A9%D7%94%20%D7%A9%D7%9C%D7%9A
+                      - img [ref=e217]
+                      - text: WhatsApp
+                    - generic [ref=e219]: diagnosis
+                    - generic [ref=e220]: עבורי
+                  - generic [ref=e221]:
+                    - generic [ref=e222]:
+                      - generic [ref=e223]:
+                        - img [ref=e224]
+                        - text: "הפגישה נקבעה ל:"
+                      - generic [ref=e227]:
+                        - generic [ref=e228]:
+                          - img [ref=e229]
+                          - text: יום ג׳, 14 ביולי 2026
+                        - generic [ref=e231]:
+                          - img [ref=e232]
+                          - text: 10:30
+                    - generic [ref=e235]: הטופס נשלח ב:15 ביולי 2026, 23:09:20
+                    - generic [ref=e236]: אושר ב:לא תועד
+                - generic [ref=e237]:
+                  - generic [ref=e238]:
+                    - generic [ref=e239]:
+                      - generic [ref=e240]:
+                        - img [ref=e241]
+                        - text: Test A
+                      - generic [ref=e244]: ממתינה
+                    - generic [ref=e245]:
+                      - combobox [ref=e246] [cursor=pointer]:
+                        - text: ממתינה
+                        - img [ref=e247]
+                      - button "סמן כבדיקה" [ref=e249] [cursor=pointer]
+                      - button [ref=e250] [cursor=pointer]:
+                        - img [ref=e251]
+                  - generic [ref=e254]:
+                    - generic [ref=e255]:
+                      - img [ref=e256]
+                      - text: a@example.com
+                    - generic [ref=e259]:
+                      - img [ref=e260]
+                      - text: "0551234567"
+                    - link "WhatsApp" [ref=e262] [cursor=pointer]:
+                      - /url: https://wa.me/972551234567?text=%D7%A9%D7%9C%D7%95%D7%9D%20Test%20A%2C%20%D7%A4%D7%95%D7%A0%D7%94%20%D7%90%D7%9C%D7%99%D7%9A%20%D7%9E%D7%A7%D7%A9%D7%91%20%D7%A4%D7%9C%D7%95%D7%A1%20%D7%91%D7%A0%D7%95%D7%92%D7%A2%20%D7%9C%D7%A4%D7%92%D7%99%D7%A9%D7%94%20%D7%A9%D7%9C%D7%9A
+                      - img [ref=e263]
+                      - text: WhatsApp
+                    - generic [ref=e265]: diagnosis
+                    - generic [ref=e266]: עבורי
+                  - generic [ref=e267]:
+                    - generic [ref=e268]:
+                      - generic [ref=e269]:
+                        - img [ref=e270]
+                        - text: "הפגישה נקבעה ל:"
+                      - generic [ref=e273]:
+                        - generic [ref=e274]:
+                          - img [ref=e275]
+                          - text: יום ג׳, 14 ביולי 2026
+                        - generic [ref=e277]:
+                          - img [ref=e278]
+                          - text: 10:00
+                    - generic [ref=e281]: הטופס נשלח ב:15 ביולי 2026, 23:07:54
+                    - generic [ref=e282]: אושר ב:לא תועד
+                - generic [ref=e283]:
+                  - generic [ref=e284]:
+                    - generic [ref=e285]:
+                      - generic [ref=e286]:
+                        - img [ref=e287]
+                        - text: E2E Archive Target 1784146003301
+                      - generic [ref=e290]: ממתינה
+                    - generic [ref=e291]:
+                      - combobox [ref=e292] [cursor=pointer]:
+                        - text: ממתינה
+                        - img [ref=e293]
+                      - button "סמן כבדיקה" [ref=e295] [cursor=pointer]
+                      - button [ref=e296] [cursor=pointer]:
+                        - img [ref=e297]
+                  - generic [ref=e300]:
+                    - generic [ref=e301]:
+                      - img [ref=e302]
+                      - text: e2e-archive-1784146003301@example.com
+                    - generic [ref=e305]:
+                      - img [ref=e306]
+                      - text: "0556003301"
+                    - link "WhatsApp" [ref=e308] [cursor=pointer]:
+                      - /url: https://wa.me/972556003301?text=%D7%A9%D7%9C%D7%95%D7%9D%20E2E%20Archive%20Target%201784146003301%2C%20%D7%A4%D7%95%D7%A0%D7%94%20%D7%90%D7%9C%D7%99%D7%9A%20%D7%9E%D7%A7%D7%A9%D7%91%20%D7%A4%D7%9C%D7%95%D7%A1%20%D7%91%D7%A0%D7%95%D7%92%D7%A2%20%D7%9C%D7%A4%D7%92%D7%99%D7%A9%D7%94%20%D7%A9%D7%9C%D7%9A
+                      - img [ref=e309]
+                      - text: WhatsApp
+                    - generic [ref=e311]: diagnosis
+                    - generic [ref=e312]: עבורי
+                  - generic [ref=e313]:
+                    - generic [ref=e314]:
+                      - generic [ref=e315]:
+                        - img [ref=e316]
+                        - text: "הפגישה נקבעה ל:"
+                      - generic [ref=e319]:
+                        - generic [ref=e320]:
+                          - img [ref=e321]
+                          - text: יום ג׳, 14 ביולי 2026
+                        - generic [ref=e323]:
+                          - img [ref=e324]
+                          - text: 09:30
+                    - generic [ref=e327]: הטופס נשלח ב:15 ביולי 2026, 23:07:00
+                    - generic [ref=e328]: אושר ב:לא תועד
+                - generic [ref=e329]:
+                  - generic [ref=e330]:
+                    - generic [ref=e331]:
+                      - generic [ref=e332]:
+                        - img [ref=e333]
+                        - text: E2E Admin DB 1784146005466
+                      - generic [ref=e336]: ממתינה
+                    - generic [ref=e337]:
+                      - combobox [ref=e338] [cursor=pointer]:
+                        - text: ממתינה
+                        - img [ref=e339]
+                      - button "סמן כבדיקה" [ref=e341] [cursor=pointer]
+                      - button [ref=e342] [cursor=pointer]:
+                        - img [ref=e343]
+                  - generic [ref=e346]:
+                    - generic [ref=e347]:
+                      - img [ref=e348]
+                      - text: e2e-admin-db-1784146005466@example.com
+                    - generic [ref=e351]:
+                      - img [ref=e352]
+                      - text: "0556005466"
+                    - link "WhatsApp" [ref=e354] [cursor=pointer]:
+                      - /url: https://wa.me/972556005466?text=%D7%A9%D7%9C%D7%95%D7%9D%20E2E%20Admin%20DB%201784146005466%2C%20%D7%A4%D7%95%D7%A0%D7%94%20%D7%90%D7%9C%D7%99%D7%9A%20%D7%9E%D7%A7%D7%A9%D7%91%20%D7%A4%D7%9C%D7%95%D7%A1%20%D7%91%D7%A0%D7%95%D7%92%D7%A2%20%D7%9C%D7%A4%D7%92%D7%99%D7%A9%D7%94%20%D7%A9%D7%9C%D7%9A
+                      - img [ref=e355]
+                      - text: WhatsApp
+                    - generic [ref=e357]: diagnosis
+                    - generic [ref=e358]: עבורי
+                  - generic [ref=e359]:
+                    - generic [ref=e360]:
+                      - generic [ref=e361]:
+                        - img [ref=e362]
+                        - text: "הפגישה נקבעה ל:"
+                      - generic [ref=e365]:
+                        - generic [ref=e366]:
+                          - img [ref=e367]
+                          - text: יום ג׳, 14 ביולי 2026
+                        - generic [ref=e369]:
+                          - img [ref=e370]
+                          - text: 09:00
+                    - generic [ref=e373]: הטופס נשלח ב:15 ביולי 2026, 23:06:46
+                    - generic [ref=e374]: אושר ב:לא תועד
+  - button "תפריט נגישות":
+    - img
+  - region "Notifications (F8)":
+    - list
+```

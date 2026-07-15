@@ -14,7 +14,11 @@ async function loginAndHandleForcedChange(page: Page, email: string, password: s
   await page.getByTestId("button-admin-login").click();
 
   const changePasswordPrompt = page.getByTestId("text-change-password-title");
-  if (await changePasswordPrompt.isVisible({ timeout: 5000 }).catch(() => false)) {
+  const signOutButton = page.getByTestId("button-signout");
+  // isVisible() alone doesn't wait/retry, so we'd race the post-login render here without this.
+  await expect(changePasswordPrompt.or(signOutButton)).toBeVisible({ timeout: 15000 });
+
+  if (await changePasswordPrompt.isVisible()) {
     const finalPassword = newPassword || password;
     await page.getByTestId("input-current-password").fill(password);
     await page.getByTestId("input-new-password").fill(finalPassword);
@@ -22,7 +26,7 @@ async function loginAndHandleForcedChange(page: Page, email: string, password: s
     await page.getByTestId("button-change-password").click();
   }
 
-  await expect(page.getByTestId("button-signout")).toBeVisible({ timeout: 15000 });
+  await expect(signOutButton).toBeVisible({ timeout: 15000 });
 }
 
 async function signOut(page: Page) {
@@ -72,7 +76,8 @@ test.describe.serial("role-based archive, recycle bin, and mark-as-test", () => 
     expect(availabilityResponse.ok()).toBeTruthy();
     const availability = await availabilityResponse.json();
     const date = availability.nextAvailableDate || availability.date;
-    const time = availability.availableTimes?.[0];
+    const timeA = availability.availableTimes?.[0];
+    const timeB = availability.availableTimes?.[1];
 
     const createA = await request.post("/api/appointments", {
       data: {
@@ -80,7 +85,7 @@ test.describe.serial("role-based archive, recycle bin, and mark-as-test", () => 
         clientEmail: `e2e-archive-${unique}@example.com`,
         clientPhone: `055${String(unique).slice(-7)}`,
         date,
-        time,
+        time: timeA,
         type: "diagnosis",
         appointmentFor: "self",
         notes: "E2E: should be archived by manager delete",
@@ -95,7 +100,7 @@ test.describe.serial("role-based archive, recycle bin, and mark-as-test", () => 
         clientEmail: `e2e-testmark-${unique}@example.com`,
         clientPhone: `055${String(unique).slice(-6)}9`,
         date,
-        time,
+        time: timeB,
         type: "diagnosis",
         appointmentFor: "self",
         notes: "E2E: should be hidden by manager mark-as-test",
@@ -109,8 +114,8 @@ test.describe.serial("role-based archive, recycle bin, and mark-as-test", () => 
 
     // Manager deletes appointment A -> archived, not destroyed.
     await expect(page.getByTestId(`appointment-${appointmentAId}`)).toBeVisible();
-    await page.getByTestId(`button-delete-appt-${appointmentAId}`).click();
     page.once("dialog", (dialog) => dialog.accept());
+    await page.getByTestId(`button-delete-appt-${appointmentAId}`).click();
     await expect(page.getByTestId(`appointment-${appointmentAId}`)).toHaveCount(0, { timeout: 10000 });
 
     // Manager marks appointment B as test -> also hidden from the normal list.
