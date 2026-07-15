@@ -250,7 +250,12 @@ const AdminDashboard = () => {
                 <PopoverTrigger asChild>
                   <button type="button" className="flex items-center gap-1.5 rounded-full border border-transparent bg-muted/70 px-2 py-1 text-sm transition hover:bg-muted">
                     <Bell className="h-4 w-4 text-muted-foreground" />
-                    <Badge variant="destructive">{totalBadges}</Badge>
+                    <Badge
+                      variant={totalBadges > 0 ? 'destructive' : 'outline'}
+                      className={totalBadges === 0 ? 'border-destructive/40 text-destructive' : ''}
+                    >
+                      {totalBadges}
+                    </Badge>
                   </button>
                 </PopoverTrigger>
 
