@@ -53,24 +53,11 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
     })
   }, [visibleConversations])
 
-  const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      await apiRequest('PATCH', `/api/conversations/${id}/status`, { status })
-    },
+  const markReviewed = useMutation({
+    mutationFn: (id: number) => apiRequest('PATCH', `/api/conversations/${id}/reviewed`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
       queryClient.invalidateQueries({ queryKey: ['admin-badges'] })
-      toast({
-        title: isHe ? 'הסטטוס עודכן' : 'Status updated',
-        description: isHe ? 'סטטוס השיחה עודכן בהצלחה.' : 'Conversation status has been updated successfully.',
-      })
-    },
-    onError: () => {
-      toast({
-        title: isHe ? 'שגיאה' : 'Error',
-        description: isHe ? 'עדכון הסטטוס נכשל.' : 'Failed to update status.',
-        variant: 'destructive',
-      })
     },
   })
 
@@ -199,7 +186,6 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
         ) : (
           <div className="space-y-3">
             {visibleConversations.map(conv => {
-              const statusInfo = STATUS_CONFIG[conv.status] || STATUS_CONFIG.pending
               return (
                 <div
                   key={conv.id}
@@ -226,11 +212,11 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
                         <span className="font-medium text-foreground">{conv.visitorName}</span>
                       </div>
                       <Badge
-                        variant="outline"
+                        variant={conv.reviewed ? 'outline' : 'destructive'}
                         className="no-default-hover-elevate no-default-active-elevate"
                         data-testid={`badge-status-${conv.id}`}
                       >
-                        {isHe ? statusInfo.he : statusInfo.en}
+                        {conv.reviewed ? (isHe ? 'נסקר' : 'Reviewed') : (isHe ? 'חדש' : 'New')}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-2">
@@ -294,6 +280,17 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
                           >
                             <SiWhatsapp className="h-4 w-4 me-1" />
                             {isHe ? 'שלח הודעה' : 'Send message'}
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            onClick={e => {
+                              e.stopPropagation()
+                              if (conv.reviewed) markUnreviewed.mutate(conv.id)
+                              else markReviewed.mutate(conv.id)
+                            }}
+                          >
+                            {conv.reviewed ? (isHe ? 'סמן כלא נסקר' : 'Mark unreviewed') : (isHe ? 'סמן כנסקר' : 'Mark reviewed')}
                           </Button>
                           <Button
                             size="xs"
