@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAdmin =
     user?.role === 'admin' ||
     user?.role === 'owner' ||
+    user?.role === 'manager' ||
     user?.role === 'superadmin' ||
     user?.email === 'admin@keshevplus.co.il' ||
     user?.email === 'dr@keshevplus.co.il'

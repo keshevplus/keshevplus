@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye, Phone } from 'lucide-react'
+import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye, Phone, UserCog } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useQuery } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/queryClient'
@@ -26,6 +26,7 @@ import ContactsManager from './ContactsManager'
 import ConversationsManager from './ConversationsManager'
 import EmailNotificationSettings from './EmailNotificationSettings'
 import ChangePasswordSettings from './ChangePasswordSettings'
+import UsersManager from './UsersManager'
 import VisualEditor from './VisualEditor'
 import WhatsAppManager from './WhatsAppManager'
 
@@ -215,6 +216,9 @@ const AdminDashboard = () => {
     { value: 'visual-editor', icon: Eye, he: 'עורך ויזואלי', en: 'Visual Editor' },
     { value: 'translations', icon: Languages, he: 'תרגומים', en: 'Translations' },
     { value: 'settings', icon: Settings, he: 'הגדרות', en: 'Settings' },
+    ...(user?.email === 'dr@keshevplus.co.il'
+      ? [{ value: 'users', icon: UserCog, he: 'משתמשים', en: 'Users' }]
+      : []),
   ]
 
   const previousTabRef = useRef(activeTab)
@@ -697,6 +701,12 @@ const AdminDashboard = () => {
               <ChangePasswordSettings />
             </div>
           </TabsContent>
+
+          {user?.email === 'dr@keshevplus.co.il' && (
+            <TabsContent value="users" className="mt-0">
+              <UsersManager />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
     </div>

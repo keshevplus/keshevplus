@@ -920,7 +920,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+      if (!isOwner(user)) return res.status(403).json({ error: "Owner access required" });
 
       const allUsers = await db
         .select({
@@ -938,16 +938,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/admin/users", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!isOwner(user)) return res.status(403).json({ error: "Owner access required" });
+
+      const createUserSchema = z.object({
+        email: z.string().trim().email(),
+        password: z.string().min(6),
+        role: z.enum(["admin", "manager", "user"]),
+      });
+      const result = createUserSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.message });
+      }
+
+      const existing = await storage.getUserByEmail(result.data.email);
+      if (existing) {
+        return res.status(409).json({ error: "A user with this email already exists" });
+      }
+
+      const bcrypt = await import("bcryptjs");
+      const hash = bcrypt.default?.hash || bcrypt.hash;
+      const hashedPassword = await hash(result.data.password, 10);
+
+      const created = await storage.createUser({
+        email: result.data.email,
+        password: hashedPassword,
+        role: result.data.role,
+        mustChangePassword: true,
+      } as any);
+
+      return res.json({ id: created.id, email: created.email, role: created.role, mustChangePassword: created.mustChangePassword });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+
   app.delete("/api/admin/users/:id", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+      if (!isOwner(user)) return res.status(403).json({ error: "Owner access required" });
 
       const targetId = parseInt(req.params.id);
+      if (targetId === userId) {
+        return res.status(403).json({ error: "Cannot delete your own account" });
+      }
       const targetUser = await storage.getUser(targetId);
-      
+
       if (targetUser?.email === "drkeshevplus@gmail.com") {
         return res.status(403).json({ error: "Cannot delete superadmin" });
       }
