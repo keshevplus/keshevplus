@@ -82,10 +82,10 @@ const en: Record<string, string> = {
 
   "about.title": "About Us",
   "about.subtitle": "Specialists in ADHD Diagnosis and Treatment",
-  "about.doctor_name": "Dr. Irene Kochav-Reifman",
+  "about.doctor_name": "Dr. Irine Kochav-Raifman",
   "about.doctor_title": "Specialist Physician",
   "about.doctor_desc": "Extensive experience in diagnosing children, adolescents, and adults. Has accompanied many patients on their journey to personal fulfillment and optimal functioning.",
-  "about.doctor_alt": "Dr. Irene Kochav-Reifman",
+  "about.doctor_alt": "Dr. Irine Kochav-Raifman",
   "about.credential1": "ADHD Diagnosis and Treatment Specialist",
   "about.credential2": "Over 15 years of experience",
   "about.credential3": "Specialization in children, teens, and adults",

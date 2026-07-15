@@ -283,7 +283,7 @@ const mockAboutContent: AboutContent = {
   ],
   teamMember: {
     id: '1',
-    name: { he: 'ד"ר איירין כוכב-רייפמן', en: 'Dr. Irene Kochav-Reifman' },
+    name: { he: 'ד"ר איירין כוכב-רייפמן', en: 'Dr. Irine Kochav-Raifman' },
     title: { he: 'רופאה מומחית', en: 'Specialist Physician' },
     description: { 
       he: 'בעלת ניסיון עשיר באבחון של ילדים, מתבגרים ובוגרים. ליוותה מטופלים רבים במסע להגשמה אישית ותפקוד מיטבי.', 

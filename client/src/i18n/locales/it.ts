@@ -82,10 +82,10 @@ const it: Record<string, string> = {
 
   "about.title": "Chi Siamo",
   "about.subtitle": "Specialisti nella Diagnosi e Trattamento dell'ADHD",
-  "about.doctor_name": "Dr.ssa Irene Kochav-Reifman",
+  "about.doctor_name": "Dr.ssa Irine Kochav-Raifman",
   "about.doctor_title": "Medico Specialista",
   "about.doctor_desc": "Vasta esperienza nella diagnosi di bambini, adolescenti e adulti. Ha accompagnato molti pazienti nel loro percorso verso la realizzazione personale e il funzionamento ottimale.",
-  "about.doctor_alt": "Dr.ssa Irene Kochav-Reifman",
+  "about.doctor_alt": "Dr.ssa Irine Kochav-Raifman",
   "about.credential1": "Specialista nella Diagnosi e Trattamento dell'ADHD",
   "about.credential2": "Oltre 15 anni di esperienza",
   "about.credential3": "Specializzazione in bambini, adolescenti e adulti",
