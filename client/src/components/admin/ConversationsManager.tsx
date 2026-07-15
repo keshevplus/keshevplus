@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { MessageCircle, Phone, Mail, User, Trash2, Filter, ChevronDown, ChevronUp } from 'lucide-react'
 import { SiWhatsapp } from 'react-icons/si'
@@ -15,13 +16,6 @@ function formatWhatsAppUrl(phone: string, message?: string) {
   const cleaned = phone.replace(/[^0-9+]/g, '').replace(/^0/, '972')
   const params = message ? `?text=${encodeURIComponent(message)}` : ''
   return `https://wa.me/${cleaned}${params}`
-}
-
-const STATUS_CONFIG: Record<string, { he: string; en: string; color: string }> = {
-  pending: { he: 'ממתינה', en: 'Pending', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
-  confirmed: { he: 'מאושרת', en: 'Confirmed', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
-  cancelled: { he: 'בוטלה', en: 'Cancelled', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
-  completed: { he: 'הושלמה', en: 'Completed', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
 }
 
 type ConversationFilter = 'all' | 'new'
@@ -141,12 +135,12 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
       <CardHeader>
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>{isHe ? 'ניהול פגישות' : 'Appointment Manager'}</CardTitle>
+            <MessageCircle className="h-5 w-5 text-muted-foreground" />
+            <CardTitle>{isHe ? 'שיחות צ׳אט' : 'Conversations'}</CardTitle>
           </div>
           <div className="flex items-center gap-2">
             <Select value={filter} onValueChange={value => setFilter(value as ConversationFilter)}>
-              <SelectTrigger className="w-[150px] h-8 text-xs" data-testid="select-appointment-filter">
+              <SelectTrigger className="w-[150px] h-8 text-xs" data-testid="select-conversation-filter">
                 <div className="flex items-center gap-1.5">
                   <Filter className="h-3.5 w-3.5" />
                   <SelectValue placeholder={isHe ? 'סינון' : 'Filter'} />
@@ -159,7 +153,7 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
             </Select>
           </div>
         </div>
-        <CardDescription>{isHe ? 'צפייה וניהול פגישות עם לקוחות' : 'View and manage client appointments'}</CardDescription>
+        <CardDescription>{isHe ? 'צפייה וניהול שיחות צ׳אט' : 'View and manage chat conversations'}</CardDescription>
       </CardHeader>
       <CardContent className="p-6 text-center text-muted-foreground">
         {selectMode && visibleConversations.length > 0 && (
@@ -176,53 +170,11 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
               size="sm"
               variant="destructive"
               onClick={handleBulkDelete}
-              disabled={deleteMutation.isPending}
+              disabled={deleteMutation.isPending || selectedIds.size === 0}
               className="text-destructive border-destructive/30"
             >
               <Trash2 className="h-4 w-4 me-1" />
-              {upcomingAppointments.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {isHe ? 'אין פגישות קרובות למחיקה.' : 'No upcoming appointments to delete.'}
-                </p>
-              ) : (
-                <>
-                  {isHe ? `מחק (${selectedIds.size})` : `Delete (${selectedIds.size})`}
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {Object.entries(groupedUpcomingAppointments).map(([date, items]) => (
-                      <div key={date} className="rounded-md border bg-background p-3">
-                        <div className="font-medium text-sm text-foreground">{formatAppointmentDate(date)}</div>
-                        {items.length === 0 ? (
-                          <div className="mt-3 space-y-2">
-                            <p className="text-sm text-muted-foreground">{isHe ? 'אין פרטים להצגה' : 'No details to display'}</p>
-                          </div>
-                        ) : (
-                          items.map(appointment => {
-                            const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending
-                            return (
-                              <div key={appointment.id} className="rounded-md bg-muted/50 p-2 text-sm">
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="flex items-center gap-1 font-semibold text-foreground">
-                                    <Clock className="h-3.5 w-3.5 text-primary" />
-                                    {formatAppointmentTime(appointment.time)}
-                                  </span>
-                                  <Badge
-                                    variant="secondary"
-                                    className={`no-default-hover-elevate no-default-active-elevate ${statusInfo.color}`}
-                                  >
-                                    {isHe ? statusInfo.he : statusInfo.en}
-                                  </Badge>
-                                </div>
-                                <div className="mt-1 font-medium text-foreground">{appointment.clientName}</div>
-                                <div className="text-xs text-muted-foreground">{appointment.type}</div>
-                              </div>
-                            )
-                          })
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
+              {isHe ? `מחק (${selectedIds.size})` : `Delete (${selectedIds.size})`}
             </Button>
           </div>
         )}
