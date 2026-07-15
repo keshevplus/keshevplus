@@ -128,7 +128,7 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
       ? `האם אתה בטוח שברצונך למחוק ${selectedIds.size} שיחות?`
       : `Are you sure you want to delete ${selectedIds.size} conversations?`
     if (window.confirm(msg)) {
-      deleteMutation.mutate(Array.from(selectedIds))
+      bulkDeleteMutation.mutate(Array.from(selectedIds))
     }
   }
 
@@ -185,7 +185,7 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
               size="sm"
               variant="destructive"
               onClick={handleBulkDelete}
-              disabled={deleteMutation.isPending || selectedIds.size === 0}
+              disabled={bulkDeleteMutation.isPending || selectedIds.size === 0}
               className="text-destructive border-destructive/30"
             >
               <Trash2 className="h-4 w-4 me-1" />
