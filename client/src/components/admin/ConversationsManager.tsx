@@ -151,6 +151,19 @@ const ConversationsManager = ({ initialFilter = 'all' }: ConversationsManagerPro
                 <SelectItem value="new">{isHe ? 'חדשות בלבד' : 'New only'}</SelectItem>
               </SelectContent>
             </Select>
+            {visibleConversations.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectMode(!selectMode)
+                  if (selectMode) setSelectedIds(new Set())
+                }}
+                data-testid="button-toggle-select-conversations"
+              >
+                {selectMode ? (isHe ? 'ביטול' : 'Cancel') : (isHe ? 'בחירה מרובה' : 'Multi-Select')}
+              </Button>
+            )}
           </div>
         </div>
         <CardDescription>{isHe ? 'צפייה וניהול שיחות צ׳אט' : 'View and manage chat conversations'}</CardDescription>
