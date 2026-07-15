@@ -3,17 +3,6 @@ import pg from "pg";
 
 const { Client } = pg;
 
-const DATABASE_URL_ENV_KEYS = [
-  "KESHEVPLUS_POSTGRES_URL",
-  "KESHEVPLUS_POSTGRES_PRISMA_URL",
-  "KESHEVPLUS_POSTGRES_URL_NON_POOLING",
-  "KESHEVPLUS_DATABASE_URL",
-  "POSTGRES_URL",
-  "POSTGRES_PRISMA_URL",
-  "POSTGRES_URL_NON_POOLING",
-  "DATABASE_URL",
-];
-
 function loadLocalEnv() {
   if (!fs.existsSync(".env")) return;
 
@@ -34,10 +23,8 @@ function loadLocalEnv() {
 }
 
 function getDatabaseUrl() {
-  for (const key of DATABASE_URL_ENV_KEYS) {
-    if (process.env[key]) return process.env[key];
-  }
-  throw new Error(`Missing database URL. Set one of: ${DATABASE_URL_ENV_KEYS.join(", ")}`);
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  throw new Error("Missing database URL. Set DATABASE_URL.");
 }
 
 async function ensureSchema(client) {
