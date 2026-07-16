@@ -19,13 +19,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ToastAction } from "@/components/ui/toast";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Calendar, CalendarClock, ChevronLeft, ChevronRight, ChevronsLeftRight, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare, ListChecks, StickyNote } from "lucide-react";
+import { Calendar, CalendarClock, ChevronLeft, ChevronRight, ChevronsLeftRight, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare, ListChecks, StickyNote, ArrowUpDown } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
-import { getLocalDateInputValue, isAppointmentWorkingDay } from "@shared/appointmentSchedule";
+import { getLocalDateInputValue, isAppointmentWorkingDay, APPOINTMENT_TYPES } from "@shared/appointmentSchedule";
 import type { Appointment } from "@shared/schema";
 
 const weekDaysHe = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
@@ -44,8 +44,24 @@ const STATUS_CONFIG: Record<string, { he: string; en: string; color: string }> =
   completed: { he: "הושלמה", en: "Completed", color: "bg-green-100 text-green-900 dark:bg-green-900/50 dark:text-green-100 font-semibold" },
 };
 
+function getAppointmentNameClassName(status: string) {
+  switch (status) {
+    case 'pending':
+      return 'font-bold text-foreground'
+    case 'confirmed':
+      return 'font-normal text-foreground'
+    case 'cancelled':
+      return 'font-normal line-through text-red-600 dark:text-red-400 opacity-60'
+    case 'completed':
+      return 'font-normal line-through text-green-700 dark:text-green-400'
+    default:
+      return 'font-medium text-foreground'
+  }
+}
+
 type ManagerFilter = 'all' | 'new'
 type AppointmentFilter = 'all' | 'new' | 'pending' | 'confirmed' | 'cancelled' | 'completed'
+type AppointmentSortBy = 'date-asc' | 'date-desc' | 'booking-asc' | 'booking-desc' | 'name-asc' | 'child-first' | 'adult-first'
 type CalendarViewMode = 'month' | 'week' | 'day'
 
 const CALENDAR_VIEW_OPTIONS: { value: CalendarViewMode; he: string; en: string }[] = [
@@ -63,6 +79,8 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
   const isHe = language === "he";
   const { toast } = useToast();
   const [filter, setFilter] = useState<AppointmentFilter>(initialFilter)
+  const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [sortBy, setSortBy] = useState<AppointmentSortBy>('date-asc')
   const [calendarView, setCalendarView] = useState<CalendarViewMode>('month')
   const [anchorDate, setAnchorDate] = useState(() => {
     const now = new Date();
@@ -88,14 +106,13 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
   });
 
   const appointments = useMemo(() => {
-    if (filter === 'new') {
-      return allAppointments.filter(a => a.status === 'pending') // pending/new bookings
-    }
-    if (filter === 'all') {
-      return allAppointments
-    }
-    return allAppointments.filter(a => a.status === filter)
-  }, [allAppointments, filter]);
+    const byStatus = filter === 'new'
+      ? allAppointments.filter(a => a.status === 'pending') // pending/new bookings
+      : filter === 'all'
+        ? allAppointments
+        : allAppointments.filter(a => a.status === filter)
+    return typeFilter === 'all' ? byStatus : byStatus.filter(a => a.type === typeFilter)
+  }, [allAppointments, filter, typeFilter]);
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string; previousStatus?: string }) => {
@@ -437,13 +454,32 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
   });
 
   const visibleAppointments = useMemo(() => {
-    const filtered = filter === 'new'
-      ? appointments.filter(a => a.status === 'pending')
-      : filter === 'all'
-        ? appointments
-        : appointments.filter(a => a.status === filter)
-    return [...filtered].sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`))
-  }, [appointments, filter])
+    const sorted = [...appointments]
+    switch (sortBy) {
+      case 'date-desc':
+        sorted.sort((a, b) => `${b.date}T${b.time}`.localeCompare(`${a.date}T${a.time}`))
+        break
+      case 'booking-asc':
+        sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        break
+      case 'booking-desc':
+        sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        break
+      case 'name-asc':
+        sorted.sort((a, b) => a.clientName.localeCompare(b.clientName, isHe ? 'he' : 'en'))
+        break
+      case 'child-first':
+        sorted.sort((a, b) => (a.appointmentFor === 'child' ? 0 : 1) - (b.appointmentFor === 'child' ? 0 : 1))
+        break
+      case 'adult-first':
+        sorted.sort((a, b) => (a.appointmentFor === 'child' ? 1 : 0) - (b.appointmentFor === 'child' ? 1 : 0))
+        break
+      case 'date-asc':
+      default:
+        sorted.sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`))
+    }
+    return sorted
+  }, [appointments, sortBy, isHe])
 
   return (
     <Card>
@@ -453,7 +489,21 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
             <Calendar className="h-5 w-5 text-muted-foreground" />
             <CardTitle>{isHe ? "ניהול פגישות" : "Appointment Manager"}</CardTitle>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value)}>
+              <SelectTrigger className="w-[150px] h-8 text-xs" data-testid="select-appointment-type-filter">
+                <div className="flex items-center gap-1.5">
+                  <ListChecks className="h-3.5 w-3.5" />
+                  <SelectValue placeholder={isHe ? "סוג" : "Type"} />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{isHe ? "כל הסוגים" : "All types"}</SelectItem>
+                {APPOINTMENT_TYPES.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>{isHe ? t.he : t.en}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={filter} onValueChange={(value) => setFilter(value as AppointmentFilter)}>
               <SelectTrigger className="w-[150px] h-8 text-xs" data-testid="select-appointment-filter">
                 <div className="flex items-center gap-1.5">
@@ -467,6 +517,23 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                 {Object.entries(STATUS_CONFIG).map(([key, config]) => (
                   <SelectItem key={key} value={key}>{isHe ? config.he : config.en}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+            <Select value={sortBy} onValueChange={(value) => setSortBy(value as AppointmentSortBy)}>
+              <SelectTrigger className="w-[170px] h-8 text-xs" data-testid="select-appointment-sort">
+                <div className="flex items-center gap-1.5">
+                  <ArrowUpDown className="h-3.5 w-3.5" />
+                  <SelectValue placeholder={isHe ? "מיון" : "Sort"} />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date-asc">{isHe ? "תאריך פגישה (קרוב תחילה)" : "Appt. date (soonest)"}</SelectItem>
+                <SelectItem value="date-desc">{isHe ? "תאריך פגישה (רחוק תחילה)" : "Appt. date (latest)"}</SelectItem>
+                <SelectItem value="booking-desc">{isHe ? "תאריך קביעה (חדש תחילה)" : "Booking date (newest)"}</SelectItem>
+                <SelectItem value="booking-asc">{isHe ? "תאריך קביעה (ישן תחילה)" : "Booking date (oldest)"}</SelectItem>
+                <SelectItem value="name-asc">{isHe ? "שם (א-ת)" : "Name (A-Z)"}</SelectItem>
+                <SelectItem value="child-first">{isHe ? "ילדים תחילה" : "Children first"}</SelectItem>
+                <SelectItem value="adult-first">{isHe ? "מבוגרים תחילה" : "Adults first"}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -779,7 +846,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                         )}
                         data-testid={`appointment-${appointment.id}`}
                       >
-                        <div className="text-[11px] font-medium text-foreground truncate">{appointment.clientName}</div>
+                        <div className={cn("text-[11px] truncate", getAppointmentNameClassName(appointment.status))}>{appointment.clientName}</div>
                         <div className="text-[10px] text-muted-foreground truncate">
                           {formatAppointmentDate(appointment.date)}
                         </div>
@@ -811,7 +878,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                     <div className="flex items-center gap-2 flex-wrap">
                       <HoverCard openDelay={200}>
                         <HoverCardTrigger asChild>
-                          <span className="font-medium flex items-center gap-1 cursor-default" data-testid={`hover-appointment-${appointment.id}`}>
+                          <span className={cn("flex items-center gap-1 cursor-default", getAppointmentNameClassName(appointment.status))} data-testid={`hover-appointment-${appointment.id}`}>
                             <User className="w-3.5 h-3.5 text-muted-foreground" />
                             {appointment.clientName}
                           </span>

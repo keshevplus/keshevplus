@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Plus, Save, ChevronDown, ChevronUp, Phone, Mail, StickyNote, PhoneCall, Calendar, DollarSign, MailOpen, MessageCircle, FileText, ClipboardList, UserCheck, ArrowRightLeft, Trash2 } from "lucide-react";
+import { Users, Plus, Save, ChevronDown, ChevronUp, Phone, Mail, StickyNote, PhoneCall, Calendar, DollarSign, MailOpen, MessageCircle, FileText, ClipboardList, UserCheck, ArrowRightLeft, Trash2, Filter, ArrowUpDown } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -103,6 +103,9 @@ interface ClientsManagerProps {
   onFocusHandled?: () => void;
 }
 
+type ClientSortBy = 'date-desc' | 'date-asc' | 'name-asc';
+type ClientTypeFilter = 'all' | 'contact' | 'appointment' | 'questionnaire' | 'conversation';
+
 const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) => {
   const { language } = useLanguage();
   const isHe = language === "he";
@@ -117,6 +120,8 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
+  const [clientSortBy, setClientSortBy] = useState<ClientSortBy>('date-desc');
+  const [clientTypeFilter, setClientTypeFilter] = useState<ClientTypeFilter>('all');
 
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -353,10 +358,10 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === clients.length) {
+    if (selectedIds.size === visibleClients.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(clients.map(c => c.id)));
+      setSelectedIds(new Set(visibleClients.map(c => c.id)));
     }
   };
 
@@ -436,6 +441,30 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
       });
     }
   }, [clients]);
+
+  const visibleClients = useMemo(() => {
+    let result = clients;
+    if (clientTypeFilter !== 'all') {
+      result = result.filter((client) => {
+        const inter = clientInteractionsMap[client.id];
+        if (!inter) return false;
+        if (clientTypeFilter === 'contact') return inter.contacts.length > 0;
+        if (clientTypeFilter === 'appointment') return inter.appointments.length > 0;
+        if (clientTypeFilter === 'questionnaire') return inter.questionnaires.length > 0;
+        if (clientTypeFilter === 'conversation') return inter.conversations.length > 0;
+        return true;
+      });
+    }
+    const sorted = [...result];
+    if (clientSortBy === 'date-asc') {
+      sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    } else if (clientSortBy === 'name-asc') {
+      sorted.sort((a, b) => a.name.localeCompare(b.name, isHe ? 'he' : 'en'));
+    } else {
+      sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+    return sorted;
+  }, [clients, clientInteractionsMap, clientTypeFilter, clientSortBy, isHe]);
 
   const renderInteractionItem = (gi: GroupedInteraction) => {
     const config = INTERACTION_CONFIG[gi.type];
@@ -586,6 +615,38 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {clients.length > 0 && (
+              <>
+                <Select value={clientTypeFilter} onValueChange={(value) => setClientTypeFilter(value as ClientTypeFilter)}>
+                  <SelectTrigger className="w-[150px] h-8 text-xs" data-testid="select-client-type-filter">
+                    <div className="flex items-center gap-1.5">
+                      <Filter className="h-3.5 w-3.5" />
+                      <SelectValue placeholder={isHe ? "סוג" : "Type"} />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{isHe ? "כל הסוגים" : "All types"}</SelectItem>
+                    <SelectItem value="contact">{isHe ? "טופס יצירת קשר" : "Contact form"}</SelectItem>
+                    <SelectItem value="appointment">{isHe ? "תור" : "Appointment"}</SelectItem>
+                    <SelectItem value="questionnaire">{isHe ? "שאלון" : "Questionnaire"}</SelectItem>
+                    <SelectItem value="conversation">{isHe ? "צ'אט" : "Chat"}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={clientSortBy} onValueChange={(value) => setClientSortBy(value as ClientSortBy)}>
+                  <SelectTrigger className="w-[170px] h-8 text-xs" data-testid="select-client-sort">
+                    <div className="flex items-center gap-1.5">
+                      <ArrowUpDown className="h-3.5 w-3.5" />
+                      <SelectValue placeholder={isHe ? "מיון" : "Sort"} />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date-desc">{isHe ? "פנייה ראשונית (חדש תחילה)" : "First contact (newest)"}</SelectItem>
+                    <SelectItem value="date-asc">{isHe ? "פנייה ראשונית (ישן תחילה)" : "First contact (oldest)"}</SelectItem>
+                    <SelectItem value="name-asc">{isHe ? "שם (א-ת)" : "Name (A-Z)"}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </>
+            )}
+            {clients.length > 0 && (
               <Button
                 variant="outline"
                 size="sm"
@@ -668,7 +729,7 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
           <div className="flex items-center gap-3 p-2 border rounded-md bg-muted/30 flex-wrap">
             <div className="flex items-center gap-2">
               <Checkbox
-                checked={selectedIds.size === clients.length && clients.length > 0}
+                checked={selectedIds.size === visibleClients.length && visibleClients.length > 0}
                 onCheckedChange={toggleSelectAll}
                 data-testid="checkbox-select-all-clients"
               />
@@ -703,9 +764,14 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
             <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p>{isHe ? "אין לידים או לקוחות להצגה" : "No leads or clients to display"}</p>
           </div>
+        ) : visibleClients.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground" data-testid="empty-clients-filtered">
+            <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p>{isHe ? "אין תוצאות התואמות לסינון" : "No results match the filter"}</p>
+          </div>
         ) : (
           <div className="space-y-3">
-            {clients.map((client) => {
+            {visibleClients.map((client) => {
               const isExpanded = expandedClientId === client.id;
               const clientInter = clientInteractionsMap[client.id] || null;
               const statusBadges = getStatusBadges(client, clientInter);
