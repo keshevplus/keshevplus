@@ -255,11 +255,82 @@ const AdminDashboard = () => {
   }, [activeTab])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <header className="bg-background/80 backdrop-blur-sm border-b sticky top-0 z-40 pt-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <SidebarProvider defaultOpen={false} className="bg-gradient-to-br from-background to-muted/20">
+      <Sidebar collapsible="icon" data-testid="admin-sidebar">
+        <SidebarHeader className="flex flex-row items-center justify-between gap-2">
+          <span className="px-1 text-sm font-semibold truncate group-data-[collapsible=icon]:hidden">
+            {isHe ? 'קשב פלוס' : 'KeshevPlus'}
+          </span>
+          <SidebarTrigger data-testid="button-sidebar-toggle" />
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarMenu>
+            {tabs.map(tab => {
+              const count = tabBadgeMap[tab.value] ?? 0
+              return (
+                <SidebarMenuItem key={tab.value} className="relative">
+                  <SidebarMenuButton
+                    isActive={activeTab === tab.value}
+                    tooltip={isHe ? tab.he : tab.en}
+                    onClick={() => setActiveTab(tab.value)}
+                    data-testid={`tab-${tab.value}`}
+                  >
+                    <span className="relative inline-flex shrink-0">
+                      <tab.icon className="h-4 w-4" />
+                      {count > 0 && tab.value !== 'clients' && (
+                        <span
+                          className="absolute -top-1.5 -end-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-destructive px-0.5 text-[9px] font-medium leading-none text-destructive-foreground"
+                          data-testid={`badge-tab-${tab.value}`}
+                        >
+                          {count > 9 ? '9+' : count}
+                        </span>
+                      )}
+                    </span>
+                    <span>{isHe ? tab.he : tab.en}</span>
+                  </SidebarMenuButton>
+                  {tab.value === 'clients' && count > 0 && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute -top-1 end-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-purple-600 px-0.5 text-[9px] font-medium leading-none text-white"
+                          data-testid={`badge-tab-${tab.value}`}
+                        >
+                          {count > 9 ? '9+' : count}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-72" side="right" align="start">
+                        <p className="text-sm font-semibold mb-2">{isHe ? 'לידים ולקוחות' : 'Leads & Clients'}</p>
+                        <div className="space-y-1.5">
+                          {newLeadItems.map((lead) => (
+                            <button
+                              key={lead.id}
+                              type="button"
+                              className="w-full rounded-md border p-2 text-start transition hover:bg-muted"
+                              onClick={() => openLead(lead.id)}
+                            >
+                              <span className="block text-sm font-medium">#{lead.leadNumber ?? lead.id} {lead.name}</span>
+                              <span className="block truncate text-xs text-muted-foreground">{lead.email || lead.phone || ''}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </SidebarMenuItem>
+              )
+            })}
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
+
+      <SidebarInset>
+      <header className="bg-background/80 backdrop-blur-sm border-b sticky top-0 z-40">
+        <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:h-16 sm:py-0">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <SidebarTrigger className="md:hidden" data-testid="button-mobile-menu" />
               <div>
                 <h1 className="text-xl font-semibold">{isHe ? 'לוח בקרה' : 'Admin Dashboard'}</h1>
                 <p className="text-sm text-muted-foreground">
@@ -393,164 +464,9 @@ const AdminDashboard = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} dir={isHe ? 'rtl' : 'ltr'}>
-          <TabsList className="w-full justify-start gap-1 overflow-x-auto flex-nowrap bg-muted/50 p-1 mb-6 h-auto flex-wrap">
-            {tabs.map(tab => {
-              const count = tabBadgeMap[tab.value] ?? 0
-              return (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm whitespace-nowrap relative"
-                  data-testid={`tab-${tab.value}`}
-                >
-                  <tab.icon className="h-4 w-4" />
-                  <span className="hidden sm:inline">{isHe ? tab.he : tab.en}</span>
-                  {count > 0 && (
-                    tab.value === 'clients' ? (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button className="rounded-full" type="button">
-                            <Badge
-                              variant="default"
-                              className="bg-purple-600 text-white hover:bg-purple-700 text-[10px] leading-none px-1.5 py-0.5 min-w-[18px] text-center"
-                              data-testid={`badge-tab-${tab.value}`}>
-                              👥 {count}
-                            </Badge>
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-72">
-                          <p className="text-sm font-semibold mb-2">{isHe ? 'לידים ולקוחות' : 'Leads & Clients'}</p>
-                          <div className="space-y-1.5">
-                            {newLeadItems.map((lead) => (
-                              <button
-                                key={lead.id}
-                                type="button"
-                                className="w-full rounded-md border p-2 text-start transition hover:bg-muted"
-                                onClick={() => openLead(lead.id)}
-                              >
-                                <span className="block text-sm font-medium">#{lead.leadNumber ?? lead.id} {lead.name}</span>
-                                <span className="block truncate text-xs text-muted-foreground">{lead.email || lead.phone || ''}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    ) : (
-                      <Badge
-                        variant="destructive"
-                        className="text-[10px] leading-none px-1.5 py-0.5 min-w-[18px] text-center"
-                        data-testid={`badge-tab-${tab.value}`}>
-                        {count}
-                      </Badge>
-                    )
-                  )}
-                </TabsTrigger>
-              )
-            })}
-          </TabsList>
 
           <TabsContent value="overview" className="space-y-6 mt-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('contacts')} data-testid="card-contacts">
-                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{isHe ? 'פניות באתר' : 'Contacts'}</CardTitle>
-                  <div className="flex items-center gap-2">
-                    {(badgeCounts?.unreadContacts ?? 0) > 0 && (
-                      <Badge variant="destructive" data-testid="badge-card-contacts">{badgeCounts!.unreadContacts} {isHe ? 'חדשות' : 'new'}</Badge>
-                    )}
-                    <Inbox className="h-4 w-4 text-muted-foreground shrink-0" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">{isHe ? 'צפייה בפניות מהאתר' : 'View contact submissions'}</p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('appointments')} data-testid="card-appointments">
-                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{isHe ? 'פגישות' : 'Appointments'}</CardTitle>
-                  <div className="flex items-center gap-2">
-                    {(badgeCounts?.pendingAppointments ?? 0) > 0 && (
-                      <Badge variant="destructive" data-testid="badge-card-appointments">{badgeCounts!.pendingAppointments} {isHe ? 'ממתינות' : 'pending'}</Badge>
-                    )}
-                    <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">{isHe ? 'צפייה וניהול פגישות' : 'View & manage appointments'}</p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('clients')} data-testid="card-total-users">
-                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{isHe ? 'לידים ולקוחות' : 'Leads & Clients'}</CardTitle>
-                  <div className="flex items-center gap-2">
-                    {(badgeCounts?.newLeads ?? 0) > 0 && (
-                      <Badge className="bg-purple-600 text-white hover:bg-purple-700" data-testid="badge-card-leads">{badgeCounts!.newLeads} {isHe ? 'לידים' : 'leads'}</Badge>
-                    )}
-                    <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">{isHe ? 'ניהול לידים ולקוחות' : 'Manage leads & clients'}</p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('conversations')} data-testid="card-conversations">
-                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{isHe ? 'שיחות צ׳אט' : 'Conversations'}</CardTitle>
-                  <div className="flex items-center gap-2">
-                    {(badgeCounts?.unreviewedConversations ?? 0) > 0 && (
-                      <Badge variant="destructive" data-testid="badge-card-conversations">{badgeCounts!.unreviewedConversations} {isHe ? 'חדשות' : 'new'}</Badge>
-                    )}
-                    <MessageCircle className="h-4 w-4 text-muted-foreground shrink-0" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">{isHe ? 'צפייה בשיחות צ׳אט' : 'View chat conversations'}</p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('whatsapp')} data-testid="card-whatsapp">
-                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{isHe ? 'וואטסאפ' : 'WhatsApp'}</CardTitle>
-                  <Phone className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">{isHe ? 'צפייה בשיחות וואטסאפ' : 'View WhatsApp conversations'}</p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('questionnaires')} data-testid="card-questionnaires">
-                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{isHe ? 'שאלונים' : 'Questionnaires'}</CardTitle>
-                  <div className="flex items-center gap-2">
-                    {(badgeCounts?.unreviewedQuestionnaires ?? 0) > 0 && (
-                      <Badge variant="destructive" data-testid="badge-card-questionnaires">{badgeCounts!.unreviewedQuestionnaires} {isHe ? 'חדשים' : 'new'}</Badge>
-                    )}
-                    <ClipboardList className="h-4 w-4 text-muted-foreground shrink-0" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">{isHe ? 'צפייה בהגשות שאלונים' : 'View questionnaire submissions'}</p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover-elevate cursor-pointer" onClick={() => setActiveTab('settings')} data-testid="card-settings">
-                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{isHe ? 'הגדרות' : 'Settings'}</CardTitle>
-                  <Settings className="h-4 w-4 text-muted-foreground shrink-0" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">{isHe ? 'שפה והתראות' : 'Language & notifications'}</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ContactsManager initialFilter="all" />
-              <AppointmentsManager initialFilter="all" />
-            </div>
+            <OverviewWidgetGrid widgets={overviewWidgets} badgeMap={tabBadgeMap} onNavigate={setActiveTab} />
           </TabsContent>
 
           <TabsContent value="contacts" className="mt-0">
@@ -732,7 +648,8 @@ const AdminDashboard = () => {
           )}
         </Tabs>
       </main>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }
 
