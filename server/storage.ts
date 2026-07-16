@@ -1,4 +1,4 @@
-import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, conversations, messages, whatsappMessages, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type DashboardLayout, type WhatsAppMessage, type InsertWhatsAppMessage } from "@shared/schema";
+import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, clientPayments, conversations, messages, whatsappMessages, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type ClientPayment, type InsertClientPayment, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type DashboardLayout, type WhatsAppMessage, type InsertWhatsAppMessage } from "@shared/schema";
 import type { AppointmentTypeHoursConfig } from "@shared/appointmentSchedule";
 import { db } from "./db";
 import { eq, desc, and, sql, lt, inArray } from "drizzle-orm";
@@ -41,6 +41,9 @@ export interface IStorage {
   updateClient(id: number, data: Partial<InsertClient>): Promise<Client | undefined>;
   createClientActivity(activity: InsertClientActivity): Promise<ClientActivity>;
   getClientActivities(clientId: number): Promise<ClientActivity[]>;
+  createClientPayment(payment: InsertClientPayment): Promise<ClientPayment>;
+  getClientPayments(clientId: number): Promise<ClientPayment[]>;
+  deleteClientPayment(id: number): Promise<boolean>;
   upsertClientByEmail(data: { name: string; email: string; phone?: string; source: string; childName?: string }): Promise<Client>;
   getClientByEmail(email: string): Promise<Client | undefined>;
   getClientInteractions(clientId: number): Promise<{ contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[] }>;
@@ -527,6 +530,22 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(clientActivities)
       .where(eq(clientActivities.clientId, clientId))
       .orderBy(desc(clientActivities.createdAt));
+  }
+
+  async createClientPayment(payment: InsertClientPayment): Promise<ClientPayment> {
+    const [created] = await db.insert(clientPayments).values(payment as any).returning();
+    return created;
+  }
+
+  async getClientPayments(clientId: number): Promise<ClientPayment[]> {
+    return await db.select().from(clientPayments)
+      .where(eq(clientPayments.clientId, clientId))
+      .orderBy(desc(clientPayments.date), desc(clientPayments.createdAt));
+  }
+
+  async deleteClientPayment(id: number): Promise<boolean> {
+    const deleted = await db.delete(clientPayments).where(eq(clientPayments.id, id)).returning();
+    return deleted.length > 0;
   }
 
   async upsertClientByEmail(data: { name: string; email: string; phone?: string; source: string; childName?: string }): Promise<Client> {

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, APPOINTMENT_STATUSES, insertWhatsAppMessageSchema, dashboardLayoutSchema } from "@shared/schema";
+import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, insertClientPaymentSchema, APPOINTMENT_STATUSES, insertWhatsAppMessageSchema, dashboardLayoutSchema } from "@shared/schema";
 import {
   APPOINTMENT_TIME_SLOTS,
   APPOINTMENT_WORKING_HOURS_EN,
@@ -2103,6 +2103,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json(activities);
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch activities" });
+    }
+  });
+
+  app.post("/api/clients/:id/payments", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const clientId = parseInt(req.params.id);
+      const result = insertClientPaymentSchema.safeParse({ ...req.body, clientId });
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.message });
+      }
+      const payment = await storage.createClientPayment(result.data);
+      return res.json(payment);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to create payment" });
+    }
+  });
+
+  app.get("/api/clients/:id/payments", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const clientId = parseInt(req.params.id);
+      const payments = await storage.getClientPayments(clientId);
+      return res.json(payments);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch payments" });
+    }
+  });
+
+  app.delete("/api/clients/payments/:id", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteClientPayment(id);
+      if (!deleted) return res.status(404).json({ error: "Payment not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to delete payment" });
     }
   });
 

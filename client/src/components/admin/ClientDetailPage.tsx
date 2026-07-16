@@ -9,14 +9,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   ArrowLeft, ArrowRight, Mail, Phone, StickyNote, PhoneCall, Calendar, DollarSign, MailOpen,
   MessageCircle, FileText, ClipboardList, UserCheck, ArrowRightLeft, Save, Plus, ChevronDown, ChevronUp,
-  XCircle, Filter,
+  XCircle, Filter, Receipt, Trash2,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
-import type { Client, ClientActivity, Contact, Appointment, QuestionnaireSubmission, Conversation } from "@shared/schema";
+import { getLocalDateInputValue } from "@shared/appointmentSchedule";
+import type { Client, ClientActivity, ClientPayment, Contact, Appointment, QuestionnaireSubmission, Conversation } from "@shared/schema";
+
+const PAYMENT_METHOD_LABELS: Record<string, { he: string; en: string }> = {
+  cash: { he: "מזומן", en: "Cash" },
+  card: { he: "כרטיס אשראי", en: "Card" },
+  bank_transfer: { he: "העברה בנקאית", en: "Bank transfer" },
+  bit: { he: "ביט", en: "Bit" },
+  check: { he: "צ'ק", en: "Check" },
+  other: { he: "אחר", en: "Other" },
+};
+
+const PAYMENT_STATUS_CONFIG: Record<string, { he: string; en: string; color: string }> = {
+  paid: { he: "שולם", en: "Paid", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
+  pending: { he: "ממתין", en: "Pending", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" },
+  unpaid: { he: "לא שולם", en: "Unpaid", color: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
+};
 
 function calculateAge(dob?: string | null): number | null {
   if (!dob) return null;
@@ -112,6 +128,16 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
   const [activityLogExpanded, setActivityLogExpanded] = useState(false);
   const [activityFilter, setActivityFilter] = useState<string>("all");
 
+  const [payments, setPayments] = useState<ClientPayment[]>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [newPaymentDate, setNewPaymentDate] = useState(getLocalDateInputValue());
+  const [newPaymentAmount, setNewPaymentAmount] = useState("");
+  const [newPaymentDescription, setNewPaymentDescription] = useState("");
+  const [newPaymentMethod, setNewPaymentMethod] = useState("cash");
+  const [newPaymentStatus, setNewPaymentStatus] = useState("paid");
+  const [newPaymentInvoiceNumber, setNewPaymentInvoiceNumber] = useState("");
+  const [addingPayment, setAddingPayment] = useState(false);
+
   const fetchClient = async () => {
     try {
       const res = await fetch(`/api/clients/${clientId}`, { credentials: "include" });
@@ -162,6 +188,60 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
     }
   };
 
+  const fetchPayments = async () => {
+    setPaymentsLoading(true);
+    try {
+      const res = await fetch(`/api/clients/${clientId}/payments`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch payments");
+      const data = await res.json();
+      setPayments(data);
+    } catch {
+      setPayments([]);
+    } finally {
+      setPaymentsLoading(false);
+    }
+  };
+
+  const handleAddPayment = async () => {
+    const amountNum = Number(newPaymentAmount);
+    if (!newPaymentDate || !newPaymentAmount || Number.isNaN(amountNum) || amountNum <= 0) {
+      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "יש להזין תאריך וסכום תקין" : "Please enter a date and a valid amount", variant: "destructive" });
+      return;
+    }
+    setAddingPayment(true);
+    try {
+      await apiRequest("POST", `/api/clients/${clientId}/payments`, {
+        date: newPaymentDate,
+        amount: newPaymentAmount,
+        description: newPaymentDescription.trim() || null,
+        method: newPaymentMethod || null,
+        status: newPaymentStatus,
+        invoiceNumber: newPaymentInvoiceNumber.trim() || null,
+      });
+      toast({ title: isHe ? "הרישום נוסף" : "Record added", description: isHe ? "רישום התשלום נוסף בהצלחה" : "Payment record added successfully" });
+      setNewPaymentDate(getLocalDateInputValue());
+      setNewPaymentAmount("");
+      setNewPaymentDescription("");
+      setNewPaymentMethod("cash");
+      setNewPaymentStatus("paid");
+      setNewPaymentInvoiceNumber("");
+      fetchPayments();
+    } catch {
+      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "הוספת הרישום נכשלה" : "Failed to add the record", variant: "destructive" });
+    } finally {
+      setAddingPayment(false);
+    }
+  };
+
+  const handleDeletePayment = async (paymentId: number) => {
+    try {
+      await apiRequest("DELETE", `/api/clients/payments/${paymentId}`);
+      setPayments((prev) => prev.filter((p) => p.id !== paymentId));
+    } catch {
+      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "מחיקת הרישום נכשלה" : "Failed to delete the record", variant: "destructive" });
+    }
+  };
+
   useEffect(() => {
     setLoading(true);
     setShowMoreDetails(false);
@@ -170,6 +250,7 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
     fetchClient();
     fetchActivities();
     fetchInteractions();
+    fetchPayments();
     window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
@@ -588,6 +669,115 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
               </CardContent>
             </Card>
           )}
+
+          <Card>
+            <CardContent className="pt-6 space-y-3">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Receipt className="w-4 h-4" />
+                {isHe ? "חשבונות ותשלומים" : "Accounting & Payments"}
+              </h4>
+
+              {paymentsLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
+                </div>
+              ) : payments.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-1" data-testid="empty-payments">
+                  {isHe ? "אין רישומי תשלום עדיין" : "No payment records yet"}
+                </p>
+              ) : (
+                <>
+                  <div className="text-sm font-medium text-foreground" data-testid="text-payments-total">
+                    {isHe ? "סה\"כ שולם: " : "Total paid: "}
+                    <span className="font-semibold">
+                      ₪{payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + Number(p.amount), 0).toLocaleString(isHe ? "he-IL" : "en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {payments.map((payment) => {
+                      const statusInfo = PAYMENT_STATUS_CONFIG[payment.status] || PAYMENT_STATUS_CONFIG.paid;
+                      const methodLabel = payment.method ? PAYMENT_METHOD_LABELS[payment.method]?.[isHe ? 'he' : 'en'] ?? payment.method : null;
+                      return (
+                        <div key={payment.id} className="flex items-start justify-between gap-2 text-sm rounded-lg border p-2 bg-background" data-testid={`payment-${payment.id}`}>
+                          <div className="flex-1 min-w-0 space-y-0.5">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-semibold text-foreground">₪{Number(payment.amount).toLocaleString(isHe ? "he-IL" : "en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                              <Badge variant="secondary" className={`no-default-hover-elevate no-default-active-elevate text-xs ${statusInfo.color}`}>
+                                {isHe ? statusInfo.he : statusInfo.en}
+                              </Badge>
+                              {methodLabel && <span className="text-xs text-muted-foreground">{methodLabel}</span>}
+                              {payment.invoiceNumber && <span className="text-xs text-muted-foreground">#{payment.invoiceNumber}</span>}
+                            </div>
+                            {payment.description && <p className="text-xs text-muted-foreground">{payment.description}</p>}
+                            <p className="text-[11px] text-muted-foreground">{payment.date}</p>
+                          </div>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 shrink-0 text-destructive"
+                            onClick={() => handleDeletePayment(payment.id)}
+                            data-testid={`button-delete-payment-${payment.id}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              <div className="border-t pt-3 space-y-2">
+                <h5 className="text-xs font-semibold text-muted-foreground">{isHe ? "הוספת רישום תשלום" : "Add a payment record"}</h5>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="input-payment-date" className="text-xs">{isHe ? "תאריך" : "Date"}</Label>
+                    <Input id="input-payment-date" type="date" value={newPaymentDate} onChange={(e) => setNewPaymentDate(e.target.value)} className="h-8 text-xs" data-testid="input-payment-date" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="input-payment-amount" className="text-xs">{isHe ? "סכום (₪)" : "Amount (₪)"}</Label>
+                    <Input id="input-payment-amount" type="number" min="0" step="0.01" value={newPaymentAmount} onChange={(e) => setNewPaymentAmount(e.target.value)} placeholder="0.00" className="h-8 text-xs" data-testid="input-payment-amount" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">{isHe ? "אמצעי תשלום" : "Method"}</Label>
+                    <Select value={newPaymentMethod} onValueChange={setNewPaymentMethod}>
+                      <SelectTrigger className="h-8 text-xs" data-testid="select-payment-method"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(PAYMENT_METHOD_LABELS).map(([key, val]) => (
+                          <SelectItem key={key} value={key} className="text-xs">{isHe ? val.he : val.en}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">{isHe ? "סטטוס" : "Status"}</Label>
+                    <Select value={newPaymentStatus} onValueChange={setNewPaymentStatus}>
+                      <SelectTrigger className="h-8 text-xs" data-testid="select-payment-status"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(PAYMENT_STATUS_CONFIG).map(([key, val]) => (
+                          <SelectItem key={key} value={key} className="text-xs">{isHe ? val.he : val.en}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="input-payment-description" className="text-xs">{isHe ? "תיאור (אופציונלי)" : "Description (optional)"}</Label>
+                    <Input id="input-payment-description" value={newPaymentDescription} onChange={(e) => setNewPaymentDescription(e.target.value)} placeholder={isHe ? "לדוגמה: אבחון ראשוני" : "e.g. Initial diagnosis"} className="h-8 text-xs" data-testid="input-payment-description" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="input-payment-invoice" className="text-xs">{isHe ? "מספר חשבונית (אופציונלי)" : "Invoice # (optional)"}</Label>
+                    <Input id="input-payment-invoice" value={newPaymentInvoiceNumber} onChange={(e) => setNewPaymentInvoiceNumber(e.target.value)} className="h-8 text-xs" data-testid="input-payment-invoice" />
+                  </div>
+                </div>
+                <Button size="sm" onClick={handleAddPayment} disabled={addingPayment} data-testid="button-add-payment">
+                  <Plus className="w-4 h-4" />
+                  <span className="ml-1">{isHe ? "הוסף רישום" : "Add record"}</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardContent className="pt-6 space-y-2">
