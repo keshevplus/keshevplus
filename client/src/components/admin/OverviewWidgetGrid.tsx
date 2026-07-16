@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   DndContext,
   KeyboardSensor,
@@ -132,13 +132,14 @@ const OverviewWidgetGrid = ({ widgets, badgeMap, onNavigate }: OverviewWidgetGri
   const [order, setOrder] = useState<string[]>(catalogIds)
   const [isEditing, setIsEditing] = useState(false)
   const [addPopoverOpen, setAddPopoverOpen] = useState(false)
+  const hasUserEditedRef = useRef(false)
 
   useEffect(() => {
     let cancelled = false
     fetch(LAYOUT_ENDPOINT, { credentials: 'include' })
       .then(res => (res.ok ? res.json() : null))
       .then((data: { widgets?: string[] } | null) => {
-        if (cancelled || !data?.widgets) return
+        if (cancelled || hasUserEditedRef.current || !data?.widgets) return
         const saved = data.widgets.filter(id => catalogIds.includes(id))
         const missing = catalogIds.filter(id => !saved.includes(id))
         setOrder([...saved, ...missing])
@@ -231,7 +232,14 @@ const OverviewWidgetGrid = ({ widgets, badgeMap, onNavigate }: OverviewWidgetGri
           <Button
             variant={isEditing ? 'default' : 'outline'}
             size="sm"
-            onClick={() => (isEditing ? handleDone() : setIsEditing(true))}
+            onClick={() => {
+              if (isEditing) {
+                handleDone()
+              } else {
+                hasUserEditedRef.current = true
+                setIsEditing(true)
+              }
+            }}
             data-testid="button-toggle-customize"
           >
             {isEditing ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Pencil className="h-3.5 w-3.5 mr-1.5" />}
