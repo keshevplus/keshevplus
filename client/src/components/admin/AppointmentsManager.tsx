@@ -625,7 +625,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                       <div
                         key={day.value}
                         className={cn(
-                          "min-h-[110px] sm:min-h-[150px] md:min-h-[190px] rounded-md border p-1 sm:p-1.5 align-top overflow-y-auto",
+                          "min-h-[650px] sm:min-h-[720px] md:min-h-[750px] rounded-md border p-1 sm:p-1.5 align-top overflow-y-auto",
                           day.closed ? "bg-muted/60 border-transparent" : "bg-background",
                         )}
                         data-testid={`calendar-week-day-${day.value}`}
@@ -676,7 +676,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
               )}
 
               {calendarView === "day" && (
-                <div className="space-y-1.5 sm:space-y-2">
+                <div className="space-y-1.5 sm:space-y-2 min-h-[650px] sm:min-h-[720px] md:min-h-[750px]">
                   {dayViewAppointments.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground text-sm">
                       {isHe ? "אין פגישות ביום זה" : "No appointments on this day"}
