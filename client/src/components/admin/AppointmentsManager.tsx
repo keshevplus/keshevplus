@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -17,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ToastAction } from "@/components/ui/toast";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Calendar, ChevronLeft, ChevronRight, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare, ListChecks } from "lucide-react";
+import { Calendar, CalendarClock, ChevronLeft, ChevronRight, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare, ListChecks, StickyNote } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";

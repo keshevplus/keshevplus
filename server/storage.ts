@@ -34,6 +34,7 @@ export interface IStorage {
   getAppointments(status?: string): Promise<Appointment[]>;
   getAppointment(id: number): Promise<Appointment | undefined>;
   updateAppointmentStatus(id: number, status: string): Promise<Appointment | undefined>;
+  updateAppointmentSchedule(id: number, date: string, time: string): Promise<Appointment | undefined>;
   createClient(client: InsertClient): Promise<Client>;
   getClients(): Promise<Client[]>;
   getClient(id: number): Promise<Client | undefined>;
@@ -406,6 +407,14 @@ export class DatabaseStorage implements IStorage {
 
     const [updated] = await db.update(appointments)
       .set(updates as any)
+      .where(eq(appointments.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async updateAppointmentSchedule(id: number, date: string, time: string): Promise<Appointment | undefined> {
+    const [updated] = await db.update(appointments)
+      .set({ date, time } as any)
       .where(eq(appointments.id, id))
       .returning();
     return updated || undefined;

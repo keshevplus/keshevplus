@@ -1795,6 +1795,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/appointments/:id/reschedule", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const { date, time } = req.body;
+      if (typeof date !== "string" || typeof time !== "string") {
+        return res.status(400).json({ error: "Date and time are required" });
+      }
+
+      const existing = await storage.getAppointment(id);
+      if (!existing) return res.status(404).json({ error: "Appointment not found" });
+
+      const typeHoursConfig = await storage.getAppointmentTypeHours();
+      if (
+        !isAppointmentDateStringWorkingDay(date) ||
+        !isAppointmentTimeSlotForType(existing.type, time, typeHoursConfig)
+      ) {
+        return res.status(400).json({ error: "Selected time is outside working hours for this appointment type" });
+      }
+
+      const allAppointments = await storage.getAppointments();
+      const conflict = allAppointments.some((appointment) => (
+        appointment.id !== id &&
+        isActiveAppointmentStatus(appointment.status) &&
+        appointment.date === date &&
+        appointment.time === time
+      ));
+      if (conflict) {
+        return res.status(400).json({ error: "This time slot is already booked" });
+      }
+
+      const updated = await storage.updateAppointmentSchedule(id, date, time);
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error rescheduling appointment:", error);
+      return res.status(500).json({ error: "Failed to reschedule appointment" });
+    }
+  });
+
+  app.post("/api/appointments/:id/note", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const note = typeof req.body.note === "string" ? req.body.note.trim() : "";
+      if (!note) return res.status(400).json({ error: "Note text is required" });
+
+      const appointment = await storage.getAppointment(id);
+      if (!appointment) return res.status(404).json({ error: "Appointment not found" });
+
+      const client = await storage.getClientByEmail(appointment.clientEmail);
+      if (!client) return res.status(404).json({ error: "No lead or client found for this appointment" });
+
+      const activity = await storage.createClientActivity({
+        clientId: client.id,
+        type: "note",
+        description: note,
+        metadata: { source: "appointment", appointmentId: id },
+      });
+      return res.json(activity);
+    } catch (error) {
+      console.error("Error adding appointment note:", error);
+      return res.status(500).json({ error: "Failed to add note" });
+    }
+  });
+
   // ===== CRM Client Routes =====
   app.post("/api/clients", async (req, res) => {
     try {
