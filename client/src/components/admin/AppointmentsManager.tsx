@@ -543,13 +543,13 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
 
               {calendarView === "month" && (
                 <>
-                  <div className="grid grid-cols-7 gap-0.5 sm:gap-1 text-center text-[10px] sm:text-xs font-medium text-muted-foreground">
+                  <div className="grid grid-cols-[repeat(5,1fr)_repeat(2,0.5fr)] gap-0.5 sm:gap-1 text-center text-[10px] sm:text-xs font-medium text-muted-foreground">
                     {(isHe ? weekDaysHe : weekDaysEn).map((day) => (
                       <div key={day} className="py-1 truncate">{day}</div>
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
+                  <div className="grid grid-cols-[repeat(5,1fr)_repeat(2,0.5fr)] gap-0.5 sm:gap-1">
                     {calendarDays.map((day) => (
                       <div
                         key={day.value}
@@ -612,7 +612,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
 
               {calendarView === "week" && (
                 <>
-                  <div className="grid grid-cols-7 gap-0.5 sm:gap-1 text-center text-[10px] sm:text-xs font-medium text-muted-foreground">
+                  <div className="grid grid-cols-[repeat(5,1fr)_repeat(2,0.5fr)] gap-0.5 sm:gap-1 text-center text-[10px] sm:text-xs font-medium text-muted-foreground">
                     {weekDays.map((day) => (
                       <div key={day.value} className="py-1 truncate">
                         {(isHe ? weekDaysHe : weekDaysEn)[day.date.getDay()]}
@@ -620,7 +620,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
+                  <div className="grid grid-cols-[repeat(5,1fr)_repeat(2,0.5fr)] gap-0.5 sm:gap-1">
                     {weekDays.map((day) => (
                       <div
                         key={day.value}
