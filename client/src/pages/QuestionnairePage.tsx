@@ -12,6 +12,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { QUESTIONNAIRES, RATING_OPTIONS, PERFORMANCE_OPTIONS, calculateScores, type QuestionnaireType } from "@/lib/questionnaire-data";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
+import logo from "@/assets/logo.png";
 
 type Step = "register" | "form" | "success";
 
@@ -170,6 +171,14 @@ const QuestionnairePage = () => {
             <Button variant="ghost" size="icon" data-testid="button-back-home">
               <BackArrow className="w-5 h-5" />
             </Button>
+          </Link>
+          <Link href="/" className="shrink-0">
+            <img
+              src={logo}
+              alt={isHebrew ? "קשב פלוס" : "Keshev Plus"}
+              className="h-9 w-auto"
+              data-testid="img-questionnaire-logo"
+            />
           </Link>
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-semibold truncate" data-testid="text-questionnaire-title">{title}</h1>
