@@ -118,6 +118,7 @@ export const clients = pgTable("clients", {
   city: text("city"),
   gender: text("gender"),
   isDiagnosed: boolean("is_diagnosed"),
+  clientSince: timestamp("client_since"),
 });
 
 export const clientActivities = pgTable("client_activities", {

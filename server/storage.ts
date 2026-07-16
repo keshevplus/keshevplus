@@ -488,6 +488,9 @@ export class DatabaseStorage implements IStorage {
       if ((merged.status === "client" || target.status === "client") && !target.clientNumber) {
         merged.clientNumber = await this.getNextClientNumber();
       }
+      if (merged.status === "client" && !target.clientSince) {
+        merged.clientSince = new Date();
+      }
 
       const updatedRows = Object.keys(merged).length > 0
         ? await db.update(clients).set(merged as any).where(eq(clients.id, target.id)).returning()
@@ -500,6 +503,9 @@ export class DatabaseStorage implements IStorage {
 
     if (requestedStatus === "client" && existing.status !== "client" && !existing.clientNumber) {
       updates.clientNumber = await this.getNextClientNumber();
+    }
+    if (requestedStatus === "client" && !existing.clientSince) {
+      updates.clientSince = new Date();
     }
     if (!requestedStatus && existing.status === "lead" && !existing.leadNumber) {
       updates.leadNumber = await this.getNextLeadNumber();

@@ -7,24 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Plus, Save, ChevronDown, ChevronUp, Phone, Mail, StickyNote, PhoneCall, Calendar, DollarSign, MailOpen, MessageCircle, FileText, ClipboardList, UserCheck, ArrowRightLeft, Trash2, Filter, ArrowUpDown, Search } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Users, Plus, ChevronUp, ChevronRight, ChevronLeft, Phone, Mail, Calendar, MessageCircle, ClipboardList, UserCheck, Trash2, Filter, ArrowUpDown, Search, Columns2, Rows3 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
-import type { Client, ClientActivity, Contact, Appointment, QuestionnaireSubmission, Conversation } from "@shared/schema";
-
-function calculateAge(dob?: string | null): number | null {
-  if (!dob) return null;
-  const birth = new Date(dob);
-  if (Number.isNaN(birth.getTime())) return null;
-  const today = new Date();
-  let age = today.getFullYear() - birth.getFullYear();
-  const monthDiff = today.getMonth() - birth.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
-  return age;
-}
+import type { Client, Contact, Appointment, QuestionnaireSubmission, Conversation } from "@shared/schema";
 
 function formatWhatsAppUrl(phone: string, message?: string) {
   const cleaned = phone.replace(/[^0-9+]/g, '').replace(/^0/, '972')
@@ -39,20 +29,6 @@ interface ClientInteractions {
   conversations: Conversation[];
 }
 
-interface GroupedInteraction {
-  type: 'contact' | 'appointment' | 'questionnaire' | 'conversation';
-  date: Date;
-  item: Contact | Appointment | QuestionnaireSubmission | Conversation;
-}
-
-const ACTIVITY_TYPES: Record<string, { he: string; en: string; color: string; icon: typeof StickyNote }> = {
-  note: { he: "הערה", en: "Note", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300", icon: StickyNote },
-  call: { he: "שיחה", en: "Call", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300", icon: PhoneCall },
-  meeting: { he: "פגישה", en: "Meeting", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300", icon: Calendar },
-  sale: { he: "מכירה", en: "Sale", color: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300", icon: DollarSign },
-  email: { he: 'דוא"ל', en: "Email", color: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300", icon: MailOpen },
-};
-
 const SOURCE_LABELS: Record<string, { he: string; en: string }> = {
   contact_form: { he: "טופס יצירת קשר", en: "Contact Form" },
   appointment: { he: "קביעת תור", en: "Appointment" },
@@ -61,85 +37,45 @@ const SOURCE_LABELS: Record<string, { he: string; en: string }> = {
   manual: { he: "ידני", en: "Manual" },
 };
 
-const INTERACTION_CONFIG = {
-  contact: {
-    he: "פנייה",
-    en: "Contact",
-    color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-    icon: Mail,
-  },
-  appointment: {
-    he: "תור",
-    en: "Appointment",
-    color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-    icon: Calendar,
-  },
-  questionnaire: {
-    he: "שאלון",
-    en: "Questionnaire",
-    color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-    icon: ClipboardList,
-  },
-  conversation: {
-    he: "צ'אט",
-    en: "Chat",
-    color: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-    icon: MessageCircle,
-  },
-};
+const LEAD_BG = ['bg-amber-50 dark:bg-amber-950/10', 'bg-yellow-50/70 dark:bg-yellow-950/10'];
+const CLIENT_BG = ['bg-emerald-50 dark:bg-emerald-950/10', 'bg-teal-50/60 dark:bg-teal-950/10'];
 
-function groupInteractions(inter: ClientInteractions): GroupedInteraction[] {
-  const items: GroupedInteraction[] = [];
-  inter.contacts.forEach(c => items.push({ type: 'contact', date: new Date(c.createdAt), item: c }));
-  inter.appointments.forEach(a => items.push({ type: 'appointment', date: new Date(a.createdAt), item: a }));
-  inter.questionnaires.forEach(q => items.push({ type: 'questionnaire', date: new Date(q.createdAt), item: q }));
-  inter.conversations.forEach(cv => items.push({ type: 'conversation', date: new Date(cv.createdAt), item: cv }));
-  items.sort((a, b) => b.date.getTime() - a.date.getTime());
-  return items;
+function getRowBg(client: Client, typeIndex: number) {
+  const palette = client.status === 'client' ? CLIENT_BG : LEAD_BG;
+  return palette[typeIndex % 2];
 }
 
 interface ClientsManagerProps {
-  focusClientId?: number | null;
-  onFocusHandled?: () => void;
+  onOpenClient: (clientId: number) => void;
 }
 
-type ClientSortBy = 'date-desc' | 'date-asc' | 'name-asc';
+type ClientSortBy = 'date-desc' | 'date-asc' | 'name-asc' | 'clientsince-desc' | 'clientsince-asc';
 type ClientTypeFilter = 'all' | 'contact' | 'appointment' | 'questionnaire' | 'conversation';
+type PersonFilter = 'both' | 'leads' | 'clients';
+type PersonLayout = 'columns' | 'list';
+type GroupOrder = 'leads-first' | 'clients-first';
 
-const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) => {
-  const { language } = useLanguage();
+const ClientsManager = ({ onOpenClient }: ClientsManagerProps) => {
+  const { language, isRTL } = useLanguage();
   const isHe = language === "he";
   const { toast } = useToast();
 
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedClientId, setExpandedClientId] = useState<number | null>(null);
-  const [activities, setActivities] = useState<ClientActivity[]>([]);
-  const [interactions, setInteractions] = useState<ClientInteractions | null>(null);
-  const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [clientSortBy, setClientSortBy] = useState<ClientSortBy>('date-desc');
   const [clientTypeFilter, setClientTypeFilter] = useState<ClientTypeFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [personFilter, setPersonFilter] = useState<PersonFilter>('both');
+  const [personLayout, setPersonLayout] = useState<PersonLayout>('columns');
+  const [groupOrder, setGroupOrder] = useState<GroupOrder>('leads-first');
 
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [newNotes, setNewNotes] = useState("");
-
-  const [editNotes, setEditNotes] = useState("");
-  const [activityType, setActivityType] = useState("note");
-  const [activityDesc, setActivityDesc] = useState("");
-  const [activityMeta, setActivityMeta] = useState("");
-
-  const [showMoreDetails, setShowMoreDetails] = useState(false);
-  const [editDob, setEditDob] = useState("");
-  const [editCity, setEditCity] = useState("");
-  const [editGender, setEditGender] = useState("");
-  const [editIsDiagnosed, setEditIsDiagnosed] = useState("");
-  const [activityLogExpanded, setActivityLogExpanded] = useState(false);
 
   const fetchClients = async () => {
     try {
@@ -154,86 +90,9 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
     }
   };
 
-  const fetchActivities = async (clientId: number) => {
-    setActivitiesLoading(true);
-    try {
-      const res = await fetch(`/api/clients/${clientId}/activities`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch activities");
-      const data = await res.json();
-      const sorted = data.sort((a: ClientActivity, b: ClientActivity) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setActivities(sorted);
-    } catch {
-      setActivities([]);
-    } finally {
-      setActivitiesLoading(false);
-    }
-  };
-
-  const fetchInteractions = async (clientId: number) => {
-    try {
-      const res = await fetch(`/api/clients/${clientId}/interactions`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch interactions");
-      const data = await res.json();
-      setInteractions(data);
-    } catch {
-      setInteractions(null);
-    }
-  };
-
   useEffect(() => {
     fetchClients();
   }, []);
-
-  useEffect(() => {
-    if (!focusClientId || clients.length === 0) return;
-    const client = clients.find((item) => item.id === focusClientId);
-    if (!client) return;
-    setSearchQuery("");
-    setClientTypeFilter("all");
-    setExpandedClientId(client.id);
-    setEditNotes(client.notes || "");
-    setEditDob(client.dateOfBirth || "");
-    setEditCity(client.city || "");
-    setEditGender(client.gender || "");
-    setEditIsDiagnosed(client.isDiagnosed === true ? "yes" : client.isDiagnosed === false ? "no" : "");
-    setShowMoreDetails(false);
-    setActivityLogExpanded(false);
-    fetchActivities(client.id);
-    fetchInteractions(client.id);
-    if (!client.adminSeen) {
-      fetch(`/api/clients/${client.id}/seen`, { method: "PATCH", credentials: "include" })
-        .then(() => queryClient.invalidateQueries({ queryKey: ["admin-badges"] }))
-        .catch(() => {});
-    }
-    setTimeout(() => {
-      document.querySelector(`[data-testid="client-${client.id}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 50);
-    onFocusHandled?.();
-  }, [focusClientId, clients]);
-
-  const handleExpand = (client: Client) => {
-    if (expandedClientId === client.id) {
-      setExpandedClientId(null);
-      setActivities([]);
-      setInteractions(null);
-      return;
-    }
-    setExpandedClientId(client.id);
-    setEditNotes(client.notes || "");
-    setEditDob(client.dateOfBirth || "");
-    setEditCity(client.city || "");
-    setEditGender(client.gender || "");
-    setEditIsDiagnosed(client.isDiagnosed === true ? "yes" : client.isDiagnosed === false ? "no" : "");
-    setShowMoreDetails(false);
-    setActivityLogExpanded(false);
-    fetchActivities(client.id);
-    fetchInteractions(client.id);
-    if (!client.adminSeen) {
-      fetch(`/api/clients/${client.id}/seen`, { method: "PATCH", credentials: "include" })
-        .then(() => queryClient.invalidateQueries({ queryKey: ["admin-badges"] }))
-        .catch(() => {});
-    }
-  };
 
   const handleAddClient = async () => {
     if (!newName.trim()) {
@@ -254,72 +113,10 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
       setNewNotes("");
       setShowAddForm(false);
       fetchClients();
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
       queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
     } catch {
       toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "הוספת ליד נכשלה" : "Failed to add lead", variant: "destructive" });
-    }
-  };
-
-  const handleSaveNotes = async (clientId: number) => {
-    try {
-      await apiRequest("PATCH", `/api/clients/${clientId}`, { notes: editNotes });
-      toast({ title: isHe ? "נשמר" : "Saved", description: isHe ? "ההערות עודכנו בהצלחה" : "Notes updated successfully" });
-      fetchClients();
-    } catch {
-      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "שמירת ההערות נכשלה" : "Failed to save notes", variant: "destructive" });
-    }
-  };
-
-  const handleSaveDetails = async (clientId: number) => {
-    try {
-      await apiRequest("PATCH", `/api/clients/${clientId}`, {
-        dateOfBirth: editDob || null,
-        city: editCity.trim() || null,
-        gender: editGender || null,
-        isDiagnosed: editIsDiagnosed === "yes" ? true : editIsDiagnosed === "no" ? false : null,
-      });
-      toast({ title: isHe ? "נשמר" : "Saved", description: isHe ? "הפרטים עודכנו בהצלחה" : "Details updated successfully" });
-      fetchClients();
-    } catch {
-      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "שמירת הפרטים נכשלה" : "Failed to save details", variant: "destructive" });
-    }
-  };
-
-  const handleToggleStatus = async (client: Client) => {
-    const newStatus = client.status === 'client' ? 'lead' : 'client';
-    try {
-      await apiRequest("PATCH", `/api/clients/${client.id}`, { status: newStatus });
-      toast({
-        title: isHe ? "סטטוס עודכן" : "Status Updated",
-        description: newStatus === 'client'
-          ? (isHe ? "הליד הומר ללקוח בהצלחה" : "Lead converted to client successfully")
-          : (isHe ? "הלקוח הוחזר לסטטוס ליד" : "Client reverted to lead status"),
-      });
-      fetchClients();
-      queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
-    } catch {
-      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "עדכון סטטוס נכשל" : "Failed to update status", variant: "destructive" });
-    }
-  };
-
-  const handleAddActivity = async (clientId: number) => {
-    if (!activityDesc.trim()) return;
-    const fullDescription = activityMeta.trim()
-      ? `${activityDesc.trim()} [${activityMeta.trim()}]`
-      : activityDesc.trim();
-    try {
-      await apiRequest("POST", `/api/clients/${clientId}/activities`, {
-        clientId,
-        type: activityType,
-        description: fullDescription,
-      });
-      toast({ title: isHe ? "פעילות נוספה" : "Activity added", description: isHe ? "הפעילות נוספה בהצלחה" : "Activity has been added successfully" });
-      setActivityDesc("");
-      setActivityMeta("");
-      setActivityType("note");
-      fetchActivities(clientId);
-    } catch {
-      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "הוספת פעילות נכשלה" : "Failed to add activity", variant: "destructive" });
     }
   };
 
@@ -334,20 +131,10 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
       toast({ title: isHe ? "נמחקו" : "Deleted", description: isHe ? `${selectedIds.size} רשומות נמחקו` : `${selectedIds.size} records deleted` });
       setSelectedIds(new Set());
       setSelectMode(false);
-      setExpandedClientId(null);
       fetchClients();
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
     } catch {
       toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "מחיקה נכשלה" : "Failed to delete", variant: "destructive" });
-    }
-  };
-
-  const handleMarkTest = async (clientId: number) => {
-    try {
-      await apiRequest("PATCH", `/api/clients/${clientId}/mark-test`, { isTest: true });
-      toast({ title: isHe ? "סומן כבדיקה" : "Marked as test", description: isHe ? "הפריט הוסתר מהרשימה הרגילה." : "The item has been hidden from the normal list." });
-      fetchClients();
-    } catch {
-      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "הסימון נכשל" : "Failed to mark as test", variant: "destructive" });
     }
   };
 
@@ -360,28 +147,8 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
     });
   };
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === visibleClients.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(visibleClients.map(c => c.id)));
-    }
-  };
-
   const formatDate = (date: string | Date) => {
     return new Date(date).toLocaleString(isHe ? "he-IL" : "en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-  };
-
-  const formatDateTime = (date: string | Date) => {
-    const d = new Date(date);
-    return d.toLocaleString(isHe ? "he-IL" : "en-US", {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -471,153 +238,169 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
       });
     }
     const sorted = [...result];
+    const byNullSafeTime = (a: Client, b: Client, dir: 1 | -1) => {
+      const at = a.clientSince ? new Date(a.clientSince).getTime() : null;
+      const bt = b.clientSince ? new Date(b.clientSince).getTime() : null;
+      if (at === null && bt === null) return 0;
+      if (at === null) return 1;
+      if (bt === null) return -1;
+      return (bt - at) * (dir === 1 ? -1 : 1);
+    };
     if (clientSortBy === 'date-asc') {
       sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     } else if (clientSortBy === 'name-asc') {
       sorted.sort((a, b) => a.name.localeCompare(b.name, isHe ? 'he' : 'en'));
+    } else if (clientSortBy === 'clientsince-desc') {
+      sorted.sort((a, b) => byNullSafeTime(a, b, 1));
+    } else if (clientSortBy === 'clientsince-asc') {
+      sorted.sort((a, b) => byNullSafeTime(a, b, -1));
     } else {
       sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
     return sorted;
   }, [clients, clientInteractionsMap, clientTypeFilter, clientSortBy, searchQuery, isHe]);
 
-  const renderInteractionItem = (gi: GroupedInteraction) => {
-    const config = INTERACTION_CONFIG[gi.type];
-    const Icon = config.icon;
+  const filteredByPerson = useMemo(() => {
+    if (personFilter === 'leads') return visibleClients.filter(c => c.status !== 'client');
+    if (personFilter === 'clients') return visibleClients.filter(c => c.status === 'client');
+    return visibleClients;
+  }, [visibleClients, personFilter]);
 
-    if (gi.type === 'contact') {
-      const c = gi.item as Contact;
-      return (
-        <div key={`contact-${c.id}`} className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border">
-          <Badge variant="secondary" className={`no-default-hover-elevate no-default-active-elevate shrink-0 text-xs ${config.color}`}>
-            <Icon className="w-3 h-3 mr-1" />
-            {isHe ? config.he : config.en}
-          </Badge>
-          <div className="flex-1 min-w-0 space-y-0.5">
-            <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-              {c.name && <span className="font-medium text-foreground">{c.name}</span>}
-              {c.phone && (
-                <span className="flex items-center gap-1">
-                  <Phone className="w-3 h-3" />
-                  {c.phone}
-                </span>
-              )}
-              {c.email && (
-                <span className="flex items-center gap-1">
-                  <Mail className="w-3 h-3" />
-                  {c.email}
-                </span>
-              )}
-            </div>
-            <p className="truncate">{c.message}</p>
-          </div>
-          <span className="text-xs text-muted-foreground shrink-0">{formatDate(c.createdAt)}</span>
-        </div>
-      );
+  const leadsList = useMemo(() => visibleClients.filter(c => c.status !== 'client'), [visibleClients]);
+  const clientsList = useMemo(() => visibleClients.filter(c => c.status === 'client'), [visibleClients]);
+
+  const sortedForList = useMemo(() => {
+    if (!(personFilter === 'both' && personLayout === 'list')) return filteredByPerson;
+    const groupRank = (c: Client) => {
+      const isClient = c.status === 'client';
+      if (groupOrder === 'leads-first') return isClient ? 1 : 0;
+      return isClient ? 0 : 1;
+    };
+    return [...filteredByPerson].sort((a, b) => groupRank(a) - groupRank(b));
+  }, [filteredByPerson, personFilter, personLayout, groupOrder]);
+
+  const typeIndexMap = useMemo(() => {
+    const map = new Map<number, number>();
+    let leadIdx = 0, clientIdx = 0;
+    for (const c of sortedForList) {
+      if (c.status === 'client') { map.set(c.id, clientIdx); clientIdx++; }
+      else { map.set(c.id, leadIdx); leadIdx++; }
     }
+    return map;
+  }, [sortedForList]);
 
-    if (gi.type === 'appointment') {
-      const a = gi.item as Appointment;
-      const statusColor = a.status === 'confirmed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : a.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : a.status === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400';
-      const statusLabel = a.status === 'pending' ? (isHe ? 'ממתין' : 'Pending') : a.status === 'confirmed' ? (isHe ? 'מאושר' : 'Confirmed') : a.status === 'cancelled' ? (isHe ? 'בוטל' : 'Cancelled') : (isHe ? 'הושלם' : 'Completed');
-      return (
-        <div key={`appt-${a.id}`} className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border">
-          <Badge variant="secondary" className={`no-default-hover-elevate no-default-active-elevate shrink-0 text-xs ${statusColor}`}>
-            <Icon className="w-3 h-3 mr-1" />
-            {statusLabel}
-          </Badge>
-          <div className="flex-1 min-w-0 space-y-0.5">
-            <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-              {a.clientName && <span className="font-medium text-foreground">{a.clientName}</span>}
-              {a.clientPhone && (
-                <span className="flex items-center gap-1">
-                  <Phone className="w-3 h-3" />
-                  {a.clientPhone}
-                </span>
-              )}
-              {a.clientEmail && (
-                <span className="flex items-center gap-1">
-                  <Mail className="w-3 h-3" />
-                  {a.clientEmail}
-                </span>
-              )}
-            </div>
-            <p>{a.date} {a.time} - {a.type}</p>
-          </div>
-          <span className="text-xs text-muted-foreground shrink-0">{formatDate(a.createdAt)}</span>
-        </div>
-      );
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredByPerson.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredByPerson.map(c => c.id)));
     }
+  };
 
-    if (gi.type === 'questionnaire') {
-      const q = gi.item as QuestionnaireSubmission;
-      const typeNames: Record<string, { he: string; en: string }> = {
-        parent: { he: "הורה", en: "Parent" },
-        teacher: { he: "מורה", en: "Teacher" },
-        self_report: { he: "דיווח עצמי", en: "Self-Report" },
-      };
-      const tn = typeNames[q.type] || { he: q.type, en: q.type };
-      return (
-        <div key={`quest-${q.id}`} className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border">
-          <Badge variant="secondary" className={`no-default-hover-elevate no-default-active-elevate shrink-0 text-xs ${config.color}`}>
-            <Icon className="w-3 h-3 mr-1" />
-            {isHe ? tn.he : tn.en}
-          </Badge>
-          <div className="flex-1 min-w-0 space-y-0.5">
-            <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-              {q.respondentName && <span className="font-medium text-foreground">{q.respondentName}</span>}
-              {q.respondentPhone && (
-                <span className="flex items-center gap-1">
-                  <Phone className="w-3 h-3" />
-                  {q.respondentPhone}
-                </span>
-              )}
-              {q.respondentEmail && (
-                <span className="flex items-center gap-1">
-                  <Mail className="w-3 h-3" />
-                  {q.respondentEmail}
-                </span>
-              )}
+  const GoIcon = isRTL ? ChevronLeft : ChevronRight;
+
+  const renderClientRow = (client: Client, typeIndex: number) => {
+    const clientInter = clientInteractionsMap[client.id] || null;
+    const statusBadges = getStatusBadges(client, clientInter);
+    const sourceLabel = SOURCE_LABELS[client.source || 'manual'];
+    const showSourceLabel = client.source !== 'appointment' || !(clientInter?.appointments?.length > 0);
+
+    return (
+      <div
+        key={client.id}
+        className={cn("border rounded-lg", getRowBg(client, typeIndex), selectedIds.has(client.id) && "ring-2 ring-primary/40")}
+        data-testid={`client-${client.id}`}
+      >
+        <div className="flex items-center gap-2">
+          {selectMode && (
+            <div className="ps-3">
+              <Checkbox
+                checked={selectedIds.has(client.id)}
+                onCheckedChange={() => toggleSelect(client.id)}
+                data-testid={`checkbox-client-${client.id}`}
+              />
             </div>
-            {q.childName && <p>{isHe ? 'ילד' : 'Child'}: {q.childName}</p>}
-          </div>
-          <span className="text-xs text-muted-foreground shrink-0">{formatDate(q.createdAt)}</span>
-        </div>
-      );
-    }
-
-    if (gi.type === 'conversation') {
-      const conv = gi.item as Conversation;
-      return (
-        <div key={`conv-${conv.id}`} className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border">
-          <Badge variant="secondary" className={`no-default-hover-elevate no-default-active-elevate shrink-0 text-xs ${config.color}`}>
-            <Icon className="w-3 h-3 mr-1" />
-            {isHe ? config.he : config.en}
-          </Badge>
-          <div className="flex-1 min-w-0 space-y-0.5">
-            <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-              {conv.visitorName && <span className="font-medium text-foreground">{conv.visitorName}</span>}
-              {conv.visitorPhone && (
-                <span className="flex items-center gap-1">
-                  <Phone className="w-3 h-3" />
-                  {conv.visitorPhone}
+          )}
+          <button
+            onClick={() => onOpenClient(client.id)}
+            className="w-full text-left p-4 flex items-center gap-3 hover-elevate transition-colors flex-1 rounded-lg"
+            data-testid={`button-open-client-${client.id}`}
+          >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 flex-wrap text-sm mb-1">
+                <span className="font-medium">{client.name}</span>
+                {client.email && (
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Mail className="w-3.5 h-3.5" />
+                    {client.email}
+                  </span>
+                )}
+                {client.phone && (
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Phone className="w-3.5 h-3.5" />
+                    {client.phone}
+                    <a
+                      href={formatWhatsAppUrl(client.phone, isHe ? `שלום ${client.name}, פונה אליך מקשב פלוס` : `Hi ${client.name}, reaching out from KeshevPlus`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#25D366] hover:underline flex items-center gap-0.5 ms-1"
+                      onClick={(e) => e.stopPropagation()}
+                      data-testid={`link-whatsapp-client-${client.id}`}
+                    >
+                      <SiWhatsapp className="w-3.5 h-3.5" />
+                    </a>
+                  </span>
+                )}
+                {(client as any).childName && (
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <UserCheck className="w-3.5 h-3.5" />
+                    {(client as any).childName}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge
+                  variant="secondary"
+                  className={`no-default-hover-elevate no-default-active-elevate text-xs ${client.status === 'client' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'}`}
+                  data-testid={`badge-status-type-${client.id}`}
+                >
+                  {client.status === 'client'
+                    ? `${isHe ? "לקוח" : "Client"} #${client.clientNumber ?? client.id}`
+                    : `${isHe ? "ליד" : "Lead"} #${client.leadNumber ?? client.id}`}
+                </Badge>
+                {showSourceLabel && (
+                  <Badge
+                    variant="secondary"
+                    className="no-default-hover-elevate no-default-active-elevate text-xs"
+                    data-testid={`badge-source-${client.id}`}
+                  >
+                    {isHe ? sourceLabel?.he : sourceLabel?.en}
+                  </Badge>
+                )}
+                {statusBadges.map((badge, i) => {
+                  const Icon = badge.icon;
+                  return (
+                    <Badge
+                      key={i}
+                      variant="secondary"
+                      className={`no-default-hover-elevate no-default-active-elevate text-xs ${badge.variant}`}
+                      data-testid={`badge-status-${client.id}-${i}`}
+                    >
+                      <Icon className="w-3 h-3 mr-1" />
+                      {badge.label}
+                    </Badge>
+                  );
+                })}
+                <span className="text-xs text-muted-foreground">
+                  {formatDate(client.createdAt)}
                 </span>
-              )}
-              {conv.visitorEmail && (
-                <span className="flex items-center gap-1">
-                  <Mail className="w-3 h-3" />
-                  {conv.visitorEmail}
-                </span>
-              )}
+              </div>
             </div>
-            <p className="truncate">{conv.title}</p>
-          </div>
-          <span className="text-xs text-muted-foreground shrink-0">{formatDate(conv.createdAt)}</span>
+            <GoIcon className="w-5 h-5 text-muted-foreground shrink-0" />
+          </button>
         </div>
-      );
-    }
-
-    return null;
+      </div>
+    );
   };
 
   return (
@@ -647,7 +430,7 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
                   </SelectContent>
                 </Select>
                 <Select value={clientSortBy} onValueChange={(value) => setClientSortBy(value as ClientSortBy)}>
-                  <SelectTrigger className="w-[170px] h-8 text-xs" data-testid="select-client-sort">
+                  <SelectTrigger className="w-[190px] h-8 text-xs" data-testid="select-client-sort">
                     <div className="flex items-center gap-1.5">
                       <ArrowUpDown className="h-3.5 w-3.5" />
                       <SelectValue placeholder={isHe ? "מיון" : "Sort"} />
@@ -657,6 +440,8 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
                     <SelectItem value="date-desc">{isHe ? "פנייה ראשונית (חדש תחילה)" : "First contact (newest)"}</SelectItem>
                     <SelectItem value="date-asc">{isHe ? "פנייה ראשונית (ישן תחילה)" : "First contact (oldest)"}</SelectItem>
                     <SelectItem value="name-asc">{isHe ? "שם (א-ת)" : "Name (A-Z)"}</SelectItem>
+                    <SelectItem value="clientsince-desc">{isHe ? "הפיכה ללקוח (חדש תחילה)" : "Became client (newest)"}</SelectItem>
+                    <SelectItem value="clientsince-asc">{isHe ? "הפיכה ללקוח (ישן תחילה)" : "Became client (oldest)"}</SelectItem>
                   </SelectContent>
                 </Select>
               </>
@@ -685,6 +470,46 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
           </div>
         </div>
         <CardDescription>{isHe ? "מבקרים שהשאירו פרטים נרשמים כלידים. המרה ללקוח מתבצעת ידנית." : "Visitors who leave details are registered as leads. Conversion to client is done manually."}</CardDescription>
+
+        {clients.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap mt-2">
+            <Tabs value={personFilter} onValueChange={(v) => setPersonFilter(v as PersonFilter)}>
+              <TabsList data-testid="tabs-person-filter">
+                <TabsTrigger value="both" data-testid="tab-person-both">{isHe ? "הכל" : "All"}</TabsTrigger>
+                <TabsTrigger value="leads" data-testid="tab-person-leads">{isHe ? "לידים בלבד" : "Leads only"}</TabsTrigger>
+                <TabsTrigger value="clients" data-testid="tab-person-clients">{isHe ? "לקוחות בלבד" : "Clients only"}</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            {personFilter === 'both' && (
+              <>
+                <Select value={personLayout} onValueChange={(v) => setPersonLayout(v as PersonLayout)}>
+                  <SelectTrigger className="w-[140px] h-8 text-xs" data-testid="select-person-layout">
+                    <div className="flex items-center gap-1.5">
+                      {personLayout === 'columns' ? <Columns2 className="h-3.5 w-3.5" /> : <Rows3 className="h-3.5 w-3.5" />}
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="columns">{isHe ? "שתי עמודות" : "Two columns"}</SelectItem>
+                    <SelectItem value="list">{isHe ? "רשימה אחת" : "Single list"}</SelectItem>
+                  </SelectContent>
+                </Select>
+                {personLayout === 'list' && (
+                  <Select value={groupOrder} onValueChange={(v) => setGroupOrder(v as GroupOrder)}>
+                    <SelectTrigger className="w-[150px] h-8 text-xs" data-testid="select-group-order">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="leads-first">{isHe ? "לידים תחילה" : "Leads first"}</SelectItem>
+                      <SelectItem value="clients-first">{isHe ? "לקוחות תחילה" : "Clients first"}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         {clients.length > 0 && (
           <div className="relative mt-2">
             <Search className="absolute start-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -756,7 +581,7 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
           <div className="flex items-center gap-3 p-2 border rounded-md bg-muted/30 flex-wrap">
             <div className="flex items-center gap-2">
               <Checkbox
-                checked={selectedIds.size === visibleClients.length && visibleClients.length > 0}
+                checked={selectedIds.size === filteredByPerson.length && filteredByPerson.length > 0}
                 onCheckedChange={toggleSelectAll}
                 data-testid="checkbox-select-all-clients"
               />
@@ -796,392 +621,41 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
             <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p>{isHe ? "אין תוצאות התואמות לסינון" : "No results match the filter"}</p>
           </div>
+        ) : filteredByPerson.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground" data-testid="empty-clients-person-filtered">
+            <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p>{personFilter === 'leads'
+              ? (isHe ? "אין לידים התואמים" : "No leads match")
+              : (isHe ? "אין לקוחות התואמים" : "No clients match")}</p>
+          </div>
+        ) : personFilter === 'both' && personLayout === 'columns' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2 text-amber-800 dark:text-amber-300">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0" />
+                {isHe ? `לידים (${leadsList.length})` : `Leads (${leadsList.length})`}
+              </h3>
+              {leadsList.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{isHe ? "אין לידים" : "No leads"}</p>
+              ) : (
+                <div className="space-y-3">{leadsList.map((c, i) => renderClientRow(c, i))}</div>
+              )}
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" />
+                {isHe ? `לקוחות (${clientsList.length})` : `Clients (${clientsList.length})`}
+              </h3>
+              {clientsList.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{isHe ? "אין לקוחות" : "No clients"}</p>
+              ) : (
+                <div className="space-y-3">{clientsList.map((c, i) => renderClientRow(c, i))}</div>
+              )}
+            </div>
+          </div>
         ) : (
           <div className="space-y-3">
-            {visibleClients.map((client) => {
-              const isExpanded = expandedClientId === client.id;
-              const clientInter = clientInteractionsMap[client.id] || null;
-              const statusBadges = getStatusBadges(client, clientInter);
-              const sourceLabel = SOURCE_LABELS[client.source || 'manual'];
-              const showSourceLabel = client.source !== 'appointment' || !(clientInter?.appointments?.length > 0);
-
-              return (
-                <div
-                  key={client.id}
-                  className={`border rounded-lg ${selectedIds.has(client.id) ? 'ring-2 ring-primary/40' : ''}`}
-                  data-testid={`client-${client.id}`}
-                >
-                  <div className="flex items-center gap-2">
-                    {selectMode && (
-                      <div className="ps-3">
-                        <Checkbox
-                          checked={selectedIds.has(client.id)}
-                          onCheckedChange={() => toggleSelect(client.id)}
-                          data-testid={`checkbox-client-${client.id}`}
-                        />
-                      </div>
-                    )}
-                    <button
-                      onClick={() => handleExpand(client)}
-                      className="w-full text-left p-4 flex items-center gap-3 hover:bg-muted/50 transition-colors flex-1"
-                      data-testid={`button-expand-client-${client.id}`}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 flex-wrap text-sm mb-1">
-                          <span className="font-medium">{client.name}</span>
-                          {client.email && (
-                            <span className="text-muted-foreground flex items-center gap-1">
-                              <Mail className="w-3.5 h-3.5" />
-                              {client.email}
-                            </span>
-                          )}
-                          {client.phone && (
-                            <span className="text-muted-foreground flex items-center gap-1">
-                              <Phone className="w-3.5 h-3.5" />
-                              {client.phone}
-                              <a
-                                href={formatWhatsAppUrl(client.phone, isHe ? `שלום ${client.name}, פונה אליך מקשב פלוס` : `Hi ${client.name}, reaching out from KeshevPlus`)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[#25D366] hover:underline flex items-center gap-0.5 ms-1"
-                                onClick={(e) => e.stopPropagation()}
-                                data-testid={`link-whatsapp-client-${client.id}`}
-                              >
-                                <SiWhatsapp className="w-3.5 h-3.5" />
-                              </a>
-                            </span>
-                          )}
-                          {(client as any).childName && (
-                            <span className="text-muted-foreground flex items-center gap-1">
-                              <UserCheck className="w-3.5 h-3.5" />
-                              {(client as any).childName}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge
-                            variant="secondary"
-                            className={`no-default-hover-elevate no-default-active-elevate text-xs ${client.status === 'client' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'}`}
-                            data-testid={`badge-status-type-${client.id}`}
-                          >
-                            {client.status === 'client'
-                              ? `${isHe ? "לקוח" : "Client"} #${client.clientNumber ?? client.id}`
-                              : `${isHe ? "ליד" : "Lead"} #${client.leadNumber ?? client.id}`}
-                          </Badge>
-                          {showSourceLabel && (
-                            <Badge
-                              variant="secondary"
-                              className="no-default-hover-elevate no-default-active-elevate text-xs"
-                              data-testid={`badge-source-${client.id}`}
-                            >
-                              {isHe ? sourceLabel?.he : sourceLabel?.en}
-                            </Badge>
-                          )}
-                          {statusBadges.map((badge, i) => {
-                            const Icon = badge.icon;
-                            return (
-                              <Badge
-                                key={i}
-                                variant="secondary"
-                                className={`no-default-hover-elevate no-default-active-elevate text-xs ${badge.variant}`}
-                                data-testid={`badge-status-${client.id}-${i}`}
-                              >
-                                <Icon className="w-3 h-3 mr-1" />
-                                {badge.label}
-                              </Badge>
-                            );
-                          })}
-                          <span className="text-xs text-muted-foreground">
-                            {formatDate(client.createdAt)}
-                          </span>
-                        </div>
-                      </div>
-                      {isExpanded ? (
-                        <ChevronUp className="w-5 h-5 text-muted-foreground shrink-0" />
-                      ) : (
-                        <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
-                      )}
-                    </button>
-                  </div>
-
-                  {isExpanded && (
-                    <div className="border-t p-4 space-y-4 bg-muted/20">
-                      <div className="space-y-2">
-                        <button
-                          type="button"
-                          onClick={() => setShowMoreDetails(!showMoreDetails)}
-                          className="flex items-center gap-2 text-sm font-semibold hover:text-primary transition-colors"
-                          data-testid={`button-toggle-more-details-${client.id}`}
-                        >
-                          {showMoreDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                          {isHe ? "פרטים נוספים" : "More Details"}
-                          {!showMoreDetails && (client.dateOfBirth || client.city || client.gender || client.isDiagnosed !== null) && (
-                            <span className="text-xs text-muted-foreground font-normal">
-                              ({[
-                                calculateAge(client.dateOfBirth) !== null ? `${isHe ? "גיל" : "Age"} ${calculateAge(client.dateOfBirth)}` : null,
-                                client.city,
-                              ].filter(Boolean).join(" · ")})
-                            </span>
-                          )}
-                        </button>
-                        {showMoreDetails && (
-                          <div className="border rounded-md p-3 bg-background space-y-3">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <div className="space-y-1">
-                                <Label htmlFor={`input-dob-${client.id}`}>{isHe ? "תאריך לידה" : "Date of Birth"}</Label>
-                                <Input
-                                  id={`input-dob-${client.id}`}
-                                  type="date"
-                                  value={editDob}
-                                  onChange={(e) => setEditDob(e.target.value)}
-                                  data-testid={`input-dob-${client.id}`}
-                                />
-                                {calculateAge(editDob) !== null && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {isHe ? `גיל: ${calculateAge(editDob)}` : `Age: ${calculateAge(editDob)}`}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="space-y-1">
-                                <Label htmlFor={`input-city-${client.id}`}>{isHe ? "עיר" : "City"}</Label>
-                                <Input
-                                  id={`input-city-${client.id}`}
-                                  value={editCity}
-                                  onChange={(e) => setEditCity(e.target.value)}
-                                  placeholder={isHe ? "עיר" : "City"}
-                                  data-testid={`input-city-${client.id}`}
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <Label>{isHe ? "מגדר" : "Gender"}</Label>
-                                <Select value={editGender || undefined} onValueChange={setEditGender}>
-                                  <SelectTrigger data-testid={`select-gender-${client.id}`}>
-                                    <SelectValue placeholder={isHe ? "בחר/י" : "Select"} />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="male">{isHe ? "זכר" : "Male"}</SelectItem>
-                                    <SelectItem value="female">{isHe ? "נקבה" : "Female"}</SelectItem>
-                                    <SelectItem value="other">{isHe ? "אחר" : "Other"}</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="space-y-1">
-                                <Label>{isHe ? "מאובחן/ת?" : "Diagnosed?"}</Label>
-                                <Select value={editIsDiagnosed || undefined} onValueChange={setEditIsDiagnosed}>
-                                  <SelectTrigger data-testid={`select-diagnosed-${client.id}`}>
-                                    <SelectValue placeholder={isHe ? "לא ידוע" : "Unknown"} />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="yes">{isHe ? "כן" : "Yes"}</SelectItem>
-                                    <SelectItem value="no">{isHe ? "לא" : "No"}</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                            <Button
-                              size="sm"
-                              onClick={() => handleSaveDetails(client.id)}
-                              data-testid={`button-save-details-${client.id}`}
-                            >
-                              <Save className="w-4 h-4" />
-                              <span className="ml-1">{isHe ? "שמור פרטים" : "Save Details"}</span>
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-semibold">{isHe ? "יומן פעילות" : "Activity Log"}</h4>
-                        {activitiesLoading ? (
-                          <div className="flex items-center justify-center py-4">
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
-                          </div>
-                        ) : activities.length === 0 ? (
-                          <p className="text-sm text-muted-foreground py-2" data-testid={`empty-activities-${client.id}`}>
-                            {isHe ? "אין פעילויות עדיין" : "No activities yet"}
-                          </p>
-                        ) : (
-                          <div className={cn(
-                            "rounded-xl border border-muted/40 bg-background p-2 shadow-sm",
-                            activityLogExpanded && "max-h-[400px] overflow-y-auto",
-                          )}>
-                            <div className="space-y-2">
-                              {(activityLogExpanded ? activities : activities.slice(0, 3)).map((activity) => {
-                                const typeInfo = ACTIVITY_TYPES[activity.type] || ACTIVITY_TYPES.note;
-                                const TypeIcon = typeInfo.icon;
-                                return (
-                                  <div
-                                    key={activity.id}
-                                    className="flex items-start gap-2 text-sm rounded-lg border p-2 bg-muted/70"
-                                    data-testid={`activity-${activity.id}`}
-                                  >
-                                    <Badge
-                                      variant="secondary"
-                                      className={`shrink-0 no-default-hover-elevate no-default-active-elevate ${typeInfo.color}`}
-                                      data-testid={`badge-activity-type-${activity.id}`}
-                                    >
-                                      <TypeIcon className="w-3 h-3 mr-1" />
-                                      {isHe ? typeInfo.he : typeInfo.en}
-                                    </Badge>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-sm leading-snug text-foreground">{activity.description}</div>
-                                      <div className="mt-1 text-[11px] text-muted-foreground">
-                                        {formatDateTime(activity.createdAt)}
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                        {activities.length > 3 && (
-                          <button
-                            type="button"
-                            onClick={() => setActivityLogExpanded(!activityLogExpanded)}
-                            className="text-xs text-primary hover:underline"
-                            data-testid={`button-toggle-activity-log-${client.id}`}
-                          >
-                            {activityLogExpanded
-                              ? (isHe ? "הצג פחות" : "Show less")
-                              : (isHe ? `הצג עוד (${activities.length - 3})` : `Show more (${activities.length - 3})`)}
-                          </button>
-                        )}
-                      </div>
-
-                      {interactions && (
-                        <div className="space-y-3">
-                          <h4 className="text-sm font-semibold flex items-center gap-2">
-                            <FileText className="w-4 h-4" />
-                            {isHe ? "היסטוריית אינטראקציות" : "Interaction History"}
-                          </h4>
-
-                          {(() => {
-                            const grouped = groupInteractions(interactions);
-                            if (grouped.length === 0) {
-                              return (
-                                <p className="text-sm text-muted-foreground">{isHe ? "אין אינטראקציות מתועדות" : "No recorded interactions"}</p>
-                              );
-                            }
-                            return (
-                              <div className="space-y-1">
-                                {grouped.map(gi => renderInteractionItem(gi))}
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-3 flex-wrap border rounded-md p-3 bg-background">
-                        <span className="text-sm font-medium">
-                          {isHe ? "סטטוס:" : "Status:"}
-                        </span>
-                        <Badge
-                          variant="secondary"
-                          className={`no-default-hover-elevate no-default-active-elevate ${client.status === 'client' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'}`}
-                        >
-                          {client.status === 'client' ? (isHe ? "לקוח" : "Client") : (isHe ? "ליד" : "Lead")}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          variant={client.status === 'client' ? "outline" : "default"}
-                          onClick={(e) => { e.stopPropagation(); handleToggleStatus(client); }}
-                          data-testid={`button-convert-${client.id}`}
-                        >
-                          <ArrowRightLeft className="w-4 h-4" />
-                          <span className="ml-1">
-                            {client.status === 'client'
-                              ? (isHe ? "החזר לליד" : "Revert to Lead")
-                              : (isHe ? "המר ללקוח" : "Convert to Client")}
-                          </span>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => { e.stopPropagation(); handleMarkTest(client.id); }}
-                          data-testid={`button-mark-test-client-${client.id}`}
-                        >
-                          {isHe ? "סמן כבדיקה" : "Mark as test"}
-                        </Button>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>{isHe ? "הערות" : "Notes"}</Label>
-                        <Textarea
-                          value={editNotes}
-                          onChange={(e) => setEditNotes(e.target.value)}
-                          placeholder={isHe ? "הערות..." : "Notes..."}
-                          data-testid={`textarea-notes-${client.id}`}
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => handleSaveNotes(client.id)}
-                          data-testid={`button-save-notes-${client.id}`}
-                        >
-                          <Save className="w-4 h-4" />
-                          <span className="ml-1">{isHe ? "שמור הערות" : "Save Notes"}</span>
-                        </Button>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <h4 className="text-sm font-semibold">{isHe ? "הוסף פעילות" : "Add Activity"}</h4>
-                          <span className="text-xs text-muted-foreground" data-testid={`text-current-time-${client.id}`}>
-                            {formatDateTime(new Date())}
-                          </span>
-                        </div>
-                        <div className="flex items-end gap-2 flex-wrap">
-                          <div className="space-y-1">
-                            <Label>{isHe ? "סוג" : "Type"}</Label>
-                            <Select value={activityType} onValueChange={setActivityType}>
-                              <SelectTrigger className="w-[150px]" data-testid={`select-activity-type-${client.id}`}>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Object.entries(ACTIVITY_TYPES).map(([key, val]) => (
-                                  <SelectItem key={key} value={key} data-testid={`option-activity-${key}`}>
-                                    {isHe ? val.he : val.en}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="flex-1 min-w-[200px] space-y-1">
-                            <Label>{isHe ? "תיאור" : "Description"}</Label>
-                            <Textarea
-                              value={activityDesc}
-                              onChange={(e) => setActivityDesc(e.target.value)}
-                              placeholder={isHe ? "תיאור הפעילות" : "Activity description"}
-                              className="min-h-[60px]"
-                              data-testid={`input-activity-desc-${client.id}`}
-                            />
-                          </div>
-                        </div>
-                        <div className="flex items-end gap-2 flex-wrap">
-                          <div className="flex-1 min-w-[200px] space-y-1">
-                            <Label>{isHe ? "נוסף על ידי (אופציונלי)" : "Added by (optional)"}</Label>
-                            <Input
-                              value={activityMeta}
-                              onChange={(e) => setActivityMeta(e.target.value)}
-                              placeholder={isHe ? "שם המוסיף / הערות מטא" : "Name of admin / meta notes"}
-                              data-testid={`input-activity-meta-${client.id}`}
-                            />
-                          </div>
-                          <Button
-                            size="sm"
-                            onClick={() => handleAddActivity(client.id)}
-                            data-testid={`button-add-activity-${client.id}`}
-                          >
-                            <Plus className="w-4 h-4" />
-                            <span className="ml-1">{isHe ? "הוסף" : "Add"}</span>
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {sortedForList.map((c) => renderClientRow(c, typeIndexMap.get(c.id) ?? 0))}
           </div>
         )}
       </CardContent>
