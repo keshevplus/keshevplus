@@ -436,7 +436,24 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
             <Icon className="w-3 h-3 mr-1" />
             {statusLabel}
           </Badge>
-          <span className="flex-1">{a.date} {a.time} - {a.type}</span>
+          <div className="flex-1 min-w-0 space-y-0.5">
+            <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+              {a.clientName && <span className="font-medium text-foreground">{a.clientName}</span>}
+              {a.clientPhone && (
+                <span className="flex items-center gap-1">
+                  <Phone className="w-3 h-3" />
+                  {a.clientPhone}
+                </span>
+              )}
+              {a.clientEmail && (
+                <span className="flex items-center gap-1">
+                  <Mail className="w-3 h-3" />
+                  {a.clientEmail}
+                </span>
+              )}
+            </div>
+            <p>{a.date} {a.time} - {a.type}</p>
+          </div>
           <span className="text-xs text-muted-foreground shrink-0">{formatDate(a.createdAt)}</span>
         </div>
       );
@@ -456,7 +473,24 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
             <Icon className="w-3 h-3 mr-1" />
             {isHe ? tn.he : tn.en}
           </Badge>
-          <span className="flex-1">{q.childName ? `${isHe ? 'ילד' : 'Child'}: ${q.childName}` : ''}</span>
+          <div className="flex-1 min-w-0 space-y-0.5">
+            <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+              {q.respondentName && <span className="font-medium text-foreground">{q.respondentName}</span>}
+              {q.respondentPhone && (
+                <span className="flex items-center gap-1">
+                  <Phone className="w-3 h-3" />
+                  {q.respondentPhone}
+                </span>
+              )}
+              {q.respondentEmail && (
+                <span className="flex items-center gap-1">
+                  <Mail className="w-3 h-3" />
+                  {q.respondentEmail}
+                </span>
+              )}
+            </div>
+            {q.childName && <p>{isHe ? 'ילד' : 'Child'}: {q.childName}</p>}
+          </div>
           <span className="text-xs text-muted-foreground shrink-0">{formatDate(q.createdAt)}</span>
         </div>
       );
@@ -470,7 +504,24 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
             <Icon className="w-3 h-3 mr-1" />
             {isHe ? config.he : config.en}
           </Badge>
-          <span className="flex-1">{conv.title}</span>
+          <div className="flex-1 min-w-0 space-y-0.5">
+            <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+              {conv.visitorName && <span className="font-medium text-foreground">{conv.visitorName}</span>}
+              {conv.visitorPhone && (
+                <span className="flex items-center gap-1">
+                  <Phone className="w-3 h-3" />
+                  {conv.visitorPhone}
+                </span>
+              )}
+              {conv.visitorEmail && (
+                <span className="flex items-center gap-1">
+                  <Mail className="w-3 h-3" />
+                  {conv.visitorEmail}
+                </span>
+              )}
+            </div>
+            <p className="truncate">{conv.title}</p>
+          </div>
           <span className="text-xs text-muted-foreground shrink-0">{formatDate(conv.createdAt)}</span>
         </div>
       );
