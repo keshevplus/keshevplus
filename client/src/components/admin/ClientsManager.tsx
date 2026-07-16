@@ -1084,50 +1084,6 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
                           </Button>
                         </div>
                       </div>
-
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-semibold">{isHe ? "יומן פעילות" : "Activity Log"}</h4>
-                        {activitiesLoading ? (
-                          <div className="flex items-center justify-center py-4">
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
-                          </div>
-                        ) : activities.length === 0 ? (
-                          <p className="text-sm text-muted-foreground py-2" data-testid={`empty-activities-${client.id}`}>
-                            {isHe ? "אין פעילויות עדיין" : "No activities yet"}
-                          </p>
-                        ) : (
-                          <div className="max-h-[280px] overflow-y-auto rounded-xl border border-muted/40 bg-background p-2 shadow-sm">
-                            <div className="space-y-2">
-                              {activities.map((activity) => {
-                                const typeInfo = ACTIVITY_TYPES[activity.type] || ACTIVITY_TYPES.note;
-                                const TypeIcon = typeInfo.icon;
-                                return (
-                                  <div
-                                    key={activity.id}
-                                    className="flex items-start gap-2 text-sm rounded-lg border p-2 bg-muted/70"
-                                    data-testid={`activity-${activity.id}`}
-                                  >
-                                    <Badge
-                                      variant="secondary"
-                                      className={`shrink-0 no-default-hover-elevate no-default-active-elevate ${typeInfo.color}`}
-                                      data-testid={`badge-activity-type-${activity.id}`}
-                                    >
-                                      <TypeIcon className="w-3 h-3 mr-1" />
-                                      {isHe ? typeInfo.he : typeInfo.en}
-                                    </Badge>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-sm leading-snug text-foreground">{activity.description}</div>
-                                      <div className="mt-1 text-[11px] text-muted-foreground">
-                                        {formatDateTime(activity.createdAt)}
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
                     </div>
                   )}
                 </div>
