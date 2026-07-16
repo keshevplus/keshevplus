@@ -130,6 +130,21 @@ export const clientActivities = pgTable("client_activities", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const PAYMENT_METHODS = ["cash", "card", "bank_transfer", "bit", "check", "other"] as const;
+export const PAYMENT_STATUSES = ["paid", "pending", "unpaid"] as const;
+
+export const clientPayments = pgTable("client_payments", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  date: text("date").notNull(),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  description: text("description"),
+  method: text("method"),
+  invoiceNumber: text("invoice_number"),
+  status: text("status").notNull().default("paid"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertContactSchema = createInsertSchema(contacts).omit({ id: true, createdAt: true, read: true });
 export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({ id: true });
@@ -143,6 +158,11 @@ export const insertAppointmentSchema = createInsertSchema(appointments)
   });
 export const insertClientSchema = createInsertSchema(clients).omit({ id: true, leadNumber: true, clientNumber: true, createdAt: true });
 export const insertClientActivitySchema = createInsertSchema(clientActivities).omit({ id: true, createdAt: true });
+export const insertClientPaymentSchema = createInsertSchema(clientPayments).omit({ id: true, createdAt: true }).extend({
+  amount: z.union([z.string(), z.number()]).transform((v) => String(v)),
+  method: z.enum(PAYMENT_METHODS).optional().nullable(),
+  status: z.enum(PAYMENT_STATUSES).default("paid"),
+});
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -161,6 +181,8 @@ export type Client = typeof clients.$inferSelect;
 export type InsertClient = z.infer<typeof insertClientSchema>;
 export type ClientActivity = typeof clientActivities.$inferSelect;
 export type InsertClientActivity = z.infer<typeof insertClientActivitySchema>;
+export type ClientPayment = typeof clientPayments.$inferSelect;
+export type InsertClientPayment = z.infer<typeof insertClientPaymentSchema>;
 
 export const SUPPORTED_LANGUAGES = ["he", "en", "fr", "es", "de", "ru", "am", "ar", "yi", "it"] as const;
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
