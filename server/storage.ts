@@ -1,4 +1,5 @@
 import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, conversations, messages, whatsappMessages, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type DashboardLayout, type WhatsAppMessage, type InsertWhatsAppMessage } from "@shared/schema";
+import type { AppointmentTypeHoursConfig } from "@shared/appointmentSchedule";
 import { db } from "./db";
 import { eq, desc, and, sql, lt, inArray } from "drizzle-orm";
 
@@ -48,6 +49,8 @@ export interface IStorage {
   updateWidgetSettings(settings: WidgetSettings): Promise<WidgetSettings>;
   getDashboardLayout(): Promise<DashboardLayout | null>;
   updateDashboardLayout(layout: DashboardLayout): Promise<DashboardLayout>;
+  getAppointmentTypeHours(): Promise<AppointmentTypeHoursConfig>;
+  updateAppointmentTypeHours(config: AppointmentTypeHoursConfig): Promise<AppointmentTypeHoursConfig>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   getConversations(): Promise<Conversation[]>;
   getConversation(id: number): Promise<Conversation | undefined>;
@@ -633,6 +636,17 @@ export class DatabaseStorage implements IStorage {
   async updateDashboardLayout(layout: DashboardLayout): Promise<DashboardLayout> {
     const updated = await this.upsertSetting("admin_dashboard_layout", layout);
     return updated.value as DashboardLayout;
+  }
+
+  async getAppointmentTypeHours(): Promise<AppointmentTypeHoursConfig> {
+    const setting = await this.getSetting("appointment_type_hours");
+    if (setting) return setting.value as AppointmentTypeHoursConfig;
+    return {};
+  }
+
+  async updateAppointmentTypeHours(config: AppointmentTypeHoursConfig): Promise<AppointmentTypeHoursConfig> {
+    const updated = await this.upsertSetting("appointment_type_hours", config);
+    return updated.value as AppointmentTypeHoursConfig;
   }
 
   async createConversation(conversation: InsertConversation): Promise<Conversation> {

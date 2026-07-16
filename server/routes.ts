@@ -7,7 +7,9 @@ import {
   APPOINTMENT_WORKING_HOURS_EN,
   APPOINTMENT_WORKING_HOURS_HE,
   isAppointmentDateStringWorkingDay,
-  isAppointmentTimeSlot,
+  isAppointmentTimeSlotForType,
+  getTimeSlotsForType,
+  type AppointmentTypeHoursConfig,
 } from "@shared/appointmentSchedule";
 import crypto from "crypto";
 import { z } from "zod";
@@ -55,7 +57,7 @@ function sameAppointmentRequester(appointment: any, incoming: { clientName?: str
   );
 }
 
-function getAvailableTimesForDate(allAppointments: any[], date: string) {
+function getAvailableTimesForDate(allAppointments: any[], date: string, type?: string, hoursConfig: AppointmentTypeHoursConfig = {}) {
   if (!isAppointmentDateStringWorkingDay(date)) return [];
 
   const bookedTimes = new Set(
@@ -66,8 +68,9 @@ function getAvailableTimesForDate(allAppointments: any[], date: string) {
 
   const now = new Date();
   const today = now.toISOString().split("T")[0];
+  const slots = type ? getTimeSlotsForType(type, hoursConfig) : APPOINTMENT_TIME_SLOTS;
 
-  return APPOINTMENT_TIME_SLOTS.filter((time) => {
+  return slots.filter((time) => {
     if (bookedTimes.has(time)) return false;
     if (date !== today) return true;
 
@@ -91,13 +94,13 @@ async function getAppointmentAvailabilityRows() {
   }));
 }
 
-function findNextAvailableAppointmentDate(allAppointments: any[], fromDate = new Date()) {
+function findNextAvailableAppointmentDate(allAppointments: any[], fromDate = new Date(), type?: string, hoursConfig: AppointmentTypeHoursConfig = {}) {
   const cursor = new Date(fromDate);
   cursor.setHours(0, 0, 0, 0);
 
   for (let i = 0; i < 180; i += 1) {
     const date = cursor.toISOString().split("T")[0];
-    if (getAvailableTimesForDate(allAppointments, date).length > 0) return date;
+    if (getAvailableTimesForDate(allAppointments, date, type, hoursConfig).length > 0) return date;
     cursor.setDate(cursor.getDate() + 1);
   }
 
@@ -1611,8 +1614,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/appointments/availability", async (req, res) => {
     try {
       const requestedDate = typeof req.query.date === "string" ? req.query.date : undefined;
+      const requestedType = typeof req.query.type === "string" ? req.query.type : undefined;
+      const hoursConfig = await storage.getAppointmentTypeHours();
       const allAppointments = await getAppointmentAvailabilityRows();
-      const nextAvailableDate = findNextAvailableAppointmentDate(allAppointments);
+      const nextAvailableDate = findNextAvailableAppointmentDate(allAppointments, new Date(), requestedType, hoursConfig);
       const date = requestedDate || nextAvailableDate || new Date().toISOString().split("T")[0];
       const bookedTimes = allAppointments
         .filter((appointment) => isActiveAppointmentStatus(appointment.status) && appointment.date === date)
@@ -1620,14 +1625,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       return res.json({
         date,
-        availableTimes: getAvailableTimesForDate(allAppointments, date),
+        availableTimes: getAvailableTimesForDate(allAppointments, date, requestedType, hoursConfig),
         bookedTimes,
         nextAvailableDate,
-        timeSlots: APPOINTMENT_TIME_SLOTS,
+        timeSlots: requestedType ? getTimeSlotsForType(requestedType, hoursConfig) : APPOINTMENT_TIME_SLOTS,
       });
     } catch (error) {
       console.error("Appointment availability error:", error);
       return res.status(500).json({ error: "Failed to fetch appointment availability" });
+    }
+  });
+
+  app.get("/api/appointment-type-hours", async (req, res) => {
+    try {
+      const config = await storage.getAppointmentTypeHours();
+      return res.json(config);
+    } catch (error) {
+      console.error("Error fetching appointment type hours:", error);
+      return res.json({});
+    }
+  });
+
+  app.put("/api/appointment-type-hours", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+
+    try {
+      const config = await storage.updateAppointmentTypeHours(req.body);
+      return res.json(config);
+    } catch (error) {
+      console.error("Error updating appointment type hours:", error);
+      return res.status(500).json({ error: "Failed to update appointment type hours" });
     }
   });
 
@@ -1658,7 +1688,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      if (!isAppointmentDateStringWorkingDay(result.data.date) || !isAppointmentTimeSlot(result.data.time)) {
+      const typeHoursConfig = await storage.getAppointmentTypeHours();
+      if (
+        !isAppointmentDateStringWorkingDay(result.data.date) ||
+        !isAppointmentTimeSlotForType(result.data.type, result.data.time, typeHoursConfig)
+      ) {
         return res.status(400).json({ success: false, ...closedAppointmentDateMessage() });
       }
 

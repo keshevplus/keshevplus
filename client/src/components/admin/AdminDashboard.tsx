@@ -36,6 +36,7 @@ import ClientsManager from './ClientsManager'
 import ContactsManager from './ContactsManager'
 import ConversationsManager from './ConversationsManager'
 import EmailNotificationSettings from './EmailNotificationSettings'
+import AppointmentHoursSettings from './AppointmentHoursSettings'
 import ChangePasswordSettings from './ChangePasswordSettings'
 import UsersManager from './UsersManager'
 import BinManager from './BinManager'
@@ -606,7 +607,9 @@ const AdminDashboard = () => {
               </Card>
 
               <EmailNotificationSettings />
-              
+
+              <AppointmentHoursSettings />
+
               <Card>
                 <CardHeader>
                   <CardTitle>{isHe ? 'הגדרות ווידג׳טים' : 'Widget Settings'}</CardTitle>

@@ -1,10 +1,13 @@
 export {
   APPOINTMENT_TIME_SLOTS,
+  APPOINTMENT_TYPES,
   APPOINTMENT_WORKING_HOURS_EN,
   APPOINTMENT_WORKING_HOURS_HE,
   getLocalDateInputValue,
+  getTimeSlotsForType,
   isAppointmentDateStringWorkingDay,
 } from '@shared/appointmentSchedule'
+export type { AppointmentTypeHoursConfig } from '@shared/appointmentSchedule'
 
 export interface AppointmentAvailability {
   date: string
@@ -14,9 +17,12 @@ export interface AppointmentAvailability {
   timeSlots: string[]
 }
 
-export async function fetchAppointmentAvailability(date?: string): Promise<AppointmentAvailability> {
-  const params = date ? `?date=${encodeURIComponent(date)}` : ''
-  const response = await fetch(`/api/appointments/availability${params}`, {
+export async function fetchAppointmentAvailability(date?: string, type?: string): Promise<AppointmentAvailability> {
+  const params = new URLSearchParams()
+  if (date) params.set('date', date)
+  if (type) params.set('type', type)
+  const query = params.toString()
+  const response = await fetch(`/api/appointments/availability${query ? `?${query}` : ''}`, {
     credentials: 'include',
   })
 

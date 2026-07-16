@@ -13,18 +13,12 @@ import { AppointmentForFields, type AppointmentFor } from '@/components/Appointm
 import { AppointmentDatePicker } from '@/components/AppointmentDatePicker'
 import {
   APPOINTMENT_TIME_SLOTS,
+  APPOINTMENT_TYPES,
   type AppointmentAvailability,
   fetchAppointmentAvailability,
   getAppointmentSubmitError,
   getLocalDateInputValue,
 } from '@/lib/appointmentAvailability'
-
-const APPOINTMENT_TYPES = [
-  { value: 'consultation', he: 'ייעוץ ראשוני', en: 'Initial Consultation' },
-  { value: 'diagnosis', he: 'אבחון', en: 'Diagnosis' },
-  { value: 'followup', he: 'מעקב', en: 'Follow-up' },
-  { value: 'treatment', he: 'טיפול', en: 'Treatment' },
-]
 
 interface BookingModalProps {
   open: boolean
@@ -55,10 +49,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
 
   useBodyScrollLock(open)
 
-  const loadAvailability = async (date?: string) => {
+  const loadAvailability = async (date?: string, type?: string) => {
     setAvailabilityLoading(true)
     try {
-      const nextAvailability = await fetchAppointmentAvailability(date)
+      const nextAvailability = await fetchAppointmentAvailability(date, type || form.type)
       setAvailability(nextAvailability)
       return nextAvailability
     } finally {
@@ -111,6 +105,24 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
         description: isHe ? 'לא הצלחנו לבדוק זמינות. נסו שוב.' : 'Could not check availability. Please try again.',
         variant: 'destructive',
       })
+    }
+  }
+
+  const handleTypeChange = async (type: string) => {
+    setForm(f => ({ ...f, type }))
+    if (!form.date) return
+
+    try {
+      const nextAvailability = await loadAvailability(form.date, type)
+      if (form.time && !nextAvailability.availableTimes.includes(form.time)) {
+        setForm(f => ({ ...f, time: '' }))
+        toast({
+          title: isHe ? 'השעה אינה זמינה לסוג זה' : 'Time unavailable for this type',
+          description: isHe ? 'בחרו שעה אחרת מהרשימה המעודכנת.' : 'Please pick another time from the updated list.',
+        })
+      }
+    } catch {
+      // The server will still validate availability on submit.
     }
   }
 
@@ -174,7 +186,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
       onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
       data-testid="booking-modal-overlay"
     >
@@ -280,7 +292,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
 
               <div className="space-y-1.5">
                 <Label htmlFor="booking-type">{isHe ? 'סוג הפגישה' : 'Appointment Type'} *</Label>
-                <Select value={form.type} onValueChange={(v) => setForm(f => ({ ...f, type: v }))} dir={isRTL ? 'rtl' : 'ltr'}>
+                <Select value={form.type} onValueChange={handleTypeChange} dir={isRTL ? 'rtl' : 'ltr'}>
                   <SelectTrigger data-testid="select-booking-type" className={isRTL ? 'text-right' : 'text-left'}>
                     <SelectValue />
                   </SelectTrigger>

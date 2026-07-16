@@ -16,7 +16,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ToastAction } from "@/components/ui/toast";
-import { Calendar, ChevronLeft, ChevronRight, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare } from "lucide-react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Calendar, ChevronLeft, ChevronRight, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare, ListChecks } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -67,6 +68,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
   })
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null)
   const [pendingStatusChange, setPendingStatusChange] = useState<{ id: number; from: string; to: string } | null>(null)
+  const [listCollapsed, setListCollapsed] = useState(false)
 
   useEffect(() => {
     setFilter(initialFilter)
@@ -177,6 +179,54 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
     return time ? time.slice(0, 5) : "";
   };
 
+  const renderHoverDetails = (appointment: Appointment) => {
+    const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
+    const isForChild = (appointment as any).appointmentFor === "child";
+
+    return (
+      <div className="space-y-1.5 text-sm">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-semibold text-foreground flex items-center gap-1">
+            <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            {appointment.clientName}
+          </span>
+          <Badge
+            variant="secondary"
+            className={`no-default-hover-elevate no-default-active-elevate shrink-0 text-xs ${statusInfo.color}`}
+          >
+            {isHe ? statusInfo.he : statusInfo.en}
+          </Badge>
+        </div>
+        <div className="text-xs text-muted-foreground flex items-center gap-1">
+          <Calendar className="h-3 w-3 shrink-0" />
+          {formatAppointmentDate(appointment.date)} · {formatAppointmentTime(appointment.time)}
+        </div>
+        <div className="text-xs text-muted-foreground">{appointment.type}</div>
+        {appointment.clientPhone && (
+          <div className="text-xs text-muted-foreground flex items-center gap-1">
+            <Phone className="h-3 w-3 shrink-0" />
+            {appointment.clientPhone}
+          </div>
+        )}
+        {appointment.clientEmail && (
+          <div className="text-xs text-muted-foreground flex items-center gap-1">
+            <Mail className="h-3 w-3 shrink-0" />
+            {appointment.clientEmail}
+          </div>
+        )}
+        {isForChild && appointment.childName && (
+          <div className="text-xs text-muted-foreground">
+            {isHe ? "עבור" : "For"}: {appointment.childName}
+            {(appointment as any).childAge ? `, ${isHe ? "גיל" : "age"} ${(appointment as any).childAge}` : ""}
+          </div>
+        )}
+        {appointment.notes && (
+          <div className="text-xs text-muted-foreground border-t pt-1.5 mt-1.5">{appointment.notes}</div>
+        )}
+      </div>
+    );
+  };
+
   const formatTimestamp = (date?: string | Date | null) => {
     if (!date) return isHe ? "לא תועד" : "Not recorded";
     const d = new Date(date);
@@ -277,9 +327,12 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
     : null;
 
   const visibleAppointments = useMemo(() => {
-    if (filter === 'new') return appointments.filter(a => a.status === 'pending')
-    if (filter === 'all') return appointments
-    return appointments.filter(a => a.status === filter)
+    const filtered = filter === 'new'
+      ? appointments.filter(a => a.status === 'pending')
+      : filter === 'all'
+        ? appointments
+        : appointments.filter(a => a.status === filter)
+    return [...filtered].sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`))
   }, [appointments, filter])
 
   return (
@@ -316,7 +369,12 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : (
-          <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start">
+          <div
+            className={cn(
+              "space-y-4 lg:space-y-0 lg:grid lg:gap-4 lg:items-start",
+              listCollapsed ? "lg:grid-cols-[44px_1fr]" : "lg:grid-cols-2",
+            )}
+          >
             <div className="lg:order-2 rounded-lg border bg-muted/20 p-2.5 sm:p-4 space-y-2.5 sm:space-y-3 overflow-hidden" data-testid="appointments-calendar">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-1.5 sm:gap-2">
@@ -407,19 +465,25 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                             const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
 
                             return (
-                              <button
-                                key={appointment.id}
-                                type="button"
-                                onClick={() => setSelectedAppointmentId(appointment.id)}
-                                className={cn(
-                                  "block w-full truncate rounded px-1 py-0.5 text-left text-[9px] sm:text-[10px] font-medium transition-opacity hover:opacity-80",
-                                  statusInfo.color,
-                                )}
-                                data-testid={`calendar-appointment-${appointment.id}`}
-                              >
-                                <span className="hidden sm:inline">{formatAppointmentTime(appointment.time)} </span>
-                                {appointment.clientName}
-                              </button>
+                              <HoverCard key={appointment.id} openDelay={200}>
+                                <HoverCardTrigger asChild>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedAppointmentId(appointment.id)}
+                                    className={cn(
+                                      "block w-full truncate rounded px-1 py-0.5 text-left text-[9px] sm:text-[10px] font-medium transition-opacity hover:opacity-80",
+                                      statusInfo.color,
+                                    )}
+                                    data-testid={`calendar-appointment-${appointment.id}`}
+                                  >
+                                    <span className="hidden sm:inline">{formatAppointmentTime(appointment.time)} </span>
+                                    {appointment.clientName}
+                                  </button>
+                                </HoverCardTrigger>
+                                <HoverCardContent side="right" align="start">
+                                  {renderHoverDetails(appointment)}
+                                </HoverCardContent>
+                              </HoverCard>
                             );
                           })}
                           {day.appointments.length > 3 && (
@@ -471,19 +535,25 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                             const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
 
                             return (
-                              <button
-                                key={appointment.id}
-                                type="button"
-                                onClick={() => setSelectedAppointmentId(appointment.id)}
-                                className={cn(
-                                  "block w-full rounded px-1 py-0.5 text-left leading-tight font-medium transition-opacity hover:opacity-80",
-                                  statusInfo.color,
-                                )}
-                                data-testid={`calendar-appointment-${appointment.id}`}
-                              >
-                                <span className="block text-[9px] sm:text-[10px]">{formatAppointmentTime(appointment.time)}</span>
-                                <span className="block truncate text-[9px] sm:text-[10px]">{appointment.clientName}</span>
-                              </button>
+                              <HoverCard key={appointment.id} openDelay={200}>
+                                <HoverCardTrigger asChild>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedAppointmentId(appointment.id)}
+                                    className={cn(
+                                      "block w-full rounded px-1 py-0.5 text-left leading-tight font-medium transition-opacity hover:opacity-80",
+                                      statusInfo.color,
+                                    )}
+                                    data-testid={`calendar-appointment-${appointment.id}`}
+                                  >
+                                    <span className="block text-[9px] sm:text-[10px]">{formatAppointmentTime(appointment.time)}</span>
+                                    <span className="block truncate text-[9px] sm:text-[10px]">{appointment.clientName}</span>
+                                  </button>
+                                </HoverCardTrigger>
+                                <HoverCardContent side="right" align="start">
+                                  {renderHoverDetails(appointment)}
+                                </HoverCardContent>
+                              </HoverCard>
                             );
                           })}
                         </div>
@@ -504,26 +574,32 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                       const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
 
                       return (
-                        <button
-                          key={appointment.id}
-                          type="button"
-                          onClick={() => setSelectedAppointmentId(appointment.id)}
-                          className="w-full flex items-center justify-between gap-3 rounded-md border bg-background p-2.5 sm:p-3 text-left hover:bg-muted/50 transition-colors"
-                          data-testid={`calendar-day-appointment-${appointment.id}`}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="font-semibold text-sm text-foreground shrink-0">
-                              {formatAppointmentTime(appointment.time)}
-                            </span>
-                            <span className="text-sm text-foreground truncate">{appointment.clientName}</span>
-                          </div>
-                          <Badge
-                            variant="secondary"
-                            className={`no-default-hover-elevate no-default-active-elevate shrink-0 ${statusInfo.color}`}
-                          >
-                            {isHe ? statusInfo.he : statusInfo.en}
-                          </Badge>
-                        </button>
+                        <HoverCard key={appointment.id} openDelay={200}>
+                          <HoverCardTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedAppointmentId(appointment.id)}
+                              className="w-full flex items-center justify-between gap-3 rounded-md border bg-background p-2.5 sm:p-3 text-left hover:bg-muted/50 transition-colors"
+                              data-testid={`calendar-day-appointment-${appointment.id}`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="font-semibold text-sm text-foreground shrink-0">
+                                  {formatAppointmentTime(appointment.time)}
+                                </span>
+                                <span className="text-sm text-foreground truncate">{appointment.clientName}</span>
+                              </div>
+                              <Badge
+                                variant="secondary"
+                                className={`no-default-hover-elevate no-default-active-elevate shrink-0 ${statusInfo.color}`}
+                              >
+                                {isHe ? statusInfo.he : statusInfo.en}
+                              </Badge>
+                            </button>
+                          </HoverCardTrigger>
+                          <HoverCardContent side="right" align="start">
+                            {renderHoverDetails(appointment)}
+                          </HoverCardContent>
+                        </HoverCard>
                       );
                     })
                   )}
@@ -538,6 +614,37 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
             </div>
 
             <div className="lg:order-1">
+            {listCollapsed && (
+              <button
+                type="button"
+                onClick={() => setListCollapsed(false)}
+                className="hidden lg:flex h-full min-h-[300px] w-full flex-col items-center justify-center gap-2 rounded-lg border bg-muted/20 hover:bg-muted/40 transition-colors"
+                title={isHe ? "הצג רשימת פגישות" : "Show appointments list"}
+                data-testid="button-expand-list"
+              >
+                {isRTL ? <ChevronLeft className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              </button>
+            )}
+            <div className={listCollapsed ? "lg:hidden" : undefined}>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <ListChecks className="h-4 w-4 text-primary shrink-0" />
+                <h3 className="font-semibold text-foreground text-sm sm:text-base">
+                  {isHe ? "רשימת פגישות" : "Appointments list"}
+                </h3>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 hidden lg:inline-flex"
+                onClick={() => setListCollapsed(true)}
+                title={isHe ? "הסתר רשימה" : "Collapse list"}
+                data-testid="button-collapse-list"
+              >
+                {isRTL ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              </Button>
+            </div>
             {visibleAppointments.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground" data-testid="empty-appointments">
                 <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -545,21 +652,28 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
               </div>
             ) : (
               <div className="space-y-3">
-                {visibleAppointments.map((appointment) => {
+                {visibleAppointments.map((appointment, index) => {
                   const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
 
               return (
                 <div
                   key={appointment.id}
-                  className="border rounded-lg p-4 space-y-3"
+                  className={cn("border rounded-lg p-4 space-y-3", index % 2 === 0 ? "bg-amber-50/70 dark:bg-amber-950/10" : "bg-background")}
                   data-testid={`appointment-${appointment.id}`}
                 >
                   <div className="flex items-center justify-between gap-4 flex-wrap">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium flex items-center gap-1">
-                        <User className="w-3.5 h-3.5 text-muted-foreground" />
-                        {appointment.clientName}
-                      </span>
+                      <HoverCard openDelay={200}>
+                        <HoverCardTrigger asChild>
+                          <span className="font-medium flex items-center gap-1 cursor-default" data-testid={`hover-appointment-${appointment.id}`}>
+                            <User className="w-3.5 h-3.5 text-muted-foreground" />
+                            {appointment.clientName}
+                          </span>
+                        </HoverCardTrigger>
+                        <HoverCardContent side="top" align="start">
+                          {renderHoverDetails(appointment)}
+                        </HoverCardContent>
+                      </HoverCard>
                       <Badge
                         variant="secondary"
                         className={`no-default-hover-elevate no-default-active-elevate ${statusInfo.color}`}
@@ -685,6 +799,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                 })}
               </div>
             )}
+            </div>
             </div>
           </div>
         )}

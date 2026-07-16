@@ -73,7 +73,7 @@ const QuestionnaireModal: React.FC<QuestionnaireModalProps> = ({ open, onOpenCha
   if (!open) return null;
   if (!config) {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" data-testid="questionnaire-modal-overlay">
+      <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4" data-testid="questionnaire-modal-overlay">
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => onOpenChange(false)} />
         <div className="relative z-10 bg-background rounded-xl p-8 text-center max-w-sm">
           <p className="mb-4">{isRTL ? "סוג שאלון לא תקין" : "Invalid questionnaire type"}</p>
@@ -201,7 +201,7 @@ const QuestionnaireModal: React.FC<QuestionnaireModalProps> = ({ open, onOpenCha
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4"
+      className="fixed inset-0 z-[10000] flex items-center justify-center p-2 sm:p-4"
       data-testid="questionnaire-modal-overlay"
     >
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
