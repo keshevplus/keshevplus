@@ -71,6 +71,10 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null)
   const [pendingStatusChange, setPendingStatusChange] = useState<{ id: number; from: string; to: string } | null>(null)
   const [listCollapsed, setListCollapsed] = useState(false)
+  const [rescheduleDate, setRescheduleDate] = useState("")
+  const [rescheduleTime, setRescheduleTime] = useState("")
+  const [rescheduleAvailableTimes, setRescheduleAvailableTimes] = useState<string[]>([])
+  const [noteText, setNoteText] = useState("")
 
   useEffect(() => {
     setFilter(initialFilter)
@@ -327,6 +331,79 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
   const selectedAppointment = selectedAppointmentId
     ? allAppointments.find((a) => a.id === selectedAppointmentId) || null
     : null;
+
+  useEffect(() => {
+    if (selectedAppointment) {
+      setRescheduleDate(selectedAppointment.date)
+      setRescheduleTime(selectedAppointment.time)
+      setNoteText("")
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAppointment?.id])
+
+  useEffect(() => {
+    if (!selectedAppointment || !rescheduleDate) {
+      setRescheduleAvailableTimes([])
+      return
+    }
+    let cancelled = false
+    const params = new URLSearchParams({ date: rescheduleDate, type: selectedAppointment.type })
+    fetch(`/api/appointments/availability?${params.toString()}`, { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { availableTimes?: string[] } | null) => {
+        if (cancelled || !data) return
+        let times = data.availableTimes || []
+        if (rescheduleDate === selectedAppointment.date && !times.includes(selectedAppointment.time)) {
+          times = [...times, selectedAppointment.time].sort()
+        }
+        setRescheduleAvailableTimes(times)
+        setRescheduleTime((current) => (times.includes(current) ? current : ""))
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rescheduleDate, selectedAppointment?.id, selectedAppointment?.type])
+
+  const rescheduleMutation = useMutation({
+    mutationFn: async ({ id, date, time }: { id: number; date: string; time: string }) => {
+      await apiRequest("PATCH", `/api/appointments/${id}/reschedule`, { date, time });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
+      toast({
+        title: isHe ? "התאריך עודכן" : "Date updated",
+        description: isHe ? "מועד הפגישה שונה בהצלחה." : "The appointment has been rescheduled successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: isHe ? "שגיאה" : "Error",
+        description: isHe ? "שינוי המועד נכשל. ייתכן שהשעה כבר תפוסה." : "Failed to reschedule. The time slot may already be booked.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const addNoteMutation = useMutation({
+    mutationFn: async ({ id, note }: { id: number; note: string }) => {
+      await apiRequest("POST", `/api/appointments/${id}/note`, { note });
+    },
+    onSuccess: () => {
+      setNoteText("")
+      toast({
+        title: isHe ? "ההערה נוספה" : "Note added",
+        description: isHe ? "ההערה נוספה ליומן הפעילות של הליד/לקוח." : "The note was added to the lead/client's activity log.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: isHe ? "שגיאה" : "Error",
+        description: isHe ? "הוספת ההערה נכשלה." : "Failed to add the note.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const visibleAppointments = useMemo(() => {
     const filtered = filter === 'new'
@@ -808,13 +885,14 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
       </CardContent>
 
       <Dialog open={!!selectedAppointment} onOpenChange={(open) => !open && setSelectedAppointmentId(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md" dir={isHe ? "rtl" : "ltr"}>
           {selectedAppointment && (() => {
             const statusInfo = STATUS_CONFIG[selectedAppointment.status] || STATUS_CONFIG.pending;
+            const rescheduleUnchanged = rescheduleDate === selectedAppointment.date && rescheduleTime === selectedAppointment.time;
 
             return (
               <>
-                <DialogHeader>
+                <DialogHeader className="text-center sm:text-start">
                   <DialogTitle className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
                     {selectedAppointment.clientName}
@@ -831,7 +909,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                   </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <Select
                       value={selectedAppointment.status}
@@ -882,6 +960,71 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                   <Badge variant="outline" className="no-default-hover-elevate no-default-active-elevate">
                     {selectedAppointment.type}
                   </Badge>
+
+                  <div className="space-y-2 border-t pt-3">
+                    <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                      <CalendarClock className="h-3.5 w-3.5" />
+                      {isHe ? "שינוי תאריך ושעה" : "Reschedule"}
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="date"
+                        value={rescheduleDate}
+                        min={getLocalDateInputValue()}
+                        onChange={(e) => setRescheduleDate(e.target.value)}
+                        className="h-8 flex-1 min-w-0 rounded-md border bg-background px-2 text-xs"
+                        data-testid="input-reschedule-date"
+                      />
+                      <Select value={rescheduleTime} onValueChange={setRescheduleTime}>
+                        <SelectTrigger className="h-8 text-xs w-[110px] shrink-0" data-testid="select-reschedule-time">
+                          <SelectValue placeholder={isHe ? "שעה" : "Time"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {rescheduleAvailableTimes.map((t) => (
+                            <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {rescheduleDate && rescheduleAvailableTimes.length === 0 && (
+                      <p className="text-xs text-destructive">
+                        {isHe ? "אין שעות פנויות בתאריך זה עבור סוג פגישה זה." : "No available times on this date for this appointment type."}
+                      </p>
+                    )}
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      disabled={rescheduleMutation.isPending || !rescheduleDate || !rescheduleTime || rescheduleUnchanged}
+                      onClick={() => rescheduleMutation.mutate({ id: selectedAppointment.id, date: rescheduleDate, time: rescheduleTime })}
+                      data-testid="button-save-reschedule"
+                    >
+                      {isHe ? "שמירת מועד חדש" : "Save new date"}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2 border-t pt-3">
+                    <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                      <StickyNote className="h-3.5 w-3.5" />
+                      {isHe ? "הוספת הערה" : "Add a note"}
+                    </Label>
+                    <Textarea
+                      value={noteText}
+                      onChange={(e) => setNoteText(e.target.value)}
+                      placeholder={isHe ? "ההערה תתווסף ליומן הפעילות של הליד/לקוח" : "This note will be added to the lead/client's activity log"}
+                      className="text-xs min-h-[60px]"
+                      data-testid="textarea-appointment-note"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      disabled={addNoteMutation.isPending || !noteText.trim()}
+                      onClick={() => addNoteMutation.mutate({ id: selectedAppointment.id, note: noteText.trim() })}
+                      data-testid="button-add-appointment-note"
+                    >
+                      {isHe ? "הוספת הערה" : "Add note"}
+                    </Button>
+                  </div>
                 </div>
               </>
             );
