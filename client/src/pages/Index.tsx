@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import MedicalHero from "@/components/MedicalHero";
 import StickySectionTitle from "@/components/StickySectionTitle";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -16,6 +16,23 @@ function SectionFallback() {
 
 const Index = () => {
   const { isRTL } = useLanguage();
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) return;
+    const id = hash.slice(1);
+    let attempts = 0;
+    const tryScroll = () => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else if (attempts < 20) {
+        attempts++;
+        setTimeout(tryScroll, 100);
+      }
+    };
+    tryScroll();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden w-full">
