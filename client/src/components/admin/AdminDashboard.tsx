@@ -10,7 +10,18 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarTrigger,
+} from '@/components/ui/sidebar'
 import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye, Phone, UserCog, Archive } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useQuery } from '@tanstack/react-query'
@@ -30,6 +41,7 @@ import UsersManager from './UsersManager'
 import BinManager from './BinManager'
 import VisualEditor from './VisualEditor'
 import WhatsAppManager from './WhatsAppManager'
+import OverviewWidgetGrid from './OverviewWidgetGrid'
 
 const languageCodeClass = "inline-flex w-6 shrink-0 justify-center font-sans text-sm font-semibold leading-none text-muted-foreground"
 const languageNameClass = "font-sans text-sm leading-none"
@@ -207,23 +219,25 @@ const AdminDashboard = () => {
   }
 
   const tabs = [
-    { value: 'overview', icon: BarChart3, he: 'סקירה כללית', en: 'Overview' },
-    { value: 'contacts', icon: Inbox, he: 'פניות באתר', en: 'Contacts' },
-    { value: 'appointments', icon: Calendar, he: 'פגישות', en: 'Appointments' },
-    { value: 'clients', icon: Users, he: 'לידים ולקוחות', en: 'Leads & Clients' },
-    { value: 'conversations', icon: MessageCircle, he: 'שיחות צ׳אט', en: 'Conversations' },
-    { value: 'whatsapp', icon: Phone, he: 'וואטסאפ', en: 'WhatsApp' },
-    { value: 'questionnaires', icon: ClipboardList, he: 'שאלונים', en: 'Questionnaires' },
-    { value: 'visual-editor', icon: Eye, he: 'עורך ויזואלי', en: 'Visual Editor' },
-    { value: 'translations', icon: Languages, he: 'תרגומים', en: 'Translations' },
-    { value: 'settings', icon: Settings, he: 'הגדרות', en: 'Settings' },
+    { value: 'overview', icon: BarChart3, he: 'סקירה כללית', en: 'Overview', heDesc: '', enDesc: '' },
+    { value: 'contacts', icon: Inbox, he: 'פניות באתר', en: 'Contacts', heDesc: 'צפייה בפניות מהאתר', enDesc: 'View contact submissions' },
+    { value: 'appointments', icon: Calendar, he: 'פגישות', en: 'Appointments', heDesc: 'צפייה וניהול פגישות', enDesc: 'View & manage appointments' },
+    { value: 'clients', icon: Users, he: 'לידים ולקוחות', en: 'Leads & Clients', heDesc: 'ניהול לידים ולקוחות', enDesc: 'Manage leads & clients' },
+    { value: 'conversations', icon: MessageCircle, he: 'שיחות צ׳אט', en: 'Conversations', heDesc: 'צפייה בשיחות צ׳אט', enDesc: 'View chat conversations' },
+    { value: 'whatsapp', icon: Phone, he: 'וואטסאפ', en: 'WhatsApp', heDesc: 'צפייה בשיחות וואטסאפ', enDesc: 'View WhatsApp conversations' },
+    { value: 'questionnaires', icon: ClipboardList, he: 'שאלונים', en: 'Questionnaires', heDesc: 'צפייה בהגשות שאלונים', enDesc: 'View questionnaire submissions' },
+    { value: 'visual-editor', icon: Eye, he: 'עורך ויזואלי', en: 'Visual Editor', heDesc: 'עריכת תוכן העמודים באתר', enDesc: 'Edit site page content visually' },
+    { value: 'translations', icon: Languages, he: 'תרגומים', en: 'Translations', heDesc: 'ניהול תרגומים לאתר', enDesc: 'Manage site translations' },
+    { value: 'settings', icon: Settings, he: 'הגדרות', en: 'Settings', heDesc: 'שפה והתראות', enDesc: 'Language & notifications' },
     ...(user?.email === 'dr@keshevplus.co.il'
       ? [
-          { value: 'users', icon: UserCog, he: 'משתמשים', en: 'Users' },
-          { value: 'bin', icon: Archive, he: 'סל מיחזור', en: 'Recycle Bin' },
+          { value: 'users', icon: UserCog, he: 'משתמשים', en: 'Users', heDesc: 'ניהול משתמשי מערכת', enDesc: 'Manage system users' },
+          { value: 'bin', icon: Archive, he: 'סל מיחזור', en: 'Recycle Bin', heDesc: 'פריטים שנמחקו', enDesc: 'Deleted items' },
         ]
       : []),
   ]
+
+  const overviewWidgets = tabs.filter(tab => !['overview', 'users', 'bin'].includes(tab.value))
 
   const previousTabRef = useRef(activeTab)
 
