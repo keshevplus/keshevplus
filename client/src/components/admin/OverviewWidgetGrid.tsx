@@ -134,17 +134,17 @@ const OverviewWidgetGrid = ({ widgets, badgeMap, onNavigate }: OverviewWidgetGri
   const [addPopoverOpen, setAddPopoverOpen] = useState(false)
 
   useEffect(() => {
-    console.log('[DEBUG] mount effect firing, mount time', Date.now())
+    let cancelled = false
     fetch(LAYOUT_ENDPOINT, { credentials: 'include' })
       .then(res => (res.ok ? res.json() : null))
       .then((data: { widgets?: string[] } | null) => {
-        console.log('[DEBUG] GET resolved', Date.now(), data)
-        if (!data?.widgets) return
+        if (cancelled || !data?.widgets) return
         const saved = data.widgets.filter(id => catalogIds.includes(id))
         const missing = catalogIds.filter(id => !saved.includes(id))
         setOrder([...saved, ...missing])
       })
       .catch(() => {})
+    return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -177,7 +177,6 @@ const OverviewWidgetGrid = ({ widgets, badgeMap, onNavigate }: OverviewWidgetGri
   }
 
   const handleDone = async () => {
-    console.log('[DEBUG] handleDone firing, order=', order, Date.now())
     setIsEditing(false)
     try {
       await fetch(LAYOUT_ENDPOINT, {
