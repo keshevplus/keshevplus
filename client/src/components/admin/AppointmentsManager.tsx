@@ -5,6 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ToastAction } from "@/components/ui/toast";
 import { Calendar, ChevronLeft, ChevronRight, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
@@ -55,6 +66,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
     return new Date(now.getFullYear(), now.getMonth(), now.getDate());
   })
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null)
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ id: number; from: string; to: string } | null>(null)
 
   useEffect(() => {
     setFilter(initialFilter)
@@ -75,15 +87,24 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
   }, [allAppointments, filter]);
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+    mutationFn: async ({ id, status }: { id: number; status: string; previousStatus?: string }) => {
       await apiRequest("PATCH", `/api/appointments/${id}/status`, { status });
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
       queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
+      const { id, status, previousStatus } = variables;
       toast({
         title: isHe ? "הסטטוס עודכן" : "Status updated",
         description: isHe ? "סטטוס הפגישה עודכן בהצלחה." : "Appointment status has been updated successfully.",
+        action: previousStatus && previousStatus !== status ? (
+          <ToastAction
+            altText={isHe ? "בטל שינוי" : "Undo change"}
+            onClick={() => updateStatus.mutate({ id, status: previousStatus, previousStatus: status })}
+          >
+            {isHe ? "בטל" : "Undo"}
+          </ToastAction>
+        ) : undefined,
       });
     },
     onError: () => {
@@ -94,6 +115,17 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
       });
     },
   });
+
+  const requestStatusChange = (appointment: Appointment, to: string) => {
+    if (to === appointment.status) return;
+    setPendingStatusChange({ id: appointment.id, from: appointment.status, to });
+  };
+
+  const confirmStatusChange = () => {
+    if (!pendingStatusChange) return;
+    updateStatus.mutate({ id: pendingStatusChange.id, status: pendingStatusChange.to, previousStatus: pendingStatusChange.from });
+    setPendingStatusChange(null);
+  };
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -537,9 +569,9 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                       </Badge>
                     </div>
                     <div className="flex items-center gap-1 flex-wrap">
-                      <Select 
-                        value={appointment.status} 
-                        onValueChange={(status) => updateStatus.mutate({ id: appointment.id, status })}
+                      <Select
+                        value={appointment.status}
+                        onValueChange={(status) => requestStatusChange(appointment, status)}
                       >
                         <SelectTrigger className="h-8 text-xs w-[110px]">
                           <SelectValue />
@@ -686,7 +718,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                   <div className="flex items-center gap-2">
                     <Select
                       value={selectedAppointment.status}
-                      onValueChange={(status) => updateStatus.mutate({ id: selectedAppointment.id, status })}
+                      onValueChange={(status) => requestStatusChange(selectedAppointment, status)}
                     >
                       <SelectTrigger className="h-8 text-xs w-[130px]" data-testid="select-appointment-status-dialog">
                         <SelectValue />
@@ -739,6 +771,27 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
           })()}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!pendingStatusChange} onOpenChange={(open) => !open && setPendingStatusChange(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{isHe ? "שינוי סטטוס פגישה" : "Change appointment status"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingStatusChange && (
+                isHe
+                  ? `הסטטוס ישונה מ"${STATUS_CONFIG[pendingStatusChange.from]?.he ?? pendingStatusChange.from}" ל"${STATUS_CONFIG[pendingStatusChange.to]?.he ?? pendingStatusChange.to}". להמשיך?`
+                  : `The status will change from "${STATUS_CONFIG[pendingStatusChange.from]?.en ?? pendingStatusChange.from}" to "${STATUS_CONFIG[pendingStatusChange.to]?.en ?? pendingStatusChange.to}". Continue?`
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-status-change">{isHe ? "ביטול" : "Cancel"}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmStatusChange} data-testid="button-confirm-status-change">
+              {isHe ? "אישור" : "Confirm"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
