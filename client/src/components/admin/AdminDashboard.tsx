@@ -37,6 +37,7 @@ import ContactsManager from './ContactsManager'
 import ConversationsManager from './ConversationsManager'
 import EmailNotificationSettings from './EmailNotificationSettings'
 import AppointmentHoursSettings from './AppointmentHoursSettings'
+import LeadSearchBar from './LeadSearchBar'
 import ChangePasswordSettings from './ChangePasswordSettings'
 import UsersManager from './UsersManager'
 import BinManager from './BinManager'
@@ -467,6 +468,7 @@ const AdminDashboard = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} dir={isHe ? 'rtl' : 'ltr'}>
 
           <TabsContent value="overview" className="space-y-6 mt-0">
+            <LeadSearchBar onSelectClient={openLead} />
             <OverviewWidgetGrid widgets={overviewWidgets} badgeMap={tabBadgeMap} onNavigate={setActiveTab} />
           </TabsContent>
 

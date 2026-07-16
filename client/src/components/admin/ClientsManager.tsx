@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Plus, Save, ChevronDown, ChevronUp, Phone, Mail, StickyNote, PhoneCall, Calendar, DollarSign, MailOpen, MessageCircle, FileText, ClipboardList, UserCheck, ArrowRightLeft, Trash2, Filter, ArrowUpDown } from "lucide-react";
+import { Users, Plus, Save, ChevronDown, ChevronUp, Phone, Mail, StickyNote, PhoneCall, Calendar, DollarSign, MailOpen, MessageCircle, FileText, ClipboardList, UserCheck, ArrowRightLeft, Trash2, Filter, ArrowUpDown, Search } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -122,6 +122,7 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
   const [selectMode, setSelectMode] = useState(false);
   const [clientSortBy, setClientSortBy] = useState<ClientSortBy>('date-desc');
   const [clientTypeFilter, setClientTypeFilter] = useState<ClientTypeFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -187,6 +188,8 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
     if (!focusClientId || clients.length === 0) return;
     const client = clients.find((item) => item.id === focusClientId);
     if (!client) return;
+    setSearchQuery("");
+    setClientTypeFilter("all");
     setExpandedClientId(client.id);
     setEditNotes(client.notes || "");
     setEditDob(client.dateOfBirth || "");
@@ -444,6 +447,18 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
 
   const visibleClients = useMemo(() => {
     let result = clients;
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      const qDigits = q.replace(/\D/g, '');
+      result = result.filter((client) => {
+        if (client.name?.toLowerCase().includes(q)) return true;
+        if (client.email?.toLowerCase().includes(q)) return true;
+        if (qDigits && client.phone?.replace(/\D/g, '').includes(qDigits)) return true;
+        if (client.leadNumber != null && String(client.leadNumber).includes(q)) return true;
+        if (client.clientNumber != null && String(client.clientNumber).includes(q)) return true;
+        return false;
+      });
+    }
     if (clientTypeFilter !== 'all') {
       result = result.filter((client) => {
         const inter = clientInteractionsMap[client.id];
@@ -464,7 +479,7 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
       sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
     return sorted;
-  }, [clients, clientInteractionsMap, clientTypeFilter, clientSortBy, isHe]);
+  }, [clients, clientInteractionsMap, clientTypeFilter, clientSortBy, searchQuery, isHe]);
 
   const renderInteractionItem = (gi: GroupedInteraction) => {
     const config = INTERACTION_CONFIG[gi.type];
@@ -670,6 +685,18 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
           </div>
         </div>
         <CardDescription>{isHe ? "מבקרים שהשאירו פרטים נרשמים כלידים. המרה ללקוח מתבצעת ידנית." : "Visitors who leave details are registered as leads. Conversion to client is done manually."}</CardDescription>
+        {clients.length > 0 && (
+          <div className="relative mt-2">
+            <Search className="absolute start-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={isHe ? "חיפוש לפי שם, אימייל, טלפון, מספר ליד או מספר לקוח" : "Search by name, email, phone, lead # or client #"}
+              className="ps-8 h-9"
+              data-testid="input-search-clients"
+            />
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {showAddForm && (
