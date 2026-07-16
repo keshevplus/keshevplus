@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   ArrowLeft, ArrowRight, Mail, Phone, StickyNote, PhoneCall, Calendar, DollarSign, MailOpen,
   MessageCircle, FileText, ClipboardList, UserCheck, ArrowRightLeft, Save, Plus, ChevronDown, ChevronUp,
+  XCircle, Filter,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +54,8 @@ const ACTIVITY_TYPES: Record<string, { he: string; en: string; color: string; ic
   meeting: { he: "פגישה", en: "Meeting", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300", icon: Calendar },
   sale: { he: "מכירה", en: "Sale", color: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300", icon: DollarSign },
   email: { he: 'דוא"ל', en: "Email", color: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300", icon: MailOpen },
+  appointment: { he: "פגישה נקבעה", en: "Appointment booked", color: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300", icon: Calendar },
+  cancellation: { he: "ביטול פגישה", en: "Appointment cancelled", color: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300", icon: XCircle },
 };
 
 const SOURCE_LABELS: Record<string, { he: string; en: string }> = {
@@ -107,6 +110,7 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
   const [editGender, setEditGender] = useState("");
   const [editIsDiagnosed, setEditIsDiagnosed] = useState("");
   const [activityLogExpanded, setActivityLogExpanded] = useState(false);
+  const [activityFilter, setActivityFilter] = useState<string>("all");
 
   const fetchClient = async () => {
     try {
@@ -162,6 +166,7 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
     setLoading(true);
     setShowMoreDetails(false);
     setActivityLogExpanded(false);
+    setActivityFilter("all");
     fetchClient();
     fetchActivities();
     fetchInteractions();
@@ -357,6 +362,7 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
   };
 
   const BackIcon = isRTL ? ArrowRight : ArrowLeft;
+  const filteredActivities = activityFilter === "all" ? activities : activities.filter((a) => a.type === activityFilter);
 
   return (
     <div className="space-y-4">
@@ -506,17 +512,39 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
 
           <Card>
             <CardContent className="pt-6 space-y-2">
-              <h4 className="text-sm font-semibold">{isHe ? "יומן פעילות" : "Activity Log"}</h4>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <h4 className="text-sm font-semibold">{isHe ? "יומן פעילות" : "Activity Log"}</h4>
+                {activities.length > 0 && (
+                  <Select value={activityFilter} onValueChange={setActivityFilter}>
+                    <SelectTrigger className="w-[160px] h-8 text-xs" data-testid="select-activity-filter">
+                      <div className="flex items-center gap-1.5">
+                        <Filter className="h-3.5 w-3.5" />
+                        <SelectValue />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{isHe ? "כל הסוגים" : "All types"}</SelectItem>
+                      {Object.entries(ACTIVITY_TYPES).map(([key, val]) => (
+                        <SelectItem key={key} value={key}>{isHe ? val.he : val.en}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
               {activitiesLoading ? (
                 <div className="flex items-center justify-center py-4">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
                 </div>
-              ) : activities.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-2" data-testid="empty-activities">{isHe ? "אין פעילויות עדיין" : "No activities yet"}</p>
+              ) : filteredActivities.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2" data-testid="empty-activities">
+                  {activities.length === 0
+                    ? (isHe ? "אין פעילויות עדיין" : "No activities yet")
+                    : (isHe ? "אין פעילויות מהסוג שנבחר" : "No activities of this type")}
+                </p>
               ) : (
                 <div className={cn("rounded-xl border border-muted/40 bg-muted/10 p-2 shadow-sm", activityLogExpanded && "max-h-[400px] overflow-y-auto")}>
                   <div className="space-y-2">
-                    {(activityLogExpanded ? activities : activities.slice(0, 3)).map((activity) => {
+                    {(activityLogExpanded ? filteredActivities : filteredActivities.slice(0, 3)).map((activity) => {
                       const typeInfo = ACTIVITY_TYPES[activity.type] || ACTIVITY_TYPES.note;
                       const TypeIcon = typeInfo.icon;
                       return (
@@ -535,9 +563,9 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
                   </div>
                 </div>
               )}
-              {activities.length > 3 && (
+              {filteredActivities.length > 3 && (
                 <button type="button" onClick={() => setActivityLogExpanded(!activityLogExpanded)} className="text-xs text-primary hover:underline" data-testid="button-toggle-activity-log">
-                  {activityLogExpanded ? (isHe ? "הצג פחות" : "Show less") : (isHe ? `הצג עוד (${activities.length - 3})` : `Show more (${activities.length - 3})`)}
+                  {activityLogExpanded ? (isHe ? "הצג פחות" : "Show less") : (isHe ? `הצג עוד (${filteredActivities.length - 3})` : `Show more (${filteredActivities.length - 3})`)}
                 </button>
               )}
             </CardContent>

@@ -6,11 +6,24 @@ import {
   APPOINTMENT_TIME_SLOTS,
   APPOINTMENT_WORKING_HOURS_EN,
   APPOINTMENT_WORKING_HOURS_HE,
+  APPOINTMENT_TYPES,
   isAppointmentDateStringWorkingDay,
   isAppointmentTimeSlotForType,
   getTimeSlotsForType,
   type AppointmentTypeHoursConfig,
 } from "@shared/appointmentSchedule";
+
+function getAppointmentTypeLabelHe(type: string) {
+  return APPOINTMENT_TYPES.find((t) => t.value === type)?.he ?? type;
+}
+
+const CANCEL_CONTACT_METHOD_LABELS_HE: Record<string, string> = {
+  phone: "שיחת טלפון",
+  whatsapp: "הודעת WhatsApp",
+  email: "אימייל",
+  in_person: "הגעה אישית",
+  other: "אחר",
+};
 import crypto from "crypto";
 import { z } from "zod";
 import nodemailer from "nodemailer";
@@ -1726,12 +1739,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        await storage.upsertClientByEmail({
+        const client = await storage.upsertClientByEmail({
           name: result.data.clientName,
           email: result.data.clientEmail,
           phone: result.data.clientPhone,
           source: 'appointment',
           childName: childName || undefined,
+        });
+        await storage.createClientActivity({
+          clientId: client.id,
+          type: "appointment",
+          description: `נקבעה פגישה מסוג ${getAppointmentTypeLabelHe(result.data.type)} לתאריך ${result.data.date} בשעה ${result.data.time}`,
+          metadata: { source: "appointment_booked" },
         });
       } catch (e) { console.error("Auto-register client error:", e); }
 
@@ -1783,12 +1802,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const { status } = req.body;
+      const { status, contactMethod } = req.body;
       if (!status || !APPOINTMENT_STATUSES.includes(status)) {
         return res.status(400).json({ error: "Invalid status" });
       }
+      const existing = await storage.getAppointment(id);
       const updated = await storage.updateAppointmentStatus(id, status);
       if (!updated) return res.status(404).json({ error: "Appointment not found" });
+
+      if (status === "cancelled" && existing && existing.status !== "cancelled") {
+        try {
+          const client = await storage.getClientByEmail(existing.clientEmail);
+          if (client) {
+            const methodLabel = CANCEL_CONTACT_METHOD_LABELS_HE[contactMethod] ?? contactMethod ?? "לא צוין";
+            await storage.createClientActivity({
+              clientId: client.id,
+              type: "cancellation",
+              description: `הפגישה מסוג ${getAppointmentTypeLabelHe(existing.type)} בתאריך ${existing.date} בוטלה. דרך יצירת קשר לביטול: ${methodLabel}`,
+              metadata: { source: "appointment_cancelled", appointmentId: id, contactMethod: contactMethod ?? null },
+            });
+          }
+        } catch (e) { console.error("Cancellation activity log error:", e); }
+      }
+
       return res.json(updated);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update appointment" });

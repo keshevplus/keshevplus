@@ -33,6 +33,7 @@ import TranslationManager from './TranslationManager'
 import QuestionnaireSubmissions from './QuestionnaireSubmissions'
 import AppointmentsManager from './AppointmentsManager'
 import ClientsManager from './ClientsManager'
+import ClientDetailPage from './ClientDetailPage'
 import ContactsManager from './ContactsManager'
 import ConversationsManager from './ConversationsManager'
 import EmailNotificationSettings from './EmailNotificationSettings'
@@ -67,7 +68,7 @@ const AdminDashboard = () => {
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
-  const [focusedClientId, setFocusedClientId] = useState<number | null>(null)
+  const [detailClientId, setDetailClientId] = useState<number | null>(null)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [tabInitialFilters, setTabInitialFilters] = useState<
     Partial<Record<FilterableTab, 'all' | 'new'>>
@@ -98,8 +99,7 @@ const AdminDashboard = () => {
   const leadBadgeCount = badgeCounts?.newLeads ?? 0
   const newLeadItems = badgeCounts?.newLeadItems ?? []
   const openLead = (clientId: number) => {
-    setFocusedClientId(clientId)
-    setActiveTab('clients')
+    setDetailClientId(clientId)
   }
 
   const openFromNotification = (tab: FilterableTab) => {
@@ -465,6 +465,9 @@ const AdminDashboard = () => {
       </header>
 
       <main className="px-4 sm:px-6 lg:px-8 py-6">
+        {detailClientId != null ? (
+          <ClientDetailPage clientId={detailClientId} onBack={() => setDetailClientId(null)} />
+        ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} dir={isHe ? 'rtl' : 'ltr'}>
 
           <TabsContent value="overview" className="space-y-6 mt-0">
@@ -477,11 +480,11 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="appointments" className="mt-0">
-            <AppointmentsManager initialFilter={tabInitialFilters.appointments ?? 'all'} />
+            <AppointmentsManager initialFilter={tabInitialFilters.appointments ?? 'all'} onOpenClient={setDetailClientId} />
           </TabsContent>
 
           <TabsContent value="clients" className="mt-0">
-            <ClientsManager focusClientId={focusedClientId} onFocusHandled={() => setFocusedClientId(null)} />
+            <ClientsManager onOpenClient={setDetailClientId} />
           </TabsContent>
 
           <TabsContent value="conversations" className="mt-0">
@@ -652,6 +655,7 @@ const AdminDashboard = () => {
             </>
           )}
         </Tabs>
+        )}
       </main>
       </SidebarInset>
     </SidebarProvider>

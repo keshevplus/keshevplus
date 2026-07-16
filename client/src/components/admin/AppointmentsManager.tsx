@@ -19,14 +19,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ToastAction } from "@/components/ui/toast";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Calendar, CalendarClock, ChevronLeft, ChevronRight, ChevronsLeftRight, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare, ListChecks, StickyNote, ArrowUpDown } from "lucide-react";
+import { Calendar, CalendarClock, ChevronLeft, ChevronRight, ChevronsLeftRight, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare, ListChecks, StickyNote, ArrowUpDown, Tag, IdCard, ExternalLink } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { getLocalDateInputValue, isAppointmentWorkingDay, APPOINTMENT_TYPES } from "@shared/appointmentSchedule";
-import type { Appointment } from "@shared/schema";
+import type { Appointment, Client } from "@shared/schema";
 
 const weekDaysHe = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
 const weekDaysEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -43,6 +43,40 @@ const STATUS_CONFIG: Record<string, { he: string; en: string; color: string }> =
   cancelled: { he: "בוטלה", en: "Cancelled", color: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
   completed: { he: "הושלמה", en: "Completed", color: "bg-green-100 text-green-900 dark:bg-green-900/50 dark:text-green-100 font-semibold" },
 };
+
+function getAppointmentTypeLabel(type: string, isHe: boolean) {
+  const found = APPOINTMENT_TYPES.find((t) => t.value === type);
+  return found ? (isHe ? found.he : found.en) : type;
+}
+
+function resolveClientForAppointment(appointment: Appointment, clients: Client[]): Client | null {
+  const email = appointment.clientEmail?.trim().toLowerCase();
+  if (email) {
+    const byEmail = clients.find((c) => c.email?.trim().toLowerCase() === email);
+    if (byEmail) return byEmail;
+  }
+  const phoneDigits = appointment.clientPhone?.replace(/\D/g, '');
+  if (phoneDigits) {
+    const byPhone = clients.find((c) => c.phone?.replace(/\D/g, '') === phoneDigits);
+    if (byPhone) return byPhone;
+  }
+  return null;
+}
+
+function getClientIdLabel(client: Client | null, isHe: boolean) {
+  if (!client) return null;
+  return client.status === 'client'
+    ? `${isHe ? "לקוח" : "Client"} #${client.clientNumber ?? client.id}`
+    : `${isHe ? "ליד" : "Lead"} #${client.leadNumber ?? client.id}`;
+}
+
+const CANCEL_CONTACT_METHODS: { value: string; he: string; en: string }[] = [
+  { value: 'phone', he: 'שיחת טלפון', en: 'Phone call' },
+  { value: 'whatsapp', he: 'הודעת WhatsApp', en: 'WhatsApp message' },
+  { value: 'email', he: 'אימייל', en: 'Email' },
+  { value: 'in_person', he: 'הגעה אישית', en: 'In person' },
+  { value: 'other', he: 'אחר', en: 'Other' },
+];
 
 function getAppointmentNameClassName(status: string) {
   switch (status) {
@@ -72,9 +106,10 @@ const CALENDAR_VIEW_OPTIONS: { value: CalendarViewMode; he: string; en: string }
 
 interface AppointmentsManagerProps {
   initialFilter?: 'all' | 'new'
+  onOpenClient?: (clientId: number) => void
 }
 
-const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps) => {
+const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: AppointmentsManagerProps) => {
   const { language, isRTL } = useLanguage();
   const isHe = language === "he";
   const { toast } = useToast();
@@ -96,6 +131,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
   const [rescheduleTime, setRescheduleTime] = useState("")
   const [rescheduleAvailableTimes, setRescheduleAvailableTimes] = useState<string[]>([])
   const [noteText, setNoteText] = useState("")
+  const [cancelContactMethod, setCancelContactMethod] = useState("")
 
   useEffect(() => {
     setFilter(initialFilter)
@@ -103,6 +139,10 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
 
   const { data: allAppointments = [], isLoading } = useQuery<Appointment[]>({
     queryKey: ["/api/appointments"],
+  });
+
+  const { data: clients = [] } = useQuery<Client[]>({
+    queryKey: ["/api/clients"],
   });
 
   const appointments = useMemo(() => {
@@ -115,8 +155,8 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
   }, [allAppointments, filter, typeFilter]);
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: number; status: string; previousStatus?: string }) => {
-      await apiRequest("PATCH", `/api/appointments/${id}/status`, { status });
+    mutationFn: async ({ id, status, contactMethod }: { id: number; status: string; previousStatus?: string; contactMethod?: string }) => {
+      await apiRequest("PATCH", `/api/appointments/${id}/status`, { status, contactMethod });
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
@@ -146,13 +186,21 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
 
   const requestStatusChange = (appointment: Appointment, to: string) => {
     if (to === appointment.status) return;
+    setCancelContactMethod("");
     setPendingStatusChange({ id: appointment.id, from: appointment.status, to });
   };
 
   const confirmStatusChange = () => {
     if (!pendingStatusChange) return;
-    updateStatus.mutate({ id: pendingStatusChange.id, status: pendingStatusChange.to, previousStatus: pendingStatusChange.from });
+    if (pendingStatusChange.to === 'cancelled' && !cancelContactMethod) return;
+    updateStatus.mutate({
+      id: pendingStatusChange.id,
+      status: pendingStatusChange.to,
+      previousStatus: pendingStatusChange.from,
+      contactMethod: pendingStatusChange.to === 'cancelled' ? cancelContactMethod : undefined,
+    });
     setPendingStatusChange(null);
+    setCancelContactMethod("");
   };
 
   const deleteMutation = useMutation({
@@ -208,6 +256,8 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
   const renderHoverDetails = (appointment: Appointment) => {
     const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
     const isForChild = (appointment as any).appointmentFor === "child";
+    const matchedClient = resolveClientForAppointment(appointment, clients);
+    const idLabel = getClientIdLabel(matchedClient, isHe);
 
     return (
       <div className="space-y-1.5 text-sm">
@@ -223,11 +273,18 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
             {isHe ? statusInfo.he : statusInfo.en}
           </Badge>
         </div>
+        <div className="text-xs font-medium flex items-center gap-1" data-testid={`text-appointment-id-${appointment.id}`}>
+          <IdCard className="h-3 w-3 shrink-0 text-muted-foreground" />
+          {idLabel ?? (isHe ? "לא משויך לליד/לקוח" : "Not linked to a lead/client")}
+        </div>
         <div className="text-xs text-muted-foreground flex items-center gap-1">
           <Calendar className="h-3 w-3 shrink-0" />
           {formatAppointmentDate(appointment.date)} · {formatAppointmentTime(appointment.time)}
         </div>
-        <div className="text-xs text-muted-foreground">{appointment.type}</div>
+        <div className="text-xs text-muted-foreground flex items-center gap-1">
+          <Tag className="h-3 w-3 shrink-0" />
+          {isHe ? "סוג פגישה" : "Appointment type"}: {getAppointmentTypeLabel(appointment.type, isHe)}
+        </div>
         {appointment.clientPhone && (
           <div className="text-xs text-muted-foreground flex items-center gap-1">
             <Phone className="h-3 w-3 shrink-0" />
@@ -269,12 +326,14 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
   };
 
   const appointmentsByDate = useMemo(() => {
-    return allAppointments.reduce<Record<string, Appointment[]>>((groups, appointment) => {
-      const key = appointment.date;
-      groups[key] = groups[key] || [];
-      groups[key].push(appointment);
-      return groups;
-    }, {});
+    return allAppointments
+      .filter((appointment) => appointment.status !== 'cancelled')
+      .reduce<Record<string, Appointment[]>>((groups, appointment) => {
+        const key = appointment.date;
+        groups[key] = groups[key] || [];
+        groups[key].push(appointment);
+        return groups;
+      }, {});
   }, [allAppointments]);
 
   const periodLabel = useMemo(() => {
@@ -484,59 +543,9 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>{isHe ? "ניהול פגישות" : "Appointment Manager"}</CardTitle>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value)}>
-              <SelectTrigger className="w-[150px] h-8 text-xs" data-testid="select-appointment-type-filter">
-                <div className="flex items-center gap-1.5">
-                  <ListChecks className="h-3.5 w-3.5" />
-                  <SelectValue placeholder={isHe ? "סוג" : "Type"} />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{isHe ? "כל הסוגים" : "All types"}</SelectItem>
-                {APPOINTMENT_TYPES.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>{isHe ? t.he : t.en}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={filter} onValueChange={(value) => setFilter(value as AppointmentFilter)}>
-              <SelectTrigger className="w-[150px] h-8 text-xs" data-testid="select-appointment-filter">
-                <div className="flex items-center gap-1.5">
-                  <Filter className="h-3.5 w-3.5" />
-                  <SelectValue placeholder={isHe ? "סינון" : "Filter"} />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{isHe ? "הכל" : "All"}</SelectItem>
-                <SelectItem value="new">{isHe ? "חדשות בלבד" : "New only"}</SelectItem>
-                {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                  <SelectItem key={key} value={key}>{isHe ? config.he : config.en}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={sortBy} onValueChange={(value) => setSortBy(value as AppointmentSortBy)}>
-              <SelectTrigger className="w-[170px] h-8 text-xs" data-testid="select-appointment-sort">
-                <div className="flex items-center gap-1.5">
-                  <ArrowUpDown className="h-3.5 w-3.5" />
-                  <SelectValue placeholder={isHe ? "מיון" : "Sort"} />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="date-asc">{isHe ? "תאריך פגישה (קרוב תחילה)" : "Appt. date (soonest)"}</SelectItem>
-                <SelectItem value="date-desc">{isHe ? "תאריך פגישה (רחוק תחילה)" : "Appt. date (latest)"}</SelectItem>
-                <SelectItem value="booking-desc">{isHe ? "תאריך קביעה (חדש תחילה)" : "Booking date (newest)"}</SelectItem>
-                <SelectItem value="booking-asc">{isHe ? "תאריך קביעה (ישן תחילה)" : "Booking date (oldest)"}</SelectItem>
-                <SelectItem value="name-asc">{isHe ? "שם (א-ת)" : "Name (A-Z)"}</SelectItem>
-                <SelectItem value="child-first">{isHe ? "ילדים תחילה" : "Children first"}</SelectItem>
-                <SelectItem value="adult-first">{isHe ? "מבוגרים תחילה" : "Adults first"}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-muted-foreground" />
+          <CardTitle>{isHe ? "ניהול פגישות" : "Appointment Manager"}</CardTitle>
         </div>
         <CardDescription>{isHe ? "צפייה וניהול פגישות עם לקוחות" : "View and manage client appointments"}</CardDescription>
       </CardHeader>
@@ -823,6 +832,54 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                 </h3>
               </div>
             </div>
+            <div className="flex items-center gap-2 flex-wrap mb-3">
+              <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value)}>
+                <SelectTrigger className="w-[140px] h-8 text-xs" data-testid="select-appointment-type-filter">
+                  <div className="flex items-center gap-1.5">
+                    <ListChecks className="h-3.5 w-3.5" />
+                    <SelectValue placeholder={isHe ? "סוג" : "Type"} />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{isHe ? "כל הסוגים" : "All types"}</SelectItem>
+                  {APPOINTMENT_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>{isHe ? t.he : t.en}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filter} onValueChange={(value) => setFilter(value as AppointmentFilter)}>
+                <SelectTrigger className="w-[140px] h-8 text-xs" data-testid="select-appointment-filter">
+                  <div className="flex items-center gap-1.5">
+                    <Filter className="h-3.5 w-3.5" />
+                    <SelectValue placeholder={isHe ? "סינון" : "Filter"} />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{isHe ? "הכל" : "All"}</SelectItem>
+                  <SelectItem value="new">{isHe ? "חדשות בלבד" : "New only"}</SelectItem>
+                  {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                    <SelectItem key={key} value={key}>{isHe ? config.he : config.en}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={(value) => setSortBy(value as AppointmentSortBy)}>
+                <SelectTrigger className="w-[160px] h-8 text-xs" data-testid="select-appointment-sort">
+                  <div className="flex items-center gap-1.5">
+                    <ArrowUpDown className="h-3.5 w-3.5" />
+                    <SelectValue placeholder={isHe ? "מיון" : "Sort"} />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date-asc">{isHe ? "תאריך פגישה (קרוב תחילה)" : "Appt. date (soonest)"}</SelectItem>
+                  <SelectItem value="date-desc">{isHe ? "תאריך פגישה (רחוק תחילה)" : "Appt. date (latest)"}</SelectItem>
+                  <SelectItem value="booking-desc">{isHe ? "תאריך קביעה (חדש תחילה)" : "Booking date (newest)"}</SelectItem>
+                  <SelectItem value="booking-asc">{isHe ? "תאריך קביעה (ישן תחילה)" : "Booking date (oldest)"}</SelectItem>
+                  <SelectItem value="name-asc">{isHe ? "שם (א-ת)" : "Name (A-Z)"}</SelectItem>
+                  <SelectItem value="child-first">{isHe ? "ילדים תחילה" : "Children first"}</SelectItem>
+                  <SelectItem value="adult-first">{isHe ? "מבוגרים תחילה" : "Adults first"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             {visibleAppointments.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground" data-testid="empty-appointments">
                 <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -846,8 +903,8 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                         )}
                         data-testid={`appointment-${appointment.id}`}
                       >
-                        <div className={cn("text-[11px] truncate", getAppointmentNameClassName(appointment.status))}>{appointment.clientName}</div>
-                        <div className="text-[10px] text-muted-foreground truncate">
+                        <div className={cn("text-[13px] truncate", getAppointmentNameClassName(appointment.status))}>{appointment.clientName}</div>
+                        <div className="text-xs text-muted-foreground truncate">
                           {formatAppointmentDate(appointment.date)}
                         </div>
                         <div className="flex items-center justify-between gap-1">
@@ -856,7 +913,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                             variant="secondary"
                             className={`no-default-hover-elevate no-default-active-elevate text-[9px] leading-tight px-1 py-0 truncate ${statusInfo.color}`}
                           >
-                            {appointment.type}
+                            {getAppointmentTypeLabel(appointment.type, isHe)}
                           </Badge>
                         </div>
                       </button>
@@ -958,7 +1015,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                       </a>
                     )}
                     <Badge variant="outline" className="no-default-hover-elevate no-default-active-elevate" data-testid={`badge-type-${appointment.id}`}>
-                      {appointment.type}
+                      {getAppointmentTypeLabel(appointment.type, isHe)}
                     </Badge>
                     <Badge variant="outline" className="no-default-hover-elevate no-default-active-elevate">
                       {(appointment as any).appointmentFor === "child"
@@ -990,6 +1047,40 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                         </span>
                       </div>
                     </div>
+                    <div className="flex items-center justify-between gap-4 flex-wrap text-sm">
+                      <span className="flex items-center gap-2 font-medium text-foreground">
+                        <Tag className="w-4 h-4 text-primary" />
+                        {isHe ? "סוג הפגישה:" : "Appointment type:"}
+                      </span>
+                      <span className="font-semibold text-foreground">{getAppointmentTypeLabel(appointment.type, isHe)}</span>
+                    </div>
+                    {(() => {
+                      const matchedClient = resolveClientForAppointment(appointment, clients);
+                      const idLabel = getClientIdLabel(matchedClient, isHe);
+                      return (
+                        <div className="flex items-center justify-between gap-4 flex-wrap text-sm">
+                          <span className="flex items-center gap-2 font-medium text-foreground">
+                            <IdCard className="w-4 h-4 text-primary" />
+                            {isHe ? "ליד/לקוח:" : "Lead/Client:"}
+                          </span>
+                          {matchedClient && onOpenClient ? (
+                            <button
+                              type="button"
+                              onClick={() => onOpenClient(matchedClient.id)}
+                              className="flex items-center gap-1 font-semibold text-primary hover:underline"
+                              data-testid={`link-open-client-${appointment.id}`}
+                            >
+                              {idLabel}
+                              <ExternalLink className="w-3 h-3" />
+                            </button>
+                          ) : (
+                            <span className="font-semibold text-foreground">
+                              {idLabel ?? (isHe ? "לא משויך" : "Not linked")}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <div className="flex items-center justify-between gap-4 flex-wrap text-xs">
                       <span className="text-muted-foreground">
                         {isHe ? "הטופס נשלח ב:" : "Form submitted:"}
@@ -1022,6 +1113,8 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
           {selectedAppointment && (() => {
             const statusInfo = STATUS_CONFIG[selectedAppointment.status] || STATUS_CONFIG.pending;
             const rescheduleUnchanged = rescheduleDate === selectedAppointment.date && rescheduleTime === selectedAppointment.time;
+            const matchedClient = resolveClientForAppointment(selectedAppointment, clients);
+            const idLabel = getClientIdLabel(matchedClient, isHe);
 
             return (
               <>
@@ -1041,6 +1134,26 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                     </span>
                   </DialogDescription>
                 </DialogHeader>
+
+                <div className="flex items-center justify-center sm:justify-start">
+                  {matchedClient && onOpenClient ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpenClient(matchedClient.id)}
+                      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold text-primary hover:underline"
+                      data-testid="link-open-client-dialog"
+                    >
+                      <IdCard className="h-3.5 w-3.5" />
+                      {idLabel}
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
+                  ) : (
+                    <Badge variant="secondary" className="no-default-hover-elevate no-default-active-elevate text-sm px-3 py-1" data-testid="text-appointment-dialog-id">
+                      <IdCard className="h-3.5 w-3.5 mr-1" />
+                      {idLabel ?? (isHe ? "לא משויך לליד/לקוח" : "Not linked to a lead/client")}
+                    </Badge>
+                  )}
+                </div>
 
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
@@ -1090,9 +1203,11 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                     )}
                   </div>
 
-                  <Badge variant="outline" className="no-default-hover-elevate no-default-active-elevate">
-                    {selectedAppointment.type}
-                  </Badge>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Tag className="w-4 h-4 text-primary" />
+                    <span className="font-medium text-foreground">{isHe ? "סוג הפגישה:" : "Appointment type:"}</span>
+                    <span className="font-semibold text-foreground">{getAppointmentTypeLabel(selectedAppointment.type, isHe)}</span>
+                  </div>
 
                   <div className="space-y-2 border-t pt-3">
                     <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
@@ -1165,7 +1280,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!pendingStatusChange} onOpenChange={(open) => !open && setPendingStatusChange(null)}>
+      <AlertDialog open={!!pendingStatusChange} onOpenChange={(open) => { if (!open) { setPendingStatusChange(null); setCancelContactMethod(""); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{isHe ? "שינוי סטטוס פגישה" : "Change appointment status"}</AlertDialogTitle>
@@ -1177,9 +1292,30 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {pendingStatusChange?.to === 'cancelled' && (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">
+                {isHe ? "כיצד נמסר הביטול? *" : "How was the cancellation communicated? *"}
+              </Label>
+              <Select value={cancelContactMethod} onValueChange={setCancelContactMethod}>
+                <SelectTrigger className="h-8 text-xs" data-testid="select-cancel-contact-method">
+                  <SelectValue placeholder={isHe ? "בחר/י דרך יצירת קשר" : "Select contact method"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {CANCEL_CONTACT_METHODS.map((m) => (
+                    <SelectItem key={m.value} value={m.value} className="text-xs">{isHe ? m.he : m.en}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-cancel-status-change">{isHe ? "ביטול" : "Cancel"}</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmStatusChange} data-testid="button-confirm-status-change">
+            <AlertDialogAction
+              onClick={confirmStatusChange}
+              disabled={pendingStatusChange?.to === 'cancelled' && !cancelContactMethod}
+              data-testid="button-confirm-status-change"
+            >
               {isHe ? "אישור" : "Confirm"}
             </AlertDialogAction>
           </AlertDialogFooter>
