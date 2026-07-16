@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ToastAction } from "@/components/ui/toast";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Calendar, CalendarClock, ChevronLeft, ChevronRight, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare, ListChecks, StickyNote } from "lucide-react";
+import { Calendar, CalendarClock, ChevronLeft, ChevronRight, ChevronsLeftRight, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare, ListChecks, StickyNote } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -70,7 +70,10 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
   })
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null)
   const [pendingStatusChange, setPendingStatusChange] = useState<{ id: number; from: string; to: string } | null>(null)
-  const [listCollapsed, setListCollapsed] = useState(false)
+  const [listWidthPercent, setListWidthPercent] = useState(50)
+  const [isResizingList, setIsResizingList] = useState(false)
+  const splitContainerRef = useRef<HTMLDivElement>(null)
+  const isListCondensed = listWidthPercent < 25
   const [rescheduleDate, setRescheduleDate] = useState("")
   const [rescheduleTime, setRescheduleTime] = useState("")
   const [rescheduleAvailableTimes, setRescheduleAvailableTimes] = useState<string[]>([])
@@ -328,6 +331,34 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
   const goToPrevious = () => shiftAnchor(isRTL ? 1 : -1);
   const goToNext = () => shiftAnchor(isRTL ? -1 : 1);
 
+  const MIN_LIST_WIDTH_PERCENT = 14;
+  const MAX_LIST_WIDTH_PERCENT = 65;
+
+  const handleResizeStart = (e: React.PointerEvent) => {
+    const container = splitContainerRef.current;
+    if (!container || window.innerWidth < 1024) return;
+    e.preventDefault();
+    setIsResizingList(true);
+    const startX = e.clientX;
+    const startWidth = listWidthPercent;
+    const containerWidth = container.getBoundingClientRect().width;
+
+    const handleMove = (moveEvent: PointerEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const signedDelta = isRTL ? -deltaX : deltaX;
+      const deltaPercent = (signedDelta / containerWidth) * 100;
+      const next = Math.min(MAX_LIST_WIDTH_PERCENT, Math.max(MIN_LIST_WIDTH_PERCENT, startWidth + deltaPercent));
+      setListWidthPercent(next);
+    };
+    const handleUp = () => {
+      setIsResizingList(false);
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+    };
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+  };
+
   const selectedAppointment = selectedAppointmentId
     ? allAppointments.find((a) => a.id === selectedAppointmentId) || null
     : null;
@@ -449,12 +480,14 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
           </div>
         ) : (
           <div
-            className={cn(
-              "space-y-4 lg:space-y-0 lg:grid lg:gap-4 lg:items-start",
-              listCollapsed ? "lg:grid-cols-[44px_1fr]" : "lg:grid-cols-2",
-            )}
+            ref={splitContainerRef}
+            className="space-y-4 lg:space-y-0 lg:flex lg:items-stretch lg:gap-0"
           >
-            <div className="lg:order-2 rounded-lg border bg-muted/20 p-2.5 sm:p-4 space-y-2.5 sm:space-y-3 overflow-hidden" data-testid="appointments-calendar">
+            <div
+              className="lg:order-3 min-w-0 rounded-lg border bg-muted/20 p-2.5 sm:p-4 space-y-2.5 sm:space-y-3 overflow-hidden"
+              style={{ flexBasis: `calc(${100 - listWidthPercent}% - 6px)` }}
+              data-testid="appointments-calendar"
+            >
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <Calendar className="h-4 w-4 text-primary shrink-0" />
@@ -692,19 +725,29 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
               </p>
             </div>
 
-            <div className="lg:order-1">
-            {listCollapsed && (
-              <button
-                type="button"
-                onClick={() => setListCollapsed(false)}
-                className="hidden lg:flex h-full min-h-[300px] w-full flex-col items-center justify-center gap-2 rounded-lg border bg-muted/20 hover:bg-muted/40 transition-colors"
-                title={isHe ? "הצג רשימת פגישות" : "Show appointments list"}
-                data-testid="button-expand-list"
-              >
-                {isRTL ? <ChevronLeft className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-              </button>
-            )}
-            <div className={listCollapsed ? "lg:hidden" : undefined}>
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              onPointerDown={handleResizeStart}
+              className={cn(
+                "lg:order-2 hidden lg:flex w-3 shrink-0 cursor-col-resize items-center justify-center group",
+                isResizingList && "select-none",
+              )}
+              title={isHe ? "גררו לשינוי רוחב" : "Drag to resize"}
+              data-testid="resize-handle-list"
+            >
+              <div className={cn(
+                "flex h-10 w-3 items-center justify-center rounded-full border bg-background text-muted-foreground transition-colors group-hover:bg-muted group-hover:text-foreground",
+                isResizingList && "bg-muted text-foreground",
+              )}>
+                <ChevronsLeftRight className="h-3 w-3" />
+              </div>
+            </div>
+
+            <div
+              className="lg:order-1 min-w-0"
+              style={{ flexBasis: `calc(${listWidthPercent}% - 6px)` }}
+            >
             <div className="flex items-center justify-between gap-2 mb-3">
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <ListChecks className="h-4 w-4 text-primary shrink-0" />
@@ -712,17 +755,6 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                   {isHe ? "רשימת פגישות" : "Appointments list"}
                 </h3>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 hidden lg:inline-flex"
-                onClick={() => setListCollapsed(true)}
-                title={isHe ? "הסתר רשימה" : "Collapse list"}
-                data-testid="button-collapse-list"
-              >
-                {isRTL ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-              </Button>
             </div>
             {visibleAppointments.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground" data-testid="empty-appointments">
@@ -733,6 +765,41 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
               <div className="space-y-3">
                 {visibleAppointments.map((appointment, index) => {
                   const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
+
+              if (isListCondensed) {
+                return (
+                  <HoverCard key={appointment.id} openDelay={200}>
+                    <HoverCardTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedAppointmentId(appointment.id)}
+                        className={cn(
+                          "block w-full border rounded-md p-1.5 space-y-0.5 text-left transition-opacity hover:opacity-80",
+                          index % 2 === 0 ? "bg-amber-50/70 dark:bg-amber-950/10" : "bg-background",
+                        )}
+                        data-testid={`appointment-${appointment.id}`}
+                      >
+                        <div className="text-[11px] font-medium text-foreground truncate">{appointment.clientName}</div>
+                        <div className="text-[10px] text-muted-foreground truncate">
+                          {formatAppointmentDate(appointment.date)}
+                        </div>
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[10px] text-muted-foreground shrink-0">{formatAppointmentTime(appointment.time)}</span>
+                          <Badge
+                            variant="secondary"
+                            className={`no-default-hover-elevate no-default-active-elevate text-[9px] leading-tight px-1 py-0 truncate ${statusInfo.color}`}
+                          >
+                            {appointment.type}
+                          </Badge>
+                        </div>
+                      </button>
+                    </HoverCardTrigger>
+                    <HoverCardContent side="left" align="start">
+                      {renderHoverDetails(appointment)}
+                    </HoverCardContent>
+                  </HoverCard>
+                );
+              }
 
               return (
                 <div
@@ -878,7 +945,6 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
                 })}
               </div>
             )}
-            </div>
             </div>
           </div>
         )}
