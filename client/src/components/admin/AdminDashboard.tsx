@@ -255,8 +255,8 @@ const AdminDashboard = () => {
   }, [activeTab])
 
   return (
-    <SidebarProvider defaultOpen={false} className="bg-gradient-to-br from-background to-muted/20">
-      <Sidebar collapsible="icon" data-testid="admin-sidebar">
+    <SidebarProvider defaultOpen={false} dir="ltr" className="bg-gradient-to-br from-background to-muted/20">
+      <Sidebar collapsible="icon" dir={isHe ? 'rtl' : 'ltr'} data-testid="admin-sidebar">
         <SidebarHeader className="flex flex-row items-center justify-between gap-2">
           <span className="px-1 text-sm font-semibold truncate group-data-[collapsible=icon]:hidden">
             {isHe ? 'קשב פלוס' : 'KeshevPlus'}
@@ -325,7 +325,7 @@ const AdminDashboard = () => {
         </SidebarContent>
       </Sidebar>
 
-      <SidebarInset>
+      <SidebarInset dir={isHe ? 'rtl' : 'ltr'}>
       <header className="bg-background/80 backdrop-blur-sm border-b sticky top-0 z-40">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:h-16 sm:py-0">
