@@ -32,6 +32,13 @@ const STATUS_CONFIG: Record<string, { he: string; en: string; color: string }> =
 
 type ManagerFilter = 'all' | 'new'
 type AppointmentFilter = 'all' | 'new' | 'pending' | 'confirmed' | 'cancelled' | 'completed'
+type CalendarViewMode = 'month' | 'week' | 'day'
+
+const CALENDAR_VIEW_OPTIONS: { value: CalendarViewMode; he: string; en: string }[] = [
+  { value: 'month', he: 'חודשי', en: 'Month' },
+  { value: 'week', he: 'שבועי', en: 'Week' },
+  { value: 'day', he: 'יומי', en: 'Day' },
+]
 
 interface AppointmentsManagerProps {
   initialFilter?: 'all' | 'new'
@@ -42,9 +49,10 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
   const isHe = language === "he";
   const { toast } = useToast();
   const [filter, setFilter] = useState<AppointmentFilter>(initialFilter)
-  const [visibleMonth, setVisibleMonth] = useState(() => {
+  const [calendarView, setCalendarView] = useState<CalendarViewMode>('month')
+  const [anchorDate, setAnchorDate] = useState(() => {
     const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1);
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
   })
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null)
 
@@ -161,13 +169,25 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
     }, {});
   }, [allAppointments]);
 
-  const monthLabel = visibleMonth.toLocaleDateString(isHe ? "he-IL" : "en-US", {
-    month: "long",
-    year: "numeric",
-  });
+  const periodLabel = useMemo(() => {
+    const locale = isHe ? "he-IL" : "en-US";
+    if (calendarView === "month") {
+      return anchorDate.toLocaleDateString(locale, { month: "long", year: "numeric" });
+    }
+    if (calendarView === "week") {
+      const start = new Date(anchorDate);
+      start.setDate(anchorDate.getDate() - anchorDate.getDay());
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      const startLabel = start.toLocaleDateString(locale, { day: "numeric", month: "short" });
+      const endLabel = end.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
+      return `${startLabel} – ${endLabel}`;
+    }
+    return anchorDate.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  }, [anchorDate, calendarView, isHe]);
 
   const calendarDays = useMemo(() => {
-    const firstDay = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
+    const firstDay = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
     const start = new Date(firstDay);
     start.setDate(firstDay.getDate() - firstDay.getDay());
 
@@ -175,7 +195,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
       const date = new Date(start);
       date.setDate(start.getDate() + index);
       const value = getLocalDateInputValue(date);
-      const outsideMonth = date.getMonth() !== visibleMonth.getMonth();
+      const outsideMonth = date.getMonth() !== anchorDate.getMonth();
       const closed = !isAppointmentWorkingDay(date);
       const dayAppointments = (appointmentsByDate[value] || [])
         .slice()
@@ -183,11 +203,42 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
 
       return { date, value, label: date.getDate(), outsideMonth, closed, appointments: dayAppointments };
     });
-  }, [visibleMonth, appointmentsByDate]);
+  }, [anchorDate, appointmentsByDate]);
 
-  const goToMonth = (offset: number) => {
-    setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
+  const weekDays = useMemo(() => {
+    const start = new Date(anchorDate);
+    start.setDate(anchorDate.getDate() - anchorDate.getDay());
+
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + index);
+      const value = getLocalDateInputValue(date);
+      const closed = !isAppointmentWorkingDay(date);
+      const dayAppointments = (appointmentsByDate[value] || [])
+        .slice()
+        .sort((a, b) => a.time.localeCompare(b.time));
+
+      return { date, value, label: date.getDate(), closed, appointments: dayAppointments };
+    });
+  }, [anchorDate, appointmentsByDate]);
+
+  const dayViewAppointments = useMemo(() => {
+    const value = getLocalDateInputValue(anchorDate);
+    return (appointmentsByDate[value] || []).slice().sort((a, b) => a.time.localeCompare(b.time));
+  }, [anchorDate, appointmentsByDate]);
+
+  const shiftAnchor = (direction: 1 | -1) => {
+    setAnchorDate((current) => {
+      const next = new Date(current);
+      if (calendarView === "month") next.setMonth(next.getMonth() + direction);
+      else if (calendarView === "week") next.setDate(next.getDate() + direction * 7);
+      else next.setDate(next.getDate() + direction);
+      return next;
+    });
   };
+
+  const goToPrevious = () => shiftAnchor(isRTL ? 1 : -1);
+  const goToNext = () => shiftAnchor(isRTL ? -1 : 1);
 
   const selectedAppointment = selectedAppointmentId
     ? allAppointments.find((a) => a.id === selectedAppointmentId) || null
@@ -233,99 +284,219 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : (
-          <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 md:items-start">
-            <div className="md:order-2 rounded-lg border bg-muted/20 p-4 space-y-3" data-testid="appointments-calendar">
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold text-foreground">
+          <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start">
+            <div className="lg:order-2 rounded-lg border bg-muted/20 p-2.5 sm:p-4 space-y-2.5 sm:space-y-3 overflow-hidden" data-testid="appointments-calendar">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <Calendar className="h-4 w-4 text-primary shrink-0" />
+                  <h3 className="font-semibold text-foreground text-sm sm:text-base">
                     {isHe ? "יומן פגישות" : "Appointments calendar"}
                   </h3>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => goToMonth(isRTL ? 1 : -1)}
-                    data-testid="button-calendar-prev-month"
-                  >
-                    {isRTL ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-                  </Button>
-                  <div className="min-w-[8.5rem] text-center text-sm font-medium text-foreground">
-                    {monthLabel}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => goToMonth(isRTL ? -1 : 1)}
-                    data-testid="button-calendar-next-month"
-                  >
-                    {isRTL ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  </Button>
+                <div className="inline-flex rounded-md border overflow-hidden shrink-0" role="group" aria-label={isHe ? "תצוגת יומן" : "Calendar view"}>
+                  {CALENDAR_VIEW_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setCalendarView(opt.value)}
+                      className={cn(
+                        "px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs font-medium transition-colors",
+                        calendarView === opt.value
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background text-muted-foreground hover:bg-muted"
+                      )}
+                      data-testid={`button-calendar-view-${opt.value}`}
+                    >
+                      {isHe ? opt.he : opt.en}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground">
-                {(isHe ? weekDaysHe : weekDaysEn).map((day) => (
-                  <div key={day} className="py-1">{day}</div>
-                ))}
+              <div className="flex items-center justify-between gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  onClick={goToPrevious}
+                  data-testid="button-calendar-prev"
+                >
+                  {isRTL ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                </Button>
+                <div className="flex-1 text-center text-xs sm:text-sm font-medium text-foreground truncate px-1">
+                  {periodLabel}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  onClick={goToNext}
+                  data-testid="button-calendar-next"
+                >
+                  {isRTL ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                </Button>
               </div>
 
-              <div className="grid grid-cols-7 gap-1">
-                {calendarDays.map((day) => (
-                  <div
-                    key={day.value}
-                    className={cn(
-                      "min-h-[92px] md:min-h-[46px] rounded-md border p-1.5 align-top",
-                      day.closed ? "bg-muted/60 border-transparent" : "bg-background",
-                      day.outsideMonth && "opacity-40",
-                    )}
-                    data-testid={`calendar-day-${day.value}`}
-                  >
-                    <div
-                      className={cn(
-                        "mb-1 text-xs font-medium",
-                        day.closed
-                          ? "text-muted-foreground"
-                          : day.appointments.length === 0
-                            ? "text-muted-foreground/50"
-                            : "text-foreground",
-                      )}
-                    >
-                      {day.label}
-                    </div>
-                    <div className="space-y-1">
-                      {day.appointments.slice(0, 3).map((appointment) => {
-                        const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
-
-                        return (
-                          <button
-                            key={appointment.id}
-                            type="button"
-                            onClick={() => setSelectedAppointmentId(appointment.id)}
-                            className={cn(
-                              "block w-full truncate rounded px-1 py-0.5 text-left text-[10px] font-medium transition-opacity hover:opacity-80",
-                              statusInfo.color,
-                            )}
-                            data-testid={`calendar-appointment-${appointment.id}`}
-                          >
-                            {formatAppointmentTime(appointment.time)} {appointment.clientName}
-                          </button>
-                        );
-                      })}
-                      {day.appointments.length > 3 && (
-                        <div className="text-[10px] text-muted-foreground">
-                          +{day.appointments.length - 3} {isHe ? "נוספות" : "more"}
-                        </div>
-                      )}
-                    </div>
+              {calendarView === "month" && (
+                <>
+                  <div className="grid grid-cols-7 gap-0.5 sm:gap-1 text-center text-[10px] sm:text-xs font-medium text-muted-foreground">
+                    {(isHe ? weekDaysHe : weekDaysEn).map((day) => (
+                      <div key={day} className="py-1 truncate">{day}</div>
+                    ))}
                   </div>
-                ))}
-              </div>
+
+                  <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
+                    {calendarDays.map((day) => (
+                      <div
+                        key={day.value}
+                        className={cn(
+                          "min-h-[56px] sm:min-h-[74px] md:min-h-[92px] lg:min-h-[46px] rounded-md border p-1 sm:p-1.5 align-top overflow-hidden",
+                          day.closed ? "bg-muted/60 border-transparent" : "bg-background",
+                          day.outsideMonth && "opacity-40",
+                        )}
+                        data-testid={`calendar-day-${day.value}`}
+                      >
+                        <div
+                          className={cn(
+                            "mb-0.5 sm:mb-1 text-[10px] sm:text-xs font-medium",
+                            day.closed
+                              ? "text-muted-foreground"
+                              : day.appointments.length === 0
+                                ? "text-muted-foreground/50"
+                                : "text-foreground",
+                          )}
+                        >
+                          {day.label}
+                        </div>
+                        <div className="space-y-0.5 sm:space-y-1">
+                          {day.appointments.slice(0, 3).map((appointment) => {
+                            const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
+
+                            return (
+                              <button
+                                key={appointment.id}
+                                type="button"
+                                onClick={() => setSelectedAppointmentId(appointment.id)}
+                                className={cn(
+                                  "block w-full truncate rounded px-1 py-0.5 text-left text-[9px] sm:text-[10px] font-medium transition-opacity hover:opacity-80",
+                                  statusInfo.color,
+                                )}
+                                data-testid={`calendar-appointment-${appointment.id}`}
+                              >
+                                <span className="hidden sm:inline">{formatAppointmentTime(appointment.time)} </span>
+                                {appointment.clientName}
+                              </button>
+                            );
+                          })}
+                          {day.appointments.length > 3 && (
+                            <div className="text-[9px] sm:text-[10px] text-muted-foreground">
+                              +{day.appointments.length - 3} {isHe ? "נוספות" : "more"}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {calendarView === "week" && (
+                <>
+                  <div className="grid grid-cols-7 gap-0.5 sm:gap-1 text-center text-[10px] sm:text-xs font-medium text-muted-foreground">
+                    {weekDays.map((day) => (
+                      <div key={day.value} className="py-1 truncate">
+                        {(isHe ? weekDaysHe : weekDaysEn)[day.date.getDay()]}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
+                    {weekDays.map((day) => (
+                      <div
+                        key={day.value}
+                        className={cn(
+                          "min-h-[110px] sm:min-h-[150px] md:min-h-[190px] rounded-md border p-1 sm:p-1.5 align-top overflow-y-auto",
+                          day.closed ? "bg-muted/60 border-transparent" : "bg-background",
+                        )}
+                        data-testid={`calendar-week-day-${day.value}`}
+                      >
+                        <div
+                          className={cn(
+                            "mb-0.5 sm:mb-1 text-[10px] sm:text-xs font-medium",
+                            day.closed
+                              ? "text-muted-foreground"
+                              : day.appointments.length === 0
+                                ? "text-muted-foreground/50"
+                                : "text-foreground",
+                          )}
+                        >
+                          {day.label}
+                        </div>
+                        <div className="space-y-0.5 sm:space-y-1">
+                          {day.appointments.map((appointment) => {
+                            const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
+
+                            return (
+                              <button
+                                key={appointment.id}
+                                type="button"
+                                onClick={() => setSelectedAppointmentId(appointment.id)}
+                                className={cn(
+                                  "block w-full rounded px-1 py-0.5 text-left leading-tight font-medium transition-opacity hover:opacity-80",
+                                  statusInfo.color,
+                                )}
+                                data-testid={`calendar-appointment-${appointment.id}`}
+                              >
+                                <span className="block text-[9px] sm:text-[10px]">{formatAppointmentTime(appointment.time)}</span>
+                                <span className="block truncate text-[9px] sm:text-[10px]">{appointment.clientName}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {calendarView === "day" && (
+                <div className="space-y-1.5 sm:space-y-2">
+                  {dayViewAppointments.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      {isHe ? "אין פגישות ביום זה" : "No appointments on this day"}
+                    </div>
+                  ) : (
+                    dayViewAppointments.map((appointment) => {
+                      const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
+
+                      return (
+                        <button
+                          key={appointment.id}
+                          type="button"
+                          onClick={() => setSelectedAppointmentId(appointment.id)}
+                          className="w-full flex items-center justify-between gap-3 rounded-md border bg-background p-2.5 sm:p-3 text-left hover:bg-muted/50 transition-colors"
+                          data-testid={`calendar-day-appointment-${appointment.id}`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-semibold text-sm text-foreground shrink-0">
+                              {formatAppointmentTime(appointment.time)}
+                            </span>
+                            <span className="text-sm text-foreground truncate">{appointment.clientName}</span>
+                          </div>
+                          <Badge
+                            variant="secondary"
+                            className={`no-default-hover-elevate no-default-active-elevate shrink-0 ${statusInfo.color}`}
+                          >
+                            {isHe ? statusInfo.he : statusInfo.en}
+                          </Badge>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              )}
 
               <p className="text-xs text-muted-foreground">
                 {isHe
@@ -334,7 +505,7 @@ const AppointmentsManager = ({ initialFilter = 'all' }: AppointmentsManagerProps
               </p>
             </div>
 
-            <div className="md:order-1">
+            <div className="lg:order-1">
             {visibleAppointments.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground" data-testid="empty-appointments">
                 <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
