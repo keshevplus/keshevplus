@@ -1,6 +1,8 @@
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useLanguage } from "@/hooks/useLanguage";
 import { ArrowLeft, ArrowRight, Mail, Phone } from "lucide-react";
 
@@ -24,15 +26,21 @@ const TermsOfUsePage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20" dir={dir}>
       <header className="bg-background/80 backdrop-blur-sm border-b sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Link href="/">
-            <Button variant="ghost" size="icon" data-testid="button-back-home">
-              <BackArrow className="w-5 h-5" />
-            </Button>
-          </Link>
-          <h1 className="text-lg font-semibold" data-testid="text-terms-title">
-            {isHe ? "תנאי שימוש" : "Terms of Use"}
-          </h1>
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <Link href="/">
+              <Button variant="ghost" size="icon" data-testid="button-back-home">
+                <BackArrow className="w-5 h-5" />
+              </Button>
+            </Link>
+            <h1 className="text-lg font-semibold truncate" data-testid="text-terms-title">
+              {isHe ? "תנאי שימוש" : "Terms of Use"}
+            </h1>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <LanguageSelector />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
