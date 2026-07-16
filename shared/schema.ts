@@ -114,6 +114,10 @@ export const clients = pgTable("clients", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   archived: boolean("archived").default(false).notNull(),
   isTest: boolean("is_test").default(false).notNull(),
+  dateOfBirth: text("date_of_birth"),
+  city: text("city"),
+  gender: text("gender"),
+  isDiagnosed: boolean("is_diagnosed"),
 });
 
 export const clientActivities = pgTable("client_activities", {
