@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, APPOINTMENT_STATUSES, insertWhatsAppMessageSchema } from "@shared/schema";
+import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, APPOINTMENT_STATUSES, insertWhatsAppMessageSchema, dashboardLayoutSchema } from "@shared/schema";
 import {
   APPOINTMENT_TIME_SLOTS,
   APPOINTMENT_WORKING_HOURS_EN,
@@ -637,9 +637,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
     const user = await storage.getUser(userId);
     if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
-    
+
     const settings = await storage.updateWidgetSettings(req.body);
     res.json(settings);
+  });
+
+  app.get("/api/admin/dashboard-layout", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+
+    try {
+      const layout = await storage.getDashboardLayout();
+      return res.json(layout);
+    } catch (error) {
+      console.error("Error fetching dashboard layout:", error);
+      return res.status(500).json({ error: "Failed to fetch dashboard layout" });
+    }
+  });
+
+  app.put("/api/admin/dashboard-layout", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+
+    const result = dashboardLayoutSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: "Invalid dashboard layout" });
+
+    const layout = await storage.updateDashboardLayout(result.data);
+    res.json(layout);
   });
 
   app.get("/api/contacts", async (req, res) => {

@@ -1,4 +1,4 @@
-import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, conversations, messages, whatsappMessages, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type WhatsAppMessage, type InsertWhatsAppMessage } from "@shared/schema";
+import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, conversations, messages, whatsappMessages, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type DashboardLayout, type WhatsAppMessage, type InsertWhatsAppMessage } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, lt, inArray } from "drizzle-orm";
 
@@ -46,6 +46,8 @@ export interface IStorage {
   getAdminBadgeCounts(): Promise<{ unreadContacts: number; pendingAppointments: number; unreviewedQuestionnaires: number; unreviewedConversations: number; newLeads: number; newLeadItems: Array<{ id: number; name: string; email: string | null; phone: string | null; leadNumber: number | null }> }>;
   getWidgetSettings(): Promise<WidgetSettings>;
   updateWidgetSettings(settings: WidgetSettings): Promise<WidgetSettings>;
+  getDashboardLayout(): Promise<DashboardLayout | null>;
+  updateDashboardLayout(layout: DashboardLayout): Promise<DashboardLayout>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   getConversations(): Promise<Conversation[]>;
   getConversation(id: number): Promise<Conversation | undefined>;
@@ -620,6 +622,17 @@ export class DatabaseStorage implements IStorage {
   async updateWidgetSettings(settings: WidgetSettings): Promise<WidgetSettings> {
     const updated = await this.upsertSetting("widget_settings", settings);
     return updated.value as WidgetSettings;
+  }
+
+  async getDashboardLayout(): Promise<DashboardLayout | null> {
+    const setting = await this.getSetting("admin_dashboard_layout");
+    if (setting) return setting.value as DashboardLayout;
+    return null;
+  }
+
+  async updateDashboardLayout(layout: DashboardLayout): Promise<DashboardLayout> {
+    const updated = await this.upsertSetting("admin_dashboard_layout", layout);
+    return updated.value as DashboardLayout;
   }
 
   async createConversation(conversation: InsertConversation): Promise<Conversation> {

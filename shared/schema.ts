@@ -179,8 +179,13 @@ export const widgetSettingsSchema = z.object({
   showWhatsApp: z.boolean().default(true),
 });
 
+export const dashboardLayoutSchema = z.object({
+  widgets: z.array(z.string()),
+});
+
 export type LanguageSettings = z.infer<typeof languageSettingsSchema>;
 export type WidgetSettings = z.infer<typeof widgetSettingsSchema>;
+export type DashboardLayout = z.infer<typeof dashboardLayoutSchema>;
 
 export const upsertTranslationSchema = z.object({
   key: z.string().min(1),
