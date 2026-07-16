@@ -128,6 +128,13 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
   const [activityDesc, setActivityDesc] = useState("");
   const [activityMeta, setActivityMeta] = useState("");
 
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
+  const [editDob, setEditDob] = useState("");
+  const [editCity, setEditCity] = useState("");
+  const [editGender, setEditGender] = useState("");
+  const [editIsDiagnosed, setEditIsDiagnosed] = useState("");
+  const [activityLogExpanded, setActivityLogExpanded] = useState(false);
+
   const fetchClients = async () => {
     try {
       const res = await fetch("/api/clients", { credentials: "include" });
@@ -177,6 +184,12 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
     if (!client) return;
     setExpandedClientId(client.id);
     setEditNotes(client.notes || "");
+    setEditDob(client.dateOfBirth || "");
+    setEditCity(client.city || "");
+    setEditGender(client.gender || "");
+    setEditIsDiagnosed(client.isDiagnosed === true ? "yes" : client.isDiagnosed === false ? "no" : "");
+    setShowMoreDetails(false);
+    setActivityLogExpanded(false);
     fetchActivities(client.id);
     fetchInteractions(client.id);
     if (!client.adminSeen) {
@@ -199,6 +212,12 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
     }
     setExpandedClientId(client.id);
     setEditNotes(client.notes || "");
+    setEditDob(client.dateOfBirth || "");
+    setEditCity(client.city || "");
+    setEditGender(client.gender || "");
+    setEditIsDiagnosed(client.isDiagnosed === true ? "yes" : client.isDiagnosed === false ? "no" : "");
+    setShowMoreDetails(false);
+    setActivityLogExpanded(false);
     fetchActivities(client.id);
     fetchInteractions(client.id);
     if (!client.adminSeen) {
@@ -240,6 +259,21 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
       fetchClients();
     } catch {
       toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "שמירת ההערות נכשלה" : "Failed to save notes", variant: "destructive" });
+    }
+  };
+
+  const handleSaveDetails = async (clientId: number) => {
+    try {
+      await apiRequest("PATCH", `/api/clients/${clientId}`, {
+        dateOfBirth: editDob || null,
+        city: editCity.trim() || null,
+        gender: editGender || null,
+        isDiagnosed: editIsDiagnosed === "yes" ? true : editIsDiagnosed === "no" ? false : null,
+      });
+      toast({ title: isHe ? "נשמר" : "Saved", description: isHe ? "הפרטים עודכנו בהצלחה" : "Details updated successfully" });
+      fetchClients();
+    } catch {
+      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "שמירת הפרטים נכשלה" : "Failed to save details", variant: "destructive" });
     }
   };
 
@@ -779,6 +813,149 @@ const ClientsManager = ({ focusClientId, onFocusHandled }: ClientsManagerProps) 
 
                   {isExpanded && (
                     <div className="border-t p-4 space-y-4 bg-muted/20">
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowMoreDetails(!showMoreDetails)}
+                          className="flex items-center gap-2 text-sm font-semibold hover:text-primary transition-colors"
+                          data-testid={`button-toggle-more-details-${client.id}`}
+                        >
+                          {showMoreDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          {isHe ? "פרטים נוספים" : "More Details"}
+                          {!showMoreDetails && (client.dateOfBirth || client.city || client.gender || client.isDiagnosed !== null) && (
+                            <span className="text-xs text-muted-foreground font-normal">
+                              ({[
+                                calculateAge(client.dateOfBirth) !== null ? `${isHe ? "גיל" : "Age"} ${calculateAge(client.dateOfBirth)}` : null,
+                                client.city,
+                              ].filter(Boolean).join(" · ")})
+                            </span>
+                          )}
+                        </button>
+                        {showMoreDetails && (
+                          <div className="border rounded-md p-3 bg-background space-y-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <Label htmlFor={`input-dob-${client.id}`}>{isHe ? "תאריך לידה" : "Date of Birth"}</Label>
+                                <Input
+                                  id={`input-dob-${client.id}`}
+                                  type="date"
+                                  value={editDob}
+                                  onChange={(e) => setEditDob(e.target.value)}
+                                  data-testid={`input-dob-${client.id}`}
+                                />
+                                {calculateAge(editDob) !== null && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {isHe ? `גיל: ${calculateAge(editDob)}` : `Age: ${calculateAge(editDob)}`}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="space-y-1">
+                                <Label htmlFor={`input-city-${client.id}`}>{isHe ? "עיר" : "City"}</Label>
+                                <Input
+                                  id={`input-city-${client.id}`}
+                                  value={editCity}
+                                  onChange={(e) => setEditCity(e.target.value)}
+                                  placeholder={isHe ? "עיר" : "City"}
+                                  data-testid={`input-city-${client.id}`}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label>{isHe ? "מגדר" : "Gender"}</Label>
+                                <Select value={editGender || undefined} onValueChange={setEditGender}>
+                                  <SelectTrigger data-testid={`select-gender-${client.id}`}>
+                                    <SelectValue placeholder={isHe ? "בחר/י" : "Select"} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="male">{isHe ? "זכר" : "Male"}</SelectItem>
+                                    <SelectItem value="female">{isHe ? "נקבה" : "Female"}</SelectItem>
+                                    <SelectItem value="other">{isHe ? "אחר" : "Other"}</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-1">
+                                <Label>{isHe ? "מאובחן/ת?" : "Diagnosed?"}</Label>
+                                <Select value={editIsDiagnosed || undefined} onValueChange={setEditIsDiagnosed}>
+                                  <SelectTrigger data-testid={`select-diagnosed-${client.id}`}>
+                                    <SelectValue placeholder={isHe ? "לא ידוע" : "Unknown"} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="yes">{isHe ? "כן" : "Yes"}</SelectItem>
+                                    <SelectItem value="no">{isHe ? "לא" : "No"}</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              onClick={() => handleSaveDetails(client.id)}
+                              data-testid={`button-save-details-${client.id}`}
+                            >
+                              <Save className="w-4 h-4" />
+                              <span className="ml-1">{isHe ? "שמור פרטים" : "Save Details"}</span>
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-semibold">{isHe ? "יומן פעילות" : "Activity Log"}</h4>
+                        {activitiesLoading ? (
+                          <div className="flex items-center justify-center py-4">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
+                          </div>
+                        ) : activities.length === 0 ? (
+                          <p className="text-sm text-muted-foreground py-2" data-testid={`empty-activities-${client.id}`}>
+                            {isHe ? "אין פעילויות עדיין" : "No activities yet"}
+                          </p>
+                        ) : (
+                          <div className={cn(
+                            "rounded-xl border border-muted/40 bg-background p-2 shadow-sm",
+                            activityLogExpanded && "max-h-[400px] overflow-y-auto",
+                          )}>
+                            <div className="space-y-2">
+                              {(activityLogExpanded ? activities : activities.slice(0, 3)).map((activity) => {
+                                const typeInfo = ACTIVITY_TYPES[activity.type] || ACTIVITY_TYPES.note;
+                                const TypeIcon = typeInfo.icon;
+                                return (
+                                  <div
+                                    key={activity.id}
+                                    className="flex items-start gap-2 text-sm rounded-lg border p-2 bg-muted/70"
+                                    data-testid={`activity-${activity.id}`}
+                                  >
+                                    <Badge
+                                      variant="secondary"
+                                      className={`shrink-0 no-default-hover-elevate no-default-active-elevate ${typeInfo.color}`}
+                                      data-testid={`badge-activity-type-${activity.id}`}
+                                    >
+                                      <TypeIcon className="w-3 h-3 mr-1" />
+                                      {isHe ? typeInfo.he : typeInfo.en}
+                                    </Badge>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm leading-snug text-foreground">{activity.description}</div>
+                                      <div className="mt-1 text-[11px] text-muted-foreground">
+                                        {formatDateTime(activity.createdAt)}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        {activities.length > 3 && (
+                          <button
+                            type="button"
+                            onClick={() => setActivityLogExpanded(!activityLogExpanded)}
+                            className="text-xs text-primary hover:underline"
+                            data-testid={`button-toggle-activity-log-${client.id}`}
+                          >
+                            {activityLogExpanded
+                              ? (isHe ? "הצג פחות" : "Show less")
+                              : (isHe ? `הצג עוד (${activities.length - 3})` : `Show more (${activities.length - 3})`)}
+                          </button>
+                        )}
+                      </div>
+
                       {interactions && (
                         <div className="space-y-3">
                           <h4 className="text-sm font-semibold flex items-center gap-2">
