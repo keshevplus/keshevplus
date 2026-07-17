@@ -274,7 +274,7 @@ const AdminDashboard = () => {
                   <SidebarMenuButton
                     isActive={activeTab === tab.value}
                     tooltip={isHe ? tab.he : tab.en}
-                    onClick={() => setActiveTab(tab.value)}
+                    onClick={() => { setDetailClientId(null); setActiveTab(tab.value) }}
                     data-testid={`tab-${tab.value}`}
                   >
                     <span className="relative inline-flex shrink-0">
