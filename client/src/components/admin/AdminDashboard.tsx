@@ -46,6 +46,8 @@ import BinManager from './BinManager'
 import VisualEditor from './VisualEditor'
 import WhatsAppManager from './WhatsAppManager'
 import OverviewWidgetGrid from './OverviewWidgetGrid'
+import SectionsManager from './SectionsManager'
+import ImagesManager from './ImagesManager'
 
 const languageCodeClass = "inline-flex w-6 shrink-0 justify-center font-sans text-sm font-semibold leading-none text-muted-foreground"
 const languageNameClass = "font-sans text-sm leading-none"
@@ -250,6 +252,8 @@ const AdminDashboard = () => {
     { value: 'conversations', icon: MessageCircle, he: 'שיחות צ׳אט', en: 'Conversations', heDesc: 'צפייה בשיחות צ׳אט', enDesc: 'View chat conversations' },
     { value: 'whatsapp', icon: Phone, he: 'וואטסאפ', en: 'WhatsApp', heDesc: 'צפייה בשיחות וואטסאפ', enDesc: 'View WhatsApp conversations' },
     { value: 'questionnaires', icon: ClipboardList, he: 'שאלונים', en: 'Questionnaires', heDesc: 'צפייה בהגשות שאלונים', enDesc: 'View questionnaire submissions' },
+    { value: 'sections', icon: LayoutGrid, he: 'מקטעי דף הבית', en: 'Sections', heDesc: 'הוספה וסידור מקטעים בדף הבית', enDesc: 'Add & reorder home page sections' },
+    { value: 'images', icon: Image, he: 'תמונות', en: 'Images', heDesc: 'ניהול תמונות האתר', enDesc: 'Manage site images' },
     { value: 'visual-editor', icon: Eye, he: 'עורך ויזואלי', en: 'Visual Editor', heDesc: 'עריכת תוכן העמודים באתר', enDesc: 'Edit site page content visually' },
     { value: 'translations', icon: Languages, he: 'תרגומים', en: 'Translations', heDesc: 'ניהול תרגומים לאתר', enDesc: 'Manage site translations' },
     { value: 'settings', icon: Settings, he: 'הגדרות', en: 'Settings', heDesc: 'שפה והתראות', enDesc: 'Language & notifications' },
@@ -519,6 +523,14 @@ const AdminDashboard = () => {
 
           <TabsContent value="questionnaires" className="mt-0">
             <QuestionnaireSubmissions initialFilter={tabInitialFilters.questionnaires ?? 'all'} />
+          </TabsContent>
+
+          <TabsContent value="sections" className="mt-0">
+            <SectionsManager />
+          </TabsContent>
+
+          <TabsContent value="images" className="mt-0">
+            <ImagesManager />
           </TabsContent>
 
           <TabsContent value="visual-editor" className="mt-0">
