@@ -7,6 +7,8 @@ const am: Record<string, string> = {
   "nav.faq": "በብዛት የሚጠየቁ ጥያቄዎች",
   "nav.questionnaires": "መጠይቆች",
   "nav.contact": "እየና ያግኙን",
+  "nav.book": "ቀጠሮ ይያዙ",
+  "nav.book_now": "አሁን ቀጠሮ ይያዙ",
   "nav.skip_to_content": "ወደ ዋና ይዘት ዝለል",
   "nav.main_navigation": "ዋና ናቪጌሽን",
   "nav.go_home": "ወደ መነሻ ገጽ ሂድ",

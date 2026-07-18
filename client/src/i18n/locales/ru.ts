@@ -7,6 +7,8 @@ const ru: Record<string, string> = {
   "nav.faq": "Частые вопросы",
   "nav.questionnaires": "Опросники",
   "nav.contact": "Контакты",
+  "nav.book": "Записаться",
+  "nav.book_now": "Записаться сейчас",
   "nav.skip_to_content": "Перейти к основному содержанию",
   "nav.main_navigation": "Основная навигация",
   "nav.go_home": "На главную страницу",

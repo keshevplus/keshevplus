@@ -7,6 +7,8 @@ const en: Record<string, string> = {
   "nav.faq": "FAQ",
   "nav.questionnaires": "Questionnaires",
   "nav.contact": "Contact",
+  "nav.book": "Book",
+  "nav.book_now": "Book Now",
 
   "hero.title": "Welcome to",
   "hero.clinic": "\"Keshev Plus\" Clinic",
