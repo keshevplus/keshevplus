@@ -534,7 +534,7 @@ const ChatWidget = () => {
               onChange={(e) => setInfoForm(prev => ({ ...prev, phone: e.target.value }))}
               onKeyDown={handleInfoKeyDown}
               onFocus={scrollInputIntoView}
-              placeholder={isHe ? 'טלפון (אופציונלי)' : 'Phone (optional)'}
+              placeholder={t('chat.phone_placeholder')}
               type="tel"
               data-testid="input-chat-phone"
             />
@@ -545,8 +545,8 @@ const ChatWidget = () => {
               data-testid="button-start-chat"
             >
               {submittingInfo
-                ? (isHe ? 'מתחיל...' : 'Starting...')
-                : (isHe ? 'התחל שיחה' : 'Start Chat')}
+                ? t('chat.starting')
+                : t('chat.start_chat')}
               <ArrowRight className="h-4 w-4 ms-2" />
             </Button>
           </div>
@@ -557,9 +557,7 @@ const ChatWidget = () => {
                 <div className="text-center text-muted-foreground text-sm pt-8 space-y-2">
                   <Bot className="h-12 w-12 mx-auto text-primary/50" />
                   <p>
-                    {isHe
-                      ? `שלום ${visitorInfo.name}! אני העוזר הווירטואלי של קשב פלוס. איך אוכל לעזור לכם?`
-                      : `Hello ${visitorInfo.name}! I'm the KeshevPlus virtual assistant. How can I help you?`}
+                    {t('chat.welcome_message').replace('{name}', visitorInfo.name)}
                   </p>
                 </div>
               )}
@@ -602,7 +600,7 @@ const ChatWidget = () => {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   onFocus={scrollInputIntoView}
-                  placeholder={isHe ? 'הקלידו הודעה...' : 'Type a message...'}
+                  placeholder={t('chat.type_message')}
                   disabled={loading}
                   data-testid="input-chat-message"
                 />
@@ -624,8 +622,9 @@ const ChatWidget = () => {
 }
 
 function TypingIndicator() {
+  const { t } = useLanguage()
   return (
-    <span className="flex h-5 items-center gap-1" aria-label="Assistant is typing">
+    <span className="flex h-5 items-center gap-1" aria-label={t('chat.assistant_typing')}>
       {[0, 1, 2].map((dot) => (
         <span
           key={dot}
