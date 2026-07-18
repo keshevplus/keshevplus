@@ -174,8 +174,9 @@ const QuestionnairePage = () => {
             </Button>
           </Link>
           <Link href="/" className="shrink-0">
-            <img
-              src={logo}
+            <SiteImage
+              slot="logo"
+              fallback={logo}
               alt={isHebrew ? "קשב פלוס" : "Keshev Plus"}
               className="h-9 w-auto"
               data-testid="img-questionnaire-logo"

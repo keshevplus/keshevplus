@@ -5,6 +5,7 @@ import { Heart, Award, Shield, CheckCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useLanguage, useIsDemo } from '@/hooks/useLanguage';
 import { Section, SectionHeader } from '@/components/layout/Section';
+import { SiteImage } from '@/components/SiteImage';
 import heroAbout from '@/assets/hero-about.jpg';
 
 const values = [
@@ -42,8 +43,9 @@ const AboutSection: React.FC = () => {
         >
           <div className="relative">
             <div className="absolute -inset-2 sm:-inset-4 bg-gradient-to-br from-primary/30 to-primary/10 rounded-xl sm:rounded-2xl transform rotate-2" />
-            <img
-              src={heroAbout}
+            <SiteImage
+              slot="about.photo"
+              fallback={heroAbout}
               alt={t('about.doctor_alt')}
               className="relative rounded-lg sm:rounded-xl shadow-xl w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto object-cover aspect-[4/5]"
               loading="lazy"

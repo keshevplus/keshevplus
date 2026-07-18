@@ -131,9 +131,7 @@ const Footer: React.FC = () => {
               ))}
             </div>
             <a
-              href={`https://wa.me/972552739927?text=${encodeURIComponent(
-                language === 'he' ? '\u05e9\u05dc\u05d5\u05dd, \u05d0\u05e9\u05de\u05d7 \u05dc\u05e7\u05d1\u05dc \u05e4\u05e8\u05d8\u05d9\u05dd \u05e0\u05d5\u05e1\u05e4\u05d9\u05dd \u05e2\u05dc \u05d0\u05d1\u05d7\u05d5\u05df ADHD' : 'Hello, I would like more information about ADHD diagnosis'
-              )}`}
+              href={`https://wa.me/972552739927?text=${encodeURIComponent(t('contact.whatsapp_message'))}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground px-4 py-2 rounded-lg transition-colors text-sm font-medium"

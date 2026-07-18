@@ -46,7 +46,7 @@ function clearVisitorCookie() {
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 const ChatWidget = () => {
-  const { language, isRTL } = useLanguage()
+  const { language, isRTL, t } = useLanguage()
   const isHe = language === 'he'
   const isDemo = useIsDemo()
   const [location] = useLocation()
@@ -349,7 +349,7 @@ const ChatWidget = () => {
 
   const whatsAppButton = widgetSettings?.showWhatsApp !== false && (
     <a
-      href={`https://wa.me/${CLINIC_WHATSAPP}?text=${encodeURIComponent(isHe ? 'שלום, אשמח לקבל מידע על אבחון ADHD' : 'Hello, I would like information about ADHD diagnosis')}`}
+      href={`https://wa.me/${CLINIC_WHATSAPP}?text=${encodeURIComponent(t('contact.whatsapp_message'))}`}
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
