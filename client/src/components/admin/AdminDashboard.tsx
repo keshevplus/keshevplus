@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'wouter'
 import { useAuth } from '../auth/AuthProvider'
 import { useLanguage } from '@/hooks/useLanguage'
 import { LanguageSelector } from '../LanguageSelector'
@@ -22,7 +23,7 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
-import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye, Phone, UserCog, Archive } from 'lucide-react'
+import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye, Phone, UserCog, Archive, LayoutGrid, Image } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useQuery } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/queryClient'
@@ -67,8 +68,29 @@ const AdminDashboard = () => {
   const [langSettings, setLangSettings] = useState<LanguageSettings>(DEFAULT_LANGUAGE_SETTINGS)
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(false)
-  const [activeTab, setActiveTab] = useState('overview')
-  const [detailClientId, setDetailClientId] = useState<number | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') ?? 'overview'
+  const clientParam = searchParams.get('client')
+  const detailClientId = clientParam !== null && Number.isFinite(Number(clientParam)) ? Number(clientParam) : null
+
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.set('tab', tab)
+      next.delete('client')
+      return next
+    })
+  }
+
+  const setDetailClientId = (clientId: number | null) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      if (clientId == null) next.delete('client')
+      else next.set('client', String(clientId))
+      return next
+    })
+  }
+
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [tabInitialFilters, setTabInitialFilters] = useState<
     Partial<Record<FilterableTab, 'all' | 'new'>>
@@ -274,7 +296,7 @@ const AdminDashboard = () => {
                   <SidebarMenuButton
                     isActive={activeTab === tab.value}
                     tooltip={isHe ? tab.he : tab.en}
-                    onClick={() => { setDetailClientId(null); setActiveTab(tab.value) }}
+                    onClick={() => setActiveTab(tab.value)}
                     data-testid={`tab-${tab.value}`}
                   >
                     <span className="relative inline-flex shrink-0">

@@ -62,3 +62,28 @@ export function createDefaultSection(type: HomeSectionType): HomeSection {
 export function createDefaultItem(): { id: string; icon?: string } {
   return { id: randomId("item"), icon: "Star" };
 }
+
+// A small curated set of lucide-react icon names for the cards template's
+// icon picker (kept short and generic so it fits any business, not just a
+// clinic).
+export const CARD_ICON_OPTIONS = [
+  "Star",
+  "Heart",
+  "Award",
+  "Shield",
+  "CheckCircle",
+  "Users",
+  "Zap",
+  "Clock",
+  "Phone",
+  "Mail",
+  "MapPin",
+  "Calendar",
+  "Briefcase",
+  "BookOpen",
+  "Coffee",
+  "Smile",
+  "ThumbsUp",
+  "TrendingUp",
+  "Sparkles",
+] as const;
