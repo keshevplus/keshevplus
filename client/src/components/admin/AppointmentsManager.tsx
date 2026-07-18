@@ -37,6 +37,13 @@ function formatWhatsAppUrl(phone: string, message?: string) {
   return `https://wa.me/${cleaned}${params}`
 }
 
+function splitByPeriod<T extends { time: string }>(appointments: T[]) {
+  return {
+    morning: appointments.filter((a) => a.time < "12:00"),
+    afternoon: appointments.filter((a) => a.time >= "12:00"),
+  };
+}
+
 const STATUS_CONFIG: Record<string, { he: string; en: string; color: string }> = {
   pending: { he: "ממתינה", en: "Pending", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" },
   confirmed: { he: "מאושרת", en: "Confirmed", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
@@ -718,8 +725,9 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
                         >
                           {day.label}
                         </div>
-                        <div className="space-y-0.5 sm:space-y-1">
-                          {day.appointments.map((appointment) => {
+                        {(() => {
+                          const { morning, afternoon } = splitByPeriod(day.appointments);
+                          const renderAppointment = (appointment: Appointment) => {
                             const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
 
                             return (
@@ -743,8 +751,24 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
                                 </HoverCardContent>
                               </HoverCard>
                             );
-                          })}
-                        </div>
+                          };
+
+                          return (
+                            <>
+                              <div className="space-y-0.5 sm:space-y-1">
+                                {morning.map(renderAppointment)}
+                              </div>
+                              {afternoon.length > 0 && (
+                                <div className="mt-3 sm:mt-4 pt-1.5 sm:pt-2 border-t border-dashed text-center text-[8px] sm:text-[9px] font-semibold uppercase tracking-wide text-muted-foreground/70">
+                                  {isHe ? "אחה\"צ" : "PM"}
+                                </div>
+                              )}
+                              <div className="space-y-0.5 sm:space-y-1 mt-0.5 sm:mt-1">
+                                {afternoon.map(renderAppointment)}
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>
@@ -752,44 +776,67 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
               )}
 
               {calendarView === "day" && (
-                <div className="space-y-1.5 sm:space-y-2 min-h-[650px] sm:min-h-[720px] md:min-h-[750px]">
+                <div className="min-h-[650px] sm:min-h-[720px] md:min-h-[750px]">
                   {dayViewAppointments.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground text-sm">
                       {isHe ? "אין פגישות ביום זה" : "No appointments on this day"}
                     </div>
                   ) : (
-                    dayViewAppointments.map((appointment) => {
-                      const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
+                    (() => {
+                      const { morning, afternoon } = splitByPeriod(dayViewAppointments);
+                      const renderAppointment = (appointment: Appointment) => {
+                        const statusInfo = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.pending;
+
+                        return (
+                          <HoverCard key={appointment.id} openDelay={200}>
+                            <HoverCardTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedAppointmentId(appointment.id)}
+                                className="w-full flex items-center justify-between gap-3 rounded-md border bg-background p-2.5 sm:p-3 text-left hover:bg-muted/50 transition-colors"
+                                data-testid={`calendar-day-appointment-${appointment.id}`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="font-semibold text-sm text-foreground shrink-0">
+                                    {formatAppointmentTime(appointment.time)}
+                                  </span>
+                                  <span className="text-sm text-foreground truncate">{appointment.clientName}</span>
+                                </div>
+                                <Badge
+                                  variant="secondary"
+                                  className={`no-default-hover-elevate no-default-active-elevate shrink-0 ${statusInfo.color}`}
+                                >
+                                  {isHe ? statusInfo.he : statusInfo.en}
+                                </Badge>
+                              </button>
+                            </HoverCardTrigger>
+                            <HoverCardContent side="right" align="start">
+                              {renderHoverDetails(appointment)}
+                            </HoverCardContent>
+                          </HoverCard>
+                        );
+                      };
 
                       return (
-                        <HoverCard key={appointment.id} openDelay={200}>
-                          <HoverCardTrigger asChild>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedAppointmentId(appointment.id)}
-                              className="w-full flex items-center justify-between gap-3 rounded-md border bg-background p-2.5 sm:p-3 text-left hover:bg-muted/50 transition-colors"
-                              data-testid={`calendar-day-appointment-${appointment.id}`}
-                            >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className="font-semibold text-sm text-foreground shrink-0">
-                                  {formatAppointmentTime(appointment.time)}
-                                </span>
-                                <span className="text-sm text-foreground truncate">{appointment.clientName}</span>
+                        <>
+                          {morning.length > 0 && (
+                            <div className="space-y-1.5 sm:space-y-2">
+                              {morning.map(renderAppointment)}
+                            </div>
+                          )}
+                          {afternoon.length > 0 && (
+                            <div className="mt-6 sm:mt-8 pt-3 sm:pt-4 border-t">
+                              <p className="mb-1.5 sm:mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
+                                {isHe ? "אחר הצהריים" : "Afternoon"}
+                              </p>
+                              <div className="space-y-1.5 sm:space-y-2">
+                                {afternoon.map(renderAppointment)}
                               </div>
-                              <Badge
-                                variant="secondary"
-                                className={`no-default-hover-elevate no-default-active-elevate shrink-0 ${statusInfo.color}`}
-                              >
-                                {isHe ? statusInfo.he : statusInfo.en}
-                              </Badge>
-                            </button>
-                          </HoverCardTrigger>
-                          <HoverCardContent side="right" align="start">
-                            {renderHoverDetails(appointment)}
-                          </HoverCardContent>
-                        </HoverCard>
+                            </div>
+                          )}
+                        </>
                       );
-                    })
+                    })()
                   )}
                 </div>
               )}
