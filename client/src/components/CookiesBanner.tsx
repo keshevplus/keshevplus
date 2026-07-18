@@ -47,31 +47,22 @@ const CookiesBanner = () => {
             <Shield className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
             <div className="flex-1 space-y-2">
               <p className="text-sm leading-relaxed">
-                {isHe
-                  ? 'אתר זה משתמש בעוגיות (cookies) לשיפור חווית הגלישה ולמטרות סטטיסטיות. בהמשך הגלישה באתר, הנך מסכים/ה לשימוש בעוגיות בהתאם למדיניות הפרטיות שלנו.'
-                  : 'This website uses cookies to improve your browsing experience and for statistical purposes. By continuing to browse the site, you agree to the use of cookies in accordance with our privacy policy.'}
+                {t('cookies.notice')}
               </p>
               {showDetails && (
                 <div className="text-xs text-muted-foreground space-y-1 border-t pt-2">
                   <p>
-                    {isHe
-                      ? 'העוגיות המשמשות באתר זה כוללות:'
-                      : 'The cookies used on this site include:'}
+                    {t('cookies.used_include')}
                   </p>
                   <ul className={cn("list-disc space-y-0.5", isHe ? "pr-4" : "pl-4")}>
                     <li>
-                      {isHe
-                        ? 'עוגיות הכרחיות - לתפקוד תקין של האתר'
-                        : 'Essential cookies - for proper site functionality'}
+                      {t('cookies.essential')}
                     </li>
                     <li>
-                      {isHe
-                        ? 'עוגיות סטטיסטיות - לניתוח שימוש ושיפור השירות'
-                        : 'Statistical cookies - for usage analysis and service improvement'}
+                      {t('cookies.statistical')}
                     </li>
                     <li>
-                      {isHe
-                        ? 'עוגיות העדפות - לשמירת העדפות המשתמש'
+                      {t('cookies.preference')}
                         : 'Preference cookies - to save user preferences'}
                     </li>
                   </ul>
