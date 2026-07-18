@@ -689,6 +689,47 @@ export class DatabaseStorage implements IStorage {
     return updated.value as AppointmentTypeHoursConfig;
   }
 
+  async getImage(slot: string): Promise<ImageAsset | undefined> {
+    const [image] = await db.select().from(images).where(eq(images.slot, slot));
+    return image || undefined;
+  }
+
+  async listImages(): Promise<ImageAssetMeta[]> {
+    return db
+      .select({ id: images.id, slot: images.slot, mimeType: images.mimeType, filename: images.filename, updatedAt: images.updatedAt })
+      .from(images);
+  }
+
+  async upsertImage(slot: string, mimeType: string, filename: string | null, data: string): Promise<ImageAsset> {
+    const existing = await this.getImage(slot);
+    if (existing) {
+      const [updated] = await db
+        .update(images)
+        .set({ mimeType, filename, data, updatedAt: new Date() })
+        .where(eq(images.slot, slot))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(images).values({ slot, mimeType, filename, data }).returning();
+    return created;
+  }
+
+  async deleteImage(slot: string): Promise<boolean> {
+    const result = await db.delete(images).where(eq(images.slot, slot)).returning();
+    return result.length > 0;
+  }
+
+  async getHomeSections(): Promise<HomeSection[]> {
+    const setting = await this.getSetting("home_sections");
+    if (setting) return setting.value as HomeSection[];
+    return DEFAULT_HOME_SECTIONS;
+  }
+
+  async updateHomeSections(sections: HomeSection[]): Promise<HomeSection[]> {
+    const updated = await this.upsertSetting("home_sections", sections);
+    return updated.value as HomeSection[];
+  }
+
   async createConversation(conversation: InsertConversation): Promise<Conversation> {
     const [created] = await db.insert(conversations).values(conversation as any).returning();
     return created;
