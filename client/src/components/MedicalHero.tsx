@@ -4,6 +4,7 @@ import doctorHero from "@/assets/doctor-hero.png";
 import logoImg from "@/assets/logo.png";
 import { useLanguage } from "@/hooks/useLanguage";
 import MobileNavigation from "./MobileNavigation";
+import { SiteImage } from "./SiteImage";
 import { AccessibleButton } from "./ui/accessible-button";
 import { cn } from "@/lib/utils";
 import { useContactModal } from "@/contexts/ContactModalContext";
@@ -74,8 +75,9 @@ const MedicalHero: React.FC = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.5, delay: 0.25 }}
                 >
-                  <img
-                    src={logoImg}
+                  <SiteImage
+                    slot="logo"
+                    fallback={logoImg}
                     alt={isRTL ? "קשב פלוס" : "Keshev Plus"}
                     className="h-20 sm:h-24 md:h-28 lg:h-32 w-auto"
                   />
@@ -187,8 +189,9 @@ const MedicalHero: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
               >
-                <img
-                  src={doctorHero}
+                <SiteImage
+                  slot="hero.image"
+                  fallback={doctorHero}
                   alt={t("hero.doctor_alt")}
                   className="w-full max-h-[50vh] sm:max-h-none sm:h-[calc(100vh-4rem)] object-contain object-bottom drop-shadow-2xl block"
                   loading="eager"

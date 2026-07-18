@@ -41,19 +41,19 @@ const ContactSection: React.FC = () => {
             role="button"
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && openModal()}
-            aria-label={isRTL ? 'לחצו לפתיחת טופס יצירת קשר' : 'Click to open contact form'}
+            aria-label={t('contact.aria_open_form')}
             data-testid="card-contact-teaser"
           >
             <CardContent className="pt-6 space-y-4">
               <p className="text-sm text-muted-foreground text-center pb-1">
-                {isRTL ? 'לחצו לפתיחת הטופס' : 'Click to open the form'}
+                {t('contact.click_to_open_form')}
               </p>
 
               {/* Teaser fields — visual only, clicking opens modal */}
               {[
                 t('contact.name_placeholder'),
-                isRTL ? 'הזינו מספר טלפון' : 'Phone number',
-                isRTL ? 'הזינו כתובת דוא"ל' : 'Email (optional)',
+                t('contact.phone_placeholder'),
+                t('contact.email_optional'),
               ].map((placeholder) => (
                 <div
                   key={placeholder}
@@ -120,10 +120,10 @@ const ContactSection: React.FC = () => {
 
               <div className="flex flex-wrap justify-center gap-3 w-full">
                 <a href={wazeLink} target="_blank" rel="noopener noreferrer" className="flex-1 max-w-[180px] flex items-center justify-center gap-2 px-4 py-2 bg-[#33CCFF] text-white rounded-lg font-bold hover:bg-opacity-90 transition-opacity min-h-[44px]">
-                  נווט עם Waze
+                  {t('contact.navigate_waze')}
                 </a>
                 <a href={googleMapsLink} target="_blank" rel="noopener noreferrer" className="flex-1 max-w-[180px] flex items-center justify-center gap-2 px-4 py-2 bg-[#4285F4] text-white rounded-lg font-bold hover:bg-opacity-90 transition-opacity min-h-[44px]">
-                  נווט עם Google Maps
+                  {t('contact.navigate_google_maps')}
                 </a>
               </div>
             </div>
@@ -133,7 +133,7 @@ const ContactSection: React.FC = () => {
             <DialogContent className="max-w-sm w-[85vw] p-0 overflow-hidden rounded-2xl z-[9995]" dir={isRTL ? 'rtl' : 'ltr'}>
               <div className="bg-white dark:bg-gray-900 p-4 space-y-3 pt-8">
                 <h2 className="text-lg font-bold text-[#1B4332] dark:text-green-300 text-center border-b pb-3">
-                  דרכי הגעה ואפשרויות חניה
+                  {t('contact.directions_title')}
                 </h2>
                 <div className="space-y-4">
                   <div className="space-y-3">

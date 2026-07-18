@@ -4,6 +4,7 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { Phone, Mail, MapPin, Clock, Facebook, Instagram, Linkedin } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import logo from '@/assets/logo.png';
+import { SiteImage } from '@/components/SiteImage';
 
 const Footer: React.FC = () => {
   const { language, isRTL, t } = useLanguage();
@@ -38,9 +39,10 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-12">
           
           <div className="space-y-4">
-            <img 
-              src={logo} 
-              alt="Keshev Plus Logo" 
+            <SiteImage
+              slot="logo"
+              fallback={logo}
+              alt="Keshev Plus Logo"
               className="h-16 w-auto brightness-0 invert"
               loading="lazy"
               width="150"
@@ -129,9 +131,7 @@ const Footer: React.FC = () => {
               ))}
             </div>
             <a
-              href={`https://wa.me/972552739927?text=${encodeURIComponent(
-                language === 'he' ? '\u05e9\u05dc\u05d5\u05dd, \u05d0\u05e9\u05de\u05d7 \u05dc\u05e7\u05d1\u05dc \u05e4\u05e8\u05d8\u05d9\u05dd \u05e0\u05d5\u05e1\u05e4\u05d9\u05dd \u05e2\u05dc \u05d0\u05d1\u05d7\u05d5\u05df ADHD' : 'Hello, I would like more information about ADHD diagnosis'
-              )}`}
+              href={`https://wa.me/972552739927?text=${encodeURIComponent(t('contact.whatsapp_message'))}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground px-4 py-2 rounded-lg transition-colors text-sm font-medium"
@@ -154,10 +154,10 @@ const Footer: React.FC = () => {
             </svg>
             <div className="flex flex-col">
               <span className="text-primary-foreground font-semibold text-sm">
-                {isRTL ? 'מוסמכי Moxo' : 'Moxo Certified'}
+                {t('footer.moxo_certified')}
               </span>
               <span className="text-primary-foreground/60 text-xs">
-                {isRTL ? 'אבחון ADHD ממוחשב' : 'Computerized ADHD Assessment'}
+                {t('footer.moxo_certified_desc')}
               </span>
             </div>
           </div>

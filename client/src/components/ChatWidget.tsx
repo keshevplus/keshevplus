@@ -46,7 +46,7 @@ function clearVisitorCookie() {
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 const ChatWidget = () => {
-  const { language, isRTL } = useLanguage()
+  const { language, isRTL, t } = useLanguage()
   const isHe = language === 'he'
   const isDemo = useIsDemo()
   const [location] = useLocation()
@@ -349,7 +349,7 @@ const ChatWidget = () => {
 
   const whatsAppButton = widgetSettings?.showWhatsApp !== false && (
     <a
-      href={`https://wa.me/${CLINIC_WHATSAPP}?text=${encodeURIComponent(isHe ? 'שלום, אשמח לקבל מידע על אבחון ADHD' : 'Hello, I would like information about ADHD diagnosis')}`}
+      href={`https://wa.me/${CLINIC_WHATSAPP}?text=${encodeURIComponent(t('contact.whatsapp_message'))}`}
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
@@ -390,7 +390,7 @@ const ChatWidget = () => {
               "transition-colors duration-200",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F97316] focus-visible:ring-offset-2"
             )}
-            aria-label={isHe ? 'פתח צ׳אט' : 'Open chat'}
+            aria-label={t('chat.open')}
             data-testid="button-open-chat"
           >
             <MessageCircle className="h-6 w-6 text-white" />
@@ -407,12 +407,12 @@ const ChatWidget = () => {
             data-testid="chat-attention-bar"
           >
             <span className="text-sm font-medium text-foreground">
-              {isHe ? 'איך אוכל לעזור?' : 'How can I help?'}
+              {t('chat.how_can_help')}
             </span>
             <button
               onClick={(e) => { e.stopPropagation(); handleDismiss() }}
               className="shrink-0 text-muted-foreground hover:text-foreground transition-colors p-0.5"
-              aria-label={isHe ? 'סגור' : 'Close'}
+              aria-label={t('chat.close')}
               data-testid="button-close-chat-bar"
             >
               <X className="h-3.5 w-3.5" />
@@ -480,7 +480,7 @@ const ChatWidget = () => {
             <Bot className="h-5 w-5" />
             <div className="flex flex-col">
               <span className="font-medium text-sm">
-                {isHe ? 'עוזר וירטואלי - קשב פלוס' : 'KeshevPlus Assistant'}
+                {t('chat.assistant_name')}
               </span>
               {restoredVisitor && visitorInfo && (
                 <button
@@ -488,7 +488,7 @@ const ChatWidget = () => {
                   className="text-xs text-primary-foreground/70 hover:text-primary-foreground underline text-start"
                   data-testid="button-not-you"
                 >
-                  {isHe ? `${visitorInfo.name} - לא אני` : `Not ${visitorInfo.name}?`}
+                  {t('chat.not_you').replace('{name}', visitorInfo.name)}
                 </button>
               )}
             </div>
@@ -509,9 +509,7 @@ const ChatWidget = () => {
             <div className="text-center space-y-2 mb-2">
               <Bot className="h-12 w-12 mx-auto text-primary/50" />
               <p className="text-sm text-muted-foreground">
-                {isHe
-                  ? 'לפני שנתחיל, אנא מלאו את הפרטים הבאים:'
-                  : 'Before we start, please fill in your details:'}
+                {t('chat.before_start')}
               </p>
             </div>
             <Input
@@ -519,7 +517,7 @@ const ChatWidget = () => {
               onChange={(e) => setInfoForm(prev => ({ ...prev, name: e.target.value }))}
               onKeyDown={handleInfoKeyDown}
               onFocus={scrollInputIntoView}
-              placeholder={isHe ? 'שם מלא *' : 'Full name *'}
+              placeholder={t('chat.full_name_placeholder')}
               data-testid="input-chat-name"
             />
             <Input
@@ -527,7 +525,7 @@ const ChatWidget = () => {
               onChange={(e) => setInfoForm(prev => ({ ...prev, email: e.target.value }))}
               onKeyDown={handleInfoKeyDown}
               onFocus={scrollInputIntoView}
-              placeholder={isHe ? 'אימייל *' : 'Email *'}
+              placeholder={t('chat.email_placeholder')}
               type="email"
               data-testid="input-chat-email"
             />

@@ -1,4 +1,4 @@
-import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, clientPayments, conversations, messages, whatsappMessages, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type ClientPayment, type InsertClientPayment, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type DashboardLayout, type WhatsAppMessage, type InsertWhatsAppMessage } from "@shared/schema";
+import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, clientPayments, conversations, messages, whatsappMessages, images, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type ClientPayment, type InsertClientPayment, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type DashboardLayout, type WhatsAppMessage, type InsertWhatsAppMessage, type ImageAsset, type ImageAssetMeta, type HomeSection, DEFAULT_HOME_SECTIONS } from "@shared/schema";
 import type { AppointmentTypeHoursConfig } from "@shared/appointmentSchedule";
 import { db } from "./db";
 import { eq, desc, and, sql, lt, inArray } from "drizzle-orm";
@@ -53,6 +53,12 @@ export interface IStorage {
   updateWidgetSettings(settings: WidgetSettings): Promise<WidgetSettings>;
   getDashboardLayout(): Promise<DashboardLayout | null>;
   updateDashboardLayout(layout: DashboardLayout): Promise<DashboardLayout>;
+  getImage(slot: string): Promise<ImageAsset | undefined>;
+  listImages(): Promise<ImageAssetMeta[]>;
+  upsertImage(slot: string, mimeType: string, filename: string | null, data: string): Promise<ImageAsset>;
+  deleteImage(slot: string): Promise<boolean>;
+  getHomeSections(): Promise<HomeSection[]>;
+  updateHomeSections(sections: HomeSection[]): Promise<HomeSection[]>;
   getAppointmentTypeHours(): Promise<AppointmentTypeHoursConfig>;
   updateAppointmentTypeHours(config: AppointmentTypeHoursConfig): Promise<AppointmentTypeHoursConfig>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
@@ -681,6 +687,47 @@ export class DatabaseStorage implements IStorage {
   async updateAppointmentTypeHours(config: AppointmentTypeHoursConfig): Promise<AppointmentTypeHoursConfig> {
     const updated = await this.upsertSetting("appointment_type_hours", config);
     return updated.value as AppointmentTypeHoursConfig;
+  }
+
+  async getImage(slot: string): Promise<ImageAsset | undefined> {
+    const [image] = await db.select().from(images).where(eq(images.slot, slot));
+    return image || undefined;
+  }
+
+  async listImages(): Promise<ImageAssetMeta[]> {
+    return db
+      .select({ id: images.id, slot: images.slot, mimeType: images.mimeType, filename: images.filename, updatedAt: images.updatedAt })
+      .from(images);
+  }
+
+  async upsertImage(slot: string, mimeType: string, filename: string | null, data: string): Promise<ImageAsset> {
+    const existing = await this.getImage(slot);
+    if (existing) {
+      const [updated] = await db
+        .update(images)
+        .set({ mimeType, filename, data, updatedAt: new Date() } as any)
+        .where(eq(images.slot, slot))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(images).values({ slot, mimeType, filename, data } as any).returning();
+    return created;
+  }
+
+  async deleteImage(slot: string): Promise<boolean> {
+    const result = await db.delete(images).where(eq(images.slot, slot)).returning();
+    return result.length > 0;
+  }
+
+  async getHomeSections(): Promise<HomeSection[]> {
+    const setting = await this.getSetting("home_sections");
+    if (setting) return setting.value as HomeSection[];
+    return DEFAULT_HOME_SECTIONS;
+  }
+
+  async updateHomeSections(sections: HomeSection[]): Promise<HomeSection[]> {
+    const updated = await this.upsertSetting("home_sections", sections);
+    return updated.value as HomeSection[];
   }
 
   async createConversation(conversation: InsertConversation): Promise<Conversation> {

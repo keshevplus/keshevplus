@@ -8,6 +8,7 @@ import { AccessibleButton } from "@/components/ui/accessible-button";
 import { Button } from "@/components/ui/button";
 import BookingModal from "@/components/BookingModal";
 import logo from "@/assets/logo.png";
+import { SiteImage } from "@/components/SiteImage";
 import { cn } from "@/lib/utils";
 import { useContactModal } from "@/contexts/ContactModalContext";
 
@@ -161,8 +162,9 @@ const MobileNavigation: React.FC = () => {
               aria-hidden={logoHeight === 0}
               tabIndex={logoHeight === 0 ? -1 : 0}
             >
-              <img
-                src={logo}
+              <SiteImage
+                slot="logo"
+                fallback={logo}
                 alt={isRTL ? "קשב פלוס" : "Keshev Plus"}
                 className="h-14 w-auto"
               />

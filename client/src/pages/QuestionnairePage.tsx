@@ -13,6 +13,7 @@ import { QUESTIONNAIRES, RATING_OPTIONS, PERFORMANCE_OPTIONS, calculateScores, t
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.png";
+import { SiteImage } from "@/components/SiteImage";
 
 type Step = "register" | "form" | "success";
 
@@ -173,8 +174,9 @@ const QuestionnairePage = () => {
             </Button>
           </Link>
           <Link href="/" className="shrink-0">
-            <img
-              src={logo}
+            <SiteImage
+              slot="logo"
+              fallback={logo}
               alt={isHebrew ? "קשב פלוס" : "Keshev Plus"}
               className="h-9 w-auto"
               data-testid="img-questionnaire-logo"

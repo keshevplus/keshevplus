@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'wouter'
 import { useAuth } from '../auth/AuthProvider'
 import { useLanguage } from '@/hooks/useLanguage'
 import { LanguageSelector } from '../LanguageSelector'
@@ -22,7 +23,7 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
-import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye, Phone, UserCog, Archive } from 'lucide-react'
+import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye, Phone, UserCog, Archive, LayoutGrid, Image } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useQuery } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/queryClient'
@@ -45,6 +46,8 @@ import BinManager from './BinManager'
 import VisualEditor from './VisualEditor'
 import WhatsAppManager from './WhatsAppManager'
 import OverviewWidgetGrid from './OverviewWidgetGrid'
+import SectionsManager from './SectionsManager'
+import ImagesManager from './ImagesManager'
 
 const languageCodeClass = "inline-flex w-6 shrink-0 justify-center font-sans text-sm font-semibold leading-none text-muted-foreground"
 const languageNameClass = "font-sans text-sm leading-none"
@@ -67,8 +70,29 @@ const AdminDashboard = () => {
   const [langSettings, setLangSettings] = useState<LanguageSettings>(DEFAULT_LANGUAGE_SETTINGS)
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(false)
-  const [activeTab, setActiveTab] = useState('overview')
-  const [detailClientId, setDetailClientId] = useState<number | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') ?? 'overview'
+  const clientParam = searchParams.get('client')
+  const detailClientId = clientParam !== null && Number.isFinite(Number(clientParam)) ? Number(clientParam) : null
+
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.set('tab', tab)
+      next.delete('client')
+      return next
+    })
+  }
+
+  const setDetailClientId = (clientId: number | null) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      if (clientId == null) next.delete('client')
+      else next.set('client', String(clientId))
+      return next
+    })
+  }
+
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [tabInitialFilters, setTabInitialFilters] = useState<
     Partial<Record<FilterableTab, 'all' | 'new'>>
@@ -228,6 +252,8 @@ const AdminDashboard = () => {
     { value: 'conversations', icon: MessageCircle, he: 'שיחות צ׳אט', en: 'Conversations', heDesc: 'צפייה בשיחות צ׳אט', enDesc: 'View chat conversations' },
     { value: 'whatsapp', icon: Phone, he: 'וואטסאפ', en: 'WhatsApp', heDesc: 'צפייה בשיחות וואטסאפ', enDesc: 'View WhatsApp conversations' },
     { value: 'questionnaires', icon: ClipboardList, he: 'שאלונים', en: 'Questionnaires', heDesc: 'צפייה בהגשות שאלונים', enDesc: 'View questionnaire submissions' },
+    { value: 'sections', icon: LayoutGrid, he: 'מקטעי דף הבית', en: 'Sections', heDesc: 'הוספה וסידור מקטעים בדף הבית', enDesc: 'Add & reorder home page sections' },
+    { value: 'images', icon: Image, he: 'תמונות', en: 'Images', heDesc: 'ניהול תמונות האתר', enDesc: 'Manage site images' },
     { value: 'visual-editor', icon: Eye, he: 'עורך ויזואלי', en: 'Visual Editor', heDesc: 'עריכת תוכן העמודים באתר', enDesc: 'Edit site page content visually' },
     { value: 'translations', icon: Languages, he: 'תרגומים', en: 'Translations', heDesc: 'ניהול תרגומים לאתר', enDesc: 'Manage site translations' },
     { value: 'settings', icon: Settings, he: 'הגדרות', en: 'Settings', heDesc: 'שפה והתראות', enDesc: 'Language & notifications' },
@@ -274,7 +300,7 @@ const AdminDashboard = () => {
                   <SidebarMenuButton
                     isActive={activeTab === tab.value}
                     tooltip={isHe ? tab.he : tab.en}
-                    onClick={() => { setDetailClientId(null); setActiveTab(tab.value) }}
+                    onClick={() => setActiveTab(tab.value)}
                     data-testid={`tab-${tab.value}`}
                   >
                     <span className="relative inline-flex shrink-0">
@@ -497,6 +523,14 @@ const AdminDashboard = () => {
 
           <TabsContent value="questionnaires" className="mt-0">
             <QuestionnaireSubmissions initialFilter={tabInitialFilters.questionnaires ?? 'all'} />
+          </TabsContent>
+
+          <TabsContent value="sections" className="mt-0">
+            <SectionsManager />
+          </TabsContent>
+
+          <TabsContent value="images" className="mt-0">
+            <ImagesManager />
           </TabsContent>
 
           <TabsContent value="visual-editor" className="mt-0">

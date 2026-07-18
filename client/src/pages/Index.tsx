@@ -1,13 +1,11 @@
 import { lazy, Suspense, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import MedicalHero from "@/components/MedicalHero";
 import StickySectionTitle from "@/components/StickySectionTitle";
 import { useLanguage } from "@/hooks/useLanguage";
+import { SectionRenderer } from "@/components/sections/SectionRenderer";
+import { DEFAULT_HOME_SECTIONS, type HomeSection } from "@shared/schema";
 
-const AboutSection = lazy(() => import("@/components/AboutSection"));
-const ServicesSection = lazy(() => import("@/components/ServicesSection"));
-const ADHDInfoSection = lazy(() => import("@/components/ADHDInfoSection"));
-const QuestionnairesSection = lazy(() => import("@/components/QuestionnairesSection"));
-const ContactSection = lazy(() => import("@/components/ContactSection"));
 const Footer = lazy(() => import("@/components/Footer"));
 
 function SectionFallback() {
@@ -16,6 +14,10 @@ function SectionFallback() {
 
 const Index = () => {
   const { isRTL } = useLanguage();
+  const { data: sections } = useQuery<HomeSection[]>({
+    queryKey: ["/api/home-sections"],
+    initialData: DEFAULT_HOME_SECTIONS,
+  });
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -45,21 +47,7 @@ const Index = () => {
       <StickySectionTitle />
       <MedicalHero />
       <main id="main-content">
-        <Suspense fallback={<SectionFallback />}>
-          <AboutSection />
-        </Suspense>
-        <Suspense fallback={<SectionFallback />}>
-          <ServicesSection />
-        </Suspense>
-        <Suspense fallback={<SectionFallback />}>
-          <ADHDInfoSection />
-        </Suspense>
-        <Suspense fallback={<SectionFallback />}>
-          <QuestionnairesSection />
-        </Suspense>
-        <Suspense fallback={<SectionFallback />}>
-          <ContactSection />
-        </Suspense>
+        <SectionRenderer sections={sections} />
       </main>
       <Suspense fallback={<SectionFallback />}>
         <Footer />

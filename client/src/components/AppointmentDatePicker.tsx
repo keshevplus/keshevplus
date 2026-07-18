@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/hooks/useLanguage'
 import {
   getLocalDateInputValue,
   isAppointmentWorkingDay,
@@ -18,8 +19,10 @@ interface AppointmentDatePickerProps {
   onChange: (date: string) => void
 }
 
-const weekDaysHe = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש']
-const weekDaysEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const LOCALE_BY_LANGUAGE: Record<string, string> = {
+  he: 'he-IL', en: 'en-US', fr: 'fr-FR', es: 'es-ES', de: 'de-DE',
+  ru: 'ru-RU', am: 'am-ET', ar: 'ar-SA', yi: 'yi', it: 'it-IT',
+}
 
 export function AppointmentDatePicker({
   id,
@@ -30,6 +33,16 @@ export function AppointmentDatePicker({
   className,
   onChange,
 }: AppointmentDatePickerProps) {
+  const { language, t } = useLanguage()
+  const locale = LOCALE_BY_LANGUAGE[language] || 'en-US'
+  const weekDays = useMemo(() => {
+    const sunday = new Date(2023, 0, 1) // a known Sunday
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(sunday)
+      date.setDate(sunday.getDate() + index)
+      return date.toLocaleDateString(locale, { weekday: 'short' })
+    })
+  }, [locale])
   const selectedDate = value ? parseLocalDateInputValue(value) : null
   const minDate = parseLocalDateInputValue(min) || new Date()
   const [open, setOpen] = useState(false)
@@ -38,7 +51,7 @@ export function AppointmentDatePicker({
     return new Date(base.getFullYear(), base.getMonth(), 1)
   })
 
-  const monthLabel = visibleMonth.toLocaleDateString(isHe ? 'he-IL' : 'en-US', {
+  const monthLabel = visibleMonth.toLocaleDateString(locale, {
     month: 'long',
     year: 'numeric',
   })
@@ -87,8 +100,8 @@ export function AppointmentDatePicker({
       >
         <span>
           {value
-            ? selectedDate?.toLocaleDateString(isHe ? 'he-IL' : 'en-US')
-            : (isHe ? 'בחרו תאריך' : 'Select date')}
+            ? selectedDate?.toLocaleDateString(locale)
+            : t('appt_date.select_date')}
         </span>
         <Calendar className="h-4 w-4 opacity-70" />
       </Button>
@@ -109,8 +122,8 @@ export function AppointmentDatePicker({
           </div>
 
           <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground">
-            {(isHe ? weekDaysHe : weekDaysEn).map((day) => (
-              <div key={day} className="py-1 font-medium">{day}</div>
+            {weekDays.map((day, index) => (
+              <div key={index} className="py-1 font-medium">{day}</div>
             ))}
           </div>
 
@@ -120,7 +133,7 @@ export function AppointmentDatePicker({
                 key={day.value}
                 type="button"
                 disabled={day.disabled}
-                title={day.closed ? (isHe ? 'המרפאה סגורה ביום זה' : 'Clinic is closed on this day') : undefined}
+                title={day.closed ? t('appt_date.clinic_closed') : undefined}
                 className={cn(
                   'aspect-square rounded-md text-sm transition-colors',
                   day.value === value && 'bg-primary text-primary-foreground',
@@ -139,7 +152,7 @@ export function AppointmentDatePicker({
           </div>
 
           <p className="mt-3 text-xs text-muted-foreground">
-            {isHe ? 'ימים אפורים אינם זמינים לקביעת פגישה.' : 'Gray days are unavailable for appointments.'}
+            {t('appt_date.gray_unavailable')}
           </p>
         </div>
       )}

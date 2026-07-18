@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, insertClientPaymentSchema, APPOINTMENT_STATUSES, insertWhatsAppMessageSchema, dashboardLayoutSchema } from "@shared/schema";
+import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, insertClientPaymentSchema, APPOINTMENT_STATUSES, insertWhatsAppMessageSchema, dashboardLayoutSchema, homeSectionsSchema } from "@shared/schema";
 import {
   APPOINTMENT_TIME_SLOTS,
   APPOINTMENT_WORKING_HOURS_EN,
@@ -684,6 +684,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const layout = await storage.updateDashboardLayout(result.data);
     res.json(layout);
+  });
+
+  // Images: CMS-managed, replaceable image assets. Served publicly by slot
+  // name so the site can render them; uploaded/replaced/removed by admins.
+  app.get("/api/images/:slot", async (req, res) => {
+    try {
+      const image = await storage.getImage(req.params.slot);
+      if (!image) return res.status(404).end();
+      res.set("Content-Type", image.mimeType);
+      res.set("Cache-Control", "public, max-age=300");
+      res.set("ETag", `"${image.id}-${image.updatedAt.getTime()}"`);
+      return res.send(Buffer.from(image.data, "base64"));
+    } catch (error) {
+      console.error("Error serving image:", error);
+      return res.status(500).end();
+    }
+  });
+
+  app.get("/api/admin/images", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+
+    try {
+      const list = await storage.listImages();
+      return res.json(list);
+    } catch (error) {
+      console.error("Error listing images:", error);
+      return res.status(500).json({ error: "Failed to list images" });
+    }
+  });
+
+  app.put("/api/admin/images/:slot", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+
+    try {
+      const { mimeType, filename, dataBase64 } = req.body;
+      if (typeof mimeType !== "string" || typeof dataBase64 !== "string" || !dataBase64) {
+        return res.status(400).json({ error: "mimeType and dataBase64 are required" });
+      }
+      if (!mimeType.startsWith("image/")) {
+        return res.status(400).json({ error: "Only image uploads are allowed" });
+      }
+      const image = await storage.upsertImage(req.params.slot, mimeType, filename || null, dataBase64);
+      return res.json({ slot: image.slot, mimeType: image.mimeType, filename: image.filename, updatedAt: image.updatedAt });
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      return res.status(500).json({ error: "Failed to upload image" });
+    }
+  });
+
+  app.delete("/api/admin/images/:slot", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+
+    try {
+      const deleted = await storage.deleteImage(req.params.slot);
+      return res.json({ deleted });
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      return res.status(500).json({ error: "Failed to delete image" });
+    }
+  });
+
+  // Home page sections: admin-manageable, orderable list of content blocks.
+  app.get("/api/home-sections", async (_req, res) => {
+    try {
+      const sections = await storage.getHomeSections();
+      return res.json(sections.filter((s) => s.enabled));
+    } catch (error) {
+      console.error("Error fetching home sections:", error);
+      return res.status(500).json({ error: "Failed to fetch home sections" });
+    }
+  });
+
+  app.get("/api/admin/home-sections", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+
+    try {
+      const sections = await storage.getHomeSections();
+      return res.json(sections);
+    } catch (error) {
+      console.error("Error fetching home sections:", error);
+      return res.status(500).json({ error: "Failed to fetch home sections" });
+    }
+  });
+
+  app.put("/api/admin/home-sections", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+
+    const result = homeSectionsSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.message });
+
+    try {
+      const sections = await storage.updateHomeSections(result.data);
+      return res.json(sections);
+    } catch (error) {
+      console.error("Error updating home sections:", error);
+      return res.status(500).json({ error: "Failed to update home sections" });
+    }
   });
 
   app.get("/api/contacts", async (req, res) => {
