@@ -162,8 +162,9 @@ const MobileNavigation: React.FC = () => {
               aria-hidden={logoHeight === 0}
               tabIndex={logoHeight === 0 ? -1 : 0}
             >
-              <img
-                src={logo}
+              <SiteImage
+                slot="logo"
+                fallback={logo}
                 alt={isRTL ? "קשב פלוס" : "Keshev Plus"}
                 className="h-14 w-auto"
               />

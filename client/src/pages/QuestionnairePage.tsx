@@ -13,6 +13,7 @@ import { QUESTIONNAIRES, RATING_OPTIONS, PERFORMANCE_OPTIONS, calculateScores, t
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.png";
+import { SiteImage } from "@/components/SiteImage";
 
 type Step = "register" | "form" | "success";
 
