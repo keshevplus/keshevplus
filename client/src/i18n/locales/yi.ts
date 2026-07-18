@@ -7,6 +7,8 @@ const yi: Record<string, string> = {
   "nav.faq": "אפט געפרעגטע פראַגן",
   "nav.questionnaires": "פראַגעבויגנס",
   "nav.contact": "קאָנטאַקט",
+  "nav.book": "באַשטעלן",
+  "nav.book_now": "באַשטעלן איצט",
   "nav.skip_to_content": "שפּרינג צום הויפּט אינהאַלט",
   "nav.main_navigation": "הויפּט נאַוויגאַציע",
   "nav.go_home": "גיי צום היים בלאַט",

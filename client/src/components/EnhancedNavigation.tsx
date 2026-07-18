@@ -101,7 +101,7 @@ const EnhancedNavigation = () => {
                 data-testid="button-nav-booking"
               >
                 <CalendarCheck className="w-3.5 h-3.5" />
-                <span>{isRTL ? 'קביעת תור' : 'Book'}</span>
+                <span>{t('nav.book')}</span>
               </Button>
             </Link>
 
@@ -171,7 +171,7 @@ const EnhancedNavigation = () => {
                   <Link href="/booking" onClick={() => setIsOpen(false)}>
                     <Button className="w-full flex items-center justify-center gap-2" data-testid="button-mobile-booking">
                       <CalendarCheck className="w-5 h-5" />
-                      <span>{isRTL ? 'קביעת תור' : 'Book Now'}</span>
+                      <span>{t('nav.book_now')}</span>
                     </Button>
                   </Link>
                   <a 

@@ -7,6 +7,8 @@ const de: Record<string, string> = {
   "nav.faq": "Häufige Fragen",
   "nav.questionnaires": "Fragebögen",
   "nav.contact": "Kontakt",
+  "nav.book": "Buchen",
+  "nav.book_now": "Jetzt buchen",
   "nav.skip_to_content": "Zum Hauptinhalt springen",
   "nav.main_navigation": "Hauptnavigation",
   "nav.go_home": "Zur Startseite",

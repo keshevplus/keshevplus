@@ -7,6 +7,8 @@ const ar: Record<string, string> = {
   "nav.faq": "أسئلة شائعة",
   "nav.questionnaires": "استبيانات",
   "nav.contact": "اتّصل بنا",
+  "nav.book": "احجز",
+  "nav.book_now": "احجز الآن",
   "nav.skip_to_content": "انتقل إلى المحتوى الرئيسي",
   "nav.main_navigation": "التنقل الرئيسي",
   "nav.go_home": "الذهاب إلى الصفحة الرئيسية",
