@@ -63,13 +63,10 @@ const CookiesBanner = () => {
                     </li>
                     <li>
                       {t('cookies.preference')}
-                        : 'Preference cookies - to save user preferences'}
                     </li>
                   </ul>
                   <p>
-                    {isHe
-                      ? 'בהתאם לחוק הגנת הפרטיות, אנו מיידעים אותך על השימוש בעוגיות ומבקשים את הסכמתך.'
-                      : 'In accordance with the Privacy Protection Act, we inform you about the use of cookies and request your consent.'}
+                    {t('cookies.privacy_note')}
                   </p>
                 </div>
               )}
@@ -85,8 +82,8 @@ const CookiesBanner = () => {
               <Info className="h-4 w-4" />
               <span className="ms-1">
                 {showDetails
-                  ? (isHe ? 'הסתר פרטים' : 'Hide Details')
-                  : (isHe ? 'מידע נוסף' : 'More Info')}
+                  ? t('cookies.hide_details')
+                  : t('cookies.more_info')}
               </span>
             </Button>
             <Button
@@ -94,7 +91,7 @@ const CookiesBanner = () => {
               onClick={handleAccept}
               data-testid="button-cookies-accept"
             >
-              {isHe ? 'אני מסכים/ה' : 'Accept'}
+              {t('cookies.accept')}
             </Button>
           </div>
         </div>
