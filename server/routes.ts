@@ -1066,14 +1066,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // --- Recycle bin: owner-only view of archived/test items across all entities ---
+  // --- Recycle bin: admin/manager/owner view of archived/test items across all entities ---
 
   app.get("/api/admin/bin", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!isOwner(user)) return res.status(403).json({ error: "Owner access required" });
+      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
 
       const items = await storage.getBinItems();
       return res.json(items);
@@ -1087,7 +1087,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!isOwner(user)) return res.status(403).json({ error: "Owner access required" });
+      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
 
       const { type } = req.params;
       const id = parseInt(req.params.id);
@@ -1104,7 +1104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!isOwner(user)) return res.status(403).json({ error: "Owner access required" });
+      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
 
       const { type } = req.params;
       const id = parseInt(req.params.id);
