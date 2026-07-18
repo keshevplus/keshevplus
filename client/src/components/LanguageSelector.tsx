@@ -54,7 +54,7 @@ export function LanguageSelector() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[180px]">
+      <DropdownMenuContent align="end" className="z-[10000] min-w-[180px]">
         {availableLanguages.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
