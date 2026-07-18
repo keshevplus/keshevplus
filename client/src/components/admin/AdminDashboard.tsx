@@ -231,10 +231,10 @@ const AdminDashboard = () => {
     { value: 'visual-editor', icon: Eye, he: 'עורך ויזואלי', en: 'Visual Editor', heDesc: 'עריכת תוכן העמודים באתר', enDesc: 'Edit site page content visually' },
     { value: 'translations', icon: Languages, he: 'תרגומים', en: 'Translations', heDesc: 'ניהול תרגומים לאתר', enDesc: 'Manage site translations' },
     { value: 'settings', icon: Settings, he: 'הגדרות', en: 'Settings', heDesc: 'שפה והתראות', enDesc: 'Language & notifications' },
+    { value: 'bin', icon: Archive, he: 'סל מיחזור', en: 'Recycle Bin', heDesc: 'פריטים שנמחקו', enDesc: 'Deleted items' },
     ...(user?.email === 'dr@keshevplus.co.il'
       ? [
           { value: 'users', icon: UserCog, he: 'משתמשים', en: 'Users', heDesc: 'ניהול משתמשי מערכת', enDesc: 'Manage system users' },
-          { value: 'bin', icon: Archive, he: 'סל מיחזור', en: 'Recycle Bin', heDesc: 'פריטים שנמחקו', enDesc: 'Deleted items' },
         ]
       : []),
   ]
@@ -644,15 +644,14 @@ const AdminDashboard = () => {
             </div>
           </TabsContent>
 
+          <TabsContent value="bin" className="mt-0">
+            <BinManager />
+          </TabsContent>
+
           {user?.email === 'dr@keshevplus.co.il' && (
-            <>
-              <TabsContent value="users" className="mt-0">
-                <UsersManager />
-              </TabsContent>
-              <TabsContent value="bin" className="mt-0">
-                <BinManager />
-              </TabsContent>
-            </>
+            <TabsContent value="users" className="mt-0">
+              <UsersManager />
+            </TabsContent>
           )}
         </Tabs>
         )}
