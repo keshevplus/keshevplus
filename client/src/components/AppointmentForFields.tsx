@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/hooks/useLanguage'
 
 type AppointmentFor = 'self' | 'child'
 
@@ -18,10 +19,6 @@ interface AppointmentForFieldsProps {
 }
 
 const MIN_CHILD_AGE = 6
-const minimumAgeMessage = {
-  he: 'הגיל המינימלי הוא 6',
-  en: 'Minimum age is 6',
-}
 
 export function AppointmentForFields({
   isHe,
@@ -33,6 +30,7 @@ export function AppointmentForFields({
   onChildAgeChange,
   inputClassName,
 }: AppointmentForFieldsProps) {
+  const { t } = useLanguage()
   const handleAgeChange = (value: string) => {
     if (!value.trim()) {
       onChildAgeChange('')
@@ -49,7 +47,7 @@ export function AppointmentForFields({
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <Label>{isHe ? 'עבור מי הפגישה?' : 'Who is the appointment for?'}</Label>
+        <Label>{t('appt_for.who')}</Label>
         <ToggleGroup
           type="single"
           value={appointmentFor}
@@ -65,7 +63,7 @@ export function AppointmentForFields({
             data-testid="toggle-appointment-for-self"
           >
             <User className="h-4 w-4" />
-            {isHe ? 'עבורי' : 'Me'}
+            {t('appt_for.me')}
           </ToggleGroupItem>
           <ToggleGroupItem
             value="child"
@@ -73,7 +71,7 @@ export function AppointmentForFields({
             data-testid="toggle-appointment-for-child"
           >
             <Baby className="h-4 w-4" />
-            {isHe ? 'עבור הילד/ה' : 'For the child'}
+            {t('appt_for.child')}
           </ToggleGroupItem>
         </ToggleGroup>
       </div>
@@ -81,19 +79,19 @@ export function AppointmentForFields({
       {appointmentFor === 'child' && (
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-3">
           <div className="space-y-1.5">
-            <Label htmlFor="booking-child">{isHe ? 'שם הילד/ה' : 'Child Name'} *</Label>
+            <Label htmlFor="booking-child">{t('appt_for.child_name')} *</Label>
             <Input
               id="booking-child"
               value={childName}
               onChange={(e) => onChildNameChange(e.target.value)}
-              placeholder={isHe ? 'שם הילד/ה' : 'Child name'}
+              placeholder={t('appt_for.child_name')}
               required
               className={cn(inputClassName)}
               data-testid="input-booking-child-name"
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="booking-child-age">{isHe ? 'גיל הילד' : 'Child Age'} *</Label>
+            <Label htmlFor="booking-child-age">{t('appt_for.child_age')} *</Label>
             <Input
               id="booking-child-age"
               type="number"
@@ -102,10 +100,10 @@ export function AppointmentForFields({
               value={childAge === '' ? '' : String(childAge)}
               onChange={(e) => handleAgeChange(e.target.value)}
               onInvalid={(e) => {
-                e.currentTarget.setCustomValidity(isHe ? minimumAgeMessage.he : minimumAgeMessage.en)
+                e.currentTarget.setCustomValidity(t('appt_for.min_age_error'))
               }}
               onInput={(e) => e.currentTarget.setCustomValidity('')}
-              placeholder={isHe ? '(מינימום 6)' : '(minimum 6)'}
+              placeholder={t('appt_for.child_age_placeholder')}
               aria-invalid={showMinimumAgeMessage}
               aria-describedby={showMinimumAgeMessage ? 'booking-child-age-error' : undefined}
               required
@@ -114,7 +112,7 @@ export function AppointmentForFields({
             />
             {showMinimumAgeMessage && (
               <p id="booking-child-age-error" className="rounded-md bg-destructive/10 px-2 py-1 text-xs text-destructive" role="tooltip">
-                {isHe ? minimumAgeMessage.he : minimumAgeMessage.en}
+                {t('appt_for.min_age_error')}
               </p>
             )}
           </div>

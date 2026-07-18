@@ -3,6 +3,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
 import { registerRoutes } from "./routes";
+import { ensureSchema } from "./migrate";
 
 const PgSession = connectPgSimple(session);
 
@@ -69,6 +70,7 @@ export async function createApp(): Promise<Express> {
     next();
   });
 
+  await ensureSchema();
   await registerRoutes(app);
 
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

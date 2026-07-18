@@ -8,6 +8,7 @@ import { AccessibleButton } from "@/components/ui/accessible-button";
 import { Button } from "@/components/ui/button";
 import BookingModal from "@/components/BookingModal";
 import logo from "@/assets/logo.png";
+import { SiteImage } from "@/components/SiteImage";
 import { cn } from "@/lib/utils";
 import { useContactModal } from "@/contexts/ContactModalContext";
 

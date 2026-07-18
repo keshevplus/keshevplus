@@ -4,6 +4,7 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { Phone, Mail, MapPin, Clock, Facebook, Instagram, Linkedin } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import logo from '@/assets/logo.png';
+import { SiteImage } from '@/components/SiteImage';
 
 const Footer: React.FC = () => {
   const { language, isRTL, t } = useLanguage();
@@ -38,9 +39,10 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-12">
           
           <div className="space-y-4">
-            <img 
-              src={logo} 
-              alt="Keshev Plus Logo" 
+            <SiteImage
+              slot="logo"
+              fallback={logo}
+              alt="Keshev Plus Logo"
               className="h-16 w-auto brightness-0 invert"
               loading="lazy"
               width="150"
