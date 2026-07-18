@@ -7,6 +7,7 @@ import { Switch, Route } from "wouter";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { ContactModalProvider } from "@/contexts/ContactModalContext";
 import Index from "./pages/Index";
+import DevEnvironmentBanner from "@/components/DevEnvironmentBanner";
 
 const AdminPage = lazy(() => import("./pages/AdminPage"));
 const QuestionnairePage = lazy(() => import("./pages/QuestionnairePage"));
@@ -53,6 +54,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ContactModalProvider>
+          <DevEnvironmentBanner />
           <Router />
           <Suspense fallback={null}>
             <AccessibilityWidget />
