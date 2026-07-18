@@ -705,12 +705,12 @@ export class DatabaseStorage implements IStorage {
     if (existing) {
       const [updated] = await db
         .update(images)
-        .set({ mimeType, filename, data, updatedAt: new Date() })
+        .set({ mimeType, filename, data, updatedAt: new Date() } as any)
         .where(eq(images.slot, slot))
         .returning();
       return updated;
     }
-    const [created] = await db.insert(images).values({ slot, mimeType, filename, data }).returning();
+    const [created] = await db.insert(images).values({ slot, mimeType, filename, data } as any).returning();
     return created;
   }
 
