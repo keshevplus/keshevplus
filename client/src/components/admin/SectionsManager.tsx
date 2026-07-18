@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus, Trash2, ChevronUp, ChevronDown, Pencil, Save, LayoutGrid } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { apiRequest } from '@/lib/queryClient'
+import { apiRequest, queryClient } from '@/lib/queryClient'
 import { invalidateTranslationCache, useLanguage } from '@/hooks/useLanguage'
 import { ALL_LANGUAGES, type SupportedLanguage } from '@/i18n/config'
 import { LEGACY_SECTION_TYPES, type HomeSection, type HomeSectionType } from '@shared/schema'
@@ -297,6 +297,7 @@ const SectionsManager = () => {
     try {
       await apiRequest('PUT', '/api/admin/home-sections', sections)
       setDirty(false)
+      queryClient.invalidateQueries({ queryKey: ['/api/home-sections'] })
       toast({ title: isHe ? 'נשמר בהצלחה' : 'Saved successfully' })
     } catch {
       toast({ title: isHe ? 'שגיאה' : 'Error', description: isHe ? 'שמירת המקטעים נכשלה' : 'Failed to save sections', variant: 'destructive' })

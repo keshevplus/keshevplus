@@ -16,7 +16,7 @@ const Index = () => {
   const { isRTL } = useLanguage();
   const { data: sections } = useQuery<HomeSection[]>({
     queryKey: ["/api/home-sections"],
-    initialData: DEFAULT_HOME_SECTIONS,
+    placeholderData: DEFAULT_HOME_SECTIONS,
   });
 
   useEffect(() => {

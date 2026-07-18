@@ -6,105 +6,6 @@ import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 
-const translations: Record<string, Record<string, string>> = {
-  accessibilitySettings: {
-    he: "הגדרות נגישות",
-    en: "Accessibility settings",
-  },
-  textSize: {
-    he: "גודל טקסט",
-    en: "Text Size",
-  },
-  decreaseText: {
-    he: "הקטן טקסט",
-    en: "Decrease text",
-  },
-  increaseText: {
-    he: "הגדל טקסט",
-    en: "Increase text",
-  },
-  lineHeight: {
-    he: "גובה שורה",
-    en: "Line Height",
-  },
-  decreaseLineHeight: {
-    he: "הקטן גובה שורה",
-    en: "Decrease line height",
-  },
-  increaseLineHeight: {
-    he: "הגדל גובה שורה",
-    en: "Increase line height",
-  },
-  letterSpacing: {
-    he: "מרווח אותיות",
-    en: "Letter Spacing",
-  },
-  decreaseLetterSpacing: {
-    he: "הקטן מרווח אותיות",
-    en: "Decrease letter spacing",
-  },
-  increaseLetterSpacing: {
-    he: "הגדל מרווח אותיות",
-    en: "Increase letter spacing",
-  },
-  readingGuide: {
-    he: "מדריך קריאה",
-    en: "Reading Guide",
-  },
-  highContrast: {
-    he: "ניגודיות גבוהה",
-    en: "High Contrast",
-  },
-  highlightLinks: {
-    he: "הדגשת קישורים",
-    en: "Highlight Links",
-  },
-  grayscale: {
-    he: "גווני אפור",
-    en: "Grayscale",
-  },
-  readableFont: {
-    he: "גופן קריא",
-    en: "Readable Font",
-  },
-  largeCursor: {
-    he: "סמן גדול",
-    en: "Large Cursor",
-  },
-  stopAnimations: {
-    he: "עצירת אנימציות",
-    en: "Stop Animations",
-  },
-  reset: {
-    he: "איפוס",
-    en: "Reset",
-  },
-  close: {
-    he: "סגור",
-    en: "Close",
-  },
-  accessibilityMenu: {
-    he: "תפריט נגישות",
-    en: "Accessibility menu",
-  },
-  darkMode: {
-    he: "מצב כהה",
-    en: "Dark Mode",
-  },
-  lightMode: {
-    he: "מצב בהיר",
-    en: "Light Mode",
-  },
-  accessibilityStatement: {
-    he: "הצהרת נגישות",
-    en: "Accessibility Statement",
-  },
-  accessibilityStatementText: {
-    he: "אתר זה מחויב לנגישות דיגיטלית בהתאם לחוק שוויון זכויות לאנשים עם מוגבלות ותקנות הנגישות הישראליות.",
-    en: "This site is committed to digital accessibility in accordance with Israeli Law.",
-  },
-};
-
 interface A11yState {
   fontSize: number;
   lineHeight: number;
@@ -132,7 +33,7 @@ const defaultState: A11yState = {
 };
 
 const AccessibilityWidget = () => {
-  const { language, isRTL } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
   
@@ -148,10 +49,6 @@ const AccessibilityWidget = () => {
       return defaultState;
     }
   });
-
-  const t = (key: string): string => {
-    return translations[key]?.[language] || translations[key]?.en || key;
-  };
 
   const applyStyles = useCallback((s: A11yState) => {
     const root = document.documentElement;
@@ -221,7 +118,7 @@ const AccessibilityWidget = () => {
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2",
           isRTL ? "right-5" : "left-5"
         )}
-        aria-label={t("accessibilityMenu")}
+        aria-label={t("a11y.accessibility_menu")}
         aria-haspopup="dialog"
         aria-expanded={open}
       >
@@ -241,11 +138,11 @@ const AccessibilityWidget = () => {
           dir={isRTL ? "rtl" : "ltr"}
           role="dialog"
           aria-modal="true"
-          aria-label={t("accessibilitySettings")}
+          aria-label={t("a11y.accessibility_settings")}
         >
           <div className="flex items-center justify-between bg-[#1565C0] text-white px-4 py-3">
-            <h3 className="font-bold text-sm">{t("accessibilitySettings")}</h3>
-            <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-white/20 transition-colors" aria-label={t("close")}>
+            <h3 className="font-bold text-sm">{t("a11y.accessibility_settings")}</h3>
+            <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-white/20 transition-colors" aria-label={t("a11y.close")}>
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -258,7 +155,7 @@ const AccessibilityWidget = () => {
             >
               <div className="flex items-center gap-2">
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                <span>{theme === 'dark' ? t("lightMode") : t("darkMode")}</span>
+                <span>{theme === 'dark' ? t("a11y.light_mode") : t("a11y.dark_mode")}</span>
               </div>
               <div className={cn("w-10 h-5 rounded-full relative transition-colors bg-muted")}>
                 <div className={cn("absolute top-1 w-3 h-3 rounded-full transition-all bg-primary", isRTL ? (theme === 'dark' ? "left-1" : "right-1") : (theme === 'dark' ? "right-1" : "left-1"))} />
@@ -266,54 +163,54 @@ const AccessibilityWidget = () => {
             </button>
 
             <div className="flex items-center justify-between gap-2 border-b pb-3">
-              <span className="text-sm font-medium">{t("textSize")}</span>
+              <span className="text-sm font-medium">{t("a11y.text_size")}</span>
               <div className="flex items-center gap-1">
-                <button onClick={decreaseFontSize} aria-label={t("decreaseText")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Minus className="w-4 h-4" /></button>
+                <button onClick={decreaseFontSize} aria-label={t("a11y.decrease_text")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Minus className="w-4 h-4" /></button>
                 <span className="text-xs w-8 text-center" aria-live="polite">{state.fontSize > 0 ? `+${state.fontSize}` : state.fontSize}</span>
-                <button onClick={increaseFontSize} aria-label={t("increaseText")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Plus className="w-4 h-4" /></button>
+                <button onClick={increaseFontSize} aria-label={t("a11y.increase_text")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Plus className="w-4 h-4" /></button>
               </div>
             </div>
 
             <div className="flex items-center justify-between gap-2 border-b pb-3">
-              <span className="text-sm font-medium">{t("lineHeight")}</span>
+              <span className="text-sm font-medium">{t("a11y.line_height")}</span>
               <div className="flex items-center gap-1">
-                <button onClick={decreaseLineHeight} aria-label={t("decreaseLineHeight")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Minus className="w-4 h-4" /></button>
+                <button onClick={decreaseLineHeight} aria-label={t("a11y.decrease_line_height")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Minus className="w-4 h-4" /></button>
                 <span className="text-xs w-8 text-center" aria-live="polite">{state.lineHeight}</span>
-                <button onClick={increaseLineHeight} aria-label={t("increaseLineHeight")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Plus className="w-4 h-4" /></button>
+                <button onClick={increaseLineHeight} aria-label={t("a11y.increase_line_height")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Plus className="w-4 h-4" /></button>
               </div>
             </div>
 
             <div className="flex items-center justify-between gap-2 border-b pb-3">
-              <span className="text-sm font-medium">{t("letterSpacing")}</span>
+              <span className="text-sm font-medium">{t("a11y.letter_spacing")}</span>
               <div className="flex items-center gap-1">
-                <button onClick={decreaseLetterSpacing} aria-label={t("decreaseLetterSpacing")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Minus className="w-4 h-4" /></button>
+                <button onClick={decreaseLetterSpacing} aria-label={t("a11y.decrease_letter_spacing")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Minus className="w-4 h-4" /></button>
                 <span className="text-xs w-8 text-center" aria-live="polite">{state.letterSpacing}</span>
-                <button onClick={increaseLetterSpacing} aria-label={t("increaseLetterSpacing")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Plus className="w-4 h-4" /></button>
+                <button onClick={increaseLetterSpacing} aria-label={t("a11y.increase_letter_spacing")} className="w-8 h-8 rounded bg-muted hover:bg-muted/80 flex items-center justify-center"><Plus className="w-4 h-4" /></button>
               </div>
             </div>
 
-            <ToggleRow label={t("highContrast")} active={state.highContrast} onClick={() => toggle("highContrast")} />
-            <ToggleRow label={t("highlightLinks")} active={state.linkHighlight} onClick={() => toggle("linkHighlight")} />
-            <ToggleRow label={t("grayscale")} active={state.grayscale} onClick={() => toggle("grayscale")} />
-            <ToggleRow label={t("readableFont")} active={state.readableFont} onClick={() => toggle("readableFont")} />
-            <ToggleRow label={t("largeCursor")} active={state.largeCursor} onClick={() => toggle("largeCursor")} />
-            <ToggleRow label={t("readingGuide")} active={state.readingGuide} onClick={() => toggle("readingGuide")} />
-            <ToggleRow label={t("stopAnimations")} active={state.stopAnimations} onClick={() => toggle("stopAnimations")} />
+            <ToggleRow label={t("a11y.high_contrast")} active={state.highContrast} onClick={() => toggle("highContrast")} />
+            <ToggleRow label={t("a11y.highlight_links")} active={state.linkHighlight} onClick={() => toggle("linkHighlight")} />
+            <ToggleRow label={t("a11y.grayscale")} active={state.grayscale} onClick={() => toggle("grayscale")} />
+            <ToggleRow label={t("a11y.readable_font")} active={state.readableFont} onClick={() => toggle("readableFont")} />
+            <ToggleRow label={t("a11y.large_cursor")} active={state.largeCursor} onClick={() => toggle("largeCursor")} />
+            <ToggleRow label={t("a11y.reading_guide")} active={state.readingGuide} onClick={() => toggle("readingGuide")} />
+            <ToggleRow label={t("a11y.stop_animations")} active={state.stopAnimations} onClick={() => toggle("stopAnimations")} />
 
             <button onClick={reset} className="w-full mt-2 flex items-center justify-center gap-2 py-2 px-3 rounded text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-foreground transition-colors">
               <RotateCcw className="w-3.5 h-3.5" />
-              {t("reset")}
+              {t("a11y.reset")}
             </button>
 
             <div className="pt-2 border-t text-center space-y-1">
-              <p className="text-[11px] text-muted-foreground leading-relaxed">{t("accessibilityStatementText")}</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{t("a11y.accessibility_statement_text")}</p>
               <Link
                 href="/accessibility"
                 onClick={() => setOpen(false)}
                 className="inline-block text-xs font-medium text-[#1565C0] hover:underline"
                 data-testid="link-accessibility-statement"
               >
-                {t("accessibilityStatement")}
+                {t("a11y.accessibility_statement")}
               </Link>
             </div>
           </div>
