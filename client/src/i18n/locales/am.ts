@@ -144,6 +144,8 @@ const am: Record<string, string> = {
 
   "services.process_steps": "የምርመራ ሂደት እርምጃዎች",
   "footer.rights": "© 2025 ሁሉም መብቶች የተጠበቁ ናችወ - Keshev Plus",
+  "footer.moxo_certified": "የMoxo ሰርተፍኬት",
+  "footer.moxo_certified_desc": "የኮምፒዩተር ADHD ግምገማ",
   "footer.clinic_desc": "በሕጻናት፣ በአዩመራዎች እና በአዋቂዎች የADHD ምርመራ እና ሕክምና ግንባር ቀደም ክሊኒክ.",
   "footer.quick_links": "ፈጣን ማገናኛዎች",
   "footer.contact_info": "የግንኙነት መረጃ",

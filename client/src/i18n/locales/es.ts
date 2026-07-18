@@ -144,6 +144,8 @@ const es: Record<string, string> = {
 
   "services.process_steps": "Pasos del proceso de diagnóstico",
   "footer.rights": "© 2025 Todos los derechos reservados a Keshev Plus",
+  "footer.moxo_certified": "Certificado Moxo",
+  "footer.moxo_certified_desc": "Evaluación computarizada del TDAH",
   "footer.clinic_desc": "Clínica líder en diagnóstico y tratamiento del TDAH en niños, adolescentes y adultos.",
   "footer.quick_links": "Enlaces rápidos",
   "footer.contact_info": "Información de contacto",

@@ -144,6 +144,8 @@ const ar: Record<string, string> = {
 
   "services.process_steps": "خطوات عمليخ التشخيص",
   "footer.rights": "© 2025 جميع الحقوق محفوظة لـ Keshev Plus",
+  "footer.moxo_certified": "معتمد من Moxo",
+  "footer.moxo_certified_desc": "تقييم ADHD محوسب",
   "footer.clinic_desc": "عيادة رائدة في تشخيص وعلاج ADHD عند الأطفال والمراهقين والبالغين.",
   "footer.quick_links": "روابط سريعة",
   "footer.contact_info": "معلومات الاتصال",

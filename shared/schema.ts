@@ -243,3 +243,67 @@ export type InsertWhatsAppMessage = z.infer<typeof insertWhatsAppMessageSchema>;
 
 export { conversations, messages } from "./models/chat";
 export type { Conversation, InsertConversation, Message, InsertMessage } from "./models/chat";
+
+// Images: CMS-managed, replaceable image assets keyed by a stable "slot" name
+// (e.g. "logo", "hero.image", "section.<id>.image"). Storing bytes as base64
+// text keeps this portable across hosts without needing an object-storage
+// integration, which matters for a template meant to be cloned freely.
+export const images = pgTable("images", {
+  id: serial("id").primaryKey(),
+  slot: text("slot").notNull().unique(),
+  mimeType: text("mime_type").notNull(),
+  filename: text("filename"),
+  data: text("data").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertImageSchema = createInsertSchema(images).omit({ id: true, updatedAt: true });
+export type ImageAsset = typeof images.$inferSelect;
+export type InsertImageAsset = z.infer<typeof insertImageSchema>;
+export type ImageAssetMeta = Omit<ImageAsset, "data">;
+
+// Home page sections: an admin-orderable list of content blocks. "legacy:*"
+// types render the existing hardcoded business components (their text still
+// goes through the translations system below); the other types are generic,
+// reusable templates whose text/images are addressable via
+// `section.<id>.*` translation keys and `section.<id>.<field>` image slots.
+export const HOME_SECTION_TYPES = [
+  "legacy:about",
+  "legacy:services",
+  "legacy:adhdInfo",
+  "legacy:questionnaires",
+  "legacy:contact",
+  "richText",
+  "cards",
+  "faq",
+  "testimonials",
+  "gallery",
+  "cta",
+] as const;
+export type HomeSectionType = typeof HOME_SECTION_TYPES[number];
+
+export const LEGACY_SECTION_TYPES: HomeSectionType[] = [
+  "legacy:about",
+  "legacy:services",
+  "legacy:adhdInfo",
+  "legacy:questionnaires",
+  "legacy:contact",
+];
+
+export const homeSectionSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum(HOME_SECTION_TYPES),
+  enabled: z.boolean().default(true),
+  config: z.record(z.any()).default({}),
+});
+export type HomeSection = z.infer<typeof homeSectionSchema>;
+
+export const homeSectionsSchema = z.array(homeSectionSchema);
+
+export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
+  { id: "about", type: "legacy:about", enabled: true, config: {} },
+  { id: "services", type: "legacy:services", enabled: true, config: {} },
+  { id: "adhd-info", type: "legacy:adhdInfo", enabled: true, config: {} },
+  { id: "questionnaires", type: "legacy:questionnaires", enabled: true, config: {} },
+  { id: "contact", type: "legacy:contact", enabled: true, config: {} },
+];

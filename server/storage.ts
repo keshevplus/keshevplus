@@ -1,4 +1,4 @@
-import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, clientPayments, conversations, messages, whatsappMessages, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type ClientPayment, type InsertClientPayment, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type DashboardLayout, type WhatsAppMessage, type InsertWhatsAppMessage } from "@shared/schema";
+import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, clientPayments, conversations, messages, whatsappMessages, images, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type ClientPayment, type InsertClientPayment, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type DashboardLayout, type WhatsAppMessage, type InsertWhatsAppMessage, type ImageAsset, type ImageAssetMeta, type HomeSection, DEFAULT_HOME_SECTIONS } from "@shared/schema";
 import type { AppointmentTypeHoursConfig } from "@shared/appointmentSchedule";
 import { db } from "./db";
 import { eq, desc, and, sql, lt, inArray } from "drizzle-orm";
@@ -53,6 +53,12 @@ export interface IStorage {
   updateWidgetSettings(settings: WidgetSettings): Promise<WidgetSettings>;
   getDashboardLayout(): Promise<DashboardLayout | null>;
   updateDashboardLayout(layout: DashboardLayout): Promise<DashboardLayout>;
+  getImage(slot: string): Promise<ImageAsset | undefined>;
+  listImages(): Promise<ImageAssetMeta[]>;
+  upsertImage(slot: string, mimeType: string, filename: string | null, data: string): Promise<ImageAsset>;
+  deleteImage(slot: string): Promise<boolean>;
+  getHomeSections(): Promise<HomeSection[]>;
+  updateHomeSections(sections: HomeSection[]): Promise<HomeSection[]>;
   getAppointmentTypeHours(): Promise<AppointmentTypeHoursConfig>;
   updateAppointmentTypeHours(config: AppointmentTypeHoursConfig): Promise<AppointmentTypeHoursConfig>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;

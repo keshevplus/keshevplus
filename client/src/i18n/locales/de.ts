@@ -144,6 +144,8 @@ const de: Record<string, string> = {
 
   "services.process_steps": "Schritte des Diagnoseprozesses",
   "footer.rights": "© 2025 Alle Rechte vorbehalten für Keshev Plus",
+  "footer.moxo_certified": "Moxo-zertifiziert",
+  "footer.moxo_certified_desc": "Computergestützte ADHS-Bewertung",
   "footer.clinic_desc": "Führende Klinik für ADHS-Diagnose und -Behandlung bei Kindern, Jugendlichen und Erwachsenen.",
   "footer.quick_links": "Schnelllinks",
   "footer.contact_info": "Kontaktinformationen",

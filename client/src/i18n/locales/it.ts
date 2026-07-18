@@ -190,6 +190,8 @@ const it: Record<string, string> = {
 
   "services.process_steps": "Fasi del processo diagnostico",
   "footer.rights": "\u00a9 2025 Tutti i diritti riservati a Keshev Plus",
+  "footer.moxo_certified": "Certificato Moxo",
+  "footer.moxo_certified_desc": "Valutazione computerizzata dell'ADHD",
 
   "admin.dashboard": "Pannello di Amministrazione",
   "admin.welcome": "Bentornato",

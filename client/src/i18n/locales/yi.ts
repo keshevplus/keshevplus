@@ -144,6 +144,8 @@ const yi: Record<string, string> = {
 
   "services.process_steps": "דיאַגנאָז פּראָצעס טריט",
   "footer.rights": "© 2025 אַלע רעכטן רעזערווירט פֿאַר Keshev Plus",
+  "footer.moxo_certified": "Moxo באַשטעטיקט",
+  "footer.moxo_certified_desc": "קאָמפּיוטערייזירטע ADHD אָפּשאַצונג",
   "footer.clinic_desc": "פֿירנדע קליניק פֿאַר ADHD דיאַגנאָז און באַהאַנדלונג ביי קינדער, יוגנטלעכע און דערוואַקסענע.",
   "footer.quick_links": "שנעלע לינקס",
   "footer.contact_info": "קאָנטאַקט אינפֿאָרמאַציע",

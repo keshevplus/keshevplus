@@ -144,6 +144,8 @@ const ru: Record<string, string> = {
 
   "services.process_steps": "Этапы процесса диагностики",
   "footer.rights": "© 2025 Все права защищены Keshev Plus",
+  "footer.moxo_certified": "Сертификат Moxo",
+  "footer.moxo_certified_desc": "Компьютерная оценка СДВГ",
   "footer.clinic_desc": "Ведущая клиника по диагностике и лечению СДВГ у детей, подростков и взрослых.",
   "footer.quick_links": "Быстрые ссылки",
   "footer.contact_info": "Контактная информация",

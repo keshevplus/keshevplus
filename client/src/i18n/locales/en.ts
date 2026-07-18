@@ -191,6 +191,17 @@ const en: Record<string, string> = {
 
   "services.process_steps": "Diagnosis process steps",
   "footer.rights": "\u00a9 2025 All rights reserved to Keshev Plus",
+  "footer.moxo_certified": "Moxo Certified",
+  "footer.moxo_certified_desc": "Computerized ADHD Assessment",
+  "cookies.notice": "This website uses cookies to improve your browsing experience and for statistical purposes. By continuing to browse the site, you agree to the use of cookies in accordance with our privacy policy.",
+  "cookies.used_include": "The cookies used on this site include:",
+  "cookies.essential": "Essential cookies - for proper site functionality",
+  "cookies.statistical": "Statistical cookies - for usage analysis and service improvement",
+  "cookies.preference": "Preference cookies - to save user preferences",
+  "cookies.privacy_note": "In accordance with the Privacy Protection Act, we inform you about the use of cookies and request your consent.",
+  "cookies.hide_details": "Hide Details",
+  "cookies.more_info": "More Info",
+  "cookies.accept": "Accept",
 
   "admin.dashboard": "Admin Dashboard",
   "admin.welcome": "Welcome back",

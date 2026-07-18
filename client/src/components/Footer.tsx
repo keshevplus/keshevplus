@@ -154,10 +154,10 @@ const Footer: React.FC = () => {
             </svg>
             <div className="flex flex-col">
               <span className="text-primary-foreground font-semibold text-sm">
-                {isRTL ? 'מוסמכי Moxo' : 'Moxo Certified'}
+                {t('footer.moxo_certified')}
               </span>
               <span className="text-primary-foreground/60 text-xs">
-                {isRTL ? 'אבחון ADHD ממוחשב' : 'Computerized ADHD Assessment'}
+                {t('footer.moxo_certified_desc')}
               </span>
             </div>
           </div>
