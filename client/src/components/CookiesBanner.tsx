@@ -9,7 +9,7 @@ import { Shield, Info } from 'lucide-react'
 const STORAGE_KEY = 'kp_cookies_accepted'
 
 const CookiesBanner = () => {
-  const { language, isRTL } = useLanguage()
+  const { language, isRTL, t } = useLanguage()
   const isHe = language === 'he'
   const [location] = useLocation()
   const [accepted, setAccepted] = useState(true)
