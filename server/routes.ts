@@ -588,6 +588,31 @@ function isOwner(user: { role: string; email: string } | undefined | null): bool
   return user.role === "owner" || user.email === "dr@keshevplus.co.il";
 }
 
+// Billing is a restricted role, one tier below manager: payment
+// record-keeping and a contact-only client lookup, nothing else (no
+// appointments, questionnaires, conversations, WhatsApp, clinical fields,
+// user management, or site settings). Anyone with hasAdminAccess also
+// implicitly has billing access.
+function hasBillingAccess(user: { role: string; email: string } | undefined | null): boolean {
+  if (!user) return false;
+  return hasAdminAccess(user) || user.role === "billing";
+}
+
+// Strips clinical/CRM fields down to what a billing-only user needs to
+// reconcile a payment against the right person.
+function toBillingClientView(client: any) {
+  return {
+    id: client.id,
+    leadNumber: client.leadNumber,
+    clientNumber: client.clientNumber,
+    name: client.name,
+    email: client.email,
+    phone: client.phone,
+    status: client.status,
+    createdAt: client.createdAt,
+  };
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/contact", async (req, res) => {
     try {
@@ -1127,7 +1152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const createUserSchema = z.object({
         email: z.string().trim().email(),
         password: z.string().min(6),
-        role: z.enum(["admin", "manager", "user"]),
+        role: z.enum(["admin", "manager", "user", "billing"]),
       });
       const result = createUserSchema.safeParse(req.body);
       if (!result.success) {
@@ -2210,11 +2235,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!hasAdminAccess(user)) {
+      if (!hasBillingAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const list = await storage.getClients();
-      return res.json(list);
+      return res.json(hasAdminAccess(user) ? list : list.map(toBillingClientView));
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch clients" });
     }
@@ -2225,13 +2250,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!hasAdminAccess(user)) {
+      if (!hasBillingAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
       const client = await storage.getClient(id);
       if (!client) return res.status(404).json({ error: "Client not found" });
-      return res.json(client);
+      return res.json(hasAdminAccess(user) ? client : toBillingClientView(client));
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch client" });
     }
@@ -2352,7 +2377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!hasAdminAccess(user)) {
+      if (!hasBillingAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const clientId = parseInt(req.params.id);
@@ -2372,7 +2397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!hasAdminAccess(user)) {
+      if (!hasBillingAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const clientId = parseInt(req.params.id);
@@ -2388,7 +2413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.session as any)?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!hasAdminAccess(user)) {
+      if (!hasBillingAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);

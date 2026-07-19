@@ -22,6 +22,7 @@ const ROLE_BADGE: Record<string, string> = {
   owner: 'bg-purple-600 text-white hover:bg-purple-700',
   admin: 'bg-blue-600 text-white hover:bg-blue-700',
   manager: 'bg-teal-600 text-white hover:bg-teal-700',
+  billing: 'bg-amber-600 text-white hover:bg-amber-700',
   user: 'bg-muted text-muted-foreground',
 }
 
@@ -29,6 +30,7 @@ const ROLE_LABEL: Record<string, { he: string; en: string }> = {
   owner: { he: 'בעלים', en: 'Owner' },
   admin: { he: 'מנהל מערכת', en: 'Admin' },
   manager: { he: 'מנהל', en: 'Manager' },
+  billing: { he: 'הנהלת חשבונות', en: 'Billing' },
   user: { he: 'משתמש', en: 'User' },
 }
 
@@ -39,7 +41,7 @@ export default function UsersManager() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<'admin' | 'manager' | 'user'>('user')
+  const [role, setRole] = useState<'admin' | 'manager' | 'billing' | 'user'>('user')
   const [error, setError] = useState('')
 
   const { data: users = [], isLoading } = useQuery<AdminUser[]>({
@@ -137,6 +139,7 @@ export default function UsersManager() {
               <SelectContent>
                 <SelectItem value="admin" data-testid="option-role-admin">{isHe ? ROLE_LABEL.admin.he : ROLE_LABEL.admin.en}</SelectItem>
                 <SelectItem value="manager" data-testid="option-role-manager">{isHe ? ROLE_LABEL.manager.he : ROLE_LABEL.manager.en}</SelectItem>
+                <SelectItem value="billing" data-testid="option-role-billing">{isHe ? ROLE_LABEL.billing.he : ROLE_LABEL.billing.en}</SelectItem>
                 <SelectItem value="user" data-testid="option-role-user">{isHe ? ROLE_LABEL.user.he : ROLE_LABEL.user.en}</SelectItem>
               </SelectContent>
             </Select>

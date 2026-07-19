@@ -71,8 +71,9 @@ const AdminDashboard = () => {
   const [langSettings, setLangSettings] = useState<LanguageSettings>(DEFAULT_LANGUAGE_SETTINGS)
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const isBillingOnly = user?.role === 'billing'
   const [searchParams, setSearchParams] = useSearchParams()
-  const activeTab = searchParams.get('tab') ?? 'overview'
+  const activeTab = searchParams.get('tab') ?? (isBillingOnly ? 'clients' : 'overview')
   const clientParam = searchParams.get('client')
   const detailClientId = clientParam !== null && Number.isFinite(Number(clientParam)) ? Number(clientParam) : null
 
@@ -119,6 +120,7 @@ const AdminDashboard = () => {
     queryFn: fetchAdminBadges,
     refetchInterval: 15000, // keep header in sync
     refetchOnWindowFocus: true,
+    enabled: !isBillingOnly,
   })
 
   const leadBadgeCount = badgeCounts?.newLeads ?? 0
@@ -245,7 +247,11 @@ const AdminDashboard = () => {
     return codes.length === BILINGUAL_CODES.length && BILINGUAL_CODES.every(code => codes.includes(code))
   }
 
-  const tabs = [
+  const tabs = isBillingOnly
+    ? [
+        { value: 'clients', icon: Users, he: 'לידים ולקוחות', en: 'Leads & Clients', heDesc: 'צפייה בתשלומי לקוחות', enDesc: 'View client payments' },
+      ]
+    : [
     { value: 'overview', icon: BarChart3, he: 'סקירה כללית', en: 'Overview', heDesc: '', enDesc: '' },
     { value: 'contacts', icon: Inbox, he: 'פניות באתר', en: 'Contacts', heDesc: 'צפייה בפניות מהאתר', enDesc: 'View contact submissions' },
     { value: 'appointments', icon: Calendar, he: 'פגישות', en: 'Appointments', heDesc: 'צפייה וניהול פגישות', enDesc: 'View & manage appointments' },
