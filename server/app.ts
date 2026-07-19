@@ -4,6 +4,7 @@ import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
 import { registerRoutes } from "./routes";
 import { ensureSchema } from "./migrate";
+import { registerLoadTestSeedRoutes } from "./seed-load-test";
 
 const PgSession = connectPgSimple(session);
 
@@ -72,6 +73,7 @@ export async function createApp(): Promise<Express> {
 
   await ensureSchema();
   await registerRoutes(app);
+  registerLoadTestSeedRoutes(app);
 
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     const status = err.status || err.statusCode || 500;
