@@ -41,6 +41,7 @@ import EmailNotificationSettings from './EmailNotificationSettings'
 import AppointmentHoursSettings from './AppointmentHoursSettings'
 import LeadSearchBar from './LeadSearchBar'
 import ChangePasswordSettings from './ChangePasswordSettings'
+import LoadTestDataSettings from './LoadTestDataSettings'
 import UsersManager from './UsersManager'
 import BinManager from './BinManager'
 import VisualEditor from './VisualEditor'
@@ -675,6 +676,8 @@ const AdminDashboard = () => {
               </Card>
 
               <ChangePasswordSettings />
+
+              {user?.email === 'dr@keshevplus.co.il' && <LoadTestDataSettings />}
             </div>
           </TabsContent>
 
