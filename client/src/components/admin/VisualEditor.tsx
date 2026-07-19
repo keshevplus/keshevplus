@@ -17,9 +17,6 @@ import {
   Bold,
   Italic,
   Underline,
-  Monitor,
-  Smartphone,
-  Tablet,
   X,
   Type,
   MousePointer,
@@ -28,6 +25,7 @@ import {
   Maximize2,
   Minimize2,
 } from 'lucide-react'
+import { ViewportSwitcher, DeviceFrame, type PreviewViewport } from './DevicePreviewFrame'
 
 const languageCodeClass = "inline-flex w-6 shrink-0 justify-center font-sans text-sm font-semibold leading-none text-muted-foreground"
 const languageNameClass = "font-sans text-sm leading-none"
@@ -37,14 +35,6 @@ interface PendingEdit {
   oldValue: string
   newValue: string
   element: HTMLElement | null
-}
-
-type ViewportSize = 'desktop' | 'tablet' | 'mobile'
-
-const VIEWPORT_WIDTHS: Record<ViewportSize, string> = {
-  desktop: '100%',
-  tablet: '768px',
-  mobile: '375px',
 }
 
 export default function VisualEditor() {
@@ -59,7 +49,7 @@ export default function VisualEditor() {
   const [pendingEdits, setPendingEdits] = useState<PendingEdit[]>([])
   const [saving, setSaving] = useState(false)
   const [activeElement, setActiveElement] = useState<HTMLElement | null>(null)
-  const [viewport, setViewport] = useState<ViewportSize>('desktop')
+  const [viewport, setViewport] = useState<PreviewViewport>('desktop')
   const [iframeLoaded, setIframeLoaded] = useState(false)
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [highlightedCount, setHighlightedCount] = useState(0)
@@ -391,7 +381,12 @@ export default function VisualEditor() {
     iframe.contentDocument.execCommand(command, false)
   }
 
-  const iframeSrc = `/?visualEditor=true&_t=${Date.now()}`
+  // Computed once (not on every render) — the query string only needs to
+  // change when we explicitly want a reload, which handleSaveAll already
+  // does by reassigning iframeRef.current.src directly. Recomputing this on
+  // every render (the previous bug) made React treat the iframe's `src` as
+  // changed on nearly every interaction, reloading it mid-edit.
+  const [iframeSrc] = useState(() => `/?visualEditor=true&_t=${Date.now()}`)
 
   return (
     <div className={cn(
@@ -458,30 +453,7 @@ export default function VisualEditor() {
         <CardContent className={cn("space-y-3", isFullscreen && "flex-1 flex flex-col overflow-hidden")}>
           <div className="flex items-center justify-between gap-2 flex-wrap shrink-0">
             <div className="flex items-center gap-1">
-              <Button
-                size="icon"
-                variant={viewport === 'desktop' ? 'default' : 'ghost'}
-                onClick={() => setViewport('desktop')}
-                data-testid="button-viewport-desktop"
-              >
-                <Monitor className="h-4 w-4" />
-              </Button>
-              <Button
-                size="icon"
-                variant={viewport === 'tablet' ? 'default' : 'ghost'}
-                onClick={() => setViewport('tablet')}
-                data-testid="button-viewport-tablet"
-              >
-                <Tablet className="h-4 w-4" />
-              </Button>
-              <Button
-                size="icon"
-                variant={viewport === 'mobile' ? 'default' : 'ghost'}
-                onClick={() => setViewport('mobile')}
-                data-testid="button-viewport-mobile"
-              >
-                <Smartphone className="h-4 w-4" />
-              </Button>
+              <ViewportSwitcher viewport={viewport} onChange={setViewport} isHe={isHe} />
 
               {editMode && (
                 <div className="flex items-center gap-1 border-l pl-2 ml-2">
@@ -539,26 +511,15 @@ export default function VisualEditor() {
             </div>
           )}
 
-          <div
-            className={cn(
-              "border rounded-md overflow-hidden bg-white dark:bg-neutral-900 flex justify-center",
-              !isFullscreen && "min-height-[600px]",
-              isFullscreen && "flex-1"
-            )}
-          >
-            <iframe
-              ref={iframeRef}
+          <div className={cn("rounded-md overflow-hidden", isFullscreen && "flex-1")}>
+            <DeviceFrame
+              viewport={viewport}
+              iframeRef={iframeRef}
               src={iframeSrc}
               onLoad={handleIframeLoad}
-              style={{
-                width: VIEWPORT_WIDTHS[viewport],
-                maxWidth: '100%',
-                height: isFullscreen ? '100%' : '75vh',
-                border: 'none',
-                transition: 'width 0.3s ease',
-              }}
               title={isHe ? 'תצוגה מקדימה של האתר' : 'Site preview'}
-              data-testid="iframe-visual-editor"
+              maxWidth={isFullscreen ? 1400 : 880}
+              maxHeight={isFullscreen ? 900 : 560}
             />
           </div>
         </CardContent>

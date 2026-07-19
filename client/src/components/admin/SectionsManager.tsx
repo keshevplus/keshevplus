@@ -17,6 +17,7 @@ import { LEGACY_SECTION_TYPES, type HomeSection, type HomeSectionType } from '@s
 import { GENERIC_SECTION_TYPES, CARD_ICON_OPTIONS, sectionTypeLabel, createDefaultSection, createDefaultItem } from '@/lib/sectionRegistry'
 import { LEGACY_SECTION_CONFIG } from '@/lib/legacySectionFields'
 import { ImageSlotUploader } from './ImageSlotUploader'
+import { ViewportSwitcher, DeviceFrame, type PreviewViewport } from './DevicePreviewFrame'
 
 const isLegacyType = (type: HomeSectionType) => (LEGACY_SECTION_TYPES as readonly HomeSectionType[]).includes(type)
 
@@ -337,6 +338,16 @@ const SectionsManager = () => {
   const [texts, setTexts] = useState<Record<string, string>>({})
   const [addingType, setAddingType] = useState<string>('')
   const [savingContent, setSavingContent] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
+  const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop')
+  const [previewSrc] = useState(() => `/?visualEditor=true&_t=${Date.now()}`)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const sectionsRef = useRef<HomeSection[]>([])
+  const clickListenerRef = useRef<{ doc: Document; handler: (e: MouseEvent) => void } | null>(null)
+
+  useEffect(() => {
+    sectionsRef.current = sections
+  }, [sections])
 
   const fetchSections = useCallback(async () => {
     setLoading(true)
@@ -409,6 +420,49 @@ const SectionsManager = () => {
     updateSections(sections.map((s) => (s.id === id ? { ...s, config } : s)))
   }
 
+  const handleIframeLoad = useCallback(() => {
+    const iframe = iframeRef.current
+    if (!iframe?.contentDocument) return
+    const doc = iframe.contentDocument
+
+    const style = doc.createElement('style')
+    style.textContent = `
+      [data-cms-section] { cursor: pointer; transition: outline-color 0.15s; }
+      [data-cms-section]:hover { outline: 3px dashed rgba(34, 197, 94, 0.7); outline-offset: -3px; }
+    `
+    doc.head.appendChild(style)
+
+    if (clickListenerRef.current) {
+      const prev = clickListenerRef.current
+      prev.doc.removeEventListener('click', prev.handler, true)
+    }
+
+    doc.querySelectorAll('section[id]').forEach((el) => el.setAttribute('data-cms-section', 'true'))
+
+    const clickHandler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      const sectionEl = target.closest('section[id]') as HTMLElement | null
+      e.preventDefault()
+      e.stopPropagation()
+      if (!sectionEl) return
+      const domId = sectionEl.id
+      const match = sectionsRef.current.find((s) => domIdForSection(s) === domId)
+      if (match) setSelectedId(match.id)
+    }
+
+    doc.addEventListener('click', clickHandler, true)
+    clickListenerRef.current = { doc, handler: clickHandler }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (clickListenerRef.current) {
+        const prev = clickListenerRef.current
+        try { prev.doc.removeEventListener('click', prev.handler, true) } catch { /* iframe already gone */ }
+      }
+    }
+  }, [])
+
   const setText = (key: string, value: string) => {
     setTexts((prev) => ({ ...prev, [key]: value }))
   }
@@ -437,8 +491,8 @@ const SectionsManager = () => {
         </div>
         <CardDescription>
           {isHe
-            ? 'הוספה, הסתרה וסידור מחדש של מקטעי דף הבית. מקטעים "מובנים" עורכים את תוכנם דרך לשוניות תרגומים / עורך ויזואלי.'
-            : 'Add, hide, and reorder the sections shown on the home page. "Built-in" sections still get edited via the Translations / Visual Editor tabs.'}
+            ? 'הוספה, הסתרה, סידור מחדש ועריכת התוכן של מקטעי דף הבית - כולל טקסט ותמונות.'
+            : 'Add, hide, reorder, and directly edit the content — text and images — of every home page section.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -459,11 +513,39 @@ const SectionsManager = () => {
               {isHe ? 'הוספת מקטע' : 'Add Section'}
             </Button>
           </div>
-          <Button size="sm" onClick={handleSaveOrder} disabled={!dirty || saving} data-testid="button-save-sections">
-            <Save className="h-4 w-4 mr-1.5" />
-            {saving ? (isHe ? 'שומר...' : 'Saving...') : (isHe ? 'שמירת סדר ומצב' : 'Save Order & Visibility')}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => setShowPreview((v) => !v)} data-testid="button-toggle-preview">
+              <Monitor className="h-4 w-4 mr-1.5" />
+              {showPreview
+                ? (isHe ? 'הסתרת תצוגה מקדימה' : 'Hide Live Preview')
+                : (isHe ? 'הצגת תצוגה מקדימה' : 'Show Live Preview')}
+            </Button>
+            <Button size="sm" onClick={handleSaveOrder} disabled={!dirty || saving} data-testid="button-save-sections">
+              <Save className="h-4 w-4 mr-1.5" />
+              {saving ? (isHe ? 'שומר...' : 'Saving...') : (isHe ? 'שמירת סדר ומצב' : 'Save Order & Visibility')}
+            </Button>
+          </div>
         </div>
+
+        {showPreview && (
+          <div className="border rounded-md overflow-hidden">
+            <div className="flex items-center justify-between gap-2 flex-wrap bg-muted/50 px-3 py-2 border-b">
+              <p className="text-xs text-muted-foreground">
+                {isHe
+                  ? 'לחצו על מקטע בתצוגה כדי לפתוח את עורך התוכן שלו.'
+                  : 'Click a section in the preview to open its content editor.'}
+              </p>
+              <ViewportSwitcher viewport={previewViewport} onChange={setPreviewViewport} isHe={isHe} />
+            </div>
+            <DeviceFrame
+              viewport={previewViewport}
+              iframeRef={iframeRef}
+              src={previewSrc}
+              onLoad={handleIframeLoad}
+              title={isHe ? 'תצוגה מקדימה של האתר' : 'Site preview'}
+            />
+          </div>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center p-8">
