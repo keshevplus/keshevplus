@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Trash2, ChevronUp, ChevronDown, Save, LayoutGrid, Eye, EyeOff } from 'lucide-react'
+import { Plus, Trash2, ChevronUp, ChevronDown, Save, LayoutGrid, Eye, EyeOff, Monitor } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { apiRequest, queryClient } from '@/lib/queryClient'
@@ -15,9 +15,17 @@ import { invalidateTranslationCache, useLanguage } from '@/hooks/useLanguage'
 import { ALL_LANGUAGES, type SupportedLanguage } from '@/i18n/config'
 import { LEGACY_SECTION_TYPES, type HomeSection, type HomeSectionType } from '@shared/schema'
 import { GENERIC_SECTION_TYPES, CARD_ICON_OPTIONS, sectionTypeLabel, createDefaultSection, createDefaultItem } from '@/lib/sectionRegistry'
+import { LEGACY_SECTION_CONFIG } from '@/lib/legacySectionFields'
 import { ImageSlotUploader } from './ImageSlotUploader'
 
 const isLegacyType = (type: HomeSectionType) => (LEGACY_SECTION_TYPES as readonly HomeSectionType[]).includes(type)
+
+// The rendered <section id="..."> in the live preview doesn't always match
+// the HomeSection.id 1:1 (legacy ADHD info section renders id="adhd" while
+// its HomeSection.id is "adhd-info") — this resolves that one exception.
+function domIdForSection(section: HomeSection): string {
+  return section.type === 'legacy:adhdInfo' ? 'adhd' : section.id
+}
 
 function Field({ label, value, onChange, multiline }: { label: string; value: string; onChange: (v: string) => void; multiline?: boolean }) {
   return (
@@ -254,9 +262,37 @@ function CtaEditor({ section, texts, setText, updateConfig, isHe }: EditorProps)
   )
 }
 
+function LegacyFieldsEditor({ section, texts, setText, isHe }: EditorProps) {
+  const config = LEGACY_SECTION_CONFIG[section.type]
+  if (!config) return null
+  return (
+    <div className="space-y-3">
+      {config.images && config.images.length > 0 && (
+        <>
+          {config.images.map((img) => (
+            <ImageSlotUploader key={img.slot} slot={img.slot} label={isHe ? img.labelHe : img.labelEn} />
+          ))}
+          <Separator />
+        </>
+      )}
+      {config.fields.map((f) => (
+        <Field
+          key={f.key}
+          label={isHe ? f.labelHe : f.labelEn}
+          multiline={f.multiline}
+          value={texts[f.key] ?? ''}
+          onChange={(v) => setText(f.key, v)}
+        />
+      ))}
+    </div>
+  )
+}
+
 function sectionTextKeys(section: HomeSection): string[] {
   const id = section.id
   const items: Array<{ id: string }> = Array.isArray(section.config?.items) ? section.config.items : []
+  const legacyConfig = LEGACY_SECTION_CONFIG[section.type]
+  if (legacyConfig) return legacyConfig.fields.map((f) => f.key)
   switch (section.type) {
     case 'richText':
       return [`section.${id}.heading`, `section.${id}.subtitle`, `section.${id}.body`, `section.${id}.ctaLabel`]
@@ -276,6 +312,7 @@ function sectionTextKeys(section: HomeSection): string[] {
 }
 
 function renderEditor(props: EditorProps) {
+  if (isLegacyType(props.section.type)) return <LegacyFieldsEditor {...props} />
   switch (props.section.type) {
     case 'richText': return <RichTextEditor {...props} />
     case 'cards': return <CardsEditor {...props} />
@@ -478,15 +515,6 @@ const SectionsManager = () => {
                     return (
                       <p className="text-sm text-muted-foreground p-4 text-center">
                         {isHe ? 'בחרו מקטע כדי לערוך את תוכנו' : 'Select a section to edit its content'}
-                      </p>
-                    )
-                  }
-                  if (isLegacyType(section.type)) {
-                    return (
-                      <p className="text-sm text-muted-foreground p-4 text-center">
-                        {isHe
-                          ? 'מקטע זה מובנה ועורכים אותו דרך לשוניות תרגומים / עורך ויזואלי.'
-                          : 'This is a built-in section — edit its content via the Translations / Visual Editor tabs.'}
                       </p>
                     )
                   }
