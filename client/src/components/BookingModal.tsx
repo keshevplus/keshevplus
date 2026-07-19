@@ -26,7 +26,7 @@ interface BookingModalProps {
 }
 
 const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
-  const { language } = useLanguage()
+  const { t, language } = useLanguage()
   const isHe = language === 'he'
   const isRTL = language === 'he' || language === 'ar' || language === 'yi'
   const { toast } = useToast()
@@ -95,14 +95,14 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
           time: nearestAvailability.availableTimes.includes(f.time) ? f.time : '',
         }))
         toast({
-          title: isHe ? 'המועד אינו פנוי' : 'Date unavailable',
-          description: isHe ? 'בחרנו עבורך את התאריך הפנוי הקרוב ביותר.' : 'We selected the closest available date.',
+          title: t('booking.date_unavailable_title'),
+          description: t('booking.date_unavailable_description'),
         })
       }
     } catch {
       toast({
-        title: isHe ? 'שגיאה' : 'Error',
-        description: isHe ? 'לא הצלחנו לבדוק זמינות. נסו שוב.' : 'Could not check availability. Please try again.',
+        title: t('booking.error_title'),
+        description: t('booking.availability_check_failed'),
         variant: 'destructive',
       })
     }
@@ -117,8 +117,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
       if (form.time && !nextAvailability.availableTimes.includes(form.time)) {
         setForm(f => ({ ...f, time: '' }))
         toast({
-          title: isHe ? 'השעה אינה זמינה לסוג זה' : 'Time unavailable for this type',
-          description: isHe ? 'בחרו שעה אחרת מהרשימה המעודכנת.' : 'Please pick another time from the updated list.',
+          title: t('booking.time_unavailable_title'),
+          description: t('booking.time_unavailable_description'),
         })
       }
     } catch {
@@ -130,8 +130,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
     e.preventDefault()
     if (!form.clientName || !form.clientEmail || !form.clientPhone || !form.date || !form.time || (form.appointmentFor === 'child' && (!form.childName.trim() || form.childAge === ''))) {
       toast({
-        title: isHe ? 'שגיאה' : 'Error',
-        description: isHe ? 'אנא מלאו את כל השדות הנדרשים' : 'Please fill all required fields',
+        title: t('booking.error_title'),
+        description: t('booking.fill_required_fields'),
         variant: 'destructive',
       })
       return
@@ -145,14 +145,14 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
       })
       setSubmitted(true)
       toast({
-        title: isHe ? 'הפגישה נקבעה!' : 'Appointment Booked!',
-        description: isHe ? 'נחזור אליכם לאישור בהקדם' : 'We will confirm your appointment shortly',
+        title: t('booking.booked_toast_title'),
+        description: t('booking.booked_toast_description'),
       })
     } catch (err: any) {
       const msg = getAppointmentSubmitError(err, isHe)
       toast({
-        title: isHe ? 'שגיאה' : 'Error',
-        description: msg || (isHe ? 'קביעת הפגישה נכשלה. נסו שוב.' : 'Failed to book appointment. Please try again.'),
+        title: t('booking.error_title'),
+        description: msg || t('booking.submit_failed'),
         variant: 'destructive',
       })
     } finally {
@@ -200,7 +200,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 pt-5 pb-4 border-b border-border bg-background rounded-t-xl">
           <h2 className="text-xl font-bold text-foreground flex items-center gap-2 pr-2">
             <Calendar className="h-5 w-5 text-primary" />
-            {isHe ? 'קביעת פגישה' : 'Book an Appointment'}
+            {t('booking.title')}
           </h2>
           <Button
             variant="ghost"
@@ -216,46 +216,42 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
           <div className="px-6 py-10 text-center space-y-4">
             <CheckCircle className="h-16 w-16 text-primary mx-auto" />
             <h3 className="text-2xl font-bold text-foreground">
-              {isHe ? 'הפגישה נקבעה בהצלחה!' : 'Appointment Booked Successfully!'}
+              {t('booking.success_title')}
             </h3>
             <p className="text-muted-foreground">
-              {isHe
-                ? 'נחזור אליכם בהקדם לאשר את הפגישה. תודה!'
-                : 'We will get back to you shortly to confirm your appointment. Thank you!'}
+              {t('booking.success_description')}
             </p>
             <Button onClick={handleClose} data-testid="button-close-booking-success">
-              {isHe ? 'סגירה' : 'Close'}
+              {t('booking.close')}
             </Button>
           </div>
         ) : (
           <div className="px-6 py-5">
             <p className="text-sm text-muted-foreground mb-4">
-              {isHe
-                ? 'מלאו את הפרטים ונחזור אליכם לאישור הפגישה. שדות עם * הם חובה.'
-                : 'Fill in your details and we will confirm your appointment. Fields with * are required.'}
+              {t('booking.modal_intro')}
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="booking-name">{isHe ? 'שם מלא' : 'Full Name'} *</Label>
+                  <Label htmlFor="booking-name">{t('booking.full_name')} *</Label>
                   <Input
                     id="booking-name"
                     value={form.clientName}
                     onChange={(e) => setForm(f => ({ ...f, clientName: e.target.value }))}
-                    placeholder={isHe ? 'הכניסו את שמכם' : 'Enter your name'}
+                    placeholder={t('booking.full_name_placeholder')}
                     required
                     data-testid="input-booking-name"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="booking-phone">{isHe ? 'טלפון' : 'Phone'} *</Label>
+                  <Label htmlFor="booking-phone">{t('booking.phone')} *</Label>
                   <Input
                     id="booking-phone"
                     type="tel"
                     value={form.clientPhone}
                     onChange={(e) => setForm(f => ({ ...f, clientPhone: e.target.value }))}
-                    placeholder={isHe ? 'מספר הטלפון שלכם' : 'Your phone number'}
+                    placeholder={t('booking.phone_placeholder')}
                     required
                     data-testid="input-booking-phone"
                   />
@@ -263,13 +259,13 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="booking-email">{isHe ? 'דוא"ל' : 'Email'} *</Label>
+                <Label htmlFor="booking-email">{t('booking.email')} *</Label>
                 <Input
                   id="booking-email"
                   type="email"
                   value={form.clientEmail}
                   onChange={(e) => setForm(f => ({ ...f, clientEmail: e.target.value }))}
-                  placeholder={isHe ? 'כתובת הדוא"ל שלכם' : 'Your email address'}
+                  placeholder={t('booking.email_placeholder')}
                   required
                   data-testid="input-booking-email"
                 />
@@ -291,15 +287,15 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
               />
 
               <div className="space-y-1.5">
-                <Label htmlFor="booking-type">{isHe ? 'סוג הפגישה' : 'Appointment Type'} *</Label>
+                <Label htmlFor="booking-type">{t('booking.appointment_type')} *</Label>
                 <Select value={form.type} onValueChange={handleTypeChange} dir={isRTL ? 'rtl' : 'ltr'}>
                   <SelectTrigger data-testid="select-booking-type" className={isRTL ? 'text-right' : 'text-left'}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent dir={isRTL ? 'rtl' : 'ltr'} className={isRTL ? 'text-right' : 'text-left'}>
-                    {APPOINTMENT_TYPES.map(t => (
-                      <SelectItem key={t.value} value={t.value} className={isRTL ? 'pr-8 pl-2 text-right' : 'text-left'}>
-                        {isHe ? t.he : t.en}
+                    {APPOINTMENT_TYPES.map(apptType => (
+                      <SelectItem key={apptType.value} value={apptType.value} className={isRTL ? 'pr-8 pl-2 text-right' : 'text-left'}>
+                        {isHe ? apptType.he : apptType.en}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -310,7 +306,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
                 <div className="space-y-1.5">
                   <Label htmlFor="booking-date" className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    {isHe ? 'תאריך' : 'Date'} *
+                    {t('booking.date')} *
                   </Label>
                   <AppointmentDatePicker
                     id="booking-date"
@@ -324,41 +320,41 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
                 <div className="space-y-1.5">
                   <Label htmlFor="booking-time" className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
-                    {isHe ? 'שעה' : 'Time'} *
+                    {t('booking.time')} *
                   </Label>
                   <Select value={form.time} onValueChange={(v) => setForm(f => ({ ...f, time: v }))} dir={isRTL ? 'rtl' : 'ltr'} disabled={!form.date || availabilityLoading || availableTimes.length === 0}>
                     <SelectTrigger data-testid="select-booking-time" className={isRTL ? 'text-right' : 'text-left'}>
-                      <SelectValue placeholder={availabilityLoading ? (isHe ? 'בודק זמינות...' : 'Checking availability...') : (isHe ? 'בחרו שעה' : 'Select time')} />
+                      <SelectValue placeholder={availabilityLoading ? t('booking.checking_availability') : t('booking.select_time')} />
                     </SelectTrigger>
                     <SelectContent dir={isRTL ? 'rtl' : 'ltr'} className={isRTL ? 'text-right' : 'text-left'}>
-                      {availableTimes.map(t => (
-                        <SelectItem key={t} value={t} className={isRTL ? 'pr-8 pl-2 text-right' : 'text-left'}>{t}</SelectItem>
+                      {availableTimes.map(time => (
+                        <SelectItem key={time} value={time} className={isRTL ? 'pr-8 pl-2 text-right' : 'text-left'}>{time}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   {form.date && !availabilityLoading && availableTimes.length === 0 && (
                     <p className="text-xs text-destructive">
-                      {isHe ? 'אין שעות פנויות בתאריך הזה.' : 'No available times on this date.'}
+                      {t('booking.no_times_available')}
                     </p>
                   )}
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="booking-notes">{isHe ? 'הערות (אופציונלי)' : 'Notes (optional)'}</Label>
+                <Label htmlFor="booking-notes">{t('booking.notes')}</Label>
                 <Textarea
                   id="booking-notes"
                   value={form.notes}
                   onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
-                  placeholder={isHe ? 'מידע נוסף שתרצו לשתף...' : 'Any additional information...'}
+                  placeholder={t('booking.notes_placeholder')}
                   data-testid="textarea-booking-notes"
                 />
               </div>
 
               <Button type="submit" className="w-full" disabled={submitting} data-testid="button-submit-booking">
                 {submitting
-                  ? (isHe ? 'שולח...' : 'Submitting...')
-                  : (isHe ? 'קביעת פגישה' : 'Book Appointment')}
+                  ? t('booking.submitting')
+                  : t('booking.submit')}
               </Button>
             </form>
           </div>

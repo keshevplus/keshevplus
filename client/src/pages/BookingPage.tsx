@@ -22,7 +22,7 @@ import {
 } from '@/lib/appointmentAvailability'
 
 const BookingPage = () => {
-  const { language } = useLanguage()
+  const { t, language } = useLanguage()
   const isHe = language === 'he'
   const isRTL = language === 'he' || language === 'ar' || language === 'yi'
   const { toast } = useToast()
@@ -87,14 +87,14 @@ const BookingPage = () => {
           time: nearestAvailability.availableTimes.includes(f.time) ? f.time : '',
         }))
         toast({
-          title: isHe ? 'המועד אינו פנוי' : 'Date unavailable',
-          description: isHe ? 'בחרנו עבורך את התאריך הפנוי הקרוב ביותר.' : 'We selected the closest available date.',
+          title: t('booking.date_unavailable_title'),
+          description: t('booking.date_unavailable_description'),
         })
       }
     } catch {
       toast({
-        title: isHe ? 'שגיאה' : 'Error',
-        description: isHe ? 'לא הצלחנו לבדוק זמינות. נסו שוב.' : 'Could not check availability. Please try again.',
+        title: t('booking.error_title'),
+        description: t('booking.availability_check_failed'),
         variant: 'destructive',
       })
     }
@@ -109,8 +109,8 @@ const BookingPage = () => {
       if (form.time && !nextAvailability.availableTimes.includes(form.time)) {
         setForm(f => ({ ...f, time: '' }))
         toast({
-          title: isHe ? 'השעה אינה זמינה לסוג זה' : 'Time unavailable for this type',
-          description: isHe ? 'בחרו שעה אחרת מהרשימה המעודכנת.' : 'Please pick another time from the updated list.',
+          title: t('booking.time_unavailable_title'),
+          description: t('booking.time_unavailable_description'),
         })
       }
     } catch {
@@ -122,8 +122,8 @@ const BookingPage = () => {
     e.preventDefault()
     if (!form.clientName || !form.clientEmail || !form.clientPhone || !form.date || !form.time || (form.appointmentFor === 'child' && (!form.childName.trim() || form.childAge === ''))) {
       toast({
-        title: isHe ? 'שגיאה' : 'Error',
-        description: isHe ? 'אנא מלאו את כל השדות הנדרשים' : 'Please fill all required fields',
+        title: t('booking.error_title'),
+        description: t('booking.fill_required_fields'),
         variant: 'destructive',
       })
       return
@@ -137,14 +137,14 @@ const BookingPage = () => {
       })
       setSubmitted(true)
       toast({
-        title: isHe ? 'הפגישה נקבעה!' : 'Appointment Booked!',
-        description: isHe ? 'נחזור אליכם לאישור בהקדם' : 'We will confirm your appointment shortly',
+        title: t('booking.booked_toast_title'),
+        description: t('booking.booked_toast_description'),
       })
     } catch (err: any) {
       const msg = getAppointmentSubmitError(err, isHe)
       toast({
-        title: isHe ? 'שגיאה' : 'Error',
-        description: msg || (isHe ? 'קביעת הפגישה נכשלה. נסו שוב.' : 'Failed to book appointment. Please try again.'),
+        title: t('booking.error_title'),
+        description: msg || t('booking.submit_failed'),
         variant: 'destructive',
       })
     } finally {
@@ -162,18 +162,16 @@ const BookingPage = () => {
           <CardContent className="pt-8 pb-8 space-y-4">
             <CheckCircle className="h-16 w-16 text-primary mx-auto" />
             <h2 className="text-2xl font-bold text-foreground">
-              {isHe ? 'הפגישה נקבעה בהצלחה!' : 'Appointment Booked Successfully!'}
+              {t('booking.success_title')}
             </h2>
             <p className="text-muted-foreground">
-              {isHe
-                ? 'נחזור אליכם בהקדם לאשר את הפגישה. תודה!'
-                : 'We will get back to you shortly to confirm your appointment. Thank you!'}
+              {t('booking.success_description')}
             </p>
             <div className="pt-4">
               <Link href="/">
                 <Button data-testid="button-back-home">
                   {isHe ? <ArrowRight className="w-4 h-4 ml-2" /> : <ArrowLeft className="w-4 h-4 mr-2" />}
-                  {isHe ? 'חזרה לדף הבית' : 'Back to Home'}
+                  {t('booking.back_to_home')}
                 </Button>
               </Link>
             </div>
@@ -188,12 +186,10 @@ const BookingPage = () => {
       <div className="max-w-2xl mx-auto px-4 py-12">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2 text-white">
-            {isHe ? 'קביעת פגישה' : 'Book an Appointment'}
+            {t('booking.title')}
           </h1>
           <p className="text-white/80">
-            {isHe
-              ? 'מלאו את הפרטים ונחזור אליכם לאישור הפגישה'
-              : 'Fill in your details and we will confirm your appointment'}
+            {t('booking.page_subtitle')}
           </p>
         </div>
 
@@ -201,35 +197,35 @@ const BookingPage = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
               <Calendar className="h-5 w-5 text-primary" />
-              {isHe ? 'פרטי הפגישה' : 'Appointment Details'}
+              {t('booking.details_title')}
             </CardTitle>
             <CardDescription>
-              {isHe ? 'כל השדות המסומנים ב-* הם חובה' : 'Fields marked with * are required'}
+              {t('booking.fields_required_note')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">{isHe ? 'שם מלא' : 'Full Name'} *</Label>
+                  <Label htmlFor="name">{t('booking.full_name')} *</Label>
                   <Input
                     id="name"
                     value={form.clientName}
                     onChange={(e) => setForm(f => ({ ...f, clientName: e.target.value }))}
-                    placeholder={isHe ? 'הכניסו את שמכם' : 'Enter your name'}
+                    placeholder={t('booking.full_name_placeholder')}
                     required
                     className="bg-white dark:bg-white/90"
                     data-testid="input-booking-name"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">{isHe ? 'טלפון' : 'Phone'} *</Label>
+                  <Label htmlFor="phone">{t('booking.phone')} *</Label>
                   <Input
                     id="phone"
                     type="tel"
                     value={form.clientPhone}
                     onChange={(e) => setForm(f => ({ ...f, clientPhone: e.target.value }))}
-                    placeholder={isHe ? 'מספר הטלפון שלכם' : 'Your phone number'}
+                    placeholder={t('booking.phone_placeholder')}
                     required
                     className="bg-white dark:bg-white/90"
                     data-testid="input-booking-phone"
@@ -238,13 +234,13 @@ const BookingPage = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">{isHe ? 'דוא"ל' : 'Email'} *</Label>
+                <Label htmlFor="email">{t('booking.email')} *</Label>
                 <Input
                   id="email"
                   type="email"
                   value={form.clientEmail}
                   onChange={(e) => setForm(f => ({ ...f, clientEmail: e.target.value }))}
-                  placeholder={isHe ? 'כתובת הדוא"ל שלכם' : 'Your email address'}
+                  placeholder={t('booking.email_placeholder')}
                   required
                   className="bg-white dark:bg-white/90"
                   data-testid="input-booking-email"
@@ -268,15 +264,15 @@ const BookingPage = () => {
               />
 
               <div className="space-y-2">
-                <Label htmlFor="type">{isHe ? 'סוג הפגישה' : 'Appointment Type'} *</Label>
+                <Label htmlFor="type">{t('booking.appointment_type')} *</Label>
                 <Select value={form.type} onValueChange={handleTypeChange} dir={isRTL ? 'rtl' : 'ltr'}>
                   <SelectTrigger data-testid="select-booking-type" className={`bg-white dark:bg-white/90 ${isRTL ? 'text-right' : 'text-left'}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent dir={isRTL ? 'rtl' : 'ltr'} className={isRTL ? 'text-right' : 'text-left'}>
-                    {APPOINTMENT_TYPES.map(t => (
-                      <SelectItem key={t.value} value={t.value} className={isRTL ? 'pr-8 pl-2 text-right' : 'text-left'}>
-                        {isHe ? t.he : t.en}
+                    {APPOINTMENT_TYPES.map(apptType => (
+                      <SelectItem key={apptType.value} value={apptType.value} className={isRTL ? 'pr-8 pl-2 text-right' : 'text-left'}>
+                        {isHe ? apptType.he : apptType.en}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -287,7 +283,7 @@ const BookingPage = () => {
                 <div className="space-y-2">
                   <Label htmlFor="date" className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    {isHe ? 'תאריך' : 'Date'} *
+                    {t('booking.date')} *
                   </Label>
                   <AppointmentDatePicker
                     id="date"
@@ -302,33 +298,33 @@ const BookingPage = () => {
                 <div className="space-y-2">
                   <Label htmlFor="time" className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
-                    {isHe ? 'שעה' : 'Time'} *
+                    {t('booking.time')} *
                   </Label>
                   <Select value={form.time} onValueChange={(v) => setForm(f => ({ ...f, time: v }))} dir={isRTL ? 'rtl' : 'ltr'} disabled={!form.date || availabilityLoading || availableTimes.length === 0}>
                     <SelectTrigger data-testid="select-booking-time" className={`bg-white dark:bg-white/90 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      <SelectValue placeholder={availabilityLoading ? (isHe ? 'בודק זמינות...' : 'Checking availability...') : (isHe ? 'בחרו שעה' : 'Select time')} />
+                      <SelectValue placeholder={availabilityLoading ? t('booking.checking_availability') : t('booking.select_time')} />
                     </SelectTrigger>
                     <SelectContent dir={isRTL ? 'rtl' : 'ltr'} className={isRTL ? 'text-right' : 'text-left'}>
-                      {availableTimes.map(t => (
-                        <SelectItem key={t} value={t} className={isRTL ? 'pr-8 pl-2 text-right' : 'text-left'}>{t}</SelectItem>
+                      {availableTimes.map(time => (
+                        <SelectItem key={time} value={time} className={isRTL ? 'pr-8 pl-2 text-right' : 'text-left'}>{time}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   {form.date && !availabilityLoading && availableTimes.length === 0 && (
                     <p className="text-xs text-destructive">
-                      {isHe ? 'אין שעות פנויות בתאריך הזה.' : 'No available times on this date.'}
+                      {t('booking.no_times_available')}
                     </p>
                   )}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="notes">{isHe ? 'הערות (אופציונלי)' : 'Notes (optional)'}</Label>
+                <Label htmlFor="notes">{t('booking.notes')}</Label>
                 <Textarea
                   id="notes"
                   value={form.notes}
                   onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
-                  placeholder={isHe ? 'מידע נוסף שתרצו לשתף...' : 'Any additional information...'}
+                  placeholder={t('booking.notes_placeholder')}
                   className="bg-white dark:bg-white/90"
                   data-testid="textarea-booking-notes"
                 />
@@ -336,8 +332,8 @@ const BookingPage = () => {
 
               <Button type="submit" className="w-full" disabled={submitting} data-testid="button-submit-booking">
                 {submitting
-                  ? (isHe ? 'שולח...' : 'Submitting...')
-                  : (isHe ? 'קביעת פגישה' : 'Book Appointment')}
+                  ? t('booking.submitting')
+                  : t('booking.submit')}
               </Button>
             </form>
           </CardContent>
@@ -347,7 +343,7 @@ const BookingPage = () => {
           <Link href="/">
             <Button variant="outline" className="bg-white/10 text-white border-white/30" data-testid="button-back-home-form">
               {isHe ? <ArrowRight className="w-4 h-4 ml-2" /> : <ArrowLeft className="w-4 h-4 mr-2" />}
-              {isHe ? 'חזרה לדף הבית' : 'Back to Home'}
+              {t('booking.back_to_home')}
             </Button>
           </Link>
         </div>

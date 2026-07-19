@@ -33,7 +33,7 @@ interface QuestionnaireModalProps {
 
 const QuestionnaireModal: React.FC<QuestionnaireModalProps> = ({ open, onOpenChange, type }) => {
   const config = QUESTIONNAIRES[type];
-  const { isRTL } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const { toast } = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -76,8 +76,8 @@ const QuestionnaireModal: React.FC<QuestionnaireModalProps> = ({ open, onOpenCha
       <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4" data-testid="questionnaire-modal-overlay">
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => onOpenChange(false)} />
         <div className="relative z-10 bg-background rounded-xl p-8 text-center max-w-sm">
-          <p className="mb-4">{isRTL ? "סוג שאלון לא תקין" : "Invalid questionnaire type"}</p>
-          <Button onClick={() => onOpenChange(false)}>{isRTL ? "סגירה" : "Close"}</Button>
+          <p className="mb-4">{t("questionnaire_modal.invalid_type")}</p>
+          <Button onClick={() => onOpenChange(false)}>{t("questionnaire_modal.close")}</Button>
         </div>
       </div>
     );

@@ -122,14 +122,14 @@ const MobileNavigation: React.FC = () => {
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-md"
       >
-        {isRTL ? "דלג לתוכן הראשי" : "Skip to main content"}
+        {t("nav.skip_to_content")}
       </a>
 
       <motion.nav
         initial={{ y: -80 }}
         animate={{ y: 0 }}
         role="navigation"
-        aria-label={isRTL ? "ניווט ראשי" : "Main navigation"}
+        aria-label={t("nav.main_navigation")}
         style={{
           paddingTop: `${10 - scrollProgress * 6}px`,
           paddingBottom: `${10 - scrollProgress * 6}px`,
@@ -158,7 +158,7 @@ const MobileNavigation: React.FC = () => {
                 opacity: logoOpacity,
                 pointerEvents: logoHeight > 0 ? 'auto' : 'none',
               }}
-              aria-label={isRTL ? "חזרה לדף הבית" : "Go to homepage"}
+              aria-label={t("nav.go_home")}
               aria-hidden={logoHeight === 0}
               tabIndex={logoHeight === 0 ? -1 : 0}
             >
@@ -205,7 +205,7 @@ const MobileNavigation: React.FC = () => {
                 onClick={() => setBookingOpen(true)}
               >
                 <CalendarCheck className="w-4 h-4" />
-                <span>{isRTL ? "קביעת תור" : "Book Now"}</span>
+                <span>{t("nav.book_now")}</span>
               </Button>
 
               <a
@@ -217,11 +217,7 @@ const MobileNavigation: React.FC = () => {
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                   "min-h-[40px]",
                 )}
-                aria-label={
-                  isRTL
-                    ? "התקשרו אלינו: 055-27-399-27"
-                    : "Call us: 055-27-399-27"
-                }
+                aria-label={t("nav.call_us")}
               >
                 <Phone className="w-4 h-4" aria-hidden="true" />
                 <span>055-27-399-27</span>
@@ -242,15 +238,7 @@ const MobileNavigation: React.FC = () => {
                 onClick={() => setIsOpen(!isOpen)}
                 aria-expanded={isOpen}
                 aria-controls="mobile-menu"
-                aria-label={
-                  isOpen
-                    ? isRTL
-                      ? "סגור תפריט"
-                      : "Close menu"
-                    : isRTL
-                      ? "פתח תפריט"
-                      : "Open menu"
-                }
+                aria-label={isOpen ? t("nav.close_menu") : t("nav.open_menu")}
                 data-testid="button-mobile-menu"
               >
                 {isOpen ? (
@@ -319,7 +307,7 @@ const MobileNavigation: React.FC = () => {
                       onClick={() => { setIsOpen(false); setBookingOpen(true); }}
                     >
                       <CalendarCheck className="w-5 h-5" />
-                      <span>{isRTL ? "קביעת תור" : "Book Now"}</span>
+                      <span>{t("nav.book_now")}</span>
                     </Button>
                     <a
                       href="tel:055-27-399-27"
