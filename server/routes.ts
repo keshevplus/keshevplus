@@ -1,7 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, insertClientPaymentSchema, APPOINTMENT_STATUSES, insertWhatsAppMessageSchema, dashboardLayoutSchema, homeSectionsSchema } from "@shared/schema";
+import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, insertClientPaymentSchema, insertClientFileSchema, CLIENT_FILE_ALLOWED_TYPES, CLIENT_FILE_MAX_SIZE_BYTES, APPOINTMENT_STATUSES, insertWhatsAppMessageSchema, dashboardLayoutSchema, homeSectionsSchema, type Client } from "@shared/schema";
+import { put, get as getBlob } from "@vercel/blob";
+import { Readable } from "node:stream";
 import {
   APPOINTMENT_TIME_SLOTS,
   APPOINTMENT_WORKING_HOURS_EN,
@@ -1888,6 +1890,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin/manager-only: manually create an appointment, either for an existing
+  // lead/client (clientId) or by registering a new one inline on the same form.
+  // New-lead details are resolved through storage.createClient, which already
+  // merges into any existing lead/client matching by email or phone instead of
+  // creating a duplicate.
+  app.post("/api/appointments/manual", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { clientId, name, email, phone, notes: leadNotes, date, time, type, appointmentFor, childName: rawChildName, childAge, notes } = req.body;
+
+      let client: Client | undefined;
+      if (clientId) {
+        client = await storage.getClient(Number(clientId));
+        if (!client) return res.status(404).json({ error: "Client not found" });
+        const patch: Record<string, any> = {};
+        if (email && !client.email) patch.email = String(email).trim();
+        if (phone && !client.phone) patch.phone = String(phone).trim();
+        if (Object.keys(patch).length > 0) {
+          client = (await storage.updateClient(client.id, patch)) || client;
+        }
+      } else {
+        if (!name || !String(name).trim() || !email || !String(email).trim()) {
+          return res.status(400).json({ error: "Name and email are required for a new lead" });
+        }
+        client = await storage.createClient({
+          name: String(name).trim(),
+          email: String(email).trim(),
+          phone: phone ? String(phone).trim() : null,
+          notes: leadNotes ? String(leadNotes).trim() : null,
+          status: "lead",
+          source: "manual",
+        } as any);
+      }
+
+      if (!client.email) {
+        return res.status(400).json({ error: "Client must have an email to book an appointment" });
+      }
+      const clientPhone = (phone && String(phone).trim()) || client.phone || "";
+      if (!clientPhone) {
+        return res.status(400).json({ error: "Client must have a phone number to book an appointment" });
+      }
+
+      const appointmentForValue = appointmentFor === "child" ? "child" : "self";
+      const childName = appointmentForValue === "child" ? String(rawChildName || "").trim() : "";
+      const childAgeNum = appointmentForValue === "child" ? Number(childAge) : null;
+      if (appointmentForValue === "child" && (!childName || !childAgeNum)) {
+        return res.status(400).json({ error: "יש למלא שם ילד/ה וגיל עבור פגישה לילד/ה." });
+      }
+
+      const result = insertAppointmentSchema.safeParse({
+        clientName: client.name,
+        clientEmail: client.email,
+        clientPhone,
+        appointmentFor: appointmentForValue,
+        childName: childName || null,
+        childAge: childAgeNum,
+        date,
+        time,
+        type: type || "consultation",
+        notes: notes ? String(notes).trim() : null,
+        status: "confirmed",
+      });
+      if (!result.success) {
+        const childAgeIssue = result.error.issues.find((issue) => issue.path.includes("childAge"));
+        if (childAgeIssue) {
+          return res.status(400).json({ error: "Minimum age is 6.", errorHe: "הגיל המינימלי הוא 6." });
+        }
+        return res.status(400).json({ error: result.error.message });
+      }
+
+      const typeHoursConfig = await storage.getAppointmentTypeHours();
+      if (
+        !isAppointmentDateStringWorkingDay(result.data.date) ||
+        !isAppointmentTimeSlotForType(result.data.type, result.data.time, typeHoursConfig)
+      ) {
+        return res.status(400).json(closedAppointmentDateMessage());
+      }
+
+      const allAppointments = await storage.getAppointments();
+      const activeAppointments = allAppointments.filter((a) => isActiveAppointmentStatus(a.status));
+      const slotAlreadyBooked = activeAppointments.some((a) => a.date === result.data.date && a.time === result.data.time);
+      if (slotAlreadyBooked) {
+        return res.status(400).json(unavailableSlotMessage());
+      }
+
+      const appointment = await storage.createAppointment(result.data);
+
+      await storage.createClientActivity({
+        clientId: client.id,
+        type: "appointment",
+        description: `נקבעה פגישה מסוג ${getAppointmentTypeLabelHe(result.data.type)} לתאריך ${result.data.date} בשעה ${result.data.time} (נוספה ידנית ע"י הצוות)`,
+        metadata: { source: "manual_appointment" },
+      });
+
+      return res.json({ success: true, appointment, client });
+    } catch (error) {
+      console.error("Manual appointment creation error:", error);
+      return res.status(500).json({ error: "Failed to create appointment" });
+    }
+  });
+
   app.get("/api/appointments", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId;
@@ -2181,6 +2290,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/clients/interactions/bulk", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: "IDs array is required" });
+      }
+      const numericIds = ids.map(Number);
+      const interactions = await storage.getClientInteractionsBulk(numericIds);
+      return res.json(interactions);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch interactions" });
+    }
+  });
+
   // ===== CRM Activity Routes =====
   app.post("/api/clients/:id/activities", async (req, res) => {
     try {
@@ -2268,6 +2397,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete payment" });
+    }
+  });
+
+  // ===== CRM File Upload Routes =====
+  app.post("/api/clients/:id/files", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const clientId = parseInt(req.params.id);
+      const client = await storage.getClient(clientId);
+      if (!client) return res.status(404).json({ error: "Client not found" });
+
+      const { fileName, fileType, dataBase64 } = req.body;
+      if (typeof fileName !== "string" || !fileName.trim() || typeof fileType !== "string" || typeof dataBase64 !== "string") {
+        return res.status(400).json({ error: "fileName, fileType, and dataBase64 are required" });
+      }
+      if (!(CLIENT_FILE_ALLOWED_TYPES as readonly string[]).includes(fileType)) {
+        return res.status(400).json({ error: "File type not allowed" });
+      }
+      const buffer = Buffer.from(dataBase64, "base64");
+      if (buffer.length === 0 || buffer.length > CLIENT_FILE_MAX_SIZE_BYTES) {
+        return res.status(400).json({ error: "File is empty or exceeds the 8MB limit" });
+      }
+
+      const safeName = fileName.trim().replace(/[^a-zA-Z0-9.\-_ ]/g, "_").slice(0, 200);
+      const blob = await put(`client-files/${clientId}/${Date.now()}-${safeName}`, buffer, {
+        access: "private",
+        contentType: fileType,
+        token: process.env.BLOB_READ_WRITE_TOKEN,
+      });
+
+      const result = insertClientFileSchema.safeParse({
+        clientId,
+        fileName: safeName,
+        fileType,
+        fileSize: buffer.length,
+        blobUrl: blob.url,
+        uploadedBy: userId,
+      });
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.message });
+      }
+      const created = await storage.createClientFile(result.data);
+      const { blobUrl, ...fileMeta } = created;
+      return res.json(fileMeta);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to upload file" });
+    }
+  });
+
+  app.get("/api/clients/:id/files", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const clientId = parseInt(req.params.id);
+      const files = await storage.getClientFiles(clientId);
+      return res.json(files.map(({ blobUrl, ...rest }) => rest));
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch files" });
+    }
+  });
+
+  app.get("/api/clients/files/:id/download", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const file = await storage.getClientFile(id);
+      if (!file) return res.status(404).json({ error: "File not found" });
+
+      const blobRes = await getBlob(file.blobUrl, { access: "private", token: process.env.BLOB_READ_WRITE_TOKEN });
+      if (!blobRes) {
+        return res.status(502).json({ error: "Failed to fetch file" });
+      }
+      res.setHeader("Content-Type", file.fileType);
+      res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(file.fileName)}"`);
+      return Readable.fromWeb(blobRes.stream as any).pipe(res);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to download file" });
+    }
+  });
+
+  app.delete("/api/clients/files/:id", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteClientFile(id);
+      if (!deleted) return res.status(404).json({ error: "File not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to delete file" });
     }
   });
 

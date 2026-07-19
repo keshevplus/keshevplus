@@ -19,13 +19,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ToastAction } from "@/components/ui/toast";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Calendar, CalendarClock, ChevronLeft, ChevronRight, ChevronsLeftRight, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare, ListChecks, StickyNote, ArrowUpDown, Tag, IdCard, ExternalLink } from "lucide-react";
+import { Calendar, CalendarClock, ChevronLeft, ChevronRight, ChevronsLeftRight, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare, ListChecks, StickyNote, ArrowUpDown, Tag, IdCard, ExternalLink, Plus, X, Search } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { AppointmentForFields, type AppointmentFor } from "@/components/AppointmentForFields";
 import { getLocalDateInputValue, isAppointmentWorkingDay, APPOINTMENT_TYPES } from "@shared/appointmentSchedule";
+import { fetchAppointmentAvailability, getAppointmentSubmitError } from "@/lib/appointmentAvailability";
 import type { Appointment, Client } from "@shared/schema";
 
 const weekDaysHe = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
@@ -140,6 +143,23 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
   const [noteText, setNoteText] = useState("")
   const [cancelContactMethod, setCancelContactMethod] = useState("")
 
+  const [newApptOpen, setNewApptOpen] = useState(false)
+  const [newApptMode, setNewApptMode] = useState<'existing' | 'new'>('existing')
+  const [newApptClientId, setNewApptClientId] = useState<number | null>(null)
+  const [newApptSearch, setNewApptSearch] = useState("")
+  const [newApptName, setNewApptName] = useState("")
+  const [newApptEmail, setNewApptEmail] = useState("")
+  const [newApptPhone, setNewApptPhone] = useState("")
+  const [newApptLeadNotes, setNewApptLeadNotes] = useState("")
+  const [newApptType, setNewApptType] = useState<string>(APPOINTMENT_TYPES[0]?.value || "consultation")
+  const [newApptDate, setNewApptDate] = useState("")
+  const [newApptTime, setNewApptTime] = useState("")
+  const [newApptAvailableTimes, setNewApptAvailableTimes] = useState<string[]>([])
+  const [newApptFor, setNewApptFor] = useState<AppointmentFor>('self')
+  const [newApptChildName, setNewApptChildName] = useState("")
+  const [newApptChildAge, setNewApptChildAge] = useState<number | ''>('')
+  const [newApptNotes, setNewApptNotes] = useState("")
+
   useEffect(() => {
     setFilter(initialFilter)
   }, [initialFilter])
@@ -237,6 +257,106 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
       });
     },
   });
+
+  const selectedNewApptClient = newApptClientId ? clients.find((c) => c.id === newApptClientId) || null : null
+
+  const newApptFilteredClients = useMemo(() => {
+    const q = newApptSearch.trim().toLowerCase()
+    if (!q) return []
+    return clients.filter((c) => (
+      c.name.toLowerCase().includes(q) ||
+      (c.email && c.email.toLowerCase().includes(q)) ||
+      (c.phone && c.phone.includes(q))
+    )).slice(0, 8)
+  }, [clients, newApptSearch])
+
+  const openNewAppointment = () => {
+    setNewApptMode('existing')
+    setNewApptClientId(null)
+    setNewApptSearch("")
+    setNewApptName("")
+    setNewApptEmail("")
+    setNewApptPhone("")
+    setNewApptLeadNotes("")
+    setNewApptType(APPOINTMENT_TYPES[0]?.value || "consultation")
+    setNewApptDate("")
+    setNewApptTime("")
+    setNewApptAvailableTimes([])
+    setNewApptFor('self')
+    setNewApptChildName("")
+    setNewApptChildAge('')
+    setNewApptNotes("")
+    setNewApptOpen(true)
+  }
+
+  useEffect(() => {
+    if (!newApptOpen || !newApptDate) {
+      setNewApptAvailableTimes([])
+      return
+    }
+    let cancelled = false
+    fetchAppointmentAvailability(newApptDate, newApptType)
+      .then((data) => {
+        if (cancelled) return
+        const times = data.availableTimes || []
+        setNewApptAvailableTimes(times)
+        setNewApptTime((current) => (times.includes(current) ? current : ""))
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newApptOpen, newApptDate, newApptType])
+
+  const createAppointmentMutation = useMutation({
+    mutationFn: async () => {
+      const payload: Record<string, any> = {
+        date: newApptDate,
+        time: newApptTime,
+        type: newApptType,
+        appointmentFor: newApptFor,
+        childName: newApptFor === 'child' ? newApptChildName : undefined,
+        childAge: newApptFor === 'child' ? newApptChildAge : undefined,
+        notes: newApptNotes.trim() || undefined,
+      }
+      if (newApptMode === 'existing' && selectedNewApptClient) {
+        payload.clientId = selectedNewApptClient.id
+        if (newApptEmail.trim()) payload.email = newApptEmail.trim()
+        if (newApptPhone.trim()) payload.phone = newApptPhone.trim()
+      } else {
+        payload.name = newApptName.trim()
+        payload.email = newApptEmail.trim()
+        payload.phone = newApptPhone.trim()
+        payload.notes = newApptLeadNotes.trim() || undefined
+      }
+      const res = await apiRequest("POST", "/api/appointments/manual", payload)
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] })
+      queryClient.invalidateQueries({ queryKey: ["admin-badges"] })
+      toast({
+        title: isHe ? "הפגישה נקבעה" : "Appointment created",
+        description: isHe ? "הפגישה נוספה בהצלחה." : "The appointment was added successfully.",
+      })
+      setNewApptOpen(false)
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: isHe ? "שגיאה" : "Error",
+        description: getAppointmentSubmitError(error, isHe),
+        variant: "destructive",
+      })
+    },
+  })
+
+  const newApptClientReady = newApptMode === 'existing'
+    ? !!selectedNewApptClient && !!(selectedNewApptClient.email || newApptEmail.trim()) && !!(selectedNewApptClient.phone || newApptPhone.trim())
+    : !!newApptName.trim() && !!newApptEmail.trim() && !!newApptPhone.trim()
+
+  const newApptForReady = newApptFor === 'self' || (!!newApptChildName.trim() && newApptChildAge !== '' && newApptChildAge >= 6)
+
+  const canSubmitNewAppt = newApptClientReady && newApptForReady && !!newApptDate && !!newApptTime
 
   const parseDateOnly = (date: string) => {
     const [year, month, day] = date.split("-").map(Number);
@@ -550,9 +670,15 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-muted-foreground" />
-          <CardTitle>{isHe ? "ניהול פגישות" : "Appointment Manager"}</CardTitle>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-muted-foreground" />
+            <CardTitle>{isHe ? "ניהול פגישות" : "Appointment Manager"}</CardTitle>
+          </div>
+          <Button size="sm" onClick={openNewAppointment} data-testid="button-new-appointment">
+            <Plus className="w-4 h-4" />
+            <span className="ml-1">{isHe ? "פגישה חדשה" : "New Appointment"}</span>
+          </Button>
         </div>
         <CardDescription>{isHe ? "צפייה וניהול פגישות עם לקוחות" : "View and manage client appointments"}</CardDescription>
       </CardHeader>
@@ -1368,6 +1494,182 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={newApptOpen} onOpenChange={setNewApptOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{isHe ? "פגישה חדשה" : "New Appointment"}</DialogTitle>
+            <DialogDescription>
+              {isHe ? "בחר/י ליד/לקוח קיים או רשמו אחד חדש, וקבעו את פרטי הפגישה." : "Pick an existing lead/client or register a new one, then set the appointment details."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="inline-flex rounded-md border overflow-hidden w-full" role="group">
+              <button
+                type="button"
+                onClick={() => setNewApptMode('existing')}
+                className={cn(
+                  "flex-1 px-2.5 py-1.5 text-xs font-medium transition-colors",
+                  newApptMode === 'existing' ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"
+                )}
+                data-testid="button-appt-mode-existing"
+              >
+                {isHe ? "ליד/לקוח קיים" : "Existing lead/client"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setNewApptMode('new')}
+                className={cn(
+                  "flex-1 px-2.5 py-1.5 text-xs font-medium transition-colors",
+                  newApptMode === 'new' ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"
+                )}
+                data-testid="button-appt-mode-new"
+              >
+                {isHe ? "ליד/לקוח חדש" : "New lead/client"}
+              </button>
+            </div>
+
+            {newApptMode === 'existing' ? (
+              <div className="space-y-2">
+                {selectedNewApptClient ? (
+                  <div className="flex items-start justify-between gap-2 rounded-lg border p-2 bg-muted/30 text-sm">
+                    <div>
+                      <p className="font-medium text-foreground">{selectedNewApptClient.name}</p>
+                      <p className="text-xs text-muted-foreground">{selectedNewApptClient.email || selectedNewApptClient.phone}</p>
+                    </div>
+                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setNewApptClientId(null); setNewApptEmail(""); setNewApptPhone(""); }} data-testid="button-clear-appt-client">
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      value={newApptSearch}
+                      onChange={(e) => setNewApptSearch(e.target.value)}
+                      placeholder={isHe ? "חיפוש לפי שם, אימייל או טלפון" : "Search by name, email, or phone"}
+                      className="pl-8 h-9 text-sm"
+                      data-testid="input-appt-client-search"
+                    />
+                  </div>
+                )}
+                {!selectedNewApptClient && newApptFilteredClients.length > 0 && (
+                  <div className="rounded-lg border divide-y max-h-48 overflow-y-auto">
+                    {newApptFilteredClients.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className="w-full text-left px-2.5 py-1.5 text-sm hover:bg-muted"
+                        onClick={() => { setNewApptClientId(c.id); setNewApptSearch(""); }}
+                        data-testid={`button-select-appt-client-${c.id}`}
+                      >
+                        <span className="font-medium text-foreground">{c.name}</span>
+                        <span className="text-xs text-muted-foreground ml-2">{c.email || c.phone}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {selectedNewApptClient && !selectedNewApptClient.email && (
+                  <div className="space-y-1">
+                    <Label htmlFor="appt-fill-email" className="text-xs">{isHe ? "אימייל (חובה לקביעת פגישה)" : "Email (required to book)"}</Label>
+                    <Input id="appt-fill-email" type="email" value={newApptEmail} onChange={(e) => setNewApptEmail(e.target.value)} className="h-8 text-xs" data-testid="input-appt-fill-email" />
+                  </div>
+                )}
+                {selectedNewApptClient && !selectedNewApptClient.phone && (
+                  <div className="space-y-1">
+                    <Label htmlFor="appt-fill-phone" className="text-xs">{isHe ? "טלפון (חובה לקביעת פגישה)" : "Phone (required to book)"}</Label>
+                    <Input id="appt-fill-phone" value={newApptPhone} onChange={(e) => setNewApptPhone(e.target.value)} className="h-8 text-xs" data-testid="input-appt-fill-phone" />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <Label htmlFor="appt-new-name" className="text-xs">{isHe ? "שם *" : "Name *"}</Label>
+                  <Input id="appt-new-name" value={newApptName} onChange={(e) => setNewApptName(e.target.value)} className="h-8 text-xs" data-testid="input-appt-new-name" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="appt-new-email" className="text-xs">{isHe ? "אימייל *" : "Email *"}</Label>
+                    <Input id="appt-new-email" type="email" value={newApptEmail} onChange={(e) => setNewApptEmail(e.target.value)} className="h-8 text-xs" data-testid="input-appt-new-email" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="appt-new-phone" className="text-xs">{isHe ? "טלפון *" : "Phone *"}</Label>
+                    <Input id="appt-new-phone" value={newApptPhone} onChange={(e) => setNewApptPhone(e.target.value)} className="h-8 text-xs" data-testid="input-appt-new-phone" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="appt-new-notes" className="text-xs">{isHe ? "הערות ליד (אופציונלי)" : "Lead notes (optional)"}</Label>
+                  <Textarea id="appt-new-notes" value={newApptLeadNotes} onChange={(e) => setNewApptLeadNotes(e.target.value)} className="text-xs" rows={2} data-testid="input-appt-new-lead-notes" />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {isHe ? "אם קיים כבר ליד/לקוח עם אותו אימייל או טלפון, הפגישה תתווסף אליו ולא ייווצר רישום כפול." : "If a lead/client with the same email or phone already exists, the appointment will be attached to it instead of creating a duplicate."}
+                </p>
+              </div>
+            )}
+
+            <div className="border-t pt-3 space-y-3">
+              <div className="space-y-1">
+                <Label className="text-xs">{isHe ? "סוג פגישה" : "Appointment type"}</Label>
+                <Select value={newApptType} onValueChange={setNewApptType}>
+                  <SelectTrigger className="h-8 text-xs" data-testid="select-appt-type"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {APPOINTMENT_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value} className="text-xs">{isHe ? t.he : t.en}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <AppointmentForFields
+                isHe={isHe}
+                appointmentFor={newApptFor}
+                childName={newApptChildName}
+                childAge={newApptChildAge}
+                onAppointmentForChange={setNewApptFor}
+                onChildNameChange={setNewApptChildName}
+                onChildAgeChange={setNewApptChildAge}
+              />
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label htmlFor="appt-new-date" className="text-xs">{isHe ? "תאריך" : "Date"}</Label>
+                  <Input id="appt-new-date" type="date" value={newApptDate} onChange={(e) => setNewApptDate(e.target.value)} min={getLocalDateInputValue()} className="h-8 text-xs" data-testid="input-appt-new-date" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">{isHe ? "שעה" : "Time"}</Label>
+                  <Select value={newApptTime} onValueChange={setNewApptTime} disabled={!newApptDate || newApptAvailableTimes.length === 0}>
+                    <SelectTrigger className="h-8 text-xs" data-testid="select-appt-new-time"><SelectValue placeholder={isHe ? "בחר/י שעה" : "Select time"} /></SelectTrigger>
+                    <SelectContent>
+                      {newApptAvailableTimes.map((t) => (
+                        <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {newApptDate && newApptAvailableTimes.length === 0 && (
+                <p className="text-xs text-destructive">{isHe ? "אין שעות פנויות בתאריך זה." : "No available times on this date."}</p>
+              )}
+
+              <div className="space-y-1">
+                <Label htmlFor="appt-new-appt-notes" className="text-xs">{isHe ? "הערות לפגישה (אופציונלי)" : "Appointment notes (optional)"}</Label>
+                <Textarea id="appt-new-appt-notes" value={newApptNotes} onChange={(e) => setNewApptNotes(e.target.value)} className="text-xs" rows={2} data-testid="input-appt-new-appt-notes" />
+              </div>
+            </div>
+
+            <Button
+              className="w-full"
+              disabled={!canSubmitNewAppt || createAppointmentMutation.isPending}
+              onClick={() => createAppointmentMutation.mutate()}
+              data-testid="button-submit-new-appointment"
+            >
+              {createAppointmentMutation.isPending ? (isHe ? "קובע..." : "Creating...") : (isHe ? "קביעת פגישה" : "Create appointment")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

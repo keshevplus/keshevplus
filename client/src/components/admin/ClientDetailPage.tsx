@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   ArrowLeft, ArrowRight, Mail, Phone, StickyNote, PhoneCall, Calendar, DollarSign, MailOpen,
   MessageCircle, FileText, ClipboardList, UserCheck, ArrowRightLeft, Save, Plus, ChevronDown, ChevronUp,
-  XCircle, Filter, Receipt, Trash2,
+  XCircle, Filter, Receipt, Trash2, Paperclip, Upload, Download,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
@@ -17,7 +17,14 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { getLocalDateInputValue } from "@shared/appointmentSchedule";
-import type { Client, ClientActivity, ClientPayment, Contact, Appointment, QuestionnaireSubmission, Conversation } from "@shared/schema";
+import { CLIENT_FILE_ALLOWED_TYPES, CLIENT_FILE_MAX_SIZE_BYTES } from "@shared/schema";
+import type { Client, ClientActivity, ClientPayment, ClientFile, Contact, Appointment, QuestionnaireSubmission, Conversation } from "@shared/schema";
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 const PAYMENT_METHOD_LABELS: Record<string, { he: string; en: string }> = {
   cash: { he: "מזומן", en: "Cash" },
@@ -138,6 +145,10 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
   const [newPaymentInvoiceNumber, setNewPaymentInvoiceNumber] = useState("");
   const [addingPayment, setAddingPayment] = useState(false);
 
+  const [files, setFiles] = useState<ClientFile[]>([]);
+  const [filesLoading, setFilesLoading] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+
   const fetchClient = async () => {
     try {
       const res = await fetch(`/api/clients/${clientId}`, { credentials: "include" });
@@ -242,6 +253,62 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
     }
   };
 
+  const fetchFiles = async () => {
+    setFilesLoading(true);
+    try {
+      const res = await fetch(`/api/clients/${clientId}/files`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch files");
+      const data = await res.json();
+      setFiles(data);
+    } catch {
+      setFiles([]);
+    } finally {
+      setFilesLoading(false);
+    }
+  };
+
+  const handleUploadFile = async (fileList: FileList | null) => {
+    const file = fileList?.[0];
+    if (!file) return;
+    if (!(CLIENT_FILE_ALLOWED_TYPES as readonly string[]).includes(file.type)) {
+      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "סוג הקובץ אינו נתמך" : "This file type isn't supported", variant: "destructive" });
+      return;
+    }
+    if (file.size > CLIENT_FILE_MAX_SIZE_BYTES) {
+      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "הקובץ גדול מדי (מקסימום 8MB)" : "File is too large (max 8MB)", variant: "destructive" });
+      return;
+    }
+    setUploadingFile(true);
+    try {
+      const dataBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(",")[1] || "");
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      await apiRequest("POST", `/api/clients/${clientId}/files`, {
+        fileName: file.name,
+        fileType: file.type,
+        dataBase64,
+      });
+      toast({ title: isHe ? "הקובץ הועלה" : "File uploaded", description: isHe ? "הקובץ הועלה בהצלחה" : "File uploaded successfully" });
+      fetchFiles();
+    } catch {
+      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "העלאת הקובץ נכשלה" : "Failed to upload the file", variant: "destructive" });
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const handleDeleteFile = async (fileId: number) => {
+    try {
+      await apiRequest("DELETE", `/api/clients/files/${fileId}`);
+      setFiles((prev) => prev.filter((f) => f.id !== fileId));
+    } catch {
+      toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "מחיקת הקובץ נכשלה" : "Failed to delete the file", variant: "destructive" });
+    }
+  };
+
   useEffect(() => {
     setLoading(true);
     setShowMoreDetails(false);
@@ -251,6 +318,7 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
     fetchActivities();
     fetchInteractions();
     fetchPayments();
+    fetchFiles();
     window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
@@ -775,6 +843,83 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
                   <Plus className="w-4 h-4" />
                   <span className="ml-1">{isHe ? "הוסף רישום" : "Add record"}</span>
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6 space-y-3">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Paperclip className="w-4 h-4" />
+                {isHe ? "קבצים ומסמכים" : "Files & Documents"}
+              </h4>
+
+              {filesLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
+                </div>
+              ) : files.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-1" data-testid="empty-files">
+                  {isHe ? "אין קבצים מצורפים עדיין" : "No files uploaded yet"}
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {files.map((file) => (
+                    <div key={file.id} className="flex items-center justify-between gap-2 text-sm rounded-lg border p-2 bg-background" data-testid={`file-${file.id}`}>
+                      <div className="flex-1 min-w-0 flex items-center gap-2">
+                        <FileText className="w-4 h-4 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground truncate">{file.fileName}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {formatFileSize(file.fileSize)} · {new Date(file.createdAt).toLocaleDateString(isHe ? "he-IL" : "en-US")}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={() => window.open(`/api/clients/files/${file.id}/download`, "_blank")}
+                          data-testid={`button-download-file-${file.id}`}
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-destructive"
+                          onClick={() => handleDeleteFile(file.id)}
+                          data-testid={`button-delete-file-${file.id}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="border-t pt-3">
+                <Label htmlFor="input-file-upload" className="inline-flex">
+                  <Button size="sm" disabled={uploadingFile} asChild data-testid="button-upload-file">
+                    <span>
+                      <Upload className="w-4 h-4" />
+                      <span className="ml-1">{uploadingFile ? (isHe ? "מעלה..." : "Uploading...") : (isHe ? "העלה קובץ" : "Upload file")}</span>
+                    </span>
+                  </Button>
+                </Label>
+                <input
+                  id="input-file-upload"
+                  type="file"
+                  className="hidden"
+                  accept={(CLIENT_FILE_ALLOWED_TYPES as readonly string[]).join(",")}
+                  disabled={uploadingFile}
+                  onChange={(e) => { handleUploadFile(e.target.files); e.target.value = ""; }}
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  {isHe ? "תמונות, PDF ומסמכי Word/Excel, עד 8MB" : "Images, PDF, and Word/Excel documents, up to 8MB"}
+                </p>
               </div>
             </CardContent>
           </Card>

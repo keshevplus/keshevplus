@@ -1,7 +1,8 @@
-import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, clientPayments, conversations, messages, whatsappMessages, images, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type ClientPayment, type InsertClientPayment, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type DashboardLayout, type WhatsAppMessage, type InsertWhatsAppMessage, type ImageAsset, type ImageAssetMeta, type HomeSection, DEFAULT_HOME_SECTIONS } from "@shared/schema";
+import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, clientPayments, clientFiles, conversations, messages, whatsappMessages, images, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type ClientPayment, type InsertClientPayment, type ClientFile, type InsertClientFile, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type DashboardLayout, type WhatsAppMessage, type InsertWhatsAppMessage, type ImageAsset, type ImageAssetMeta, type HomeSection, DEFAULT_HOME_SECTIONS } from "@shared/schema";
 import type { AppointmentTypeHoursConfig } from "@shared/appointmentSchedule";
 import { db } from "./db";
 import { eq, desc, and, sql, lt, inArray } from "drizzle-orm";
+import { del } from "@vercel/blob";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -44,9 +45,14 @@ export interface IStorage {
   createClientPayment(payment: InsertClientPayment): Promise<ClientPayment>;
   getClientPayments(clientId: number): Promise<ClientPayment[]>;
   deleteClientPayment(id: number): Promise<boolean>;
+  createClientFile(file: InsertClientFile): Promise<ClientFile>;
+  getClientFiles(clientId: number): Promise<ClientFile[]>;
+  getClientFile(id: number): Promise<ClientFile | undefined>;
+  deleteClientFile(id: number): Promise<boolean>;
   upsertClientByEmail(data: { name: string; email: string; phone?: string; source: string; childName?: string }): Promise<Client>;
   getClientByEmail(email: string): Promise<Client | undefined>;
   getClientInteractions(clientId: number): Promise<{ contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[] }>;
+  getClientInteractionsBulk(clientIds: number[]): Promise<Record<number, { contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[] }>>;
   getActiveAppointmentForChild(email: string, childName: string): Promise<Appointment | undefined>;
   getAdminBadgeCounts(): Promise<{ unreadContacts: number; pendingAppointments: number; unreviewedQuestionnaires: number; unreviewedConversations: number; newLeads: number; newLeadItems: Array<{ id: number; name: string; email: string | null; phone: string | null; leadNumber: number | null }> }>;
   getWidgetSettings(): Promise<WidgetSettings>;
@@ -554,6 +560,32 @@ export class DatabaseStorage implements IStorage {
     return deleted.length > 0;
   }
 
+  async createClientFile(file: InsertClientFile): Promise<ClientFile> {
+    const [created] = await db.insert(clientFiles).values(file as any).returning();
+    return created;
+  }
+
+  async getClientFiles(clientId: number): Promise<ClientFile[]> {
+    return await db.select().from(clientFiles)
+      .where(eq(clientFiles.clientId, clientId))
+      .orderBy(desc(clientFiles.createdAt));
+  }
+
+  async getClientFile(id: number): Promise<ClientFile | undefined> {
+    const [f] = await db.select().from(clientFiles).where(eq(clientFiles.id, id));
+    return f || undefined;
+  }
+
+  async deleteClientFile(id: number): Promise<boolean> {
+    const file = await this.getClientFile(id);
+    if (!file) return false;
+    try {
+      await del(file.blobUrl, { token: process.env.BLOB_READ_WRITE_TOKEN });
+    } catch {}
+    const deleted = await db.delete(clientFiles).where(eq(clientFiles.id, id)).returning();
+    return deleted.length > 0;
+  }
+
   async upsertClientByEmail(data: { name: string; email: string; phone?: string; source: string; childName?: string }): Promise<Client> {
     const existing = await this.findClientByIdentity({ email: data.email, phone: data.phone });
     if (existing) {
@@ -595,6 +627,45 @@ export class DatabaseStorage implements IStorage {
     const clientQuestionnaires = await db.select().from(questionnaireSubmissions).where(eq(questionnaireSubmissions.respondentEmail, email)).orderBy(desc(questionnaireSubmissions.createdAt));
     const clientConversations = await db.select().from(conversations).where(eq(conversations.visitorEmail, email)).orderBy(desc(conversations.createdAt));
     return { contacts: clientContacts, appointments: clientAppointments, questionnaires: clientQuestionnaires, conversations: clientConversations };
+  }
+
+  async getClientInteractionsBulk(clientIds: number[]): Promise<Record<number, { contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[] }>> {
+    const result: Record<number, { contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[] }> = {};
+    if (clientIds.length === 0) return result;
+
+    const clientRows = await db.select().from(clients).where(inArray(clients.id, clientIds));
+    const emailToClientIds = new Map<string, number[]>();
+    for (const client of clientRows) {
+      result[client.id] = { contacts: [], appointments: [], questionnaires: [], conversations: [] };
+      if (!client.email) continue;
+      const ids = emailToClientIds.get(client.email) ?? [];
+      ids.push(client.id);
+      emailToClientIds.set(client.email, ids);
+    }
+    const emails = [...emailToClientIds.keys()];
+    if (emails.length === 0) return result;
+
+    const [allContacts, allAppointments, allQuestionnaires, allConversations] = await Promise.all([
+      db.select().from(contacts).where(inArray(contacts.email, emails)).orderBy(desc(contacts.createdAt)),
+      db.select().from(appointments).where(inArray(appointments.clientEmail, emails)).orderBy(desc(appointments.createdAt)),
+      db.select().from(questionnaireSubmissions).where(inArray(questionnaireSubmissions.respondentEmail, emails)).orderBy(desc(questionnaireSubmissions.createdAt)),
+      db.select().from(conversations).where(inArray(conversations.visitorEmail, emails)).orderBy(desc(conversations.createdAt)),
+    ]);
+
+    for (const row of allContacts) {
+      for (const id of emailToClientIds.get(row.email) ?? []) result[id].contacts.push(row);
+    }
+    for (const row of allAppointments) {
+      for (const id of emailToClientIds.get(row.clientEmail) ?? []) result[id].appointments.push(row);
+    }
+    for (const row of allQuestionnaires) {
+      for (const id of emailToClientIds.get(row.respondentEmail) ?? []) result[id].questionnaires.push(row);
+    }
+    for (const row of allConversations) {
+      for (const id of emailToClientIds.get(row.visitorEmail) ?? []) result[id].conversations.push(row);
+    }
+
+    return result;
   }
 
   async getActiveAppointmentForChild(email: string, childName: string): Promise<Appointment | undefined> {

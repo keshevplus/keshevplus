@@ -145,6 +145,35 @@ export const clientPayments = pgTable("client_payments", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const CLIENT_FILE_ALLOWED_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+] as const;
+export const CLIENT_FILE_MAX_SIZE_BYTES = 8 * 1024 * 1024; // 8MB
+
+export const clientFiles = pgTable("client_files", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  fileName: text("file_name").notNull(),
+  fileType: text("file_type").notNull(),
+  fileSize: integer("file_size").notNull(),
+  blobUrl: text("blob_url").notNull(),
+  uploadedBy: integer("uploaded_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertClientFileSchema = createInsertSchema(clientFiles).omit({ id: true, createdAt: true }).extend({
+  fileType: z.enum(CLIENT_FILE_ALLOWED_TYPES),
+  fileSize: z.number().int().positive().max(CLIENT_FILE_MAX_SIZE_BYTES),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertContactSchema = createInsertSchema(contacts).omit({ id: true, createdAt: true, read: true });
 export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({ id: true });
@@ -183,6 +212,8 @@ export type ClientActivity = typeof clientActivities.$inferSelect;
 export type InsertClientActivity = z.infer<typeof insertClientActivitySchema>;
 export type ClientPayment = typeof clientPayments.$inferSelect;
 export type InsertClientPayment = z.infer<typeof insertClientPaymentSchema>;
+export type ClientFile = typeof clientFiles.$inferSelect;
+export type InsertClientFile = z.infer<typeof insertClientFileSchema>;
 
 export const SUPPORTED_LANGUAGES = ["he", "en", "fr", "es", "de", "ru", "am", "ar", "yi", "it"] as const;
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
