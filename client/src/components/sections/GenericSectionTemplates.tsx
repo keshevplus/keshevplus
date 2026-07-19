@@ -19,6 +19,7 @@ interface TemplateProps {
 interface SectionItem {
   id: string;
   icon?: string;
+  hidden?: boolean;
 }
 
 // A dynamic `section.<id>.<field>` key falls back to the raw key itself when
@@ -33,7 +34,7 @@ function textFor(t: (key: string) => string, key: string): string {
 
 function sectionItems(section: HomeSection): SectionItem[] {
   const items = section.config?.items;
-  return Array.isArray(items) ? items : [];
+  return Array.isArray(items) ? items.filter((item) => !item.hidden) : [];
 }
 
 function resolveIcon(name?: string): Icons.LucideIcon {

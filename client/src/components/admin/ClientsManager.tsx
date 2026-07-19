@@ -199,17 +199,14 @@ const ClientsManager = ({ onOpenClient }: ClientsManagerProps) => {
   const [clientInteractionsMap, setClientInteractionsMap] = useState<Record<number, ClientInteractions>>({});
 
   useEffect(() => {
-    if (clients.length > 0) {
-      clients.forEach(async (client) => {
-        try {
-          const res = await fetch(`/api/clients/${client.id}/interactions`, { credentials: "include" });
-          if (res.ok) {
-            const data = await res.json();
-            setClientInteractionsMap(prev => ({ ...prev, [client.id]: data }));
-          }
-        } catch {}
-      });
-    }
+    if (clients.length === 0) return;
+    (async () => {
+      try {
+        const res = await apiRequest("POST", "/api/clients/interactions/bulk", { ids: clients.map(c => c.id) });
+        const data = await res.json();
+        setClientInteractionsMap(data);
+      } catch {}
+    })();
   }, [clients]);
 
   const visibleClients = useMemo(() => {

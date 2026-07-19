@@ -7,8 +7,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Trash2, ChevronUp, ChevronDown, Pencil, Save, LayoutGrid } from 'lucide-react'
+import { Plus, Trash2, ChevronUp, ChevronDown, Save, LayoutGrid, Eye, EyeOff } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 import { apiRequest, queryClient } from '@/lib/queryClient'
 import { invalidateTranslationCache, useLanguage } from '@/hooks/useLanguage'
 import { ALL_LANGUAGES, type SupportedLanguage } from '@/i18n/config'
@@ -57,11 +58,12 @@ function RichTextEditor({ section, texts, setText, updateConfig, isHe }: EditorP
 
 function CardsEditor({ section, texts, setText, updateConfig, isHe }: EditorProps) {
   const id = section.id
-  const items: Array<{ id: string; icon?: string }> = Array.isArray(section.config?.items) ? section.config.items : []
+  const items: Array<{ id: string; icon?: string; hidden?: boolean }> = Array.isArray(section.config?.items) ? section.config.items : []
 
   const addItem = () => updateConfig({ ...section.config, items: [...items, createDefaultItem()] })
   const removeItem = (itemId: string) => updateConfig({ ...section.config, items: items.filter((i) => i.id !== itemId) })
   const setIcon = (itemId: string, icon: string) => updateConfig({ ...section.config, items: items.map((i) => (i.id === itemId ? { ...i, icon } : i)) })
+  const toggleHidden = (itemId: string) => updateConfig({ ...section.config, items: items.map((i) => (i.id === itemId ? { ...i, hidden: !i.hidden } : i)) })
 
   return (
     <div className="space-y-3">
@@ -70,12 +72,20 @@ function CardsEditor({ section, texts, setText, updateConfig, isHe }: EditorProp
       <Separator />
       <div className="space-y-4">
         {items.map((item, idx) => (
-          <div key={item.id} className="rounded-md border p-3 space-y-3">
+          <div key={item.id} className={cn('rounded-md border p-3 space-y-3', item.hidden && 'opacity-50')}>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-muted-foreground">{isHe ? `כרטיס ${idx + 1}` : `Card ${idx + 1}`}</span>
-              <Button size="icon" variant="ghost" onClick={() => removeItem(item.id)} data-testid={`button-remove-card-item-${item.id}`}>
-                <Trash2 className="h-3.5 w-3.5 text-destructive" />
-              </Button>
+              <div className="min-w-0">
+                <span className="text-xs font-medium text-muted-foreground">{isHe ? `כרטיס ${idx + 1}` : `Card ${idx + 1}`}</span>
+                <p className="text-[10px] text-muted-foreground font-mono truncate">{`section.${id}.items.${item.id}`}</p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button size="icon" variant="ghost" onClick={() => toggleHidden(item.id)} data-testid={`button-hide-card-item-${item.id}`}>
+                  {item.hidden ? <EyeOff className="h-3.5 w-3.5 text-muted-foreground" /> : <Eye className="h-3.5 w-3.5" />}
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => removeItem(item.id)} data-testid={`button-remove-card-item-${item.id}`}>
+                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                </Button>
+              </div>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">{isHe ? 'אייקון' : 'Icon'}</Label>
@@ -103,10 +113,11 @@ function CardsEditor({ section, texts, setText, updateConfig, isHe }: EditorProp
 
 function FaqEditor({ section, texts, setText, updateConfig, isHe }: EditorProps) {
   const id = section.id
-  const items: Array<{ id: string }> = Array.isArray(section.config?.items) ? section.config.items : []
+  const items: Array<{ id: string; hidden?: boolean }> = Array.isArray(section.config?.items) ? section.config.items : []
 
   const addItem = () => updateConfig({ ...section.config, items: [...items, createDefaultItem()] })
   const removeItem = (itemId: string) => updateConfig({ ...section.config, items: items.filter((i) => i.id !== itemId) })
+  const toggleHidden = (itemId: string) => updateConfig({ ...section.config, items: items.map((i) => (i.id === itemId ? { ...i, hidden: !i.hidden } : i)) })
 
   return (
     <div className="space-y-3">
@@ -114,12 +125,20 @@ function FaqEditor({ section, texts, setText, updateConfig, isHe }: EditorProps)
       <Separator />
       <div className="space-y-4">
         {items.map((item, idx) => (
-          <div key={item.id} className="rounded-md border p-3 space-y-3">
+          <div key={item.id} className={cn('rounded-md border p-3 space-y-3', item.hidden && 'opacity-50')}>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-muted-foreground">{isHe ? `שאלה ${idx + 1}` : `Question ${idx + 1}`}</span>
-              <Button size="icon" variant="ghost" onClick={() => removeItem(item.id)}>
-                <Trash2 className="h-3.5 w-3.5 text-destructive" />
-              </Button>
+              <div className="min-w-0">
+                <span className="text-xs font-medium text-muted-foreground">{isHe ? `שאלה ${idx + 1}` : `Question ${idx + 1}`}</span>
+                <p className="text-[10px] text-muted-foreground font-mono truncate">{`section.${id}.items.${item.id}`}</p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button size="icon" variant="ghost" onClick={() => toggleHidden(item.id)} data-testid={`button-hide-faq-item-${item.id}`}>
+                  {item.hidden ? <EyeOff className="h-3.5 w-3.5 text-muted-foreground" /> : <Eye className="h-3.5 w-3.5" />}
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => removeItem(item.id)}>
+                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                </Button>
+              </div>
             </div>
             <Field label={isHe ? 'שאלה' : 'Question'} value={texts[`section.${id}.items.${item.id}.question`] ?? ''} onChange={(v) => setText(`section.${id}.items.${item.id}.question`, v)} />
             <Field label={isHe ? 'תשובה' : 'Answer'} multiline value={texts[`section.${id}.items.${item.id}.answer`] ?? ''} onChange={(v) => setText(`section.${id}.items.${item.id}.answer`, v)} />
@@ -136,10 +155,11 @@ function FaqEditor({ section, texts, setText, updateConfig, isHe }: EditorProps)
 
 function TestimonialsEditor({ section, texts, setText, updateConfig, isHe }: EditorProps) {
   const id = section.id
-  const items: Array<{ id: string }> = Array.isArray(section.config?.items) ? section.config.items : []
+  const items: Array<{ id: string; hidden?: boolean }> = Array.isArray(section.config?.items) ? section.config.items : []
 
   const addItem = () => updateConfig({ ...section.config, items: [...items, createDefaultItem()] })
   const removeItem = (itemId: string) => updateConfig({ ...section.config, items: items.filter((i) => i.id !== itemId) })
+  const toggleHidden = (itemId: string) => updateConfig({ ...section.config, items: items.map((i) => (i.id === itemId ? { ...i, hidden: !i.hidden } : i)) })
 
   return (
     <div className="space-y-3">
@@ -147,12 +167,20 @@ function TestimonialsEditor({ section, texts, setText, updateConfig, isHe }: Edi
       <Separator />
       <div className="space-y-4">
         {items.map((item, idx) => (
-          <div key={item.id} className="rounded-md border p-3 space-y-3">
+          <div key={item.id} className={cn('rounded-md border p-3 space-y-3', item.hidden && 'opacity-50')}>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-muted-foreground">{isHe ? `המלצה ${idx + 1}` : `Testimonial ${idx + 1}`}</span>
-              <Button size="icon" variant="ghost" onClick={() => removeItem(item.id)}>
-                <Trash2 className="h-3.5 w-3.5 text-destructive" />
-              </Button>
+              <div className="min-w-0">
+                <span className="text-xs font-medium text-muted-foreground">{isHe ? `המלצה ${idx + 1}` : `Testimonial ${idx + 1}`}</span>
+                <p className="text-[10px] text-muted-foreground font-mono truncate">{`section.${id}.items.${item.id}`}</p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button size="icon" variant="ghost" onClick={() => toggleHidden(item.id)} data-testid={`button-hide-testimonial-item-${item.id}`}>
+                  {item.hidden ? <EyeOff className="h-3.5 w-3.5 text-muted-foreground" /> : <Eye className="h-3.5 w-3.5" />}
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => removeItem(item.id)}>
+                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                </Button>
+              </div>
             </div>
             <Field label={isHe ? 'ציטוט' : 'Quote'} multiline value={texts[`section.${id}.items.${item.id}.quote`] ?? ''} onChange={(v) => setText(`section.${id}.items.${item.id}.quote`, v)} />
             <div className="grid sm:grid-cols-2 gap-3">
@@ -173,10 +201,11 @@ function TestimonialsEditor({ section, texts, setText, updateConfig, isHe }: Edi
 
 function GalleryEditor({ section, texts, setText, updateConfig, isHe }: EditorProps) {
   const id = section.id
-  const items: Array<{ id: string }> = Array.isArray(section.config?.items) ? section.config.items : []
+  const items: Array<{ id: string; hidden?: boolean }> = Array.isArray(section.config?.items) ? section.config.items : []
 
   const addItem = () => updateConfig({ ...section.config, items: [...items, createDefaultItem()] })
   const removeItem = (itemId: string) => updateConfig({ ...section.config, items: items.filter((i) => i.id !== itemId) })
+  const toggleHidden = (itemId: string) => updateConfig({ ...section.config, items: items.map((i) => (i.id === itemId ? { ...i, hidden: !i.hidden } : i)) })
 
   return (
     <div className="space-y-3">
@@ -184,12 +213,20 @@ function GalleryEditor({ section, texts, setText, updateConfig, isHe }: EditorPr
       <Separator />
       <div className="grid sm:grid-cols-2 gap-3">
         {items.map((item, idx) => (
-          <div key={item.id} className="rounded-md border p-3 space-y-2">
+          <div key={item.id} className={cn('rounded-md border p-3 space-y-2', item.hidden && 'opacity-50')}>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-muted-foreground">{isHe ? `תמונה ${idx + 1}` : `Image ${idx + 1}`}</span>
-              <Button size="icon" variant="ghost" onClick={() => removeItem(item.id)}>
-                <Trash2 className="h-3.5 w-3.5 text-destructive" />
-              </Button>
+              <div className="min-w-0">
+                <span className="text-xs font-medium text-muted-foreground">{isHe ? `תמונה ${idx + 1}` : `Image ${idx + 1}`}</span>
+                <p className="text-[10px] text-muted-foreground font-mono truncate">{`section.${id}.items.${item.id}`}</p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button size="icon" variant="ghost" onClick={() => toggleHidden(item.id)} data-testid={`button-hide-gallery-item-${item.id}`}>
+                  {item.hidden ? <EyeOff className="h-3.5 w-3.5 text-muted-foreground" /> : <Eye className="h-3.5 w-3.5" />}
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => removeItem(item.id)}>
+                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                </Button>
+              </div>
             </div>
             <ImageSlotUploader slot={`section.${id}.items.${item.id}.image`} label={isHe ? 'תמונה' : 'Image'} />
           </div>
@@ -258,7 +295,7 @@ const SectionsManager = () => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(false)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editLang, setEditLang] = useState<SupportedLanguage>(language)
   const [texts, setTexts] = useState<Record<string, string>>({})
   const [addingType, setAddingType] = useState<string>('')
@@ -284,8 +321,8 @@ const SectionsManager = () => {
   }, [])
 
   useEffect(() => {
-    if (expandedId) fetchTexts(editLang)
-  }, [expandedId, editLang, fetchTexts])
+    if (selectedId) fetchTexts(editLang)
+  }, [selectedId, editLang, fetchTexts])
 
   const updateSections = (next: HomeSection[]) => {
     setSections(next)
@@ -320,14 +357,14 @@ const SectionsManager = () => {
 
   const removeSection = (id: string) => {
     updateSections(sections.filter((s) => s.id !== id))
-    if (expandedId === id) setExpandedId(null)
+    if (selectedId === id) setSelectedId(null)
   }
 
   const addSection = () => {
     if (!addingType) return
     const section = createDefaultSection(addingType as HomeSectionType)
     updateSections([...sections, section])
-    setExpandedId(section.id)
+    setSelectedId(section.id)
     setAddingType('')
   }
 
@@ -344,7 +381,7 @@ const SectionsManager = () => {
     try {
       const keys = sectionTextKeys(section)
       const items = keys.map((key) => ({ key, language: editLang, value: texts[key] ?? '' }))
-      await apiRequest('PUT', '/api/translations/bulk', { items })
+      await apiRequest('PUT', '/api/translations/bulk', items)
       invalidateTranslationCache(editLang)
       toast({ title: isHe ? 'התוכן נשמר' : 'Content saved' })
     } catch {
@@ -396,55 +433,88 @@ const SectionsManager = () => {
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
           </div>
         ) : (
-          <div className="space-y-3">
-            {sections.map((section, index) => {
-              const legacy = isLegacyType(section.type)
-              const expanded = expandedId === section.id
-              return (
-                <Card key={section.id} className={!section.enabled ? 'opacity-60' : undefined}>
-                  <CardContent className="p-3 flex items-center gap-2">
-                    <div className="flex flex-col">
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => move(index, -1)} disabled={index === 0} data-testid={`button-move-up-${section.id}`}>
-                        <ChevronUp className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => move(index, 1)} disabled={index === sections.length - 1} data-testid={`button-move-down-${section.id}`}>
-                        <ChevronDown className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm">{sectionTypeLabel(section.type, isHe)}</p>
-                      <p className="text-xs text-muted-foreground font-mono truncate">{section.id}</p>
-                    </div>
-                    <Switch checked={section.enabled} onCheckedChange={() => toggleEnabled(section.id)} data-testid={`switch-enabled-${section.id}`} />
-                    {!legacy && (
-                      <Button size="icon" variant="ghost" onClick={() => setExpandedId(expanded ? null : section.id)} data-testid={`button-edit-section-${section.id}`}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {!legacy && (
-                      <Button size="icon" variant="ghost" onClick={() => removeSection(section.id)} data-testid={`button-delete-section-${section.id}`}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    )}
-                  </CardContent>
-                  {expanded && !legacy && (
-                    <CardContent className="border-t pt-4 space-y-4">
-                      <div className="flex items-center justify-between gap-2">
-                        <Select value={editLang} onValueChange={(v) => setEditLang(v as SupportedLanguage)}>
-                          <SelectTrigger className="w-[160px]" data-testid="select-section-edit-language">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ALL_LANGUAGES.map((l) => (
-                              <SelectItem key={l.code} value={l.code}>{l.flag} {l.nativeName}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button size="sm" onClick={() => saveContent(section)} disabled={savingContent} data-testid={`button-save-content-${section.id}`}>
-                          <Save className="h-3.5 w-3.5 mr-1.5" />
-                          {savingContent ? (isHe ? 'שומר...' : 'Saving...') : (isHe ? 'שמירת תוכן' : 'Save Content')}
+          <div className="grid lg:grid-cols-[minmax(240px,340px)_1fr] gap-4 items-start">
+            <div className="space-y-2">
+              {sections.map((section, index) => {
+                const legacy = isLegacyType(section.type)
+                const selected = selectedId === section.id
+                return (
+                  <Card
+                    key={section.id}
+                    className={cn(!section.enabled && 'opacity-60', selected && 'border-primary ring-1 ring-primary', 'cursor-pointer')}
+                    onClick={() => setSelectedId(section.id)}
+                    data-testid={`card-section-${section.id}`}
+                  >
+                    <CardContent className="p-3 flex items-center gap-2">
+                      <div className="flex flex-col">
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); move(index, -1) }} disabled={index === 0} data-testid={`button-move-up-${section.id}`}>
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); move(index, 1) }} disabled={index === sections.length - 1} data-testid={`button-move-down-${section.id}`}>
+                          <ChevronDown className="h-3.5 w-3.5" />
                         </Button>
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">{sectionTypeLabel(section.type, isHe)}</p>
+                        <p className="text-xs text-muted-foreground font-mono truncate">{section.id}</p>
+                      </div>
+                      <Switch checked={section.enabled} onCheckedChange={() => toggleEnabled(section.id)} onClick={(e) => e.stopPropagation()} data-testid={`switch-enabled-${section.id}`} />
+                      {!legacy && (
+                        <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); removeSection(section.id) }} data-testid={`button-delete-section-${section.id}`}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+
+            <Card className="lg:sticky lg:top-4">
+              <CardContent className="p-4">
+                {(() => {
+                  const section = sections.find((s) => s.id === selectedId)
+                  if (!section) {
+                    return (
+                      <p className="text-sm text-muted-foreground p-4 text-center">
+                        {isHe ? 'בחרו מקטע כדי לערוך את תוכנו' : 'Select a section to edit its content'}
+                      </p>
+                    )
+                  }
+                  if (isLegacyType(section.type)) {
+                    return (
+                      <p className="text-sm text-muted-foreground p-4 text-center">
+                        {isHe
+                          ? 'מקטע זה מובנה ועורכים אותו דרך לשוניות תרגומים / עורך ויזואלי.'
+                          : 'This is a built-in section — edit its content via the Translations / Visual Editor tabs.'}
+                      </p>
+                    )
+                  }
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div>
+                          <p className="font-medium text-sm">{sectionTypeLabel(section.type, isHe)}</p>
+                          <p className="text-xs text-muted-foreground font-mono">{section.id}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Select value={editLang} onValueChange={(v) => setEditLang(v as SupportedLanguage)}>
+                            <SelectTrigger className="w-[160px]" data-testid="select-section-edit-language">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ALL_LANGUAGES.map((l) => (
+                                <SelectItem key={l.code} value={l.code}>{l.flag} {l.nativeName}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button size="sm" onClick={() => saveContent(section)} disabled={savingContent} data-testid={`button-save-content-${section.id}`}>
+                            <Save className="h-3.5 w-3.5 mr-1.5" />
+                            {savingContent ? (isHe ? 'שומר...' : 'Saving...') : (isHe ? 'שמירת תוכן' : 'Save Content')}
+                          </Button>
+                        </div>
+                      </div>
+                      <Separator />
                       {renderEditor({
                         section,
                         texts,
@@ -452,11 +522,11 @@ const SectionsManager = () => {
                         updateConfig: (config) => updateConfig(section.id, config),
                         isHe,
                       })}
-                    </CardContent>
-                  )}
-                </Card>
-              )
-            })}
+                    </div>
+                  )
+                })()}
+              </CardContent>
+            </Card>
           </div>
         )}
       </CardContent>

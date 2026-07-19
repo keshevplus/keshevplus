@@ -17,7 +17,14 @@ import pg from "pg";
 var schema_exports = {};
 __export(schema_exports, {
   APPOINTMENT_STATUSES: () => APPOINTMENT_STATUSES,
+  CLIENT_FILE_ALLOWED_TYPES: () => CLIENT_FILE_ALLOWED_TYPES,
+  CLIENT_FILE_MAX_SIZE_BYTES: () => CLIENT_FILE_MAX_SIZE_BYTES,
   CONTACT_STATUSES: () => CONTACT_STATUSES,
+  DEFAULT_HOME_SECTIONS: () => DEFAULT_HOME_SECTIONS,
+  HOME_SECTION_TYPES: () => HOME_SECTION_TYPES,
+  LEGACY_SECTION_TYPES: () => LEGACY_SECTION_TYPES,
+  PAYMENT_METHODS: () => PAYMENT_METHODS,
+  PAYMENT_STATUSES: () => PAYMENT_STATUSES,
   QUESTIONNAIRE_STATUSES: () => QUESTIONNAIRE_STATUSES,
   QUESTIONNAIRE_TYPES: () => QUESTIONNAIRE_TYPES,
   SUPPORTED_LANGUAGES: () => SUPPORTED_LANGUAGES,
@@ -26,13 +33,22 @@ __export(schema_exports, {
   appointments: () => appointments,
   bulkUpsertTranslationsSchema: () => bulkUpsertTranslationsSchema,
   clientActivities: () => clientActivities,
+  clientFiles: () => clientFiles,
+  clientPayments: () => clientPayments,
   clients: () => clients,
   contacts: () => contacts,
   conversations: () => conversations,
+  dashboardLayoutSchema: () => dashboardLayoutSchema,
+  homeSectionSchema: () => homeSectionSchema,
+  homeSectionsSchema: () => homeSectionsSchema,
+  images: () => images,
   insertAppointmentSchema: () => insertAppointmentSchema,
   insertClientActivitySchema: () => insertClientActivitySchema,
+  insertClientFileSchema: () => insertClientFileSchema,
+  insertClientPaymentSchema: () => insertClientPaymentSchema,
   insertClientSchema: () => insertClientSchema,
   insertContactSchema: () => insertContactSchema,
+  insertImageSchema: () => insertImageSchema,
   insertQuestionnaireSubmissionSchema: () => insertQuestionnaireSubmissionSchema,
   insertSiteSettingSchema: () => insertSiteSettingSchema,
   insertTranslationSchema: () => insertTranslationSchema,
@@ -49,7 +65,7 @@ __export(schema_exports, {
   whatsappMessages: () => whatsappMessages,
   widgetSettingsSchema: () => widgetSettingsSchema
 });
-import { pgTable as pgTable2, text as text2, serial as serial2, timestamp as timestamp2, boolean as boolean2, jsonb, uniqueIndex, integer as integer2 } from "drizzle-orm/pg-core";
+import { pgTable as pgTable2, text as text2, serial as serial2, timestamp as timestamp2, boolean as boolean2, jsonb, uniqueIndex, integer as integer2, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema as createInsertSchema2 } from "drizzle-zod";
 import { z } from "zod";
 
@@ -64,7 +80,9 @@ var conversations = pgTable("conversations", {
   visitorPhone: text("visitor_phone").default(""),
   title: text("title").notNull(),
   reviewed: boolean("reviewed").default(false).notNull(),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull()
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  archived: boolean("archived").default(false).notNull(),
+  isTest: boolean("is_test").default(false).notNull()
 });
 var messages = pgTable("messages", {
   id: serial("id").primaryKey(),
@@ -101,7 +119,9 @@ var contacts = pgTable2("contacts", {
   message: text2("message").notNull(),
   createdAt: timestamp2("created_at").defaultNow().notNull(),
   read: boolean2("read").default(false).notNull(),
-  status: text2("status").notNull().default("new")
+  status: text2("status").notNull().default("new"),
+  archived: boolean2("archived").default(false).notNull(),
+  isTest: boolean2("is_test").default(false).notNull()
 });
 var siteSettings = pgTable2("site_settings", {
   id: serial2("id").primaryKey(),
@@ -133,7 +153,9 @@ var questionnaireSubmissions = pgTable2("questionnaire_submissions", {
   notes: text2("notes"),
   createdAt: timestamp2("created_at").defaultNow().notNull(),
   reviewed: boolean2("reviewed").default(false).notNull(),
-  status: text2("status").notNull().default("new")
+  status: text2("status").notNull().default("new"),
+  archived: boolean2("archived").default(false).notNull(),
+  isTest: boolean2("is_test").default(false).notNull()
 });
 var smsVerifications = pgTable2("sms_verifications", {
   id: serial2("id").primaryKey(),
@@ -158,10 +180,14 @@ var appointments = pgTable2("appointments", {
   status: text2("status").notNull().default("pending"),
   notes: text2("notes"),
   createdAt: timestamp2("created_at").defaultNow().notNull(),
-  approvedAt: timestamp2("approved_at")
+  approvedAt: timestamp2("approved_at"),
+  archived: boolean2("archived").default(false).notNull(),
+  isTest: boolean2("is_test").default(false).notNull()
 });
 var clients = pgTable2("clients", {
   id: serial2("id").primaryKey(),
+  leadNumber: integer2("lead_number").unique(),
+  clientNumber: integer2("client_number").unique(),
   name: text2("name").notNull(),
   email: text2("email"),
   phone: text2("phone"),
@@ -169,7 +195,15 @@ var clients = pgTable2("clients", {
   status: text2("status").notNull().default("lead"),
   source: text2("source").notNull().default("manual"),
   childName: text2("child_name"),
-  createdAt: timestamp2("created_at").defaultNow().notNull()
+  adminSeen: boolean2("admin_seen").default(false).notNull(),
+  createdAt: timestamp2("created_at").defaultNow().notNull(),
+  archived: boolean2("archived").default(false).notNull(),
+  isTest: boolean2("is_test").default(false).notNull(),
+  dateOfBirth: text2("date_of_birth"),
+  city: text2("city"),
+  gender: text2("gender"),
+  isDiagnosed: boolean2("is_diagnosed"),
+  clientSince: timestamp2("client_since")
 });
 var clientActivities = pgTable2("client_activities", {
   id: serial2("id").primaryKey(),
@@ -178,6 +212,45 @@ var clientActivities = pgTable2("client_activities", {
   description: text2("description").notNull(),
   metadata: jsonb("metadata"),
   createdAt: timestamp2("created_at").defaultNow().notNull()
+});
+var PAYMENT_METHODS = ["cash", "card", "bank_transfer", "bit", "check", "other"];
+var PAYMENT_STATUSES = ["paid", "pending", "unpaid"];
+var clientPayments = pgTable2("client_payments", {
+  id: serial2("id").primaryKey(),
+  clientId: integer2("client_id").notNull(),
+  date: text2("date").notNull(),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  description: text2("description"),
+  method: text2("method"),
+  invoiceNumber: text2("invoice_number"),
+  status: text2("status").notNull().default("paid"),
+  createdAt: timestamp2("created_at").defaultNow().notNull()
+});
+var CLIENT_FILE_ALLOWED_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+];
+var CLIENT_FILE_MAX_SIZE_BYTES = 8 * 1024 * 1024;
+var clientFiles = pgTable2("client_files", {
+  id: serial2("id").primaryKey(),
+  clientId: integer2("client_id").notNull(),
+  fileName: text2("file_name").notNull(),
+  fileType: text2("file_type").notNull(),
+  fileSize: integer2("file_size").notNull(),
+  blobUrl: text2("blob_url").notNull(),
+  uploadedBy: integer2("uploaded_by"),
+  createdAt: timestamp2("created_at").defaultNow().notNull()
+});
+var insertClientFileSchema = createInsertSchema2(clientFiles).omit({ id: true, createdAt: true }).extend({
+  fileType: z.enum(CLIENT_FILE_ALLOWED_TYPES),
+  fileSize: z.number().int().positive().max(CLIENT_FILE_MAX_SIZE_BYTES)
 });
 var insertUserSchema = createInsertSchema2(users).omit({ id: true });
 var insertContactSchema = createInsertSchema2(contacts).omit({ id: true, createdAt: true, read: true });
@@ -188,8 +261,13 @@ var insertAppointmentSchema = createInsertSchema2(appointments).omit({ id: true,
   appointmentFor: z.enum(["self", "child"]).default("self"),
   childAge: z.number().int().min(6).optional().nullable()
 });
-var insertClientSchema = createInsertSchema2(clients).omit({ id: true, createdAt: true });
+var insertClientSchema = createInsertSchema2(clients).omit({ id: true, leadNumber: true, clientNumber: true, createdAt: true });
 var insertClientActivitySchema = createInsertSchema2(clientActivities).omit({ id: true, createdAt: true });
+var insertClientPaymentSchema = createInsertSchema2(clientPayments).omit({ id: true, createdAt: true }).extend({
+  amount: z.union([z.string(), z.number()]).transform((v) => String(v)),
+  method: z.enum(PAYMENT_METHODS).optional().nullable(),
+  status: z.enum(PAYMENT_STATUSES).default("paid")
+});
 var SUPPORTED_LANGUAGES = ["he", "en", "fr", "es", "de", "ru", "am", "ar", "yi", "it"];
 var supportedLanguageSchema = z.enum(SUPPORTED_LANGUAGES);
 var languageSettingsSchema = z.object({
@@ -202,6 +280,9 @@ var widgetSettingsSchema = z.object({
   showChat: z.boolean().default(true),
   showAccessibility: z.boolean().default(true),
   showWhatsApp: z.boolean().default(true)
+});
+var dashboardLayoutSchema = z.object({
+  widgets: z.array(z.string())
 });
 var upsertTranslationSchema = z.object({
   key: z.string().min(1),
@@ -224,26 +305,55 @@ var whatsappMessages = pgTable2("whatsapp_messages", {
   createdAt: timestamp2("created_at").defaultNow().notNull()
 });
 var insertWhatsAppMessageSchema = createInsertSchema2(whatsappMessages).omit({ id: true, createdAt: true });
+var images = pgTable2("images", {
+  id: serial2("id").primaryKey(),
+  slot: text2("slot").notNull().unique(),
+  mimeType: text2("mime_type").notNull(),
+  filename: text2("filename"),
+  data: text2("data").notNull(),
+  updatedAt: timestamp2("updated_at").defaultNow().notNull()
+});
+var insertImageSchema = createInsertSchema2(images).omit({ id: true, updatedAt: true });
+var HOME_SECTION_TYPES = [
+  "legacy:about",
+  "legacy:services",
+  "legacy:adhdInfo",
+  "legacy:questionnaires",
+  "legacy:contact",
+  "richText",
+  "cards",
+  "faq",
+  "testimonials",
+  "gallery",
+  "cta"
+];
+var LEGACY_SECTION_TYPES = [
+  "legacy:about",
+  "legacy:services",
+  "legacy:adhdInfo",
+  "legacy:questionnaires",
+  "legacy:contact"
+];
+var homeSectionSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum(HOME_SECTION_TYPES),
+  enabled: z.boolean().default(true),
+  config: z.record(z.any()).default({})
+});
+var homeSectionsSchema = z.array(homeSectionSchema);
+var DEFAULT_HOME_SECTIONS = [
+  { id: "about", type: "legacy:about", enabled: true, config: {} },
+  { id: "services", type: "legacy:services", enabled: true, config: {} },
+  { id: "adhd-info", type: "legacy:adhdInfo", enabled: true, config: {} },
+  { id: "questionnaires", type: "legacy:questionnaires", enabled: true, config: {} },
+  { id: "contact", type: "legacy:contact", enabled: true, config: {} }
+];
 
 // server/database-url.ts
-var DATABASE_URL_ENV_KEYS = [
-  "KESHEVPLUS_POSTGRES_URL",
-  "KESHEVPLUS_POSTGRES_PRISMA_URL",
-  "KESHEVPLUS_POSTGRES_URL_NON_POOLING",
-  "KESHEVPLUS_DATABASE_URL",
-  "POSTGRES_URL",
-  "POSTGRES_PRISMA_URL",
-  "POSTGRES_URL_NON_POOLING",
-  "DATABASE_URL"
-];
 function getDatabaseUrl(env = process.env) {
-  for (const key of DATABASE_URL_ENV_KEYS) {
-    const value = env[key]?.trim().replace(/^['"]|['"]$/g, "");
-    if (value) return value;
-  }
-  throw new Error(
-    `Database connection string is missing. Set one of: ${DATABASE_URL_ENV_KEYS.join(", ")}`
-  );
+  const value = env.DATABASE_URL?.trim().replace(/^['"]|['"]$/g, "");
+  if (value) return value;
+  throw new Error("Database connection string is missing. Set DATABASE_URL.");
 }
 
 // server/db.ts
@@ -256,6 +366,22 @@ import { createServer } from "http";
 
 // server/storage.ts
 import { eq, desc, and, sql as sql2, lt, inArray } from "drizzle-orm";
+import { del } from "@vercel/blob";
+function normalizeCrmEmail(value) {
+  return (value || "").trim().toLowerCase();
+}
+function normalizeCrmPhone(value) {
+  const digits = (value || "").replace(/\D/g, "");
+  if (digits.startsWith("972")) return `0${digits.slice(3)}`;
+  return digits;
+}
+function clientMatchesIdentity(client, identity) {
+  const email = normalizeCrmEmail(identity.email);
+  const phone = normalizeCrmPhone(identity.phone);
+  const clientEmail = normalizeCrmEmail(client.email);
+  const clientPhone = normalizeCrmPhone(client.phone);
+  return !!email && !!clientEmail && clientEmail === email || !!phone && !!clientPhone && (clientPhone === phone || clientPhone.length >= 7 && phone.length >= 7 && (clientPhone.endsWith(phone) || phone.endsWith(clientPhone)));
+}
 var DatabaseStorage = class {
   async getUser(id) {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -283,7 +409,7 @@ var DatabaseStorage = class {
     return contact;
   }
   async getContacts() {
-    return await db.select().from(contacts).orderBy(desc(contacts.createdAt));
+    return await db.select().from(contacts).where(and(eq(contacts.archived, false), eq(contacts.isTest, false))).orderBy(desc(contacts.createdAt));
   }
   async markContactRead(id) {
     const [contact] = await db.update(contacts).set({ read: true }).where(eq(contacts.id, id)).returning();
@@ -305,6 +431,30 @@ var DatabaseStorage = class {
     }
     const [created] = await db.insert(siteSettings).values({ key, value }).returning();
     return created;
+  }
+  async getNextCrmNumber(key, start) {
+    const result = await db.execute(sql2`
+      insert into site_settings (key, value)
+      values (${key}, ${JSON.stringify(start + 1)}::jsonb)
+      on conflict (key)
+      do update set value = to_jsonb(((site_settings.value #>> '{}')::int + 1))
+      returning ((value #>> '{}')::int - 1) as number
+    `);
+    const row = result.rows[0];
+    return Number(row?.number || start);
+  }
+  async getNextLeadNumber() {
+    return this.getNextCrmNumber("crm_next_lead_number", 5e3);
+  }
+  async getNextClientNumber() {
+    return this.getNextCrmNumber("crm_next_client_number", 200);
+  }
+  async findClientByIdentity(identity, excludeId) {
+    const email = normalizeCrmEmail(identity.email);
+    const phone = normalizeCrmPhone(identity.phone);
+    if (!email && !phone) return void 0;
+    const allClients = await this.getClients();
+    return allClients.find((client) => client.id !== excludeId && clientMatchesIdentity(client, identity));
   }
   async getTranslationsByLanguage(language) {
     const rows = await db.select().from(translations).where(eq(translations.language, language));
@@ -353,10 +503,11 @@ var DatabaseStorage = class {
     return created;
   }
   async getQuestionnaireSubmissions(type) {
+    const visible = and(eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false));
     if (type) {
-      return await db.select().from(questionnaireSubmissions).where(eq(questionnaireSubmissions.type, type)).orderBy(desc(questionnaireSubmissions.createdAt));
+      return await db.select().from(questionnaireSubmissions).where(and(eq(questionnaireSubmissions.type, type), visible)).orderBy(desc(questionnaireSubmissions.createdAt));
     }
-    return await db.select().from(questionnaireSubmissions).orderBy(desc(questionnaireSubmissions.createdAt));
+    return await db.select().from(questionnaireSubmissions).where(visible).orderBy(desc(questionnaireSubmissions.createdAt));
   }
   async getQuestionnaireSubmission(id) {
     const [submission] = await db.select().from(questionnaireSubmissions).where(eq(questionnaireSubmissions.id, id));
@@ -402,10 +553,11 @@ var DatabaseStorage = class {
     return created;
   }
   async getAppointments(status) {
+    const visible = and(eq(appointments.archived, false), eq(appointments.isTest, false));
     if (status) {
-      return await db.select().from(appointments).where(eq(appointments.status, status)).orderBy(desc(appointments.createdAt));
+      return await db.select().from(appointments).where(and(eq(appointments.status, status), visible)).orderBy(desc(appointments.createdAt));
     }
-    return await db.select().from(appointments).orderBy(desc(appointments.createdAt));
+    return await db.select().from(appointments).where(visible).orderBy(desc(appointments.createdAt));
   }
   async getAppointment(id) {
     const [a] = await db.select().from(appointments).where(eq(appointments.id, id));
@@ -421,19 +573,87 @@ var DatabaseStorage = class {
     const [updated] = await db.update(appointments).set(updates).where(eq(appointments.id, id)).returning();
     return updated || void 0;
   }
+  async updateAppointmentSchedule(id, date, time) {
+    const [updated] = await db.update(appointments).set({ date, time }).where(eq(appointments.id, id)).returning();
+    return updated || void 0;
+  }
   async createClient(client) {
-    const [created] = await db.insert(clients).values(client).returning();
+    const existing = await this.findClientByIdentity(client);
+    if (existing) {
+      const updates = {};
+      if (client.name && existing.name !== client.name) updates.name = existing.name || client.name;
+      if (client.email && !existing.email) updates.email = client.email;
+      if (client.phone && !existing.phone) updates.phone = client.phone;
+      if (client.childName && !existing.childName) updates.childName = client.childName;
+      if (client.notes && !existing.notes) updates.notes = client.notes;
+      if (Object.keys(updates).length > 0) {
+        const [updated] = await db.update(clients).set(updates).where(eq(clients.id, existing.id)).returning();
+        return updated || existing;
+      }
+      return existing;
+    }
+    const status = client.status || "lead";
+    const values = { ...client, status };
+    if (status === "client") {
+      values.clientNumber = await this.getNextClientNumber();
+    } else {
+      values.leadNumber = await this.getNextLeadNumber();
+    }
+    const [created] = await db.insert(clients).values(values).returning();
     return created;
   }
   async getClients() {
-    return await db.select().from(clients).orderBy(desc(clients.createdAt));
+    return await db.select().from(clients).where(and(eq(clients.archived, false), eq(clients.isTest, false))).orderBy(desc(clients.createdAt));
   }
   async getClient(id) {
     const [c] = await db.select().from(clients).where(eq(clients.id, id));
     return c || void 0;
   }
   async updateClient(id, data) {
-    const [updated] = await db.update(clients).set(data).where(eq(clients.id, id)).returning();
+    const existing = await this.getClient(id);
+    if (!existing) return void 0;
+    const updates = { ...data };
+    const requestedStatus = data.status;
+    if (requestedStatus && !["lead", "client"].includes(requestedStatus)) {
+      throw new Error("Invalid client status");
+    }
+    const nextIdentity = {
+      email: updates.email !== void 0 ? updates.email : existing.email,
+      phone: updates.phone !== void 0 ? updates.phone : existing.phone
+    };
+    const duplicate = await this.findClientByIdentity(nextIdentity, id);
+    if (duplicate) {
+      const target = duplicate.status === "client" ? duplicate : existing;
+      const source = target.id === duplicate.id ? existing : duplicate;
+      const merged = {};
+      if (!target.email && source.email) merged.email = source.email;
+      if (!target.phone && source.phone) merged.phone = source.phone;
+      if (!target.childName && source.childName) merged.childName = source.childName;
+      if (!target.notes && source.notes) merged.notes = source.notes;
+      if (updates.name && target.name !== updates.name) merged.name = target.name || updates.name;
+      if (requestedStatus === "client" && target.status !== "client") merged.status = "client";
+      if ((merged.status === "client" || target.status === "client") && !target.clientNumber) {
+        merged.clientNumber = await this.getNextClientNumber();
+      }
+      if (merged.status === "client" && !target.clientSince) {
+        merged.clientSince = /* @__PURE__ */ new Date();
+      }
+      const updatedRows = Object.keys(merged).length > 0 ? await db.update(clients).set(merged).where(eq(clients.id, target.id)).returning() : [target];
+      const [updated2] = updatedRows;
+      await db.update(clientActivities).set({ clientId: target.id }).where(eq(clientActivities.clientId, source.id));
+      await db.delete(clients).where(eq(clients.id, source.id));
+      return updated2 || target;
+    }
+    if (requestedStatus === "client" && existing.status !== "client" && !existing.clientNumber) {
+      updates.clientNumber = await this.getNextClientNumber();
+    }
+    if (requestedStatus === "client" && !existing.clientSince) {
+      updates.clientSince = /* @__PURE__ */ new Date();
+    }
+    if (!requestedStatus && existing.status === "lead" && !existing.leadNumber) {
+      updates.leadNumber = await this.getNextLeadNumber();
+    }
+    const [updated] = await db.update(clients).set(updates).where(eq(clients.id, id)).returning();
     return updated || void 0;
   }
   async createClientActivity(activity) {
@@ -443,10 +663,43 @@ var DatabaseStorage = class {
   async getClientActivities(clientId) {
     return await db.select().from(clientActivities).where(eq(clientActivities.clientId, clientId)).orderBy(desc(clientActivities.createdAt));
   }
+  async createClientPayment(payment) {
+    const [created] = await db.insert(clientPayments).values(payment).returning();
+    return created;
+  }
+  async getClientPayments(clientId) {
+    return await db.select().from(clientPayments).where(eq(clientPayments.clientId, clientId)).orderBy(desc(clientPayments.date), desc(clientPayments.createdAt));
+  }
+  async deleteClientPayment(id) {
+    const deleted = await db.delete(clientPayments).where(eq(clientPayments.id, id)).returning();
+    return deleted.length > 0;
+  }
+  async createClientFile(file) {
+    const [created] = await db.insert(clientFiles).values(file).returning();
+    return created;
+  }
+  async getClientFiles(clientId) {
+    return await db.select().from(clientFiles).where(eq(clientFiles.clientId, clientId)).orderBy(desc(clientFiles.createdAt));
+  }
+  async getClientFile(id) {
+    const [f] = await db.select().from(clientFiles).where(eq(clientFiles.id, id));
+    return f || void 0;
+  }
+  async deleteClientFile(id) {
+    const file = await this.getClientFile(id);
+    if (!file) return false;
+    try {
+      await del(file.blobUrl, { token: process.env.BLOB_READ_WRITE_TOKEN });
+    } catch {
+    }
+    const deleted = await db.delete(clientFiles).where(eq(clientFiles.id, id)).returning();
+    return deleted.length > 0;
+  }
   async upsertClientByEmail(data) {
-    const existing = await this.getClientByEmail(data.email);
+    const existing = await this.findClientByIdentity({ email: data.email, phone: data.phone });
     if (existing) {
       const updates = {};
+      if (data.email && !existing.email) updates.email = data.email;
       if (data.phone && !existing.phone) updates.phone = data.phone;
       if (data.childName && !existing.childName) updates.childName = data.childName;
       if (Object.keys(updates).length > 0) {
@@ -456,6 +709,7 @@ var DatabaseStorage = class {
       return existing;
     }
     const [created] = await db.insert(clients).values({
+      leadNumber: await this.getNextLeadNumber(),
       name: data.name,
       email: data.email,
       phone: data.phone || null,
@@ -481,6 +735,40 @@ var DatabaseStorage = class {
     const clientConversations = await db.select().from(conversations).where(eq(conversations.visitorEmail, email)).orderBy(desc(conversations.createdAt));
     return { contacts: clientContacts, appointments: clientAppointments, questionnaires: clientQuestionnaires, conversations: clientConversations };
   }
+  async getClientInteractionsBulk(clientIds) {
+    const result = {};
+    if (clientIds.length === 0) return result;
+    const clientRows = await db.select().from(clients).where(inArray(clients.id, clientIds));
+    const emailToClientIds = /* @__PURE__ */ new Map();
+    for (const client of clientRows) {
+      result[client.id] = { contacts: [], appointments: [], questionnaires: [], conversations: [] };
+      if (!client.email) continue;
+      const ids = emailToClientIds.get(client.email) ?? [];
+      ids.push(client.id);
+      emailToClientIds.set(client.email, ids);
+    }
+    const emails = [...emailToClientIds.keys()];
+    if (emails.length === 0) return result;
+    const [allContacts, allAppointments, allQuestionnaires, allConversations] = await Promise.all([
+      db.select().from(contacts).where(inArray(contacts.email, emails)).orderBy(desc(contacts.createdAt)),
+      db.select().from(appointments).where(inArray(appointments.clientEmail, emails)).orderBy(desc(appointments.createdAt)),
+      db.select().from(questionnaireSubmissions).where(inArray(questionnaireSubmissions.respondentEmail, emails)).orderBy(desc(questionnaireSubmissions.createdAt)),
+      db.select().from(conversations).where(inArray(conversations.visitorEmail, emails)).orderBy(desc(conversations.createdAt))
+    ]);
+    for (const row of allContacts) {
+      for (const id of emailToClientIds.get(row.email) ?? []) result[id].contacts.push(row);
+    }
+    for (const row of allAppointments) {
+      for (const id of emailToClientIds.get(row.clientEmail) ?? []) result[id].appointments.push(row);
+    }
+    for (const row of allQuestionnaires) {
+      for (const id of emailToClientIds.get(row.respondentEmail) ?? []) result[id].questionnaires.push(row);
+    }
+    for (const row of allConversations) {
+      for (const id of emailToClientIds.get(row.visitorEmail) ?? []) result[id].conversations.push(row);
+    }
+    return result;
+  }
   async getActiveAppointmentForChild(email, childName) {
     const allAppts = await db.select().from(appointments).where(eq(appointments.clientEmail, email)).orderBy(desc(appointments.createdAt));
     return allAppts.find(
@@ -488,17 +776,25 @@ var DatabaseStorage = class {
     );
   }
   async getAdminBadgeCounts() {
-    const [contactsResult] = await db.select({ count: sql2`count(*)::int` }).from(contacts).where(eq(contacts.read, false));
-    const [appointmentsResult] = await db.select({ count: sql2`count(*)::int` }).from(appointments).where(eq(appointments.status, "pending"));
-    const [questionnairesResult] = await db.select({ count: sql2`count(*)::int` }).from(questionnaireSubmissions).where(eq(questionnaireSubmissions.reviewed, false));
-    const [conversationsResult] = await db.select({ count: sql2`count(*)::int` }).from(conversations).where(eq(conversations.reviewed, false));
-    const [leadsResult] = await db.select({ count: sql2`count(*)::int` }).from(clients).where(eq(clients.status, "lead"));
+    const [contactsNew] = await db.select({ count: sql2`count(*)` }).from(contacts).where(and(eq(contacts.status, "new"), eq(contacts.archived, false), eq(contacts.isTest, false)));
+    const [appointmentsPending] = await db.select({ count: sql2`count(*)` }).from(appointments).where(and(eq(appointments.status, "pending"), eq(appointments.archived, false), eq(appointments.isTest, false)));
+    const [conversationsNew] = await db.select({ count: sql2`count(*)` }).from(conversations).where(and(eq(conversations.reviewed, false), eq(conversations.archived, false), eq(conversations.isTest, false)));
+    const [questionnairesNew] = await db.select({ count: sql2`count(*)` }).from(questionnaireSubmissions).where(and(eq(questionnaireSubmissions.status, "new"), eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false)));
+    const [newLeadsCount] = await db.select({ count: sql2`count(*)` }).from(clients).where(and(eq(clients.status, "lead"), eq(clients.adminSeen, false), eq(clients.archived, false), eq(clients.isTest, false)));
+    const newLeadRows = await db.select({
+      id: clients.id,
+      name: clients.name,
+      email: clients.email,
+      phone: clients.phone,
+      leadNumber: clients.leadNumber
+    }).from(clients).where(and(eq(clients.status, "lead"), eq(clients.adminSeen, false), eq(clients.archived, false), eq(clients.isTest, false))).orderBy(desc(clients.createdAt)).limit(10);
     return {
-      unreadContacts: contactsResult?.count ?? 0,
-      pendingAppointments: appointmentsResult?.count ?? 0,
-      unreviewedQuestionnaires: questionnairesResult?.count ?? 0,
-      unreviewedConversations: conversationsResult?.count ?? 0,
-      newLeads: leadsResult?.count ?? 0
+      unreadContacts: Number(contactsNew?.count ?? 0),
+      pendingAppointments: Number(appointmentsPending?.count ?? 0),
+      unreviewedConversations: Number(conversationsNew?.count ?? 0),
+      unreviewedQuestionnaires: Number(questionnairesNew?.count ?? 0),
+      newLeads: Number(newLeadsCount?.count ?? 0),
+      newLeadItems: newLeadRows
     };
   }
   async getWidgetSettings() {
@@ -510,12 +806,59 @@ var DatabaseStorage = class {
     const updated = await this.upsertSetting("widget_settings", settings);
     return updated.value;
   }
+  async getDashboardLayout() {
+    const setting = await this.getSetting("admin_dashboard_layout");
+    if (setting) return setting.value;
+    return null;
+  }
+  async updateDashboardLayout(layout) {
+    const updated = await this.upsertSetting("admin_dashboard_layout", layout);
+    return updated.value;
+  }
+  async getAppointmentTypeHours() {
+    const setting = await this.getSetting("appointment_type_hours");
+    if (setting) return setting.value;
+    return {};
+  }
+  async updateAppointmentTypeHours(config) {
+    const updated = await this.upsertSetting("appointment_type_hours", config);
+    return updated.value;
+  }
+  async getImage(slot) {
+    const [image] = await db.select().from(images).where(eq(images.slot, slot));
+    return image || void 0;
+  }
+  async listImages() {
+    return db.select({ id: images.id, slot: images.slot, mimeType: images.mimeType, filename: images.filename, updatedAt: images.updatedAt }).from(images);
+  }
+  async upsertImage(slot, mimeType, filename, data) {
+    const existing = await this.getImage(slot);
+    if (existing) {
+      const [updated] = await db.update(images).set({ mimeType, filename, data, updatedAt: /* @__PURE__ */ new Date() }).where(eq(images.slot, slot)).returning();
+      return updated;
+    }
+    const [created] = await db.insert(images).values({ slot, mimeType, filename, data }).returning();
+    return created;
+  }
+  async deleteImage(slot) {
+    const result = await db.delete(images).where(eq(images.slot, slot)).returning();
+    return result.length > 0;
+  }
+  async getHomeSections() {
+    const setting = await this.getSetting("home_sections");
+    if (setting) return setting.value;
+    return DEFAULT_HOME_SECTIONS;
+  }
+  async updateHomeSections(sections) {
+    const updated = await this.upsertSetting("home_sections", sections);
+    return updated.value;
+  }
   async createConversation(conversation) {
     const [created] = await db.insert(conversations).values(conversation).returning();
     return created;
   }
   async getConversations() {
-    return await db.select().from(conversations).orderBy(desc(conversations.createdAt));
+    return await db.select().from(conversations).where(and(eq(conversations.archived, false), eq(conversations.isTest, false))).orderBy(desc(conversations.createdAt));
   }
   async getConversation(id) {
     const [c] = await db.select().from(conversations).where(eq(conversations.id, id));
@@ -592,6 +935,144 @@ var DatabaseStorage = class {
     const result = await db.delete(questionnaireSubmissions).where(inArray(questionnaireSubmissions.id, ids)).returning();
     return result.length;
   }
+  // --- Archive (soft delete), restore, and "mark as test" ---
+  // Used so manager/admin "deletes" are recoverable in the owner-only recycle bin
+  // instead of immediately destroying data.
+  async archiveContact(id) {
+    const result = await db.update(contacts).set({ archived: true }).where(eq(contacts.id, id)).returning();
+    return result.length > 0;
+  }
+  async bulkArchiveContacts(ids) {
+    if (ids.length === 0) return 0;
+    const result = await db.update(contacts).set({ archived: true }).where(inArray(contacts.id, ids)).returning();
+    return result.length;
+  }
+  async restoreContact(id) {
+    const result = await db.update(contacts).set({ archived: false, isTest: false }).where(eq(contacts.id, id)).returning();
+    return result.length > 0;
+  }
+  async setContactTest(id, isTest) {
+    const result = await db.update(contacts).set({ isTest }).where(eq(contacts.id, id)).returning();
+    return result.length > 0;
+  }
+  async archiveConversation(id) {
+    const result = await db.update(conversations).set({ archived: true }).where(eq(conversations.id, id)).returning();
+    return result.length > 0;
+  }
+  async bulkArchiveConversations(ids) {
+    if (ids.length === 0) return 0;
+    const result = await db.update(conversations).set({ archived: true }).where(inArray(conversations.id, ids)).returning();
+    return result.length;
+  }
+  async restoreConversation(id) {
+    const result = await db.update(conversations).set({ archived: false, isTest: false }).where(eq(conversations.id, id)).returning();
+    return result.length > 0;
+  }
+  async setConversationTest(id, isTest) {
+    const result = await db.update(conversations).set({ isTest }).where(eq(conversations.id, id)).returning();
+    return result.length > 0;
+  }
+  async archiveClient(id) {
+    const result = await db.update(clients).set({ archived: true }).where(eq(clients.id, id)).returning();
+    return result.length > 0;
+  }
+  async bulkArchiveClients(ids) {
+    if (ids.length === 0) return 0;
+    const result = await db.update(clients).set({ archived: true }).where(inArray(clients.id, ids)).returning();
+    return result.length;
+  }
+  async restoreClient(id) {
+    const result = await db.update(clients).set({ archived: false, isTest: false }).where(eq(clients.id, id)).returning();
+    return result.length > 0;
+  }
+  async setClientTest(id, isTest) {
+    const result = await db.update(clients).set({ isTest }).where(eq(clients.id, id)).returning();
+    return result.length > 0;
+  }
+  async archiveAppointment(id) {
+    const result = await db.update(appointments).set({ archived: true }).where(eq(appointments.id, id)).returning();
+    return result.length > 0;
+  }
+  async bulkArchiveAppointments(ids) {
+    if (ids.length === 0) return 0;
+    const result = await db.update(appointments).set({ archived: true }).where(inArray(appointments.id, ids)).returning();
+    return result.length;
+  }
+  async restoreAppointment(id) {
+    const result = await db.update(appointments).set({ archived: false, isTest: false }).where(eq(appointments.id, id)).returning();
+    return result.length > 0;
+  }
+  async setAppointmentTest(id, isTest) {
+    const result = await db.update(appointments).set({ isTest }).where(eq(appointments.id, id)).returning();
+    return result.length > 0;
+  }
+  async archiveQuestionnaire(id) {
+    const result = await db.update(questionnaireSubmissions).set({ archived: true }).where(eq(questionnaireSubmissions.id, id)).returning();
+    return result.length > 0;
+  }
+  async bulkArchiveQuestionnaires(ids) {
+    if (ids.length === 0) return 0;
+    const result = await db.update(questionnaireSubmissions).set({ archived: true }).where(inArray(questionnaireSubmissions.id, ids)).returning();
+    return result.length;
+  }
+  async restoreQuestionnaire(id) {
+    const result = await db.update(questionnaireSubmissions).set({ archived: false, isTest: false }).where(eq(questionnaireSubmissions.id, id)).returning();
+    return result.length > 0;
+  }
+  async setQuestionnaireTest(id, isTest) {
+    const result = await db.update(questionnaireSubmissions).set({ isTest }).where(eq(questionnaireSubmissions.id, id)).returning();
+    return result.length > 0;
+  }
+  async getBinItems() {
+    const hidden = (archived, isTest) => archived || isTest;
+    const [contactRows, conversationRows, clientRows, appointmentRows, questionnaireRows] = await Promise.all([
+      db.select().from(contacts).where(sql2`${contacts.archived} = true OR ${contacts.isTest} = true`),
+      db.select().from(conversations).where(sql2`${conversations.archived} = true OR ${conversations.isTest} = true`),
+      db.select().from(clients).where(sql2`${clients.archived} = true OR ${clients.isTest} = true`),
+      db.select().from(appointments).where(sql2`${appointments.archived} = true OR ${appointments.isTest} = true`),
+      db.select().from(questionnaireSubmissions).where(sql2`${questionnaireSubmissions.archived} = true OR ${questionnaireSubmissions.isTest} = true`)
+    ]);
+    const items = [
+      ...contactRows.map((r) => ({ type: "contact", id: r.id, label: r.name, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt })),
+      ...conversationRows.map((r) => ({ type: "conversation", id: r.id, label: r.visitorName, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt })),
+      ...clientRows.map((r) => ({ type: "client", id: r.id, label: r.name, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt })),
+      ...appointmentRows.map((r) => ({ type: "appointment", id: r.id, label: r.clientName, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt })),
+      ...questionnaireRows.map((r) => ({ type: "questionnaire", id: r.id, label: r.respondentName, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt }))
+    ].filter((item) => hidden(item.archived, item.isTest));
+    return items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+  async permanentlyDeleteBinItem(type, id) {
+    switch (type) {
+      case "contact":
+        return this.deleteContact(id);
+      case "conversation":
+        return this.deleteConversation(id);
+      case "client":
+        return this.deleteClient(id);
+      case "appointment":
+        return this.deleteAppointment(id);
+      case "questionnaire":
+        return this.deleteQuestionnaire(id);
+      default:
+        throw new Error(`Unknown bin item type: ${type}`);
+    }
+  }
+  async restoreBinItem(type, id) {
+    switch (type) {
+      case "contact":
+        return this.restoreContact(id);
+      case "conversation":
+        return this.restoreConversation(id);
+      case "client":
+        return this.restoreClient(id);
+      case "appointment":
+        return this.restoreAppointment(id);
+      case "questionnaire":
+        return this.restoreQuestionnaire(id);
+      default:
+        throw new Error(`Unknown bin item type: ${type}`);
+    }
+  }
   async createWhatsAppMessage(message) {
     const [msg] = await db.insert(whatsappMessages).values(message).returning();
     return msg;
@@ -619,11 +1100,18 @@ var DatabaseStorage = class {
       unreadCount: Number(r.unread_count || 0)
     }));
   }
+  async markClientSeen(id) {
+    await db.update(clients).set({ adminSeen: true }).where(eq(clients.id, id));
+  }
   async updateWhatsAppMessageStatus(waMessageId, status) {
     await db.update(whatsappMessages).set({ status }).where(eq(whatsappMessages.waMessageId, waMessageId));
   }
 };
 var storage = new DatabaseStorage();
+
+// server/routes.ts
+import { put, get as getBlob } from "@vercel/blob";
+import { Readable } from "node:stream";
 
 // shared/appointmentSchedule.ts
 var APPOINTMENT_TIME_SLOTS = [
@@ -650,6 +1138,13 @@ var APPOINTMENT_TIME_SLOTS = [
 var APPOINTMENT_WORKING_DAYS = [0, 1, 2, 3, 4];
 var APPOINTMENT_WORKING_HOURS_HE = "\u05D0'-\u05D4' 09:00-19:00";
 var APPOINTMENT_WORKING_HOURS_EN = "Sun-Thu 09:00-19:00";
+var APPOINTMENT_TYPES = [
+  { value: "consultation", he: "\u05D9\u05D9\u05E2\u05D5\u05E5 \u05E8\u05D0\u05E9\u05D5\u05E0\u05D9", en: "Initial Consultation" },
+  { value: "diagnosis", he: "\u05D0\u05D1\u05D7\u05D5\u05DF", en: "Diagnosis" },
+  { value: "followup", he: "\u05DE\u05E2\u05E7\u05D1", en: "Follow-up" },
+  { value: "treatment", he: "\u05D8\u05D9\u05E4\u05D5\u05DC", en: "Treatment" },
+  { value: "moxo", he: "\u05D1\u05D3\u05D9\u05E7\u05EA MOXO", en: "MOXO Test" }
+];
 function parseLocalDateInputValue(value) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return null;
@@ -669,8 +1164,13 @@ function isAppointmentDateStringWorkingDay(value) {
   const date = parseLocalDateInputValue(value);
   return !!date && isAppointmentWorkingDay(date);
 }
-function isAppointmentTimeSlot(value) {
-  return APPOINTMENT_TIME_SLOTS.includes(value);
+function getTimeSlotsForType(type, config) {
+  const hours = config[type];
+  if (!hours) return APPOINTMENT_TIME_SLOTS;
+  return APPOINTMENT_TIME_SLOTS.filter((slot) => slot >= hours.startTime && slot < hours.endTime);
+}
+function isAppointmentTimeSlotForType(type, value, config) {
+  return getTimeSlotsForType(type, config).includes(value);
 }
 
 // server/routes.ts
@@ -691,6 +1191,8 @@ var en = {
   "nav.faq": "FAQ",
   "nav.questionnaires": "Questionnaires",
   "nav.contact": "Contact",
+  "nav.book": "Book",
+  "nav.book_now": "Book Now",
   "hero.title": "Welcome to",
   "hero.clinic": '"Keshev Plus" Clinic',
   "hero.subtitle": "Children \u2022 Teens \u2022 Adults",
@@ -731,6 +1233,21 @@ var en = {
   "contact.email_optional": "Email (optional)",
   "contact.message": "Message",
   "contact.name_placeholder": "Enter your full name",
+  "contact.email_placeholder": "Email",
+  "contact.phone_placeholder": "Phone number",
+  "contact.topic_label": "Subject",
+  "contact.topic_option1": "ADHD Diagnosis",
+  "contact.topic_option2": "MOXO Test",
+  "contact.topic_option3": "Other",
+  "contact.address_label": "Address:",
+  "contact.email_label": "Email:",
+  "contact.details_title": "Contact Details",
+  "contact.directions_title": "Directions & Parking",
+  "contact.clear_form": "Clear form",
+  "contact.aria_open_form": "Click to open the contact form",
+  "contact.click_to_open_form": "Click to open the form",
+  "contact.navigate_waze": "Navigate with Waze",
+  "contact.navigate_google_maps": "Navigate with Google Maps",
   "contact.message_placeholder": "Tell us how we can help...",
   "contact.sending": "Sending...",
   "contact.send_message": "Send Message",
@@ -760,6 +1277,7 @@ var en = {
   "footer.follow_us": "Follow Us",
   "footer.privacy_policy": "Privacy Policy",
   "footer.terms_of_use": "Terms of Use",
+  "footer.accessibility_statement": "Accessibility Statement",
   "footer.address": "94 Yigal Alon St., Tel Aviv",
   "footer.hours": "Sun-Thu 09:00-19:00",
   "about.title": "About Us",
@@ -779,6 +1297,7 @@ var en = {
   "about.value3_title": "Discretion",
   "about.value3_desc": "Complete privacy protection and safe environment",
   "services.title": "Our Services",
+  "services.subtitle": "We offer a wide range of professional services in ADHD diagnosis and treatment",
   "services.service1_title": "Comprehensive Diagnosis",
   "services.service1_desc": "Personalized diagnosis using advanced tools, clinical interviews, and computerized tests",
   "services.service2_title": "Medication Adjustment",
@@ -849,6 +1368,41 @@ var en = {
   "faq.a6": "ADD is the old term for attention deficit without hyperactivity. Today, the term ADHD is used with three subtypes: predominantly inattentive, predominantly hyperactive-impulsive, or combined.",
   "services.process_steps": "Diagnosis process steps",
   "footer.rights": "\xA9 2025 All rights reserved to Keshev Plus",
+  "footer.moxo_certified": "Moxo Certified",
+  "footer.moxo_certified_desc": "Computerized ADHD Assessment",
+  "cookies.notice": "This website uses cookies to improve your browsing experience and for statistical purposes. By continuing to browse the site, you agree to the use of cookies in accordance with our privacy policy.",
+  "cookies.used_include": "The cookies used on this site include:",
+  "cookies.essential": "Essential cookies - for proper site functionality",
+  "cookies.statistical": "Statistical cookies - for usage analysis and service improvement",
+  "cookies.preference": "Preference cookies - to save user preferences",
+  "cookies.privacy_note": "In accordance with the Privacy Protection Act, we inform you about the use of cookies and request your consent.",
+  "cookies.hide_details": "Hide Details",
+  "cookies.more_info": "More Info",
+  "cookies.accept": "Accept",
+  "appt_date.select_date": "Select date",
+  "appt_date.clinic_closed": "Clinic is closed on this day",
+  "appt_date.gray_unavailable": "Gray days are unavailable for appointments.",
+  "appt_for.who": "Who is the appointment for?",
+  "appt_for.me": "Me",
+  "appt_for.child": "For the child",
+  "appt_for.child_name": "Child Name",
+  "appt_for.child_age": "Child Age",
+  "appt_for.child_age_placeholder": "(minimum 6)",
+  "appt_for.min_age_error": "Minimum age is 6",
+  "chat.open": "Open chat",
+  "chat.how_can_help": "How can I help?",
+  "chat.close": "Close",
+  "chat.assistant_name": "KeshevPlus Assistant",
+  "chat.not_you": "Not {name}?",
+  "chat.before_start": "Before we start, please fill in your details:",
+  "chat.full_name_placeholder": "Full name *",
+  "chat.email_placeholder": "Email *",
+  "chat.phone_placeholder": "Phone (optional)",
+  "chat.starting": "Starting...",
+  "chat.start_chat": "Start Chat",
+  "chat.welcome_message": "Hello {name}! I'm the KeshevPlus virtual assistant. How can I help you?",
+  "chat.type_message": "Type a message...",
+  "chat.assistant_typing": "Assistant is typing",
   "admin.dashboard": "Admin Dashboard",
   "admin.welcome": "Welcome back",
   "admin.signout": "Sign Out",
@@ -860,7 +1414,132 @@ var en = {
   "admin.multilingual": "Multilingual (All languages)",
   "admin.default_language": "Default Language",
   "admin.settings_saved": "Settings saved successfully",
-  "admin.settings_error": "Failed to save settings"
+  "admin.settings_error": "Failed to save settings",
+  "a11y.accessibility_settings": "Accessibility Settings",
+  "a11y.text_size": "Text Size",
+  "a11y.decrease_text": "Decrease text",
+  "a11y.increase_text": "Increase text",
+  "a11y.line_height": "Line Height",
+  "a11y.decrease_line_height": "Decrease line height",
+  "a11y.increase_line_height": "Increase line height",
+  "a11y.letter_spacing": "Letter Spacing",
+  "a11y.decrease_letter_spacing": "Decrease letter spacing",
+  "a11y.increase_letter_spacing": "Increase letter spacing",
+  "a11y.reading_guide": "Reading Guide",
+  "a11y.high_contrast": "High Contrast",
+  "a11y.highlight_links": "Highlight Links",
+  "a11y.grayscale": "Grayscale",
+  "a11y.readable_font": "Readable Font",
+  "a11y.large_cursor": "Large Cursor",
+  "a11y.stop_animations": "Stop Animations",
+  "a11y.reset": "Reset",
+  "a11y.close": "Close",
+  "a11y.accessibility_menu": "Accessibility menu",
+  "a11y.dark_mode": "Dark Mode",
+  "a11y.light_mode": "Light Mode",
+  "a11y.accessibility_statement": "Accessibility Statement",
+  "a11y.accessibility_statement_text": "This site is committed to digital accessibility in accordance with Israeli Law.",
+  "terms.title": "Terms of Use",
+  "terms.intro": 'Use of the Keshev Plus website ("the Site") is subject to the terms below. Browsing the Site and/or using its services constitutes agreement to these terms.',
+  "terms.service_nature_title": "Nature of the service",
+  "terms.service_nature_p1": "The Site provides general information about the diagnosis and treatment of ADHD, along with online tools for scheduling appointments and completing initial screening questionnaires.",
+  "terms.service_nature_p2": "The online screening questionnaires do not constitute a medical diagnosis and are not a substitute for consultation, diagnosis, or treatment by a qualified professional. Questionnaire results are intended only to assist our clinical staff in an initial assessment; a final diagnosis is given only through a clinical evaluation.",
+  "terms.fair_use_title": "Fair use of the site",
+  "terms.fair_use_body": "The Site may not be used for any unlawful purpose, and no attempt may be made to interfere with its proper operation, including hacking attempts, unauthorized access to data, or automated scraping without prior consent.",
+  "terms.ip_title": "Intellectual property",
+  "terms.ip_body": "All rights in the Site's content, including text, design, logo, and images, belong to Keshev Plus or to third parties who have licensed their use to it, and may not be copied or used without written permission.",
+  "terms.liability_title": "Limitation of liability",
+  "terms.liability_body": "Information on the Site is provided for general informational purposes only and does not constitute medical advice. Keshev Plus is not liable for any damage arising from reliance on the Site's content without appropriate professional consultation. Links to external sites and services (such as WhatsApp and social media) are subject to the terms of use and privacy policies of those third parties, and we are not responsible for their content.",
+  "terms.jurisdiction_title": "Governing law and jurisdiction",
+  "terms.jurisdiction_body": "These terms are governed by the laws of the State of Israel, and the courts of the Tel Aviv district shall have exclusive jurisdiction over any matter relating to them.",
+  "terms.changes_title": "Changes to these terms",
+  "terms.changes_body": "We may update these terms from time to time. Continued use of the Site after changes are posted constitutes acceptance of the updated terms.",
+  "terms.contact_title": "Contact",
+  "terms.updated_date": "These terms were last updated on: July 15, 2026.",
+  "privacy.title": "Privacy Policy",
+  "privacy.intro": `Keshev Plus ("we", "the clinic") respects your privacy. This policy explains what data we collect through the site, what we use it for, and how to contact us about it. It operates in accordance with Israel's Privacy Protection Law, 1981, and the Privacy Protection (Data Security) Regulations, 2017.`,
+  "privacy.data_collected_title": "Information we collect",
+  "privacy.data_collected_1": "Contact details: name, email address, and phone number, when you contact us, book an appointment, or use the contact form.",
+  "privacy.data_collected_2": "ADHD screening questionnaire data: the child's name, age, gender, and relationship to the respondent, together with the questionnaire answers. This is sensitive information related to an initial clinical assessment, and we handle it with additional care.",
+  "privacy.data_collected_3": "Essential, statistical, and preference cookies, as detailed in the site's cookie banner.",
+  "privacy.data_collected_4": "Basic technical usage data (such as browser and device type) collected automatically to operate the site.",
+  "privacy.purposes_title": "Purposes of use",
+  "privacy.purpose_1": "Scheduling and managing appointments.",
+  "privacy.purpose_2": "Processing screening questionnaires for an initial clinical evaluation by our clinical staff.",
+  "privacy.purpose_3": "Responding to inquiries and information requests.",
+  "privacy.purpose_4": "Improving the service and site, and general statistical usage analysis.",
+  "privacy.purpose_5": "Meeting legal and regulatory obligations that apply to us.",
+  "privacy.sharing_title": "Sharing information",
+  "privacy.sharing_body": "We do not sell your personal information. Data is accessible to clinic staff solely for providing care, and may be disclosed if required by law or a competent authority. The WhatsApp contact link opens the external WhatsApp application, which is governed by its own privacy policy.",
+  "privacy.security_title": "Data security and retention",
+  "privacy.security_body": "We take reasonable technical and organizational measures to protect the information we collect. Information is retained for as long as needed to provide the service and to meet applicable medical/business record-keeping obligations, after which it is deleted or anonymized.",
+  "privacy.rights_title": "Your rights",
+  "privacy.rights_body": "In accordance with the Privacy Protection Law, you have the right to review the information held about you, request its correction, and in certain circumstances request its deletion. To exercise these rights, please contact us using the details below.",
+  "privacy.contact_title": "Privacy contact",
+  "privacy.updated_date": "This policy was last updated on: July 15, 2026.",
+  "a11y_statement.title": "Accessibility Statement",
+  "a11y_statement.intro": "Keshev Plus works to make its digital services accessible to the general public, including people with disabilities, out of a belief that everyone deserves equal and accessible service. This work is carried out in accordance with Israel's Equal Rights for Persons with Disabilities Law, 1998, the Equal Rights for Persons with Disabilities Regulations (Service Accessibility Adjustments), 2013, and in line with Israeli Standard 5568 and the international WCAG 2.0 Level AA guidelines.",
+  "a11y_statement.accommodations_title": "Accessibility accommodations on this site",
+  "a11y_statement.accommodation_1": "A dedicated accessibility menu (wheelchair icon in the corner of the screen) that lets every visitor adjust the site to their needs.",
+  "a11y_statement.accommodation_2": "Increasing and decreasing text size.",
+  "a11y_statement.accommodation_3": "Adjusting line height and letter/word spacing for readers with reading difficulties.",
+  "a11y_statement.accommodation_4": "High-contrast mode and grayscale mode.",
+  "a11y_statement.accommodation_5": "Link highlighting.",
+  "a11y_statement.accommodation_6": "Switching to a highly legible font.",
+  "a11y_statement.accommodation_7": "An enlarged mouse cursor.",
+  "a11y_statement.accommodation_8": "A moving reading guide that follows the cursor.",
+  "a11y_statement.accommodation_9": "Stopping animations and transitions.",
+  "a11y_statement.accommodation_10": "Dark mode.",
+  "a11y_statement.accommodation_11": "Descriptive alt text for images on the site.",
+  "a11y_statement.accommodation_12": "A direct skip-to-content link for keyboard and screen-reader users.",
+  "a11y_statement.accommodation_13": "Keyboard navigation support and compatibility with common screen readers.",
+  "a11y_statement.accommodation_14": "A responsive design suited for mobile, tablet, and desktop viewing.",
+  "a11y_statement.limitations_title": "Known limitations",
+  "a11y_statement.limitations_body": "We continuously work to improve the site's accessibility. Despite our efforts, some parts of the site may not yet be fully accessible. If you encounter content, a page, or a component that is not properly accessible, please let us know so we can address it as soon as possible.",
+  "a11y_statement.coordinator_title": "Accessibility coordinator & contact",
+  "a11y_statement.coordinator_intro": "Questions, comments, and suggestions about the site's accessibility can be sent to us via:",
+  "a11y_statement.address": "94 Yigal Alon St., Tel Aviv",
+  "a11y_statement.response_time": "We aim to respond to accessibility inquiries within a reasonable time.",
+  "a11y_statement.further_recourse_title": "Further recourse",
+  "a11y_statement.further_recourse_body": "If you did not receive a satisfactory response from us, you may contact the Commission for Equal Rights of Persons with Disabilities at the Ministry of Justice, which is responsible for enforcing the Equal Rights for Persons with Disabilities Law.",
+  "a11y_statement.updated_date": "This accessibility statement was last updated on: July 15, 2026.",
+  "booking.title": "Book an Appointment",
+  "booking.modal_intro": "Fill in your details and we will confirm your appointment. Fields with * are required.",
+  "booking.page_subtitle": "Fill in your details and we will confirm your appointment",
+  "booking.details_title": "Appointment Details",
+  "booking.fields_required_note": "Fields marked with * are required",
+  "booking.full_name": "Full Name",
+  "booking.full_name_placeholder": "Enter your name",
+  "booking.phone": "Phone",
+  "booking.phone_placeholder": "Your phone number",
+  "booking.email": "Email",
+  "booking.email_placeholder": "Your email address",
+  "booking.appointment_type": "Appointment Type",
+  "booking.date": "Date",
+  "booking.time": "Time",
+  "booking.checking_availability": "Checking availability...",
+  "booking.select_time": "Select time",
+  "booking.no_times_available": "No available times on this date.",
+  "booking.notes": "Notes (optional)",
+  "booking.notes_placeholder": "Any additional information...",
+  "booking.submitting": "Submitting...",
+  "booking.submit": "Book Appointment",
+  "booking.close": "Close",
+  "booking.success_title": "Appointment Booked Successfully!",
+  "booking.success_description": "We will get back to you shortly to confirm your appointment. Thank you!",
+  "booking.back_to_home": "Back to Home",
+  "booking.date_unavailable_title": "Date unavailable",
+  "booking.date_unavailable_description": "We selected the closest available date.",
+  "booking.time_unavailable_title": "Time unavailable for this type",
+  "booking.time_unavailable_description": "Please pick another time from the updated list.",
+  "booking.error_title": "Error",
+  "booking.availability_check_failed": "Could not check availability. Please try again.",
+  "booking.fill_required_fields": "Please fill all required fields",
+  "booking.booked_toast_title": "Appointment Booked!",
+  "booking.booked_toast_description": "We will confirm your appointment shortly",
+  "booking.submit_failed": "Failed to book appointment. Please try again.",
+  "questionnaire_modal.invalid_type": "Invalid questionnaire type",
+  "questionnaire_modal.close": "Close"
 };
 var en_default = en;
 
@@ -874,6 +1553,8 @@ var he = {
   "nav.faq": "\u05E9\u05D0\u05DC\u05D5\u05EA \u05E0\u05E4\u05D5\u05E6\u05D5\u05EA",
   "nav.questionnaires": "\u05E9\u05D0\u05DC\u05D5\u05E0\u05D9\u05DD",
   "nav.contact": "\u05D9\u05E6\u05D9\u05E8\u05EA \u05E7\u05E9\u05E8",
+  "nav.book": "\u05E7\u05D1\u05D9\u05E2\u05EA \u05EA\u05D5\u05E8",
+  "nav.book_now": "\u05E7\u05D1\u05D9\u05E2\u05EA \u05EA\u05D5\u05E8",
   "hero.title": "\u05D1\u05E8\u05D5\u05DB\u05D9\u05DD \u05D4\u05D1\u05D0\u05D9\u05DD \u05DC\u05DE\u05E8\u05E4\u05D0\u05EA",
   "hero.clinic": '"\u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1"',
   "hero.subtitle": "\u05D1\u05D9\u05DC\u05D3\u05D9\u05DD \u2022 \u05D1\u05D1\u05E0\u05D9 \u05E0\u05D5\u05E2\u05E8 \u2022 \u05D1\u05DE\u05D1\u05D5\u05D2\u05E8\u05D9\u05DD",
@@ -925,6 +1606,24 @@ var he = {
   "contact.details_title": "\u05E4\u05E8\u05D8\u05D9 \u05D4\u05EA\u05E7\u05E9\u05E8\u05D5\u05EA",
   "contact.directions_title": "\u05D3\u05E8\u05DB\u05D9 \u05D4\u05D2\u05E2\u05D4 \u05D5\u05D0\u05E4\u05E9\u05E8\u05D5\u05D9\u05D5\u05EA \u05D7\u05E0\u05D9\u05D4",
   "contact.clear_form": "\u05E0\u05D9\u05E7\u05D5\u05D9 \u05D8\u05D5\u05E4\u05E1",
+  "contact.aria_open_form": "\u05DC\u05D7\u05E6\u05D5 \u05DC\u05E4\u05EA\u05D9\u05D7\u05EA \u05D8\u05D5\u05E4\u05E1 \u05D9\u05E6\u05D9\u05E8\u05EA \u05E7\u05E9\u05E8",
+  "contact.click_to_open_form": "\u05DC\u05D7\u05E6\u05D5 \u05DC\u05E4\u05EA\u05D9\u05D7\u05EA \u05D4\u05D8\u05D5\u05E4\u05E1",
+  "contact.navigate_waze": "\u05E0\u05D5\u05D5\u05D8 \u05E2\u05DD Waze",
+  "contact.navigate_google_maps": "\u05E0\u05D5\u05D5\u05D8 \u05E2\u05DD Google Maps",
+  "chat.open": "\u05E4\u05EA\u05D7 \u05E6\u05F3\u05D0\u05D8",
+  "chat.how_can_help": "\u05D0\u05D9\u05DA \u05D0\u05D5\u05DB\u05DC \u05DC\u05E2\u05D6\u05D5\u05E8?",
+  "chat.close": "\u05E1\u05D2\u05D5\u05E8",
+  "chat.assistant_name": "\u05E2\u05D5\u05D6\u05E8 \u05D5\u05D9\u05E8\u05D8\u05D5\u05D0\u05DC\u05D9 - \u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1",
+  "chat.not_you": "{name} - \u05DC\u05D0 \u05D0\u05E0\u05D9",
+  "chat.before_start": "\u05DC\u05E4\u05E0\u05D9 \u05E9\u05E0\u05EA\u05D7\u05D9\u05DC, \u05D0\u05E0\u05D0 \u05DE\u05DC\u05D0\u05D5 \u05D0\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05D4\u05D1\u05D0\u05D9\u05DD:",
+  "chat.full_name_placeholder": "\u05E9\u05DD \u05DE\u05DC\u05D0 *",
+  "chat.email_placeholder": "\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC *",
+  "chat.phone_placeholder": "\u05D8\u05DC\u05E4\u05D5\u05DF (\u05D0\u05D5\u05E4\u05E6\u05D9\u05D5\u05E0\u05DC\u05D9)",
+  "chat.starting": "\u05DE\u05EA\u05D7\u05D9\u05DC...",
+  "chat.start_chat": "\u05D4\u05EA\u05D7\u05DC \u05E9\u05D9\u05D7\u05D4",
+  "chat.welcome_message": "\u05E9\u05DC\u05D5\u05DD {name}! \u05D0\u05E0\u05D9 \u05D4\u05E2\u05D5\u05D6\u05E8 \u05D4\u05D5\u05D5\u05D9\u05E8\u05D8\u05D5\u05D0\u05DC\u05D9 \u05E9\u05DC \u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1. \u05D0\u05D9\u05DA \u05D0\u05D5\u05DB\u05DC \u05DC\u05E2\u05D6\u05D5\u05E8 \u05DC\u05DB\u05DD?",
+  "chat.type_message": "\u05D4\u05E7\u05DC\u05D9\u05D3\u05D5 \u05D4\u05D5\u05D3\u05E2\u05D4...",
+  "chat.assistant_typing": "\u05D4\u05E2\u05D5\u05D6\u05E8 \u05DE\u05E7\u05DC\u05D9\u05D3",
   "contact.message_placeholder": "\u05E1\u05E4\u05E8\u05D5 \u05DC\u05E0\u05D5 \u05D1\u05DE\u05D4 \u05E0\u05D5\u05DB\u05DC \u05DC\u05E2\u05D6\u05D5\u05E8...",
   "contact.sending": "\u05E9\u05D5\u05DC\u05D7...",
   "contact.send_message": "\u05E9\u05DC\u05D9\u05D7\u05EA \u05D4\u05D5\u05D3\u05E2\u05D4",
@@ -954,6 +1653,7 @@ var he = {
   "footer.follow_us": "\u05E2\u05E7\u05D1\u05D5 \u05D0\u05D7\u05E8\u05D9\u05E0\u05D5",
   "footer.privacy_policy": "\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA",
   "footer.terms_of_use": "\u05EA\u05E0\u05D0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9",
+  "footer.accessibility_statement": "\u05D4\u05E6\u05D4\u05E8\u05EA \u05E0\u05D2\u05D9\u05E9\u05D5\u05EA",
   "footer.address": "\u05D9\u05D2\u05D0\u05DC \u05D0\u05DC\u05D5\u05DF 94, \u05EA\u05DC \u05D0\u05D1\u05D9\u05D1",
   "footer.hours": "\u05D0'-\u05D4' 09:00-19:00",
   "about.title": "\u05D0\u05D5\u05D3\u05D5\u05EA\u05D9\u05E0\u05D5",
@@ -1044,6 +1744,27 @@ var he = {
   "faq.a6": "ADD \u05D4\u05D5\u05D0 \u05D4\u05DE\u05D5\u05E0\u05D7 \u05D4\u05D9\u05E9\u05DF \u05DC\u05D4\u05E4\u05E8\u05E2\u05EA \u05E7\u05E9\u05D1 \u05DC\u05DC\u05D0 \u05D4\u05D9\u05E4\u05E8\u05D0\u05E7\u05D8\u05D9\u05D1\u05D9\u05D5\u05EA. \u05DB\u05D9\u05D5\u05DD \u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD \u05D1\u05DE\u05D5\u05E0\u05D7 ADHD \u05E2\u05DD \u05E9\u05DC\u05D5\u05E9\u05D4 \u05EA\u05EA-\u05E1\u05D5\u05D2\u05D9\u05DD: \u05D7\u05D5\u05E1\u05E8 \u05E7\u05E9\u05D1 \u05D1\u05E2\u05D9\u05E7\u05E8, \u05D4\u05D9\u05E4\u05E8\u05D0\u05E7\u05D8\u05D9\u05D1\u05D9\u05D5\u05EA-\u05D0\u05D9\u05DE\u05E4\u05D5\u05DC\u05E1\u05D9\u05D1\u05D9\u05D5\u05EA \u05D1\u05E2\u05D9\u05E7\u05E8, \u05D0\u05D5 \u05DE\u05E9\u05D5\u05DC\u05D1.",
   "services.process_steps": "\u05E9\u05DC\u05D1\u05D9 \u05EA\u05D4\u05DC\u05D9\u05DA \u05D4\u05D0\u05D1\u05D7\u05D5\u05DF",
   "footer.rights": "\xA9 2025 \u05DB\u05DC \u05D4\u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA \u05DC\u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1",
+  "footer.moxo_certified": "\u05DE\u05D5\u05E1\u05DE\u05DB\u05D9 Moxo",
+  "footer.moxo_certified_desc": "\u05D0\u05D1\u05D7\u05D5\u05DF ADHD \u05DE\u05DE\u05D5\u05D7\u05E9\u05D1",
+  "cookies.notice": "\u05D0\u05EA\u05E8 \u05D6\u05D4 \u05DE\u05E9\u05EA\u05DE\u05E9 \u05D1\u05E2\u05D5\u05D2\u05D9\u05D5\u05EA (cookies) \u05DC\u05E9\u05D9\u05E4\u05D5\u05E8 \u05D7\u05D5\u05D5\u05D9\u05EA \u05D4\u05D2\u05DC\u05D9\u05E9\u05D4 \u05D5\u05DC\u05DE\u05D8\u05E8\u05D5\u05EA \u05E1\u05D8\u05D8\u05D9\u05E1\u05D8\u05D9\u05D5\u05EA. \u05D1\u05D4\u05DE\u05E9\u05DA \u05D4\u05D2\u05DC\u05D9\u05E9\u05D4 \u05D1\u05D0\u05EA\u05E8, \u05D4\u05E0\u05DA \u05DE\u05E1\u05DB\u05D9\u05DD/\u05D4 \u05DC\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D1\u05E2\u05D5\u05D2\u05D9\u05D5\u05EA \u05D1\u05D4\u05EA\u05D0\u05DD \u05DC\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA \u05E9\u05DC\u05E0\u05D5.",
+  "cookies.used_include": "\u05D4\u05E2\u05D5\u05D2\u05D9\u05D5\u05EA \u05D4\u05DE\u05E9\u05DE\u05E9\u05D5\u05EA \u05D1\u05D0\u05EA\u05E8 \u05D6\u05D4 \u05DB\u05D5\u05DC\u05DC\u05D5\u05EA:",
+  "cookies.essential": "\u05E2\u05D5\u05D2\u05D9\u05D5\u05EA \u05D4\u05DB\u05E8\u05D7\u05D9\u05D5\u05EA - \u05DC\u05EA\u05E4\u05E7\u05D5\u05D3 \u05EA\u05E7\u05D9\u05DF \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8",
+  "cookies.statistical": "\u05E2\u05D5\u05D2\u05D9\u05D5\u05EA \u05E1\u05D8\u05D8\u05D9\u05E1\u05D8\u05D9\u05D5\u05EA - \u05DC\u05E0\u05D9\u05EA\u05D5\u05D7 \u05E9\u05D9\u05DE\u05D5\u05E9 \u05D5\u05E9\u05D9\u05E4\u05D5\u05E8 \u05D4\u05E9\u05D9\u05E8\u05D5\u05EA",
+  "cookies.preference": "\u05E2\u05D5\u05D2\u05D9\u05D5\u05EA \u05D4\u05E2\u05D3\u05E4\u05D5\u05EA - \u05DC\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05E2\u05D3\u05E4\u05D5\u05EA \u05D4\u05DE\u05E9\u05EA\u05DE\u05E9",
+  "cookies.privacy_note": "\u05D1\u05D4\u05EA\u05D0\u05DD \u05DC\u05D7\u05D5\u05E7 \u05D4\u05D2\u05E0\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA, \u05D0\u05E0\u05D5 \u05DE\u05D9\u05D9\u05D3\u05E2\u05D9\u05DD \u05D0\u05D5\u05EA\u05DA \u05E2\u05DC \u05D4\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D1\u05E2\u05D5\u05D2\u05D9\u05D5\u05EA \u05D5\u05DE\u05D1\u05E7\u05E9\u05D9\u05DD \u05D0\u05EA \u05D4\u05E1\u05DB\u05DE\u05EA\u05DA.",
+  "cookies.hide_details": "\u05D4\u05E1\u05EA\u05E8 \u05E4\u05E8\u05D8\u05D9\u05DD",
+  "cookies.more_info": "\u05DE\u05D9\u05D3\u05E2 \u05E0\u05D5\u05E1\u05E3",
+  "cookies.accept": "\u05D0\u05E0\u05D9 \u05DE\u05E1\u05DB\u05D9\u05DD/\u05D4",
+  "appt_date.select_date": "\u05D1\u05D7\u05E8\u05D5 \u05EA\u05D0\u05E8\u05D9\u05DA",
+  "appt_date.clinic_closed": "\u05D4\u05DE\u05E8\u05E4\u05D0\u05D4 \u05E1\u05D2\u05D5\u05E8\u05D4 \u05D1\u05D9\u05D5\u05DD \u05D6\u05D4",
+  "appt_date.gray_unavailable": "\u05D9\u05DE\u05D9\u05DD \u05D0\u05E4\u05D5\u05E8\u05D9\u05DD \u05D0\u05D9\u05E0\u05DD \u05D6\u05DE\u05D9\u05E0\u05D9\u05DD \u05DC\u05E7\u05D1\u05D9\u05E2\u05EA \u05E4\u05D2\u05D9\u05E9\u05D4.",
+  "appt_for.who": "\u05E2\u05D1\u05D5\u05E8 \u05DE\u05D9 \u05D4\u05E4\u05D2\u05D9\u05E9\u05D4?",
+  "appt_for.me": "\u05E2\u05D1\u05D5\u05E8\u05D9",
+  "appt_for.child": "\u05E2\u05D1\u05D5\u05E8 \u05D4\u05D9\u05DC\u05D3/\u05D4",
+  "appt_for.child_name": "\u05E9\u05DD \u05D4\u05D9\u05DC\u05D3/\u05D4",
+  "appt_for.child_age": "\u05D2\u05D9\u05DC \u05D4\u05D9\u05DC\u05D3",
+  "appt_for.child_age_placeholder": "(\u05DE\u05D9\u05E0\u05D9\u05DE\u05D5\u05DD 6)",
+  "appt_for.min_age_error": "\u05D4\u05D2\u05D9\u05DC \u05D4\u05DE\u05D9\u05E0\u05D9\u05DE\u05DC\u05D9 \u05D4\u05D5\u05D0 6",
   "admin.dashboard": "\u05DC\u05D5\u05D7 \u05D1\u05E7\u05E8\u05D4",
   "admin.welcome": "\u05D1\u05E8\u05D5\u05DA \u05D4\u05E9\u05D1",
   "admin.signout": "\u05D4\u05EA\u05E0\u05EA\u05E7\u05D5\u05EA",
@@ -1055,7 +1776,132 @@ var he = {
   "admin.multilingual": "\u05E8\u05D1-\u05DC\u05E9\u05D5\u05E0\u05D9 (\u05DB\u05DC \u05D4\u05E9\u05E4\u05D5\u05EA)",
   "admin.default_language": "\u05E9\u05E4\u05EA \u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC",
   "admin.settings_saved": "\u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D5 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4",
-  "admin.settings_error": "\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA"
+  "admin.settings_error": "\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA",
+  "a11y.accessibility_settings": "\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05E0\u05D2\u05D9\u05E9\u05D5\u05EA",
+  "a11y.text_size": "\u05D2\u05D5\u05D3\u05DC \u05D8\u05E7\u05E1\u05D8",
+  "a11y.decrease_text": "\u05D4\u05E7\u05D8\u05DF \u05D8\u05E7\u05E1\u05D8",
+  "a11y.increase_text": "\u05D4\u05D2\u05D3\u05DC \u05D8\u05E7\u05E1\u05D8",
+  "a11y.line_height": "\u05D2\u05D5\u05D1\u05D4 \u05E9\u05D5\u05E8\u05D4",
+  "a11y.decrease_line_height": "\u05D4\u05E7\u05D8\u05DF \u05D2\u05D5\u05D1\u05D4 \u05E9\u05D5\u05E8\u05D4",
+  "a11y.increase_line_height": "\u05D4\u05D2\u05D3\u05DC \u05D2\u05D5\u05D1\u05D4 \u05E9\u05D5\u05E8\u05D4",
+  "a11y.letter_spacing": "\u05DE\u05E8\u05D5\u05D5\u05D7 \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA",
+  "a11y.decrease_letter_spacing": "\u05D4\u05E7\u05D8\u05DF \u05DE\u05E8\u05D5\u05D5\u05D7 \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA",
+  "a11y.increase_letter_spacing": "\u05D4\u05D2\u05D3\u05DC \u05DE\u05E8\u05D5\u05D5\u05D7 \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA",
+  "a11y.reading_guide": "\u05DE\u05D3\u05E8\u05D9\u05DA \u05E7\u05E8\u05D9\u05D0\u05D4",
+  "a11y.high_contrast": "\u05E0\u05D9\u05D2\u05D5\u05D3\u05D9\u05D5\u05EA \u05D2\u05D1\u05D5\u05D4\u05D4",
+  "a11y.highlight_links": "\u05D4\u05D3\u05D2\u05E9\u05EA \u05E7\u05D9\u05E9\u05D5\u05E8\u05D9\u05DD",
+  "a11y.grayscale": "\u05D2\u05D5\u05D5\u05E0\u05D9 \u05D0\u05E4\u05D5\u05E8",
+  "a11y.readable_font": "\u05D2\u05D5\u05E4\u05DF \u05E7\u05E8\u05D9\u05D0",
+  "a11y.large_cursor": "\u05E1\u05DE\u05DF \u05D2\u05D3\u05D5\u05DC",
+  "a11y.stop_animations": "\u05E2\u05E6\u05D9\u05E8\u05EA \u05D0\u05E0\u05D9\u05DE\u05E6\u05D9\u05D5\u05EA",
+  "a11y.reset": "\u05D0\u05D9\u05E4\u05D5\u05E1",
+  "a11y.close": "\u05E1\u05D2\u05D5\u05E8",
+  "a11y.accessibility_menu": "\u05EA\u05E4\u05E8\u05D9\u05D8 \u05E0\u05D2\u05D9\u05E9\u05D5\u05EA",
+  "a11y.dark_mode": "\u05DE\u05E6\u05D1 \u05DB\u05D4\u05D4",
+  "a11y.light_mode": "\u05DE\u05E6\u05D1 \u05D1\u05D4\u05D9\u05E8",
+  "a11y.accessibility_statement": "\u05D4\u05E6\u05D4\u05E8\u05EA \u05E0\u05D2\u05D9\u05E9\u05D5\u05EA",
+  "a11y.accessibility_statement_text": "\u05D0\u05EA\u05E8 \u05D6\u05D4 \u05DE\u05D7\u05D5\u05D9\u05D1 \u05DC\u05E0\u05D2\u05D9\u05E9\u05D5\u05EA \u05D3\u05D9\u05D2\u05D9\u05D8\u05DC\u05D9\u05EA \u05D1\u05D4\u05EA\u05D0\u05DD \u05DC\u05D7\u05D5\u05E7 \u05E9\u05D5\u05D5\u05D9\u05D5\u05DF \u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05DC\u05D0\u05E0\u05E9\u05D9\u05DD \u05E2\u05DD \u05DE\u05D5\u05D2\u05D1\u05DC\u05D5\u05EA \u05D5\u05EA\u05E7\u05E0\u05D5\u05EA \u05D4\u05E0\u05D2\u05D9\u05E9\u05D5\u05EA \u05D4\u05D9\u05E9\u05E8\u05D0\u05DC\u05D9\u05D5\u05EA.",
+  "terms.title": "\u05EA\u05E0\u05D0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9",
+  "terms.intro": '\u05D4\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D1\u05D0\u05EA\u05E8 \u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 ("\u05D4\u05D0\u05EA\u05E8") \u05DB\u05E4\u05D5\u05E3 \u05DC\u05EA\u05E0\u05D0\u05D9\u05DD \u05D4\u05DE\u05E4\u05D5\u05E8\u05D8\u05D9\u05DD \u05DC\u05D4\u05DC\u05DF. \u05D2\u05DC\u05D9\u05E9\u05D4 \u05D1\u05D0\u05EA\u05E8 \u05D5/\u05D0\u05D5 \u05E9\u05D9\u05DE\u05D5\u05E9 \u05D1\u05E9\u05D9\u05E8\u05D5\u05EA\u05D9\u05D5 \u05DE\u05D4\u05D5\u05D5\u05D9\u05DD \u05D4\u05E1\u05DB\u05DE\u05D4 \u05DC\u05EA\u05E0\u05D0\u05D9\u05DD \u05D0\u05DC\u05D4.',
+  "terms.service_nature_title": "\u05D0\u05D5\u05E4\u05D9 \u05D4\u05E9\u05D9\u05E8\u05D5\u05EA",
+  "terms.service_nature_p1": "\u05D4\u05D0\u05EA\u05E8 \u05DE\u05E1\u05E4\u05E7 \u05DE\u05D9\u05D3\u05E2 \u05DB\u05DC\u05DC\u05D9 \u05E2\u05DC \u05D0\u05D1\u05D7\u05D5\u05DF \u05D5\u05D8\u05D9\u05E4\u05D5\u05DC \u05D1\u05D4\u05E4\u05E8\u05E2\u05EA \u05E7\u05E9\u05D1 \u05D5\u05E8\u05D9\u05DB\u05D5\u05D6 (ADHD), \u05D5\u05DB\u05DF \u05DB\u05DC\u05D9\u05DD \u05DE\u05E7\u05D5\u05D5\u05E0\u05D9\u05DD \u05DC\u05EA\u05D9\u05D0\u05D5\u05DD \u05E4\u05D2\u05D9\u05E9\u05D5\u05EA \u05D5\u05DC\u05DE\u05D9\u05DC\u05D5\u05D9 \u05E9\u05D0\u05DC\u05D5\u05E0\u05D9 \u05E1\u05D9\u05E0\u05D5\u05DF \u05E8\u05D0\u05E9\u05D5\u05E0\u05D9\u05D9\u05DD.",
+  "terms.service_nature_p2": "\u05E9\u05D0\u05DC\u05D5\u05E0\u05D9 \u05D4\u05E1\u05D9\u05E0\u05D5\u05DF \u05D4\u05DE\u05E7\u05D5\u05D5\u05E0\u05D9\u05DD \u05D0\u05D9\u05E0\u05DD \u05DE\u05D4\u05D5\u05D5\u05D9\u05DD \u05D0\u05D1\u05D7\u05D5\u05DF \u05E8\u05E4\u05D5\u05D0\u05D9 \u05D5\u05D0\u05D9\u05E0\u05DD \u05EA\u05D7\u05DC\u05D9\u05E3 \u05DC\u05D9\u05D9\u05E2\u05D5\u05E5, \u05D0\u05D1\u05D7\u05D5\u05DF \u05D0\u05D5 \u05D8\u05D9\u05E4\u05D5\u05DC \u05E2\u05DC \u05D9\u05D3\u05D9 \u05D0\u05D9\u05E9 \u05DE\u05E7\u05E6\u05D5\u05E2 \u05DE\u05D5\u05E1\u05DE\u05DA. \u05EA\u05D5\u05E6\u05D0\u05D5\u05EA \u05D4\u05E9\u05D0\u05DC\u05D5\u05DF \u05DE\u05D9\u05D5\u05E2\u05D3\u05D5\u05EA \u05DC\u05E1\u05D9\u05D9\u05E2 \u05DC\u05E6\u05D5\u05D5\u05EA \u05D4\u05DE\u05E8\u05E4\u05D0\u05D4 \u05D1\u05D4\u05E2\u05E8\u05DB\u05D4 \u05D4\u05E8\u05D0\u05E9\u05D5\u05E0\u05D9\u05EA \u05D1\u05DC\u05D1\u05D3, \u05D5\u05D0\u05D1\u05D7\u05D5\u05DF \u05E1\u05D5\u05E4\u05D9 \u05E0\u05D9\u05EA\u05DF \u05D0\u05DA \u05D5\u05E8\u05E7 \u05D1\u05DE\u05E1\u05D2\u05E8\u05EA \u05D1\u05D3\u05D9\u05E7\u05D4 \u05E7\u05DC\u05D9\u05E0\u05D9\u05EA.",
+  "terms.fair_use_title": "\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D4\u05D5\u05D2\u05DF \u05D1\u05D0\u05EA\u05E8",
+  "terms.fair_use_body": "\u05D0\u05D9\u05DF \u05DC\u05D4\u05E9\u05EA\u05DE\u05E9 \u05D1\u05D0\u05EA\u05E8 \u05DC\u05DB\u05DC \u05DE\u05D8\u05E8\u05D4 \u05D1\u05DC\u05EA\u05D9 \u05D7\u05D5\u05E7\u05D9\u05EA, \u05D5\u05D0\u05D9\u05DF \u05DC\u05E0\u05E1\u05D5\u05EA \u05DC\u05E4\u05D2\u05D5\u05E2 \u05D1\u05E4\u05E2\u05D9\u05DC\u05D5\u05EA\u05D5 \u05D4\u05EA\u05E7\u05D9\u05E0\u05D4, \u05DC\u05E8\u05D1\u05D5\u05EA \u05E0\u05D9\u05E1\u05D9\u05D5\u05E0\u05D5\u05EA \u05E4\u05E8\u05D9\u05E6\u05D4, \u05D2\u05D9\u05E9\u05D4 \u05DC\u05D0 \u05DE\u05D5\u05E8\u05E9\u05D9\u05EA \u05DC\u05DE\u05D9\u05D3\u05E2, \u05D0\u05D5 \u05E9\u05D9\u05DE\u05D5\u05E9 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9 \u05DC\u05D0\u05D9\u05E1\u05D5\u05E3 \u05EA\u05D5\u05DB\u05DF (scraping) \u05DC\u05DC\u05D0 \u05D0\u05D9\u05E9\u05D5\u05E8 \u05DE\u05E8\u05D0\u05E9.",
+  "terms.ip_title": "\u05E7\u05E0\u05D9\u05D9\u05DF \u05E8\u05D5\u05D7\u05E0\u05D9",
+  "terms.ip_body": "\u05DB\u05DC \u05D4\u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05D1\u05EA\u05DB\u05E0\u05D9 \u05D4\u05D0\u05EA\u05E8, \u05DC\u05E8\u05D1\u05D5\u05EA \u05D8\u05E7\u05E1\u05D8\u05D9\u05DD, \u05E2\u05D9\u05E6\u05D5\u05D1, \u05DC\u05D5\u05D2\u05D5 \u05D5\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA, \u05E9\u05D9\u05D9\u05DB\u05D5\u05EA \u05DC\u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 \u05D0\u05D5 \u05DC\u05E6\u05D3\u05D3\u05D9\u05DD \u05E9\u05DC\u05D9\u05E9\u05D9\u05D9\u05DD \u05E9\u05D4\u05E2\u05E0\u05D9\u05E7\u05D5 \u05DC\u05D4 \u05E8\u05D9\u05E9\u05D9\u05D5\u05DF \u05E9\u05D9\u05DE\u05D5\u05E9, \u05D5\u05D0\u05D9\u05DF \u05DC\u05D4\u05E2\u05EA\u05D9\u05E7\u05DD \u05D0\u05D5 \u05DC\u05D4\u05E9\u05EA\u05DE\u05E9 \u05D1\u05D4\u05DD \u05DC\u05DC\u05D0 \u05D0\u05D9\u05E9\u05D5\u05E8 \u05D1\u05DB\u05EA\u05D1.",
+  "terms.liability_title": "\u05D4\u05D2\u05D1\u05DC\u05EA \u05D0\u05D7\u05E8\u05D9\u05D5\u05EA",
+  "terms.liability_body": "\u05D4\u05DE\u05D9\u05D3\u05E2 \u05D1\u05D0\u05EA\u05E8 \u05DE\u05D5\u05E6\u05D2 \u05DC\u05E6\u05E8\u05DB\u05D9 \u05DE\u05D9\u05D3\u05E2 \u05DB\u05DC\u05DC\u05D9 \u05D1\u05DC\u05D1\u05D3 \u05D5\u05D0\u05D9\u05E0\u05D5 \u05DE\u05D4\u05D5\u05D5\u05D4 \u05D9\u05D9\u05E2\u05D5\u05E5 \u05E8\u05E4\u05D5\u05D0\u05D9. \u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 \u05D0\u05D9\u05E0\u05D4 \u05D0\u05D7\u05E8\u05D0\u05D9\u05EA \u05DC\u05DB\u05DC \u05E0\u05D6\u05E7 \u05E9\u05D9\u05D9\u05D2\u05E8\u05DD \u05DB\u05EA\u05D5\u05E6\u05D0\u05D4 \u05DE\u05D4\u05E1\u05EA\u05DE\u05DB\u05D5\u05EA \u05E2\u05DC \u05EA\u05D5\u05DB\u05DF \u05D4\u05D0\u05EA\u05E8 \u05DC\u05DC\u05D0 \u05D9\u05D9\u05E2\u05D5\u05E5 \u05DE\u05E7\u05E6\u05D5\u05E2\u05D9 \u05DE\u05EA\u05D0\u05D9\u05DD. \u05E7\u05D9\u05E9\u05D5\u05E8\u05D9\u05DD \u05DC\u05D0\u05EA\u05E8\u05D9\u05DD \u05D5\u05DC\u05E9\u05D9\u05E8\u05D5\u05EA\u05D9\u05DD \u05D7\u05D9\u05E6\u05D5\u05E0\u05D9\u05D9\u05DD (\u05DB\u05D2\u05D5\u05DF WhatsApp \u05D5\u05E8\u05E9\u05EA\u05D5\u05EA \u05D7\u05D1\u05E8\u05EA\u05D9\u05D5\u05EA) \u05DB\u05E4\u05D5\u05E4\u05D9\u05DD \u05DC\u05EA\u05E0\u05D0\u05D9 \u05D4\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D5\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA \u05E9\u05DC \u05D0\u05D5\u05EA\u05DD \u05E6\u05D3\u05D3\u05D9\u05DD \u05E9\u05DC\u05D9\u05E9\u05D9\u05D9\u05DD, \u05D5\u05D0\u05D9\u05E0\u05E0\u05D5 \u05D0\u05D7\u05E8\u05D0\u05D9\u05DD \u05DC\u05EA\u05D5\u05DB\u05E0\u05DD.",
+  "terms.jurisdiction_title": "\u05D3\u05D9\u05DF \u05D5\u05E1\u05DE\u05DB\u05D5\u05EA \u05E9\u05D9\u05E4\u05D5\u05D8",
+  "terms.jurisdiction_body": "\u05E2\u05DC \u05EA\u05E0\u05D0\u05D9\u05DD \u05D0\u05DC\u05D4 \u05D9\u05D7\u05D5\u05DC\u05D5 \u05D3\u05D9\u05E0\u05D9 \u05DE\u05D3\u05D9\u05E0\u05EA \u05D9\u05E9\u05E8\u05D0\u05DC, \u05D5\u05E1\u05DE\u05DB\u05D5\u05EA \u05D4\u05E9\u05D9\u05E4\u05D5\u05D8 \u05D4\u05D1\u05DC\u05E2\u05D3\u05D9\u05EA \u05D1\u05DB\u05DC \u05E2\u05E0\u05D9\u05D9\u05DF \u05D4\u05E0\u05D5\u05D2\u05E2 \u05DC\u05D4\u05DD \u05E0\u05EA\u05D5\u05E0\u05D4 \u05DC\u05D1\u05EA\u05D9 \u05D4\u05DE\u05E9\u05E4\u05D8 \u05D4\u05DE\u05D5\u05E1\u05DE\u05DB\u05D9\u05DD \u05D1\u05DE\u05D7\u05D5\u05D6 \u05EA\u05DC \u05D0\u05D1\u05D9\u05D1.",
+  "terms.changes_title": "\u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05D1\u05EA\u05E0\u05D0\u05D9\u05DD",
+  "terms.changes_body": "\u05D0\u05E0\u05D5 \u05E8\u05E9\u05D0\u05D9\u05DD \u05DC\u05E2\u05D3\u05DB\u05DF \u05EA\u05E0\u05D0\u05D9\u05DD \u05D0\u05DC\u05D4 \u05DE\u05E2\u05EA \u05DC\u05E2\u05EA. \u05D4\u05DE\u05E9\u05DA \u05D4\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D1\u05D0\u05EA\u05E8 \u05DC\u05D0\u05D7\u05E8 \u05E4\u05E8\u05E1\u05D5\u05DD \u05E9\u05D9\u05E0\u05D5\u05D9\u05D9\u05DD \u05DE\u05D4\u05D5\u05D5\u05D4 \u05D4\u05E1\u05DB\u05DE\u05D4 \u05DC\u05EA\u05E0\u05D0\u05D9\u05DD \u05D4\u05DE\u05E2\u05D5\u05D3\u05DB\u05E0\u05D9\u05DD.",
+  "terms.contact_title": "\u05D9\u05E6\u05D9\u05E8\u05EA \u05E7\u05E9\u05E8",
+  "terms.updated_date": "\u05EA\u05E0\u05D0\u05D9\u05DD \u05D0\u05DC\u05D4 \u05E2\u05D5\u05D3\u05DB\u05E0\u05D5 \u05DC\u05D0\u05D7\u05E8\u05D5\u05E0\u05D4 \u05D1\u05EA\u05D0\u05E8\u05D9\u05DA: 15 \u05D1\u05D9\u05D5\u05DC\u05D9 2026.",
+  "privacy.title": "\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA",
+  "privacy.intro": '\u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 ("\u05D0\u05E0\u05D7\u05E0\u05D5", "\u05D4\u05DE\u05E8\u05E4\u05D0\u05D4") \u05DE\u05DB\u05D1\u05D3\u05EA \u05D0\u05EA \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA\u05DB\u05DD. \u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05D6\u05D5 \u05DE\u05E1\u05D1\u05D9\u05E8\u05D4 \u05D0\u05D9\u05DC\u05D5 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D0\u05E0\u05D5 \u05D0\u05D5\u05E1\u05E4\u05D9\u05DD \u05D3\u05E8\u05DA \u05D4\u05D0\u05EA\u05E8, \u05DC\u05E9\u05DD \u05DE\u05D4 \u05D0\u05E0\u05D5 \u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD \u05D1\u05D4\u05DD \u05D5\u05DB\u05D9\u05E6\u05D3 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E4\u05E0\u05D5\u05EA \u05D0\u05DC\u05D9\u05E0\u05D5 \u05D1\u05E0\u05D5\u05E9\u05D0. \u05D4\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E4\u05D5\u05E2\u05DC\u05EA \u05D1\u05D4\u05EA\u05D0\u05DD \u05DC\u05D7\u05D5\u05E7 \u05D4\u05D2\u05E0\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA, \u05D4\u05EA\u05E9\u05DE"\u05D0-1981, \u05D5\u05EA\u05E7\u05E0\u05D5\u05EA \u05D4\u05D2\u05E0\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA (\u05D0\u05D1\u05D8\u05D7\u05EA \u05DE\u05D9\u05D3\u05E2), \u05D4\u05EA\u05E9\u05E2"\u05D6-2017.',
+  "privacy.data_collected_title": "\u05D4\u05DE\u05D9\u05D3\u05E2 \u05E9\u05D0\u05E0\u05D5 \u05D0\u05D5\u05E1\u05E4\u05D9\u05DD",
+  "privacy.data_collected_1": '\u05E4\u05E8\u05D8\u05D9 \u05D9\u05E6\u05D9\u05E8\u05EA \u05E7\u05E9\u05E8: \u05E9\u05DD, \u05DB\u05EA\u05D5\u05D1\u05EA \u05D3\u05D5\u05D0"\u05DC \u05D5\u05DE\u05E1\u05E4\u05E8 \u05D8\u05DC\u05E4\u05D5\u05DF, \u05DB\u05D0\u05E9\u05E8 \u05D0\u05EA\u05DD \u05E4\u05D5\u05E0\u05D9\u05DD \u05D0\u05DC\u05D9\u05E0\u05D5, \u05E7\u05D5\u05D1\u05E2\u05D9\u05DD \u05EA\u05D5\u05E8 \u05D0\u05D5 \u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD \u05D1\u05D8\u05D5\u05E4\u05E1 \u05D9\u05E6\u05D9\u05E8\u05EA \u05E7\u05E9\u05E8.',
+  "privacy.data_collected_2": "\u05E0\u05EA\u05D5\u05E0\u05D9 \u05E9\u05D0\u05DC\u05D5\u05E0\u05D9 \u05E1\u05D9\u05E0\u05D5\u05DF ADHD: \u05E9\u05DD \u05D4\u05D9\u05DC\u05D3/\u05D4, \u05D2\u05D9\u05DC, \u05DE\u05D9\u05DF \u05D5\u05E7\u05E8\u05D1\u05D4 \u05DC\u05DE\u05E9\u05D9\u05D1, \u05D9\u05D7\u05D3 \u05E2\u05DD \u05D4\u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05DC\u05E9\u05D0\u05DC\u05D5\u05DF. \u05DE\u05D3\u05D5\u05D1\u05E8 \u05D1\u05DE\u05D9\u05D3\u05E2 \u05E8\u05D2\u05D9\u05E9 \u05D4\u05E7\u05E9\u05D5\u05E8 \u05DC\u05D4\u05E2\u05E8\u05DB\u05D4 \u05E7\u05DC\u05D9\u05E0\u05D9\u05EA \u05E8\u05D0\u05E9\u05D5\u05E0\u05D9\u05EA, \u05D5\u05D0\u05E0\u05D5 \u05DE\u05D8\u05E4\u05DC\u05D9\u05DD \u05D1\u05D5 \u05D1\u05D6\u05D4\u05D9\u05E8\u05D5\u05EA \u05DE\u05D5\u05D2\u05D1\u05E8\u05EA.",
+  "privacy.data_collected_3": "\u05E2\u05D5\u05D2\u05D9\u05D5\u05EA (cookies) \u05D4\u05DB\u05E8\u05D7\u05D9\u05D5\u05EA, \u05E1\u05D8\u05D8\u05D9\u05E1\u05D8\u05D9\u05D5\u05EA \u05D5\u05DC\u05D4\u05E2\u05D3\u05E4\u05D5\u05EA, \u05DB\u05DE\u05E4\u05D5\u05E8\u05D8 \u05D1\u05D1\u05D0\u05E0\u05E8 \u05D4\u05E2\u05D5\u05D2\u05D9\u05D5\u05EA \u05D1\u05D0\u05EA\u05E8.",
+  "privacy.data_collected_4": "\u05E0\u05EA\u05D5\u05E0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9 \u05D8\u05DB\u05E0\u05D9\u05D9\u05DD \u05D1\u05E1\u05D9\u05E1\u05D9\u05D9\u05DD (\u05DB\u05D2\u05D5\u05DF \u05E1\u05D5\u05D2 \u05D3\u05E4\u05D3\u05E4\u05DF \u05D5\u05DE\u05DB\u05E9\u05D9\u05E8) \u05D4\u05E0\u05D0\u05E1\u05E4\u05D9\u05DD \u05D1\u05D0\u05D5\u05E4\u05DF \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9 \u05DC\u05E6\u05D5\u05E8\u05DA \u05EA\u05E4\u05E2\u05D5\u05DC \u05D4\u05D0\u05EA\u05E8.",
+  "privacy.purposes_title": "\u05DE\u05D8\u05E8\u05D5\u05EA \u05D4\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D1\u05DE\u05D9\u05D3\u05E2",
+  "privacy.purpose_1": "\u05EA\u05D9\u05D0\u05D5\u05DD \u05D5\u05E0\u05D9\u05D4\u05D5\u05DC \u05E4\u05D2\u05D9\u05E9\u05D5\u05EA \u05D5\u05EA\u05D5\u05E8\u05D9\u05DD.",
+  "privacy.purpose_2": "\u05E2\u05D9\u05D1\u05D5\u05D3 \u05E9\u05D0\u05DC\u05D5\u05E0\u05D9 \u05D4\u05E1\u05D9\u05E0\u05D5\u05DF \u05DC\u05E6\u05D5\u05E8\u05DA \u05D4\u05E2\u05E8\u05DB\u05D4 \u05E7\u05DC\u05D9\u05E0\u05D9\u05EA \u05E8\u05D0\u05E9\u05D5\u05E0\u05D9\u05EA \u05E2\u05DC \u05D9\u05D3\u05D9 \u05D4\u05E6\u05D5\u05D5\u05EA \u05D4\u05DE\u05D8\u05E4\u05DC.",
+  "privacy.purpose_3": "\u05DE\u05E2\u05E0\u05D4 \u05DC\u05E4\u05E0\u05D9\u05D5\u05EA \u05D5\u05DC\u05D1\u05E7\u05E9\u05D5\u05EA \u05DE\u05D9\u05D3\u05E2.",
+  "privacy.purpose_4": "\u05E9\u05D9\u05E4\u05D5\u05E8 \u05D4\u05E9\u05D9\u05E8\u05D5\u05EA \u05D5\u05D4\u05D0\u05EA\u05E8 \u05D5\u05E0\u05D9\u05EA\u05D5\u05D7 \u05E9\u05D9\u05DE\u05D5\u05E9 \u05E1\u05D8\u05D8\u05D9\u05E1\u05D8\u05D9 \u05DB\u05DC\u05DC\u05D9.",
+  "privacy.purpose_5": "\u05E2\u05DE\u05D9\u05D3\u05D4 \u05D1\u05D7\u05D5\u05D1\u05D5\u05EA \u05D7\u05D5\u05E7\u05D9\u05D5\u05EA \u05D5\u05E8\u05D2\u05D5\u05DC\u05D8\u05D5\u05E8\u05D9\u05D5\u05EA \u05D4\u05D7\u05DC\u05D5\u05EA \u05E2\u05DC\u05D9\u05E0\u05D5.",
+  "privacy.sharing_title": "\u05E9\u05D9\u05EA\u05D5\u05E3 \u05DE\u05D9\u05D3\u05E2",
+  "privacy.sharing_body": "\u05D0\u05D9\u05E0\u05E0\u05D5 \u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05D0\u05EA \u05D4\u05DE\u05D9\u05D3\u05E2 \u05D4\u05D0\u05D9\u05E9\u05D9 \u05E9\u05DC\u05DB\u05DD. \u05D4\u05DE\u05D9\u05D3\u05E2 \u05E0\u05D2\u05D9\u05E9 \u05DC\u05E6\u05D5\u05D5\u05EA \u05D4\u05DE\u05E8\u05E4\u05D0\u05D4 \u05DC\u05E6\u05D5\u05E8\u05DA \u05DE\u05EA\u05DF \u05D4\u05D8\u05D9\u05E4\u05D5\u05DC \u05D1\u05DC\u05D1\u05D3, \u05D5\u05E2\u05E9\u05D5\u05D9 \u05DC\u05D4\u05D9\u05D7\u05E9\u05E3 \u05DC\u05E4\u05D9 \u05D3\u05E8\u05D9\u05E9\u05EA \u05D4\u05D3\u05D9\u05DF \u05D0\u05D5 \u05E8\u05E9\u05D5\u05EA \u05DE\u05D5\u05E1\u05DE\u05DB\u05EA. \u05E4\u05E0\u05D9\u05D9\u05D4 \u05D1\u05D5\u05D5\u05D0\u05D8\u05E1\u05D0\u05E4 \u05DE\u05E4\u05E0\u05D4 \u05DC\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D9\u05EA WhatsApp \u05D4\u05D7\u05D9\u05E6\u05D5\u05E0\u05D9\u05EA, \u05D4\u05DB\u05E4\u05D5\u05E4\u05D4 \u05DC\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA \u05E9\u05DC\u05D4.",
+  "privacy.security_title": "\u05D0\u05D1\u05D8\u05D7\u05EA \u05DE\u05D9\u05D3\u05E2 \u05D5\u05E9\u05DE\u05D9\u05E8\u05EA\u05D5",
+  "privacy.security_body": "\u05D0\u05E0\u05D5 \u05E0\u05D5\u05E7\u05D8\u05D9\u05DD \u05D1\u05D0\u05DE\u05E6\u05E2\u05D9\u05DD \u05D8\u05DB\u05E0\u05D9\u05D9\u05DD \u05D5\u05D0\u05E8\u05D2\u05D5\u05E0\u05D9\u05D9\u05DD \u05E1\u05D1\u05D9\u05E8\u05D9\u05DD \u05DC\u05D4\u05D2\u05E0\u05D4 \u05E2\u05DC \u05D4\u05DE\u05D9\u05D3\u05E2 \u05E9\u05E0\u05D0\u05E1\u05E3. \u05D4\u05DE\u05D9\u05D3\u05E2 \u05E0\u05E9\u05DE\u05E8 \u05DC\u05DE\u05E9\u05DA \u05D4\u05D6\u05DE\u05DF \u05D4\u05E0\u05D3\u05E8\u05E9 \u05DC\u05DE\u05EA\u05DF \u05D4\u05E9\u05D9\u05E8\u05D5\u05EA \u05D5\u05DC\u05E2\u05DE\u05D9\u05D3\u05D4 \u05D1\u05D7\u05D5\u05D1\u05D5\u05EA \u05E9\u05DE\u05D9\u05E8\u05EA \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E8\u05E4\u05D5\u05D0\u05D9\u05D5\u05EA/\u05E2\u05E1\u05E7\u05D9\u05D5\u05EA \u05D4\u05D7\u05DC\u05D5\u05EA \u05E2\u05DC\u05D9\u05E0\u05D5, \u05D5\u05DC\u05D0\u05D7\u05E8 \u05DE\u05DB\u05DF \u05E0\u05DE\u05D7\u05E7 \u05D0\u05D5 \u05D4\u05D5\u05E4\u05DA \u05DC\u05D0\u05E0\u05D5\u05E0\u05D9\u05DE\u05D9.",
+  "privacy.rights_title": "\u05D4\u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05E9\u05DC\u05DB\u05DD",
+  "privacy.rights_body": "\u05D1\u05D4\u05EA\u05D0\u05DD \u05DC\u05D7\u05D5\u05E7 \u05D4\u05D2\u05E0\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA, \u05D6\u05DB\u05D5\u05EA\u05DB\u05DD \u05DC\u05E2\u05D9\u05D9\u05DF \u05D1\u05DE\u05D9\u05D3\u05E2 \u05E9\u05E0\u05E9\u05DE\u05E8 \u05E2\u05DC\u05D9\u05DB\u05DD, \u05DC\u05D1\u05E7\u05E9 \u05D0\u05EA \u05EA\u05D9\u05E7\u05D5\u05E0\u05D5, \u05D5\u05D1\u05E0\u05E1\u05D9\u05D1\u05D5\u05EA \u05DE\u05E1\u05D5\u05D9\u05DE\u05D5\u05EA \u05D0\u05EA \u05DE\u05D7\u05D9\u05E7\u05EA\u05D5. \u05DC\u05E6\u05D5\u05E8\u05DA \u05DE\u05D9\u05DE\u05D5\u05E9 \u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05D0\u05DC\u05D4, \u05E4\u05E0\u05D5 \u05D0\u05DC\u05D9\u05E0\u05D5 \u05D1\u05E4\u05E8\u05D8\u05D9 \u05D4\u05E7\u05E9\u05E8 \u05D4\u05DE\u05E4\u05D5\u05E8\u05D8\u05D9\u05DD \u05DC\u05DE\u05D8\u05D4.",
+  "privacy.contact_title": "\u05D9\u05E6\u05D9\u05E8\u05EA \u05E7\u05E9\u05E8 \u05D1\u05E0\u05D5\u05E9\u05D0 \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA",
+  "privacy.updated_date": "\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05D6\u05D5 \u05E2\u05D5\u05D3\u05DB\u05E0\u05D4 \u05DC\u05D0\u05D7\u05E8\u05D5\u05E0\u05D4 \u05D1\u05EA\u05D0\u05E8\u05D9\u05DA: 15 \u05D1\u05D9\u05D5\u05DC\u05D9 2026.",
+  "a11y_statement.title": "\u05D4\u05E6\u05D4\u05E8\u05EA \u05E0\u05D2\u05D9\u05E9\u05D5\u05EA",
+  "a11y_statement.intro": '\u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 \u05E4\u05D5\u05E2\u05DC\u05EA \u05DC\u05D4\u05E0\u05D2\u05E9\u05EA \u05D4\u05E9\u05D9\u05E8\u05D5\u05EA\u05D9\u05DD \u05D4\u05D3\u05D9\u05D2\u05D9\u05D8\u05DC\u05D9\u05D9\u05DD \u05E9\u05DC\u05D4 \u05DC\u05DB\u05DC\u05DC \u05D4\u05E6\u05D9\u05D1\u05D5\u05E8, \u05DB\u05D5\u05DC\u05DC \u05D0\u05E0\u05E9\u05D9\u05DD \u05E2\u05DD \u05DE\u05D5\u05D2\u05D1\u05DC\u05D5\u05EA, \u05DE\u05EA\u05D5\u05DA \u05D0\u05DE\u05D5\u05E0\u05D4 \u05E9\u05DC\u05DB\u05DC \u05D0\u05D3\u05DD \u05DE\u05D2\u05D9\u05E2 \u05E9\u05D9\u05E8\u05D5\u05EA \u05E9\u05D5\u05D5\u05D9\u05D5\u05E0\u05D9 \u05D5\u05E0\u05D2\u05D9\u05E9. \u05D4\u05D4\u05E0\u05D2\u05E9\u05D4 \u05DE\u05D1\u05D5\u05E6\u05E2\u05EA \u05DE\u05EA\u05D5\u05DA \u05DE\u05D7\u05D5\u05D9\u05D1\u05D5\u05EA \u05DC\u05D7\u05D5\u05E7 \u05E9\u05D5\u05D5\u05D9\u05D5\u05DF \u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05DC\u05D0\u05E0\u05E9\u05D9\u05DD \u05E2\u05DD \u05DE\u05D5\u05D2\u05D1\u05DC\u05D5\u05EA, \u05D4\u05EA\u05E9\u05E0"\u05D7-1998, \u05D5\u05DC\u05EA\u05E7\u05E0\u05D5\u05EA \u05E9\u05D5\u05D5\u05D9\u05D5\u05DF \u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05DC\u05D0\u05E0\u05E9\u05D9\u05DD \u05E2\u05DD \u05DE\u05D5\u05D2\u05D1\u05DC\u05D5\u05EA (\u05D4\u05EA\u05D0\u05DE\u05D5\u05EA \u05E0\u05D2\u05D9\u05E9\u05D5\u05EA \u05DC\u05E9\u05D9\u05E8\u05D5\u05EA), \u05D4\u05EA\u05E9\u05E2"\u05D2-2013, \u05D5\u05EA\u05D5\u05DA \u05E9\u05D0\u05D9\u05E4\u05D4 \u05DC\u05E2\u05DE\u05D9\u05D3\u05D4 \u05D1\u05D3\u05E8\u05D9\u05E9\u05D5\u05EA \u05EA\u05E7\u05DF \u05D9\u05E9\u05E8\u05D0\u05DC\u05D9 \u05EA"\u05D9 5568 \u05D5\u05D1\u05D4\u05E0\u05D7\u05D9\u05D5\u05EA \u05D4\u05E0\u05D2\u05D9\u05E9\u05D5\u05EA \u05D4\u05D1\u05D9\u05E0\u05DC\u05D0\u05D5\u05DE\u05D9\u05D5\u05EA WCAG 2.0 \u05D1\u05E8\u05DE\u05D4 AA.',
+  "a11y_statement.accommodations_title": "\u05D4\u05EA\u05D0\u05DE\u05D5\u05EA \u05D4\u05E0\u05D2\u05D9\u05E9\u05D5\u05EA \u05E9\u05D1\u05D5\u05E6\u05E2\u05D5 \u05D1\u05D0\u05EA\u05E8",
+  "a11y_statement.accommodation_1": "\u05EA\u05E4\u05E8\u05D9\u05D8 \u05E0\u05D2\u05D9\u05E9\u05D5\u05EA \u05D9\u05D9\u05E2\u05D5\u05D3\u05D9 (\u05E1\u05DE\u05DC \u05DB\u05D9\u05E1\u05D0 \u05D4\u05D2\u05DC\u05D2\u05DC\u05D9\u05DD \u05D1\u05E4\u05D9\u05E0\u05EA \u05D4\u05DE\u05E1\u05DA) \u05D4\u05DE\u05D0\u05E4\u05E9\u05E8 \u05DC\u05DB\u05DC \u05DE\u05D1\u05E7\u05E8 \u05DC\u05D4\u05EA\u05D0\u05D9\u05DD \u05D0\u05EA \u05EA\u05E6\u05D5\u05D2\u05EA \u05D4\u05D0\u05EA\u05E8 \u05DC\u05E6\u05E8\u05DB\u05D9\u05D5 \u05D4\u05D0\u05D9\u05E9\u05D9\u05D9\u05DD.",
+  "a11y_statement.accommodation_2": "\u05D4\u05D2\u05D3\u05DC\u05D4 \u05D5\u05D4\u05E7\u05D8\u05E0\u05D4 \u05E9\u05DC \u05D2\u05D5\u05D3\u05DC \u05D4\u05D8\u05E7\u05E1\u05D8.",
+  "a11y_statement.accommodation_3": "\u05E9\u05D9\u05E0\u05D5\u05D9 \u05D2\u05D5\u05D1\u05D4 \u05D4\u05E9\u05D5\u05E8\u05D4 \u05D5\u05D4\u05DE\u05E8\u05D5\u05D5\u05D7 \u05D1\u05D9\u05DF \u05D4\u05D0\u05D5\u05EA\u05D9\u05D5\u05EA \u05D5\u05D4\u05DE\u05D9\u05DC\u05D9\u05DD, \u05DC\u05E0\u05D5\u05D7\u05D5\u05EA \u05E7\u05D5\u05E8\u05D0\u05D9\u05DD \u05E2\u05DD \u05E7\u05E9\u05D9\u05D9 \u05E7\u05E8\u05D9\u05D0\u05D4.",
+  "a11y_statement.accommodation_4": "\u05DE\u05E6\u05D1 \u05E0\u05D9\u05D2\u05D5\u05D3\u05D9\u05D5\u05EA \u05D2\u05D1\u05D5\u05D4\u05D4 \u05D5\u05DE\u05E6\u05D1 \u05D2\u05D5\u05D5\u05E0\u05D9 \u05D0\u05E4\u05D5\u05E8.",
+  "a11y_statement.accommodation_5": "\u05D4\u05D3\u05D2\u05E9\u05EA \u05E7\u05D9\u05E9\u05D5\u05E8\u05D9\u05DD \u05D1\u05D0\u05EA\u05E8.",
+  "a11y_statement.accommodation_6": "\u05DE\u05E2\u05D1\u05E8 \u05DC\u05D2\u05D5\u05E4\u05DF \u05E7\u05E8\u05D9\u05D0 \u05D1\u05DE\u05D9\u05D5\u05D7\u05D3.",
+  "a11y_statement.accommodation_7": "\u05E1\u05DE\u05DF \u05E2\u05DB\u05D1\u05E8 \u05DE\u05D5\u05D2\u05D3\u05DC.",
+  "a11y_statement.accommodation_8": "\u05DE\u05D3\u05E8\u05D9\u05DA \u05E7\u05E8\u05D9\u05D0\u05D4 \u05E0\u05D9\u05D9\u05D3 \u05D4\u05E2\u05D5\u05E7\u05D1 \u05D0\u05D7\u05E8 \u05EA\u05E0\u05D5\u05E2\u05EA \u05D4\u05E2\u05DB\u05D1\u05E8.",
+  "a11y_statement.accommodation_9": "\u05E2\u05E6\u05D9\u05E8\u05EA \u05D0\u05E0\u05D9\u05DE\u05E6\u05D9\u05D5\u05EA \u05D5\u05DE\u05E2\u05D1\u05E8\u05D9\u05DD \u05D2\u05E8\u05E4\u05D9\u05D9\u05DD.",
+  "a11y_statement.accommodation_10": "\u05DE\u05E6\u05D1 \u05EA\u05E6\u05D5\u05D2\u05D4 \u05DB\u05D4\u05D4 (Dark Mode).",
+  "a11y_statement.accommodation_11": "\u05EA\u05D9\u05D0\u05D5\u05E8\u05D9 \u05D8\u05E7\u05E1\u05D8 \u05D7\u05DC\u05D5\u05E4\u05D9\u05D9\u05DD (alt) \u05DC\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D1\u05D0\u05EA\u05E8.",
+  "a11y_statement.accommodation_12": "\u05D0\u05E4\u05E9\u05E8\u05D5\u05EA \u05D3\u05D9\u05DC\u05D5\u05D2 \u05D9\u05E9\u05D9\u05E8 \u05DC\u05EA\u05D5\u05DB\u05DF \u05D4\u05DE\u05E8\u05DB\u05D6\u05D9 \u05E2\u05D1\u05D5\u05E8 \u05DE\u05E9\u05EA\u05DE\u05E9\u05D9 \u05DE\u05E7\u05DC\u05D3\u05EA \u05D5\u05E7\u05D5\u05E8\u05D0\u05D9 \u05DE\u05E1\u05DA.",
+  "a11y_statement.accommodation_13": "\u05EA\u05DE\u05D9\u05DB\u05D4 \u05D1\u05E0\u05D9\u05D5\u05D5\u05D8 \u05D1\u05D0\u05DE\u05E6\u05E2\u05D5\u05EA \u05DE\u05E7\u05DC\u05D3\u05EA \u05D5\u05EA\u05D0\u05D9\u05DE\u05D5\u05EA \u05DC\u05EA\u05D5\u05DB\u05E0\u05D5\u05EA \u05E7\u05D5\u05E8\u05D0\u05D5\u05EA \u05DE\u05E1\u05DA \u05E0\u05E4\u05D5\u05E6\u05D5\u05EA.",
+  "a11y_statement.accommodation_14": "\u05E2\u05D9\u05E6\u05D5\u05D1 \u05E8\u05E1\u05E4\u05D5\u05E0\u05E1\u05D9\u05D1\u05D9 \u05D4\u05DE\u05D5\u05EA\u05D0\u05DD \u05DC\u05E6\u05E4\u05D9\u05D9\u05D4 \u05D1\u05D8\u05DC\u05E4\u05D5\u05DF \u05E0\u05D9\u05D9\u05D3, \u05D1\u05D8\u05D0\u05D1\u05DC\u05D8 \u05D5\u05D1\u05DE\u05D7\u05E9\u05D1.",
+  "a11y_statement.limitations_title": "\u05DE\u05D2\u05D1\u05DC\u05D5\u05EA \u05D9\u05D3\u05D5\u05E2\u05D5\u05EA",
+  "a11y_statement.limitations_body": "\u05D0\u05E0\u05D5 \u05E4\u05D5\u05E2\u05DC\u05D9\u05DD \u05D1\u05D0\u05D5\u05E4\u05DF \u05E9\u05D5\u05D8\u05E3 \u05DC\u05E9\u05D9\u05E4\u05D5\u05E8 \u05D4\u05E0\u05D2\u05D9\u05E9\u05D5\u05EA \u05E9\u05DC \u05D4\u05D0\u05EA\u05E8. \u05D7\u05E8\u05E3 \u05DE\u05D0\u05DE\u05E6\u05D9\u05E0\u05D5, \u05D9\u05D9\u05EA\u05DB\u05DF \u05E9\u05D9\u05D9\u05DE\u05E6\u05D0\u05D5 \u05D7\u05DC\u05E7\u05D9\u05DD \u05D1\u05D0\u05EA\u05E8 \u05E9\u05D8\u05E8\u05DD \u05D4\u05D5\u05E0\u05D2\u05E9\u05D5 \u05D1\u05DE\u05DC\u05D5\u05D0\u05DD. \u05D0\u05DD \u05E0\u05EA\u05E7\u05DC\u05EA\u05DD \u05D1\u05EA\u05D5\u05DB\u05DF, \u05E2\u05DE\u05D5\u05D3 \u05D0\u05D5 \u05E8\u05DB\u05D9\u05D1 \u05E9\u05D0\u05D9\u05E0\u05D5 \u05E0\u05D2\u05D9\u05E9 \u05DB\u05E8\u05D0\u05D5\u05D9, \u05E0\u05E9\u05DE\u05D7 \u05E9\u05EA\u05D9\u05D9\u05D3\u05E2\u05D5 \u05D0\u05D5\u05EA\u05E0\u05D5 \u05DB\u05D3\u05D9 \u05E9\u05E0\u05D5\u05DB\u05DC \u05DC\u05D8\u05E4\u05DC \u05D1\u05DB\u05DA \u05D1\u05D4\u05E7\u05D3\u05DD \u05D4\u05D0\u05E4\u05E9\u05E8\u05D9.",
+  "a11y_statement.coordinator_title": "\u05E8\u05DB\u05D6/\u05EA \u05E0\u05D2\u05D9\u05E9\u05D5\u05EA \u05D5\u05E4\u05E0\u05D9\u05D9\u05D4 \u05D1\u05E0\u05D5\u05E9\u05D0 \u05E0\u05D2\u05D9\u05E9\u05D5\u05EA",
+  "a11y_statement.coordinator_intro": "\u05E4\u05E0\u05D9\u05D5\u05EA, \u05D4\u05E2\u05E8\u05D5\u05EA \u05D5\u05D4\u05E6\u05E2\u05D5\u05EA \u05D1\u05E0\u05D5\u05E9\u05D0 \u05E0\u05D2\u05D9\u05E9\u05D5\u05EA \u05D4\u05D0\u05EA\u05E8 \u05E0\u05D9\u05EA\u05DF \u05DC\u05D4\u05E4\u05E0\u05D5\u05EA \u05D0\u05DC\u05D9\u05E0\u05D5 \u05D1\u05D3\u05E8\u05DB\u05D9\u05DD \u05D4\u05D1\u05D0\u05D5\u05EA:",
+  "a11y_statement.address": "\u05D9\u05D2\u05D0\u05DC \u05D0\u05DC\u05D5\u05DF 94, \u05EA\u05DC \u05D0\u05D1\u05D9\u05D1",
+  "a11y_statement.response_time": "\u05E0\u05E9\u05EA\u05D3\u05DC \u05DC\u05D4\u05E9\u05D9\u05D1 \u05DC\u05DB\u05DC \u05E4\u05E0\u05D9\u05D9\u05D4 \u05D1\u05E2\u05E0\u05D9\u05D9\u05DF \u05E0\u05D2\u05D9\u05E9\u05D5\u05EA \u05D1\u05EA\u05D5\u05DA \u05D6\u05DE\u05DF \u05E1\u05D1\u05D9\u05E8.",
+  "a11y_statement.further_recourse_title": "\u05E4\u05E0\u05D9\u05D9\u05D4 \u05DC\u05D2\u05D5\u05E8\u05DE\u05D9\u05DD \u05E0\u05D5\u05E1\u05E4\u05D9\u05DD",
+  "a11y_statement.further_recourse_body": "\u05D0\u05DD \u05DC\u05D0 \u05E7\u05D9\u05D1\u05DC\u05EA\u05DD \u05DE\u05E2\u05E0\u05D4 \u05DE\u05E1\u05E4\u05E7 \u05DE\u05D0\u05D9\u05EA\u05E0\u05D5, \u05E0\u05D9\u05EA\u05DF \u05DC\u05E4\u05E0\u05D5\u05EA \u05DC\u05E0\u05E6\u05D9\u05D1\u05D5\u05EA \u05E9\u05D5\u05D5\u05D9\u05D5\u05DF \u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05DC\u05D0\u05E0\u05E9\u05D9\u05DD \u05E2\u05DD \u05DE\u05D5\u05D2\u05D1\u05DC\u05D5\u05EA \u05D1\u05DE\u05E9\u05E8\u05D3 \u05D4\u05DE\u05E9\u05E4\u05D8\u05D9\u05DD, \u05D4\u05D0\u05D7\u05E8\u05D0\u05D9\u05EA \u05E2\u05DC \u05D0\u05DB\u05D9\u05E4\u05EA \u05D7\u05D5\u05E7 \u05E9\u05D5\u05D5\u05D9\u05D5\u05DF \u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05DC\u05D0\u05E0\u05E9\u05D9\u05DD \u05E2\u05DD \u05DE\u05D5\u05D2\u05D1\u05DC\u05D5\u05EA.",
+  "a11y_statement.updated_date": "\u05D4\u05E6\u05D4\u05E8\u05EA \u05D4\u05E0\u05D2\u05D9\u05E9\u05D5\u05EA \u05E2\u05D5\u05D3\u05DB\u05E0\u05D4 \u05DC\u05D0\u05D7\u05E8\u05D5\u05E0\u05D4 \u05D1\u05EA\u05D0\u05E8\u05D9\u05DA: 15 \u05D1\u05D9\u05D5\u05DC\u05D9 2026.",
+  "booking.title": "\u05E7\u05D1\u05D9\u05E2\u05EA \u05E4\u05D2\u05D9\u05E9\u05D4",
+  "booking.modal_intro": "\u05DE\u05DC\u05D0\u05D5 \u05D0\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05D5\u05E0\u05D7\u05D6\u05D5\u05E8 \u05D0\u05DC\u05D9\u05DB\u05DD \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E4\u05D2\u05D9\u05E9\u05D4. \u05E9\u05D3\u05D5\u05EA \u05E2\u05DD * \u05D4\u05DD \u05D7\u05D5\u05D1\u05D4.",
+  "booking.page_subtitle": "\u05DE\u05DC\u05D0\u05D5 \u05D0\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05D5\u05E0\u05D7\u05D6\u05D5\u05E8 \u05D0\u05DC\u05D9\u05DB\u05DD \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8 \u05D4\u05E4\u05D2\u05D9\u05E9\u05D4",
+  "booking.details_title": "\u05E4\u05E8\u05D8\u05D9 \u05D4\u05E4\u05D2\u05D9\u05E9\u05D4",
+  "booking.fields_required_note": "\u05DB\u05DC \u05D4\u05E9\u05D3\u05D5\u05EA \u05D4\u05DE\u05E1\u05D5\u05DE\u05E0\u05D9\u05DD \u05D1-* \u05D4\u05DD \u05D7\u05D5\u05D1\u05D4",
+  "booking.full_name": "\u05E9\u05DD \u05DE\u05DC\u05D0",
+  "booking.full_name_placeholder": "\u05D4\u05DB\u05E0\u05D9\u05E1\u05D5 \u05D0\u05EA \u05E9\u05DE\u05DB\u05DD",
+  "booking.phone": "\u05D8\u05DC\u05E4\u05D5\u05DF",
+  "booking.phone_placeholder": "\u05DE\u05E1\u05E4\u05E8 \u05D4\u05D8\u05DC\u05E4\u05D5\u05DF \u05E9\u05DC\u05DB\u05DD",
+  "booking.email": '\u05D3\u05D5\u05D0"\u05DC',
+  "booking.email_placeholder": '\u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05D3\u05D5\u05D0"\u05DC \u05E9\u05DC\u05DB\u05DD',
+  "booking.appointment_type": "\u05E1\u05D5\u05D2 \u05D4\u05E4\u05D2\u05D9\u05E9\u05D4",
+  "booking.date": "\u05EA\u05D0\u05E8\u05D9\u05DA",
+  "booking.time": "\u05E9\u05E2\u05D4",
+  "booking.checking_availability": "\u05D1\u05D5\u05D3\u05E7 \u05D6\u05DE\u05D9\u05E0\u05D5\u05EA...",
+  "booking.select_time": "\u05D1\u05D7\u05E8\u05D5 \u05E9\u05E2\u05D4",
+  "booking.no_times_available": "\u05D0\u05D9\u05DF \u05E9\u05E2\u05D5\u05EA \u05E4\u05E0\u05D5\u05D9\u05D5\u05EA \u05D1\u05EA\u05D0\u05E8\u05D9\u05DA \u05D4\u05D6\u05D4.",
+  "booking.notes": "\u05D4\u05E2\u05E8\u05D5\u05EA (\u05D0\u05D5\u05E4\u05E6\u05D9\u05D5\u05E0\u05DC\u05D9)",
+  "booking.notes_placeholder": "\u05DE\u05D9\u05D3\u05E2 \u05E0\u05D5\u05E1\u05E3 \u05E9\u05EA\u05E8\u05E6\u05D5 \u05DC\u05E9\u05EA\u05E3...",
+  "booking.submitting": "\u05E9\u05D5\u05DC\u05D7...",
+  "booking.submit": "\u05E7\u05D1\u05D9\u05E2\u05EA \u05E4\u05D2\u05D9\u05E9\u05D4",
+  "booking.close": "\u05E1\u05D2\u05D9\u05E8\u05D4",
+  "booking.success_title": "\u05D4\u05E4\u05D2\u05D9\u05E9\u05D4 \u05E0\u05E7\u05D1\u05E2\u05D4 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4!",
+  "booking.success_description": "\u05E0\u05D7\u05D6\u05D5\u05E8 \u05D0\u05DC\u05D9\u05DB\u05DD \u05D1\u05D4\u05E7\u05D3\u05DD \u05DC\u05D0\u05E9\u05E8 \u05D0\u05EA \u05D4\u05E4\u05D2\u05D9\u05E9\u05D4. \u05EA\u05D5\u05D3\u05D4!",
+  "booking.back_to_home": "\u05D7\u05D6\u05E8\u05D4 \u05DC\u05D3\u05E3 \u05D4\u05D1\u05D9\u05EA",
+  "booking.date_unavailable_title": "\u05D4\u05DE\u05D5\u05E2\u05D3 \u05D0\u05D9\u05E0\u05D5 \u05E4\u05E0\u05D5\u05D9",
+  "booking.date_unavailable_description": "\u05D1\u05D7\u05E8\u05E0\u05D5 \u05E2\u05D1\u05D5\u05E8\u05DA \u05D0\u05EA \u05D4\u05EA\u05D0\u05E8\u05D9\u05DA \u05D4\u05E4\u05E0\u05D5\u05D9 \u05D4\u05E7\u05E8\u05D5\u05D1 \u05D1\u05D9\u05D5\u05EA\u05E8.",
+  "booking.time_unavailable_title": "\u05D4\u05E9\u05E2\u05D4 \u05D0\u05D9\u05E0\u05D4 \u05D6\u05DE\u05D9\u05E0\u05D4 \u05DC\u05E1\u05D5\u05D2 \u05D6\u05D4",
+  "booking.time_unavailable_description": "\u05D1\u05D7\u05E8\u05D5 \u05E9\u05E2\u05D4 \u05D0\u05D7\u05E8\u05EA \u05DE\u05D4\u05E8\u05E9\u05D9\u05DE\u05D4 \u05D4\u05DE\u05E2\u05D5\u05D3\u05DB\u05E0\u05EA.",
+  "booking.error_title": "\u05E9\u05D2\u05D9\u05D0\u05D4",
+  "booking.availability_check_failed": "\u05DC\u05D0 \u05D4\u05E6\u05DC\u05D7\u05E0\u05D5 \u05DC\u05D1\u05D3\u05D5\u05E7 \u05D6\u05DE\u05D9\u05E0\u05D5\u05EA. \u05E0\u05E1\u05D5 \u05E9\u05D5\u05D1.",
+  "booking.fill_required_fields": "\u05D0\u05E0\u05D0 \u05DE\u05DC\u05D0\u05D5 \u05D0\u05EA \u05DB\u05DC \u05D4\u05E9\u05D3\u05D5\u05EA \u05D4\u05E0\u05D3\u05E8\u05E9\u05D9\u05DD",
+  "booking.booked_toast_title": "\u05D4\u05E4\u05D2\u05D9\u05E9\u05D4 \u05E0\u05E7\u05D1\u05E2\u05D4!",
+  "booking.booked_toast_description": "\u05E0\u05D7\u05D6\u05D5\u05E8 \u05D0\u05DC\u05D9\u05DB\u05DD \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8 \u05D1\u05D4\u05E7\u05D3\u05DD",
+  "booking.submit_failed": "\u05E7\u05D1\u05D9\u05E2\u05EA \u05D4\u05E4\u05D2\u05D9\u05E9\u05D4 \u05E0\u05DB\u05E9\u05DC\u05D4. \u05E0\u05E1\u05D5 \u05E9\u05D5\u05D1.",
+  "questionnaire_modal.invalid_type": "\u05E1\u05D5\u05D2 \u05E9\u05D0\u05DC\u05D5\u05DF \u05DC\u05D0 \u05EA\u05E7\u05D9\u05DF",
+  "questionnaire_modal.close": "\u05E1\u05D2\u05D9\u05E8\u05D4"
 };
 var he_default = he;
 
@@ -1069,6 +1915,8 @@ var fr = {
   "nav.faq": "FAQ",
   "nav.questionnaires": "Questionnaires",
   "nav.contact": "Contact",
+  "nav.book": "R\xE9server",
+  "nav.book_now": "R\xE9server maintenant",
   "nav.skip_to_content": "Aller au contenu principal",
   "nav.main_navigation": "Navigation principale",
   "nav.go_home": "Aller \xE0 la page d'accueil",
@@ -1118,6 +1966,61 @@ var fr = {
   "contact.address": "Tel Aviv, Isra\xEBl",
   "contact.subtitle": "Laissez vos coordonn\xE9es et nous vous recontacterons d\xE8s que possible",
   "contact.leave_details": "Laissez vos coordonn\xE9es",
+  "contact.email_placeholder": "Email",
+  "contact.phone_placeholder": "Num\xE9ro de t\xE9l\xE9phone",
+  "contact.topic_label": "Sujet",
+  "contact.topic_option1": "Diagnostic du TDAH",
+  "contact.topic_option2": "Test MOXO",
+  "contact.topic_option3": "Autre",
+  "contact.address_label": "Adresse :",
+  "contact.email_label": "E-mail :",
+  "contact.details_title": "Coordonn\xE9es",
+  "contact.directions_title": "Itin\xE9raire et stationnement",
+  "contact.clear_form": "Effacer le formulaire",
+  "services.subtitle": "Nous proposons un large \xE9ventail de services professionnels en diagnostic et traitement du TDAH",
+  "contact.aria_open_form": "Cliquez pour ouvrir le formulaire de contact",
+  "contact.click_to_open_form": "Cliquez pour ouvrir le formulaire",
+  "contact.navigate_waze": "Itin\xE9raire avec Waze",
+  "contact.navigate_google_maps": "Itin\xE9raire avec Google Maps",
+  "chat.open": "Ouvrir le chat",
+  "chat.how_can_help": "Comment puis-je vous aider ?",
+  "chat.close": "Fermer",
+  "chat.assistant_name": "Assistant KeshevPlus",
+  "chat.not_you": "Pas {name} ?",
+  "chat.before_start": "Avant de commencer, veuillez remplir vos coordonn\xE9es :",
+  "chat.full_name_placeholder": "Nom complet *",
+  "chat.email_placeholder": "E-mail *",
+  "chat.phone_placeholder": "T\xE9l\xE9phone (facultatif)",
+  "chat.starting": "D\xE9marrage...",
+  "chat.start_chat": "D\xE9marrer le chat",
+  "chat.welcome_message": "Bonjour {name} ! Je suis l'assistant virtuel de KeshevPlus. Comment puis-je vous aider ?",
+  "chat.type_message": "Tapez un message...",
+  "chat.assistant_typing": "L'assistant \xE9crit",
+  "footer.accessibility_statement": "D\xE9claration d'accessibilit\xE9",
+  "questionnaires.fill_online": "Remplir en ligne",
+  "about.doctor_name": "Dr. Irine Kochav-Raifman",
+  "about.doctor_title": "M\xE9decin sp\xE9cialiste",
+  "about.doctor_desc": "Vaste exp\xE9rience dans le diagnostic des enfants, adolescents et adultes. A accompagn\xE9 de nombreux patients dans leur cheminement vers l'\xE9panouissement personnel et un fonctionnement optimal.",
+  "about.doctor_alt": "Dr. Irine Kochav-Raifman",
+  "about.credential1": "Sp\xE9cialiste du diagnostic et du traitement du TDAH",
+  "about.credential2": "Plus de 15 ans d'exp\xE9rience",
+  "about.credential3": "Sp\xE9cialisation en enfants, adolescents et adultes",
+  "about.mission": "Notre mission est de fournir un diagnostic pr\xE9cis et des plans de traitement personnalis\xE9s, permettant \xE0 nos patients d'atteindre leur plein potentiel personnel.",
+  "about.value1_title": "Approche personnelle",
+  "about.value1_desc": "Chaque patient re\xE7oit une attention personnalis\xE9e adapt\xE9e \xE0 ses besoins uniques",
+  "about.value2_title": "Professionnalisme",
+  "about.value2_desc": "\xC9quipe experte avec une vaste exp\xE9rience et une formation continue",
+  "about.value3_title": "Discr\xE9tion",
+  "about.value3_desc": "Protection compl\xE8te de la vie priv\xE9e et environnement s\xE9curis\xE9",
+  "services.step1_title": "Contact",
+  "services.step1_desc": "Premier contact par t\xE9l\xE9phone ou via le formulaire du site",
+  "services.step2_title": "Consultation initiale",
+  "services.step2_desc": "Entretien initial, recueil des ant\xE9c\xE9dents m\xE9dicaux et remplissage du questionnaire",
+  "services.step3_title": "\xC9valuation compl\xE8te",
+  "services.step3_desc": "Tests informatis\xE9s et \xE9valuation clinique approfondie",
+  "services.step4_title": "Rapport et plan de traitement",
+  "services.step4_desc": "R\xE9ception d'un rapport d\xE9taill\xE9 et de recommandations de traitement personnalis\xE9es",
+  "services.list_label": "Nos services",
   "contact.full_name": "Nom complet",
   "contact.phone_label": "T\xE9l\xE9phone",
   "contact.email_optional": "Email (facultatif)",
@@ -1178,8 +2081,51 @@ var fr = {
   "faq.title": "Questions fr\xE9quentes",
   "faq.subtitle": "R\xE9ponses aux questions les plus courantes",
   "faq.no_answer": "Vous n'avez pas trouv\xE9 de r\xE9ponse ? Contactez-nous",
+  "services.service1_title": "Diagnostic complet",
+  "services.service1_desc": "Diagnostic personnalis\xE9 utilisant des outils avanc\xE9s, des entretiens cliniques et des tests informatis\xE9s",
+  "services.service2_title": "Ajustement m\xE9dicamenteux",
+  "services.service2_desc": "Traitement pharmacologique personnalis\xE9 avec surveillance continue de la s\xE9curit\xE9",
+  "services.service3_title": "Test informatis\xE9 MOXO",
+  "services.service3_desc": "\xC9valuation objective des fonctions d'attention et de concentration",
+  "services.service4_title": "Consultation et suivi",
+  "services.service4_desc": "Soutien professionnel continu et suivi du traitement",
+  "services.service5_title": "Orientations vers des traitements compl\xE9mentaires",
+  "services.service5_desc": "Orientations vers l'ergoth\xE9rapie, la th\xE9rapie \xE9motionnelle ou le soutien psychologique",
+  "faq.q1": "Qu'est-ce que le TDAH ?",
+  "faq.a1": "Le TDAH (trouble d\xE9ficitaire de l'attention avec hyperactivit\xE9) est un trouble neurod\xE9veloppemental affectant la concentration, le contr\xF4le des impulsions et la r\xE9gulation de l'activit\xE9. Il est fr\xE9quent tant chez les enfants que chez les adultes et affecte le fonctionnement quotidien, les \xE9tudes et le travail.",
+  "faq.q2": "Combien de temps dure le processus de diagnostic ?",
+  "faq.a2": "Le processus complet de diagnostic comprend plusieurs s\xE9ances et dure en moyenne 2 \xE0 4 semaines. Il comprend un entretien clinique approfondi, des tests informatis\xE9s (MOXO), des questionnaires et l'examen des documents m\xE9dicaux pertinents.",
+  "faq.q3": "Le diagnostic convient-il \xE0 tous les \xE2ges ?",
+  "faq.a3": "Oui, nous proposons un diagnostic professionnel pour les enfants \xE0 partir de 6 ans, les adolescents et les adultes. Chaque tranche d'\xE2ge b\xE9n\xE9ficie d'un protocole d'\xE9valuation adapt\xE9 tenant compte de ses caract\xE9ristiques particuli\xE8res.",
+  "faq.q4": "Qu'est-ce qui est inclus dans le plan de traitement ?",
+  "faq.a4": "Le plan de traitement est personnalis\xE9 et comprend : des recommandations m\xE9dicamenteuses (si n\xE9cessaire), un accompagnement parental, des outils pratiques pour la gestion quotidienne, des orientations vers des traitements compl\xE9mentaires et un suivi continu.",
+  "faq.q5": "Une recommandation m\xE9dicale est-elle n\xE9cessaire ?",
+  "faq.a5": "Non, aucune recommandation n'est n\xE9cessaire. Vous pouvez contacter directement la clinique pour prendre rendez-vous pour un diagnostic. Cependant, si vous disposez de documents m\xE9dicaux ant\xE9rieurs, il est recommand\xE9 de les apporter au premier rendez-vous.",
+  "faq.q6": "Quelle est la diff\xE9rence entre le TDA et le TDAH ?",
+  "faq.a6": "Le TDA est l'ancien terme d\xE9signant le d\xE9ficit d'attention sans hyperactivit\xE9. Aujourd'hui, le terme TDAH est utilis\xE9 avec trois sous-types : \xE0 pr\xE9dominance inattentive, \xE0 pr\xE9dominance hyperactive-impulsive, ou combin\xE9.",
   "services.process_steps": "\xC9tapes du processus de diagnostic",
   "footer.rights": "\xA9 2025 Tous droits r\xE9serv\xE9s \xE0 Keshev Plus",
+  "footer.moxo_certified": "Certifi\xE9 Moxo",
+  "footer.moxo_certified_desc": "\xC9valuation informatis\xE9e du TDAH",
+  "cookies.notice": "Ce site utilise des cookies pour am\xE9liorer votre exp\xE9rience de navigation et \xE0 des fins statistiques. En continuant \xE0 naviguer sur le site, vous acceptez l'utilisation de cookies conform\xE9ment \xE0 notre politique de confidentialit\xE9.",
+  "cookies.used_include": "Les cookies utilis\xE9s sur ce site incluent :",
+  "cookies.essential": "Cookies essentiels - pour le bon fonctionnement du site",
+  "cookies.statistical": "Cookies statistiques - pour l'analyse d'utilisation et l'am\xE9lioration du service",
+  "cookies.preference": "Cookies de pr\xE9f\xE9rence - pour enregistrer les pr\xE9f\xE9rences utilisateur",
+  "cookies.privacy_note": "Conform\xE9ment \xE0 la loi sur la protection de la vie priv\xE9e, nous vous informons de l'utilisation de cookies et sollicitons votre consentement.",
+  "cookies.hide_details": "Masquer les d\xE9tails",
+  "cookies.more_info": "Plus d'infos",
+  "cookies.accept": "J'accepte",
+  "appt_date.select_date": "Choisir une date",
+  "appt_date.clinic_closed": "La clinique est ferm\xE9e ce jour-l\xE0",
+  "appt_date.gray_unavailable": "Les jours gris\xE9s ne sont pas disponibles pour les rendez-vous.",
+  "appt_for.who": "Pour qui est le rendez-vous ?",
+  "appt_for.me": "Moi",
+  "appt_for.child": "Pour l'enfant",
+  "appt_for.child_name": "Nom de l'enfant",
+  "appt_for.child_age": "\xC2ge de l'enfant",
+  "appt_for.child_age_placeholder": "(minimum 6)",
+  "appt_for.min_age_error": "L'\xE2ge minimum est 6 ans",
   "footer.clinic_desc": "Clinique leader dans le diagnostic et le traitement du TDAH chez les enfants, les adolescents et les adultes.",
   "footer.quick_links": "Liens rapides",
   "footer.contact_info": "Coordonn\xE9es",
@@ -1199,7 +2145,132 @@ var fr = {
   "admin.multilingual": "Multilingue (Toutes les langues)",
   "admin.default_language": "Langue par d\xE9faut",
   "admin.settings_saved": "Param\xE8tres enregistr\xE9s",
-  "admin.settings_error": "\xC9chec de l'enregistrement"
+  "admin.settings_error": "\xC9chec de l'enregistrement",
+  "a11y.accessibility_settings": "Param\xE8tres d'accessibilit\xE9",
+  "a11y.text_size": "Taille du texte",
+  "a11y.decrease_text": "R\xE9duire le texte",
+  "a11y.increase_text": "Agrandir le texte",
+  "a11y.line_height": "Hauteur de ligne",
+  "a11y.decrease_line_height": "R\xE9duire la hauteur de ligne",
+  "a11y.increase_line_height": "Augmenter la hauteur de ligne",
+  "a11y.letter_spacing": "Espacement des lettres",
+  "a11y.decrease_letter_spacing": "R\xE9duire l'espacement des lettres",
+  "a11y.increase_letter_spacing": "Augmenter l'espacement des lettres",
+  "a11y.reading_guide": "Guide de lecture",
+  "a11y.high_contrast": "Contraste \xE9lev\xE9",
+  "a11y.highlight_links": "Surligner les liens",
+  "a11y.grayscale": "Niveaux de gris",
+  "a11y.readable_font": "Police lisible",
+  "a11y.large_cursor": "Grand curseur",
+  "a11y.stop_animations": "Arr\xEAter les animations",
+  "a11y.reset": "R\xE9initialiser",
+  "a11y.close": "Fermer",
+  "a11y.accessibility_menu": "Menu d'accessibilit\xE9",
+  "a11y.dark_mode": "Mode sombre",
+  "a11y.light_mode": "Mode clair",
+  "a11y.accessibility_statement": "D\xE9claration d'accessibilit\xE9",
+  "a11y.accessibility_statement_text": "Ce site s'engage \xE0 l'accessibilit\xE9 num\xE9rique conform\xE9ment \xE0 la loi isra\xE9lienne.",
+  "terms.title": "Conditions d'utilisation",
+  "terms.intro": "L'utilisation du site Keshev Plus (\xAB le Site \xBB) est soumise aux conditions ci-dessous. Naviguer sur le Site et/ou utiliser ses services constitue une acceptation de ces conditions.",
+  "terms.service_nature_title": "Nature du service",
+  "terms.service_nature_p1": "Le Site fournit des informations g\xE9n\xE9rales sur le diagnostic et le traitement du TDAH, ainsi que des outils en ligne pour planifier des rendez-vous et remplir des questionnaires de d\xE9pistage initiaux.",
+  "terms.service_nature_p2": "Les questionnaires de d\xE9pistage en ligne ne constituent pas un diagnostic m\xE9dical et ne remplacent pas une consultation, un diagnostic ou un traitement par un professionnel qualifi\xE9. Les r\xE9sultats du questionnaire visent uniquement \xE0 aider notre personnel clinique dans une \xE9valuation initiale ; un diagnostic final n'est \xE9tabli que dans le cadre d'une \xE9valuation clinique.",
+  "terms.fair_use_title": "Utilisation \xE9quitable du site",
+  "terms.fair_use_body": "Le Site ne peut \xEAtre utilis\xE9 \xE0 des fins ill\xE9gales, et aucune tentative ne peut \xEAtre faite pour perturber son bon fonctionnement, y compris les tentatives de piratage, l'acc\xE8s non autoris\xE9 aux donn\xE9es ou l'extraction automatis\xE9e de contenu (scraping) sans consentement pr\xE9alable.",
+  "terms.ip_title": "Propri\xE9t\xE9 intellectuelle",
+  "terms.ip_body": "Tous les droits sur le contenu du Site, y compris les textes, la conception, le logo et les images, appartiennent \xE0 Keshev Plus ou \xE0 des tiers qui lui en ont conc\xE9d\xE9 l'utilisation, et ne peuvent \xEAtre copi\xE9s ou utilis\xE9s sans autorisation \xE9crite.",
+  "terms.liability_title": "Limitation de responsabilit\xE9",
+  "terms.liability_body": "Les informations sur le Site sont fournies \xE0 des fins d'information g\xE9n\xE9rale uniquement et ne constituent pas un avis m\xE9dical. Keshev Plus n'est pas responsable des dommages r\xE9sultant de la confiance accord\xE9e au contenu du Site sans consultation professionnelle appropri\xE9e. Les liens vers des sites et services externes (tels que WhatsApp et les r\xE9seaux sociaux) sont soumis aux conditions d'utilisation et aux politiques de confidentialit\xE9 de ces tiers, et nous ne sommes pas responsables de leur contenu.",
+  "terms.jurisdiction_title": "Droit applicable et juridiction",
+  "terms.jurisdiction_body": "Ces conditions sont r\xE9gies par les lois de l'\xC9tat d'Isra\xEBl, et les tribunaux du district de Tel Aviv ont comp\xE9tence exclusive pour toute question s'y rapportant.",
+  "terms.changes_title": "Modifications de ces conditions",
+  "terms.changes_body": "Nous pouvons mettre \xE0 jour ces conditions de temps \xE0 autre. La poursuite de l'utilisation du Site apr\xE8s la publication de modifications constitue une acceptation des conditions mises \xE0 jour.",
+  "terms.contact_title": "Contact",
+  "terms.updated_date": "Ces conditions ont \xE9t\xE9 mises \xE0 jour pour la derni\xE8re fois le : 15 juillet 2026.",
+  "privacy.title": "Politique de confidentialit\xE9",
+  "privacy.intro": "Keshev Plus (\xAB nous \xBB, \xAB la clinique \xBB) respecte votre vie priv\xE9e. Cette politique explique quelles donn\xE9es nous collectons via le site, \xE0 quoi nous les utilisons et comment nous contacter \xE0 ce sujet. Elle est conforme \xE0 la loi isra\xE9lienne sur la protection de la vie priv\xE9e de 1981 et au r\xE8glement sur la protection de la vie priv\xE9e (s\xE9curit\xE9 des donn\xE9es) de 2017.",
+  "privacy.data_collected_title": "Les informations que nous collectons",
+  "privacy.data_collected_1": "Coordonn\xE9es : nom, adresse e-mail et num\xE9ro de t\xE9l\xE9phone, lorsque vous nous contactez, prenez rendez-vous ou utilisez le formulaire de contact.",
+  "privacy.data_collected_2": "Donn\xE9es du questionnaire de d\xE9pistage du TDAH : le nom de l'enfant, son \xE2ge, son sexe et sa relation avec le r\xE9pondant, ainsi que les r\xE9ponses au questionnaire. Il s'agit d'informations sensibles li\xE9es \xE0 une \xE9valuation clinique initiale, que nous traitons avec une attention particuli\xE8re.",
+  "privacy.data_collected_3": "Cookies essentiels, statistiques et de pr\xE9f\xE9rence, comme d\xE9taill\xE9 dans la banni\xE8re de cookies du site.",
+  "privacy.data_collected_4": "Donn\xE9es d'utilisation techniques de base (comme le type de navigateur et d'appareil) collect\xE9es automatiquement pour faire fonctionner le site.",
+  "privacy.purposes_title": "Finalit\xE9s de l'utilisation",
+  "privacy.purpose_1": "Planification et gestion des rendez-vous.",
+  "privacy.purpose_2": "Traitement des questionnaires de d\xE9pistage pour une \xE9valuation clinique initiale par notre personnel clinique.",
+  "privacy.purpose_3": "R\xE9ponse aux demandes de renseignements.",
+  "privacy.purpose_4": "Am\xE9lioration du service et du site, et analyse statistique g\xE9n\xE9rale de l'utilisation.",
+  "privacy.purpose_5": "Respect des obligations l\xE9gales et r\xE9glementaires qui nous incombent.",
+  "privacy.sharing_title": "Partage des informations",
+  "privacy.sharing_body": "Nous ne vendons pas vos informations personnelles. Les donn\xE9es sont accessibles au personnel de la clinique uniquement pour la prestation des soins, et peuvent \xEAtre divulgu\xE9es si la loi ou une autorit\xE9 comp\xE9tente l'exige. Le lien de contact WhatsApp ouvre l'application externe WhatsApp, r\xE9gie par sa propre politique de confidentialit\xE9.",
+  "privacy.security_title": "S\xE9curit\xE9 et conservation des donn\xE9es",
+  "privacy.security_body": "Nous prenons des mesures techniques et organisationnelles raisonnables pour prot\xE9ger les informations que nous collectons. Les informations sont conserv\xE9es aussi longtemps que n\xE9cessaire pour fournir le service et respecter les obligations applicables de conservation des dossiers m\xE9dicaux/professionnels, apr\xE8s quoi elles sont supprim\xE9es ou anonymis\xE9es.",
+  "privacy.rights_title": "Vos droits",
+  "privacy.rights_body": "Conform\xE9ment \xE0 la loi sur la protection de la vie priv\xE9e, vous avez le droit de consulter les informations d\xE9tenues \xE0 votre sujet, d'en demander la correction et, dans certaines circonstances, d'en demander la suppression. Pour exercer ces droits, veuillez nous contacter en utilisant les coordonn\xE9es ci-dessous.",
+  "privacy.contact_title": "Contact vie priv\xE9e",
+  "privacy.updated_date": "Cette politique a \xE9t\xE9 mise \xE0 jour pour la derni\xE8re fois le : 15 juillet 2026.",
+  "a11y_statement.title": "D\xE9claration d'accessibilit\xE9",
+  "a11y_statement.intro": "Keshev Plus s'efforce de rendre ses services num\xE9riques accessibles au grand public, y compris aux personnes handicap\xE9es, dans la conviction que chacun m\xE9rite un service \xE9quitable et accessible. Ce travail est r\xE9alis\xE9 conform\xE9ment \xE0 la loi isra\xE9lienne sur l'\xE9galit\xE9 des droits des personnes handicap\xE9es de 1998, au r\xE8glement sur l'\xE9galit\xE9 des droits des personnes handicap\xE9es (am\xE9nagements d'accessibilit\xE9 des services) de 2013, et conform\xE9ment \xE0 la norme isra\xE9lienne 5568 et aux directives internationales WCAG 2.0 niveau AA.",
+  "a11y_statement.accommodations_title": "Am\xE9nagements d'accessibilit\xE9 sur ce site",
+  "a11y_statement.accommodation_1": "Un menu d'accessibilit\xE9 d\xE9di\xE9 (ic\xF4ne de fauteuil roulant dans le coin de l'\xE9cran) permettant \xE0 chaque visiteur d'adapter le site \xE0 ses besoins.",
+  "a11y_statement.accommodation_2": "Augmentation et diminution de la taille du texte.",
+  "a11y_statement.accommodation_3": "Ajustement de la hauteur de ligne et de l'espacement des lettres/mots pour les lecteurs ayant des difficult\xE9s de lecture.",
+  "a11y_statement.accommodation_4": "Mode contraste \xE9lev\xE9 et mode niveaux de gris.",
+  "a11y_statement.accommodation_5": "Mise en \xE9vidence des liens.",
+  "a11y_statement.accommodation_6": "Passage \xE0 une police tr\xE8s lisible.",
+  "a11y_statement.accommodation_7": "Curseur de souris agrandi.",
+  "a11y_statement.accommodation_8": "Un guide de lecture mobile qui suit le curseur.",
+  "a11y_statement.accommodation_9": "Arr\xEAt des animations et transitions.",
+  "a11y_statement.accommodation_10": "Mode sombre.",
+  "a11y_statement.accommodation_11": "Textes alternatifs descriptifs (alt) pour les images du site.",
+  "a11y_statement.accommodation_12": "Un lien direct pour passer au contenu principal, pour les utilisateurs de clavier et de lecteur d'\xE9cran.",
+  "a11y_statement.accommodation_13": "Prise en charge de la navigation au clavier et compatibilit\xE9 avec les lecteurs d'\xE9cran courants.",
+  "a11y_statement.accommodation_14": "Un design adaptatif convenant \xE0 la consultation sur mobile, tablette et ordinateur.",
+  "a11y_statement.limitations_title": "Limitations connues",
+  "a11y_statement.limitations_body": "Nous travaillons en permanence \xE0 am\xE9liorer l'accessibilit\xE9 du site. Malgr\xE9 nos efforts, certaines parties du site pourraient ne pas \xEAtre encore pleinement accessibles. Si vous rencontrez un contenu, une page ou un composant qui n'est pas correctement accessible, merci de nous en informer afin que nous puissions y rem\xE9dier dans les meilleurs d\xE9lais.",
+  "a11y_statement.coordinator_title": "Coordinateur d'accessibilit\xE9 et contact",
+  "a11y_statement.coordinator_intro": "Les questions, commentaires et suggestions concernant l'accessibilit\xE9 du site peuvent nous \xEAtre envoy\xE9s via :",
+  "a11y_statement.address": "94 rue Yigal Alon, Tel Aviv",
+  "a11y_statement.response_time": "Nous visons \xE0 r\xE9pondre \xE0 toute demande relative \xE0 l'accessibilit\xE9 dans un d\xE9lai raisonnable.",
+  "a11y_statement.further_recourse_title": "Recours suppl\xE9mentaire",
+  "a11y_statement.further_recourse_body": "Si vous n'avez pas re\xE7u de r\xE9ponse satisfaisante de notre part, vous pouvez contacter la Commission pour l'\xE9galit\xE9 des droits des personnes handicap\xE9es du minist\xE8re de la Justice, responsable de l'application de la loi sur l'\xE9galit\xE9 des droits des personnes handicap\xE9es.",
+  "a11y_statement.updated_date": "Cette d\xE9claration d'accessibilit\xE9 a \xE9t\xE9 mise \xE0 jour pour la derni\xE8re fois le : 15 juillet 2026.",
+  "booking.title": "Prendre rendez-vous",
+  "booking.modal_intro": "Remplissez vos coordonn\xE9es et nous confirmerons votre rendez-vous. Les champs marqu\xE9s d'un * sont obligatoires.",
+  "booking.page_subtitle": "Remplissez vos coordonn\xE9es et nous confirmerons votre rendez-vous",
+  "booking.details_title": "D\xE9tails du rendez-vous",
+  "booking.fields_required_note": "Les champs marqu\xE9s d'un * sont obligatoires",
+  "booking.full_name": "Nom complet",
+  "booking.full_name_placeholder": "Entrez votre nom",
+  "booking.phone": "T\xE9l\xE9phone",
+  "booking.phone_placeholder": "Votre num\xE9ro de t\xE9l\xE9phone",
+  "booking.email": "E-mail",
+  "booking.email_placeholder": "Votre adresse e-mail",
+  "booking.appointment_type": "Type de rendez-vous",
+  "booking.date": "Date",
+  "booking.time": "Heure",
+  "booking.checking_availability": "V\xE9rification des disponibilit\xE9s...",
+  "booking.select_time": "S\xE9lectionner une heure",
+  "booking.no_times_available": "Aucun cr\xE9neau disponible \xE0 cette date.",
+  "booking.notes": "Remarques (facultatif)",
+  "booking.notes_placeholder": "Toute information suppl\xE9mentaire...",
+  "booking.submitting": "Envoi en cours...",
+  "booking.submit": "Prendre rendez-vous",
+  "booking.close": "Fermer",
+  "booking.success_title": "Rendez-vous pris avec succ\xE8s !",
+  "booking.success_description": "Nous vous recontacterons prochainement pour confirmer votre rendez-vous. Merci !",
+  "booking.back_to_home": "Retour \xE0 l'accueil",
+  "booking.date_unavailable_title": "Date non disponible",
+  "booking.date_unavailable_description": "Nous avons s\xE9lectionn\xE9 la date disponible la plus proche.",
+  "booking.time_unavailable_title": "Heure non disponible pour ce type",
+  "booking.time_unavailable_description": "Veuillez choisir une autre heure dans la liste mise \xE0 jour.",
+  "booking.error_title": "Erreur",
+  "booking.availability_check_failed": "Impossible de v\xE9rifier les disponibilit\xE9s. Veuillez r\xE9essayer.",
+  "booking.fill_required_fields": "Veuillez remplir tous les champs obligatoires",
+  "booking.booked_toast_title": "Rendez-vous pris !",
+  "booking.booked_toast_description": "Nous confirmerons votre rendez-vous sous peu",
+  "booking.submit_failed": "\xC9chec de la prise de rendez-vous. Veuillez r\xE9essayer.",
+  "questionnaire_modal.invalid_type": "Type de questionnaire invalide",
+  "questionnaire_modal.close": "Fermer"
 };
 var fr_default = fr;
 
@@ -1213,6 +2284,8 @@ var es = {
   "nav.faq": "Preguntas frecuentes",
   "nav.questionnaires": "Cuestionarios",
   "nav.contact": "Contacto",
+  "nav.book": "Reservar",
+  "nav.book_now": "Reservar ahora",
   "nav.skip_to_content": "Ir al contenido principal",
   "nav.main_navigation": "Navegaci\xF3n principal",
   "nav.go_home": "Ir a la p\xE1gina de inicio",
@@ -1262,6 +2335,61 @@ var es = {
   "contact.address": "Tel Aviv, Israel",
   "contact.subtitle": "Deje sus datos y nos pondremos en contacto con usted lo antes posible",
   "contact.leave_details": "Deje sus datos",
+  "contact.email_placeholder": "Correo electr\xF3nico",
+  "contact.phone_placeholder": "N\xFAmero de tel\xE9fono",
+  "contact.topic_label": "Asunto",
+  "contact.topic_option1": "Diagn\xF3stico de TDAH",
+  "contact.topic_option2": "Prueba MOXO",
+  "contact.topic_option3": "Otro",
+  "contact.address_label": "Direcci\xF3n:",
+  "contact.email_label": "Correo electr\xF3nico:",
+  "contact.details_title": "Datos de contacto",
+  "contact.directions_title": "C\xF3mo llegar y estacionamiento",
+  "contact.clear_form": "Borrar formulario",
+  "services.subtitle": "Ofrecemos una amplia gama de servicios profesionales en diagn\xF3stico y tratamiento del TDAH",
+  "contact.aria_open_form": "Haga clic para abrir el formulario de contacto",
+  "contact.click_to_open_form": "Haga clic para abrir el formulario",
+  "contact.navigate_waze": "Navegar con Waze",
+  "contact.navigate_google_maps": "Navegar con Google Maps",
+  "chat.open": "Abrir chat",
+  "chat.how_can_help": "\xBFC\xF3mo puedo ayudarte?",
+  "chat.close": "Cerrar",
+  "chat.assistant_name": "Asistente KeshevPlus",
+  "chat.not_you": "\xBFNo eres {name}?",
+  "chat.before_start": "Antes de comenzar, complete sus datos:",
+  "chat.full_name_placeholder": "Nombre completo *",
+  "chat.email_placeholder": "Correo electr\xF3nico *",
+  "chat.phone_placeholder": "Tel\xE9fono (opcional)",
+  "chat.starting": "Iniciando...",
+  "chat.start_chat": "Iniciar chat",
+  "chat.welcome_message": "\xA1Hola {name}! Soy el asistente virtual de KeshevPlus. \xBFC\xF3mo puedo ayudarte?",
+  "chat.type_message": "Escribe un mensaje...",
+  "chat.assistant_typing": "El asistente est\xE1 escribiendo",
+  "footer.accessibility_statement": "Declaraci\xF3n de accesibilidad",
+  "questionnaires.fill_online": "Completar en l\xEDnea",
+  "about.doctor_name": "Dra. Irine Kochav-Raifman",
+  "about.doctor_title": "M\xE9dica especialista",
+  "about.doctor_desc": "Amplia experiencia en el diagn\xF3stico de ni\xF1os, adolescentes y adultos. Ha acompa\xF1ado a muchos pacientes en su camino hacia la realizaci\xF3n personal y el funcionamiento \xF3ptimo.",
+  "about.doctor_alt": "Dra. Irine Kochav-Raifman",
+  "about.credential1": "Especialista en diagn\xF3stico y tratamiento del TDAH",
+  "about.credential2": "M\xE1s de 15 a\xF1os de experiencia",
+  "about.credential3": "Especializaci\xF3n en ni\xF1os, adolescentes y adultos",
+  "about.mission": "Nuestra misi\xF3n es proporcionar un diagn\xF3stico preciso y planes de tratamiento personalizados, permitiendo a nuestros pacientes alcanzar todo su potencial personal.",
+  "about.value1_title": "Enfoque personal",
+  "about.value1_desc": "Cada paciente recibe atenci\xF3n personalizada adaptada a sus necesidades \xFAnicas",
+  "about.value2_title": "Profesionalismo",
+  "about.value2_desc": "Equipo experto con amplia experiencia y formaci\xF3n continua",
+  "about.value3_title": "Discreci\xF3n",
+  "about.value3_desc": "Protecci\xF3n total de la privacidad y entorno seguro",
+  "services.step1_title": "Contacto",
+  "services.step1_desc": "Primer contacto por tel\xE9fono o a trav\xE9s del formulario del sitio web",
+  "services.step2_title": "Consulta inicial",
+  "services.step2_desc": "Entrevista inicial, recopilaci\xF3n de antecedentes m\xE9dicos y cumplimentaci\xF3n del cuestionario",
+  "services.step3_title": "Evaluaci\xF3n integral",
+  "services.step3_desc": "Pruebas computarizadas y evaluaci\xF3n cl\xEDnica en profundidad",
+  "services.step4_title": "Informe y plan de tratamiento",
+  "services.step4_desc": "Recepci\xF3n de un informe detallado y recomendaciones de tratamiento personalizadas",
+  "services.list_label": "Nuestros servicios",
   "contact.full_name": "Nombre completo",
   "contact.phone_label": "Tel\xE9fono",
   "contact.email_optional": "Email (opcional)",
@@ -1322,8 +2450,51 @@ var es = {
   "faq.title": "Preguntas frecuentes",
   "faq.subtitle": "Respuestas a las preguntas m\xE1s comunes",
   "faq.no_answer": "\xBFNo encontr\xF3 respuesta? Cont\xE1ctenos",
+  "services.service1_title": "Diagn\xF3stico integral",
+  "services.service1_desc": "Diagn\xF3stico personalizado utilizando herramientas avanzadas, entrevistas cl\xEDnicas y pruebas computarizadas",
+  "services.service2_title": "Ajuste de medicaci\xF3n",
+  "services.service2_desc": "Tratamiento farmacol\xF3gico personalizado con seguimiento continuo de la seguridad",
+  "services.service3_title": "Prueba computarizada MOXO",
+  "services.service3_desc": "Evaluaci\xF3n objetiva de las funciones de atenci\xF3n y concentraci\xF3n",
+  "services.service4_title": "Consulta y seguimiento",
+  "services.service4_desc": "Apoyo profesional continuo y seguimiento del tratamiento",
+  "services.service5_title": "Derivaciones a tratamientos complementarios",
+  "services.service5_desc": "Derivaciones a terapia ocupacional, terapia emocional o apoyo psicol\xF3gico",
+  "faq.q1": "\xBFQu\xE9 es el TDAH?",
+  "faq.a1": "El TDAH (trastorno por d\xE9ficit de atenci\xF3n e hiperactividad) es un trastorno del neurodesarrollo que afecta la concentraci\xF3n, el control de impulsos y la regulaci\xF3n de la actividad. Es com\xFAn tanto en ni\xF1os como en adultos y afecta el funcionamiento diario, los estudios y el trabajo.",
+  "faq.q2": "\xBFCu\xE1nto dura el proceso de diagn\xF3stico?",
+  "faq.a2": "El proceso completo de diagn\xF3stico incluye varias sesiones y dura en promedio de 2 a 4 semanas. Incluye una entrevista cl\xEDnica en profundidad, pruebas computarizadas (MOXO), cuestionarios y revisi\xF3n de documentos m\xE9dicos relevantes.",
+  "faq.q3": "\xBFEs el diagn\xF3stico adecuado para todas las edades?",
+  "faq.a3": "S\xED, ofrecemos diagn\xF3stico profesional para ni\xF1os a partir de 6 a\xF1os, adolescentes y adultos. Cada grupo de edad cuenta con un protocolo de evaluaci\xF3n adaptado que considera las caracter\xEDsticas propias de esa edad.",
+  "faq.q4": "\xBFQu\xE9 incluye el plan de tratamiento?",
+  "faq.a4": "El plan de tratamiento es personalizado e incluye: recomendaciones de medicaci\xF3n (si es necesario), orientaci\xF3n para los padres, herramientas pr\xE1cticas para el manejo diario, derivaciones a tratamientos complementarios y seguimiento continuo.",
+  "faq.q5": "\xBFSe requiere una derivaci\xF3n m\xE9dica?",
+  "faq.a5": "No, no se requiere una derivaci\xF3n. Puede contactar directamente a la cl\xEDnica para programar una cita de diagn\xF3stico. Sin embargo, si tiene documentos m\xE9dicos anteriores, se recomienda traerlos a la primera reuni\xF3n.",
+  "faq.q6": "\xBFCu\xE1l es la diferencia entre TDA y TDAH?",
+  "faq.a6": "TDA es el t\xE9rmino antiguo para el d\xE9ficit de atenci\xF3n sin hiperactividad. Hoy en d\xEDa se utiliza el t\xE9rmino TDAH con tres subtipos: predominantemente inatento, predominantemente hiperactivo-impulsivo, o combinado.",
   "services.process_steps": "Pasos del proceso de diagn\xF3stico",
   "footer.rights": "\xA9 2025 Todos los derechos reservados a Keshev Plus",
+  "footer.moxo_certified": "Certificado Moxo",
+  "footer.moxo_certified_desc": "Evaluaci\xF3n computarizada del TDAH",
+  "cookies.notice": "Este sitio web utiliza cookies para mejorar su experiencia de navegaci\xF3n y con fines estad\xEDsticos. Al continuar navegando por el sitio, acepta el uso de cookies de acuerdo con nuestra pol\xEDtica de privacidad.",
+  "cookies.used_include": "Las cookies utilizadas en este sitio incluyen:",
+  "cookies.essential": "Cookies esenciales - para el correcto funcionamiento del sitio",
+  "cookies.statistical": "Cookies estad\xEDsticas - para el an\xE1lisis de uso y la mejora del servicio",
+  "cookies.preference": "Cookies de preferencias - para guardar las preferencias del usuario",
+  "cookies.privacy_note": "De acuerdo con la Ley de Protecci\xF3n de la Privacidad, le informamos sobre el uso de cookies y solicitamos su consentimiento.",
+  "cookies.hide_details": "Ocultar detalles",
+  "cookies.more_info": "M\xE1s informaci\xF3n",
+  "cookies.accept": "Acepto",
+  "appt_date.select_date": "Seleccionar fecha",
+  "appt_date.clinic_closed": "La cl\xEDnica est\xE1 cerrada este d\xEDa",
+  "appt_date.gray_unavailable": "Los d\xEDas en gris no est\xE1n disponibles para citas.",
+  "appt_for.who": "\xBFPara qui\xE9n es la cita?",
+  "appt_for.me": "Yo",
+  "appt_for.child": "Para el ni\xF1o/a",
+  "appt_for.child_name": "Nombre del ni\xF1o/a",
+  "appt_for.child_age": "Edad del ni\xF1o/a",
+  "appt_for.child_age_placeholder": "(m\xEDnimo 6)",
+  "appt_for.min_age_error": "La edad m\xEDnima es 6",
   "footer.clinic_desc": "Cl\xEDnica l\xEDder en diagn\xF3stico y tratamiento del TDAH en ni\xF1os, adolescentes y adultos.",
   "footer.quick_links": "Enlaces r\xE1pidos",
   "footer.contact_info": "Informaci\xF3n de contacto",
@@ -1343,7 +2514,132 @@ var es = {
   "admin.multilingual": "Multiling\xFCe (Todos los idiomas)",
   "admin.default_language": "Idioma predeterminado",
   "admin.settings_saved": "Configuraci\xF3n guardada",
-  "admin.settings_error": "Error al guardar"
+  "admin.settings_error": "Error al guardar",
+  "a11y.accessibility_settings": "Configuraci\xF3n de accesibilidad",
+  "a11y.text_size": "Tama\xF1o de texto",
+  "a11y.decrease_text": "Reducir texto",
+  "a11y.increase_text": "Aumentar texto",
+  "a11y.line_height": "Altura de l\xEDnea",
+  "a11y.decrease_line_height": "Reducir altura de l\xEDnea",
+  "a11y.increase_line_height": "Aumentar altura de l\xEDnea",
+  "a11y.letter_spacing": "Espaciado de letras",
+  "a11y.decrease_letter_spacing": "Reducir espaciado de letras",
+  "a11y.increase_letter_spacing": "Aumentar espaciado de letras",
+  "a11y.reading_guide": "Gu\xEDa de lectura",
+  "a11y.high_contrast": "Alto contraste",
+  "a11y.highlight_links": "Resaltar enlaces",
+  "a11y.grayscale": "Escala de grises",
+  "a11y.readable_font": "Fuente legible",
+  "a11y.large_cursor": "Cursor grande",
+  "a11y.stop_animations": "Detener animaciones",
+  "a11y.reset": "Restablecer",
+  "a11y.close": "Cerrar",
+  "a11y.accessibility_menu": "Men\xFA de accesibilidad",
+  "a11y.dark_mode": "Modo oscuro",
+  "a11y.light_mode": "Modo claro",
+  "a11y.accessibility_statement": "Declaraci\xF3n de accesibilidad",
+  "a11y.accessibility_statement_text": "Este sitio est\xE1 comprometido con la accesibilidad digital de acuerdo con la ley israel\xED.",
+  "terms.title": "T\xE9rminos de uso",
+  "terms.intro": 'El uso del sitio web de Keshev Plus ("el Sitio") est\xE1 sujeto a los t\xE9rminos que se detallan a continuaci\xF3n. Navegar por el Sitio y/o utilizar sus servicios constituye la aceptaci\xF3n de estos t\xE9rminos.',
+  "terms.service_nature_title": "Naturaleza del servicio",
+  "terms.service_nature_p1": "El Sitio proporciona informaci\xF3n general sobre el diagn\xF3stico y tratamiento del TDAH, junto con herramientas en l\xEDnea para programar citas y completar cuestionarios de detecci\xF3n iniciales.",
+  "terms.service_nature_p2": "Los cuestionarios de detecci\xF3n en l\xEDnea no constituyen un diagn\xF3stico m\xE9dico ni sustituyen la consulta, el diagn\xF3stico o el tratamiento por parte de un profesional cualificado. Los resultados del cuestionario est\xE1n destinados \xFAnicamente a ayudar a nuestro personal cl\xEDnico en una evaluaci\xF3n inicial; el diagn\xF3stico final solo se otorga mediante una evaluaci\xF3n cl\xEDnica.",
+  "terms.fair_use_title": "Uso justo del sitio",
+  "terms.fair_use_body": "El Sitio no puede utilizarse para ning\xFAn prop\xF3sito ilegal, y no se puede intentar interferir con su correcto funcionamiento, incluidos los intentos de pirater\xEDa, el acceso no autorizado a los datos o la extracci\xF3n automatizada de contenido (scraping) sin consentimiento previo.",
+  "terms.ip_title": "Propiedad intelectual",
+  "terms.ip_body": "Todos los derechos sobre el contenido del Sitio, incluidos textos, dise\xF1o, logotipo e im\xE1genes, pertenecen a Keshev Plus o a terceros que le han otorgado licencia de uso, y no pueden copiarse ni utilizarse sin autorizaci\xF3n por escrito.",
+  "terms.liability_title": "Limitaci\xF3n de responsabilidad",
+  "terms.liability_body": "La informaci\xF3n del Sitio se proporciona \xFAnicamente con fines informativos generales y no constituye asesoramiento m\xE9dico. Keshev Plus no es responsable de ning\xFAn da\xF1o derivado de la confianza depositada en el contenido del Sitio sin la consulta profesional adecuada. Los enlaces a sitios y servicios externos (como WhatsApp y redes sociales) est\xE1n sujetos a los t\xE9rminos de uso y las pol\xEDticas de privacidad de dichos terceros, y no somos responsables de su contenido.",
+  "terms.jurisdiction_title": "Ley aplicable y jurisdicci\xF3n",
+  "terms.jurisdiction_body": "Estos t\xE9rminos se rigen por las leyes del Estado de Israel, y los tribunales del distrito de Tel Aviv tendr\xE1n jurisdicci\xF3n exclusiva sobre cualquier asunto relacionado con ellos.",
+  "terms.changes_title": "Cambios en estos t\xE9rminos",
+  "terms.changes_body": "Podemos actualizar estos t\xE9rminos de vez en cuando. El uso continuado del Sitio despu\xE9s de la publicaci\xF3n de cambios constituye la aceptaci\xF3n de los t\xE9rminos actualizados.",
+  "terms.contact_title": "Contacto",
+  "terms.updated_date": "Estos t\xE9rminos se actualizaron por \xFAltima vez el: 15 de julio de 2026.",
+  "privacy.title": "Pol\xEDtica de privacidad",
+  "privacy.intro": 'Keshev Plus ("nosotros", "la cl\xEDnica") respeta su privacidad. Esta pol\xEDtica explica qu\xE9 datos recopilamos a trav\xE9s del sitio, para qu\xE9 los usamos y c\xF3mo contactarnos al respecto. Opera de acuerdo con la Ley de Protecci\xF3n de la Privacidad de Israel de 1981 y el Reglamento de Protecci\xF3n de la Privacidad (Seguridad de Datos) de 2017.',
+  "privacy.data_collected_title": "La informaci\xF3n que recopilamos",
+  "privacy.data_collected_1": "Datos de contacto: nombre, direcci\xF3n de correo electr\xF3nico y n\xFAmero de tel\xE9fono, cuando nos contacta, reserva una cita o utiliza el formulario de contacto.",
+  "privacy.data_collected_2": "Datos del cuestionario de detecci\xF3n de TDAH: el nombre del ni\xF1o/a, edad, sexo y relaci\xF3n con el encuestado, junto con las respuestas del cuestionario. Se trata de informaci\xF3n sensible relacionada con una evaluaci\xF3n cl\xEDnica inicial, que manejamos con especial cuidado.",
+  "privacy.data_collected_3": "Cookies esenciales, estad\xEDsticas y de preferencias, tal como se detalla en el banner de cookies del sitio.",
+  "privacy.data_collected_4": "Datos t\xE9cnicos de uso b\xE1sicos (como el tipo de navegador y dispositivo) recopilados autom\xE1ticamente para operar el sitio.",
+  "privacy.purposes_title": "Finalidades del uso",
+  "privacy.purpose_1": "Programaci\xF3n y gesti\xF3n de citas.",
+  "privacy.purpose_2": "Procesamiento de cuestionarios de detecci\xF3n para una evaluaci\xF3n cl\xEDnica inicial por parte de nuestro personal cl\xEDnico.",
+  "privacy.purpose_3": "Respuesta a consultas y solicitudes de informaci\xF3n.",
+  "privacy.purpose_4": "Mejora del servicio y del sitio, y an\xE1lisis estad\xEDstico general de uso.",
+  "privacy.purpose_5": "Cumplimiento de las obligaciones legales y regulatorias que nos apliquen.",
+  "privacy.sharing_title": "Compartir informaci\xF3n",
+  "privacy.sharing_body": "No vendemos su informaci\xF3n personal. Los datos son accesibles para el personal de la cl\xEDnica \xFAnicamente para la prestaci\xF3n de atenci\xF3n, y pueden divulgarse si lo exige la ley o una autoridad competente. El enlace de contacto de WhatsApp abre la aplicaci\xF3n externa de WhatsApp, que se rige por su propia pol\xEDtica de privacidad.",
+  "privacy.security_title": "Seguridad y conservaci\xF3n de datos",
+  "privacy.security_body": "Tomamos medidas t\xE9cnicas y organizativas razonables para proteger la informaci\xF3n que recopilamos. La informaci\xF3n se conserva durante el tiempo necesario para prestar el servicio y cumplir con las obligaciones aplicables de conservaci\xF3n de registros m\xE9dicos/comerciales, tras lo cual se elimina o anonimiza.",
+  "privacy.rights_title": "Sus derechos",
+  "privacy.rights_body": "De acuerdo con la Ley de Protecci\xF3n de la Privacidad, tiene derecho a revisar la informaci\xF3n que se guarda sobre usted, solicitar su correcci\xF3n y, en ciertas circunstancias, solicitar su eliminaci\xF3n. Para ejercer estos derechos, cont\xE1ctenos utilizando los datos a continuaci\xF3n.",
+  "privacy.contact_title": "Contacto de privacidad",
+  "privacy.updated_date": "Esta pol\xEDtica se actualiz\xF3 por \xFAltima vez el: 15 de julio de 2026.",
+  "a11y_statement.title": "Declaraci\xF3n de accesibilidad",
+  "a11y_statement.intro": "Keshev Plus trabaja para que sus servicios digitales sean accesibles para el p\xFAblico en general, incluidas las personas con discapacidad, por la convicci\xF3n de que todos merecen un servicio equitativo y accesible. Este trabajo se lleva a cabo de acuerdo con la Ley de Igualdad de Derechos de las Personas con Discapacidad de Israel de 1998, el Reglamento de Igualdad de Derechos de las Personas con Discapacidad (Adaptaciones de Accesibilidad del Servicio) de 2013, y en l\xEDnea con la Norma Israel\xED 5568 y las directrices internacionales WCAG 2.0 Nivel AA.",
+  "a11y_statement.accommodations_title": "Adaptaciones de accesibilidad en este sitio",
+  "a11y_statement.accommodation_1": "Un men\xFA de accesibilidad dedicado (icono de silla de ruedas en la esquina de la pantalla) que permite a cada visitante ajustar el sitio a sus necesidades.",
+  "a11y_statement.accommodation_2": "Aumentar y disminuir el tama\xF1o del texto.",
+  "a11y_statement.accommodation_3": "Ajustar la altura de l\xEDnea y el espaciado entre letras/palabras para lectores con dificultades de lectura.",
+  "a11y_statement.accommodation_4": "Modo de alto contraste y modo escala de grises.",
+  "a11y_statement.accommodation_5": "Resaltado de enlaces.",
+  "a11y_statement.accommodation_6": "Cambio a una fuente muy legible.",
+  "a11y_statement.accommodation_7": "Cursor del rat\xF3n agrandado.",
+  "a11y_statement.accommodation_8": "Una gu\xEDa de lectura m\xF3vil que sigue al cursor.",
+  "a11y_statement.accommodation_9": "Detener animaciones y transiciones.",
+  "a11y_statement.accommodation_10": "Modo oscuro.",
+  "a11y_statement.accommodation_11": "Textos alternativos descriptivos (alt) para las im\xE1genes del sitio.",
+  "a11y_statement.accommodation_12": "Un enlace directo para saltar al contenido principal, para usuarios de teclado y lectores de pantalla.",
+  "a11y_statement.accommodation_13": "Soporte de navegaci\xF3n por teclado y compatibilidad con lectores de pantalla comunes.",
+  "a11y_statement.accommodation_14": "Un dise\xF1o responsivo adecuado para visualizaci\xF3n en m\xF3vil, tableta y escritorio.",
+  "a11y_statement.limitations_title": "Limitaciones conocidas",
+  "a11y_statement.limitations_body": "Trabajamos continuamente para mejorar la accesibilidad del sitio. A pesar de nuestros esfuerzos, es posible que algunas partes del sitio a\xFAn no sean totalmente accesibles. Si encuentra contenido, una p\xE1gina o un componente que no sea correctamente accesible, le agradecer\xEDamos que nos lo notificara para poder solucionarlo lo antes posible.",
+  "a11y_statement.coordinator_title": "Coordinador de accesibilidad y contacto",
+  "a11y_statement.coordinator_intro": "Las preguntas, comentarios y sugerencias sobre la accesibilidad del sitio pueden enviarse a trav\xE9s de:",
+  "a11y_statement.address": "Yigal Alon 94, Tel Aviv",
+  "a11y_statement.response_time": "Nuestro objetivo es responder a las consultas de accesibilidad dentro de un plazo razonable.",
+  "a11y_statement.further_recourse_title": "Recurso adicional",
+  "a11y_statement.further_recourse_body": "Si no recibi\xF3 una respuesta satisfactoria de nuestra parte, puede contactar a la Comisi\xF3n para la Igualdad de Derechos de las Personas con Discapacidad del Ministerio de Justicia, responsable de hacer cumplir la Ley de Igualdad de Derechos de las Personas con Discapacidad.",
+  "a11y_statement.updated_date": "Esta declaraci\xF3n de accesibilidad se actualiz\xF3 por \xFAltima vez el: 15 de julio de 2026.",
+  "booking.title": "Reservar una cita",
+  "booking.modal_intro": "Complete sus datos y confirmaremos su cita. Los campos con * son obligatorios.",
+  "booking.page_subtitle": "Complete sus datos y confirmaremos su cita",
+  "booking.details_title": "Detalles de la cita",
+  "booking.fields_required_note": "Los campos marcados con * son obligatorios",
+  "booking.full_name": "Nombre completo",
+  "booking.full_name_placeholder": "Introduzca su nombre",
+  "booking.phone": "Tel\xE9fono",
+  "booking.phone_placeholder": "Su n\xFAmero de tel\xE9fono",
+  "booking.email": "Correo electr\xF3nico",
+  "booking.email_placeholder": "Su direcci\xF3n de correo electr\xF3nico",
+  "booking.appointment_type": "Tipo de cita",
+  "booking.date": "Fecha",
+  "booking.time": "Hora",
+  "booking.checking_availability": "Comprobando disponibilidad...",
+  "booking.select_time": "Seleccionar hora",
+  "booking.no_times_available": "No hay horarios disponibles en esta fecha.",
+  "booking.notes": "Notas (opcional)",
+  "booking.notes_placeholder": "Cualquier informaci\xF3n adicional...",
+  "booking.submitting": "Enviando...",
+  "booking.submit": "Reservar cita",
+  "booking.close": "Cerrar",
+  "booking.success_title": "\xA1Cita reservada con \xE9xito!",
+  "booking.success_description": "Nos pondremos en contacto con usted en breve para confirmar su cita. \xA1Gracias!",
+  "booking.back_to_home": "Volver al inicio",
+  "booking.date_unavailable_title": "Fecha no disponible",
+  "booking.date_unavailable_description": "Seleccionamos la fecha disponible m\xE1s cercana.",
+  "booking.time_unavailable_title": "Hora no disponible para este tipo",
+  "booking.time_unavailable_description": "Elija otra hora de la lista actualizada.",
+  "booking.error_title": "Error",
+  "booking.availability_check_failed": "No pudimos comprobar la disponibilidad. Int\xE9ntelo de nuevo.",
+  "booking.fill_required_fields": "Complete todos los campos obligatorios",
+  "booking.booked_toast_title": "\xA1Cita reservada!",
+  "booking.booked_toast_description": "Confirmaremos su cita en breve",
+  "booking.submit_failed": "No se pudo reservar la cita. Int\xE9ntelo de nuevo.",
+  "questionnaire_modal.invalid_type": "Tipo de cuestionario no v\xE1lido",
+  "questionnaire_modal.close": "Cerrar"
 };
 var es_default = es;
 
@@ -1357,6 +2653,8 @@ var de = {
   "nav.faq": "H\xE4ufige Fragen",
   "nav.questionnaires": "Frageb\xF6gen",
   "nav.contact": "Kontakt",
+  "nav.book": "Buchen",
+  "nav.book_now": "Jetzt buchen",
   "nav.skip_to_content": "Zum Hauptinhalt springen",
   "nav.main_navigation": "Hauptnavigation",
   "nav.go_home": "Zur Startseite",
@@ -1406,6 +2704,61 @@ var de = {
   "contact.address": "Tel Aviv, Israel",
   "contact.subtitle": "Hinterlassen Sie Ihre Daten und wir melden uns so schnell wie m\xF6glich bei Ihnen",
   "contact.leave_details": "Hinterlassen Sie Ihre Daten",
+  "contact.email_placeholder": "E-Mail",
+  "contact.phone_placeholder": "Telefonnummer",
+  "contact.topic_label": "Betreff",
+  "contact.topic_option1": "ADHS-Diagnose",
+  "contact.topic_option2": "MOXO-Test",
+  "contact.topic_option3": "Sonstiges",
+  "contact.address_label": "Adresse:",
+  "contact.email_label": "E-Mail:",
+  "contact.details_title": "Kontaktdaten",
+  "contact.directions_title": "Anfahrt & Parken",
+  "contact.clear_form": "Formular leeren",
+  "services.subtitle": "Wir bieten ein breites Spektrum professioneller Dienstleistungen in der ADHS-Diagnose und -Behandlung",
+  "contact.aria_open_form": "Klicken Sie, um das Kontaktformular zu \xF6ffnen",
+  "contact.click_to_open_form": "Klicken Sie, um das Formular zu \xF6ffnen",
+  "contact.navigate_waze": "Mit Waze navigieren",
+  "contact.navigate_google_maps": "Mit Google Maps navigieren",
+  "chat.open": "Chat \xF6ffnen",
+  "chat.how_can_help": "Wie kann ich helfen?",
+  "chat.close": "Schlie\xDFen",
+  "chat.assistant_name": "KeshevPlus-Assistent",
+  "chat.not_you": "Nicht {name}?",
+  "chat.before_start": "Bevor wir beginnen, geben Sie bitte Ihre Daten ein:",
+  "chat.full_name_placeholder": "Vollst\xE4ndiger Name *",
+  "chat.email_placeholder": "E-Mail *",
+  "chat.phone_placeholder": "Telefon (optional)",
+  "chat.starting": "Wird gestartet...",
+  "chat.start_chat": "Chat starten",
+  "chat.welcome_message": "Hallo {name}! Ich bin der virtuelle Assistent von KeshevPlus. Wie kann ich Ihnen helfen?",
+  "chat.type_message": "Nachricht eingeben...",
+  "chat.assistant_typing": "Assistent tippt",
+  "footer.accessibility_statement": "Barrierefreiheitserkl\xE4rung",
+  "questionnaires.fill_online": "Online ausf\xFCllen",
+  "about.doctor_name": "Dr. Irine Kochav-Raifman",
+  "about.doctor_title": "Fach\xE4rztin",
+  "about.doctor_desc": "Umfassende Erfahrung in der Diagnose von Kindern, Jugendlichen und Erwachsenen. Hat viele Patienten auf ihrem Weg zur pers\xF6nlichen Entfaltung und optimalen Funktionsf\xE4higkeit begleitet.",
+  "about.doctor_alt": "Dr. Irine Kochav-Raifman",
+  "about.credential1": "Spezialistin f\xFCr ADHS-Diagnose und -Behandlung",
+  "about.credential2": "\xDCber 15 Jahre Erfahrung",
+  "about.credential3": "Spezialisierung auf Kinder, Jugendliche und Erwachsene",
+  "about.mission": "Unsere Mission ist es, eine pr\xE4zise Diagnose und personalisierte Behandlungspl\xE4ne anzubieten, damit unsere Patienten ihr volles pers\xF6nliches Potenzial entfalten k\xF6nnen.",
+  "about.value1_title": "Pers\xF6nlicher Ansatz",
+  "about.value1_desc": "Jeder Patient erh\xE4lt eine pers\xF6nliche, auf seine individuellen Bed\xFCrfnisse zugeschnittene Betreuung",
+  "about.value2_title": "Professionalit\xE4t",
+  "about.value2_desc": "Erfahrenes Team mit umfassender Expertise und kontinuierlicher Weiterbildung",
+  "about.value3_title": "Diskretion",
+  "about.value3_desc": "Vollst\xE4ndiger Schutz der Privatsph\xE4re und sichere Umgebung",
+  "services.step1_title": "Kontakt",
+  "services.step1_desc": "Erster Kontakt per Telefon oder \xFCber das Website-Formular",
+  "services.step2_title": "Erstberatung",
+  "services.step2_desc": "Erstgespr\xE4ch, Erhebung der Krankengeschichte und Ausf\xFCllen des Fragebogens",
+  "services.step3_title": "Umfassende Bewertung",
+  "services.step3_desc": "Computergest\xFCtzte Tests und ausf\xFChrliche klinische Beurteilung",
+  "services.step4_title": "Bericht & Behandlungsplan",
+  "services.step4_desc": "Erhalt eines detaillierten Berichts und personalisierter Behandlungsempfehlungen",
+  "services.list_label": "Unsere Leistungen",
   "contact.full_name": "Vollst\xE4ndiger Name",
   "contact.phone_label": "Telefon",
   "contact.email_optional": "E-Mail (optional)",
@@ -1466,8 +2819,51 @@ var de = {
   "faq.title": "H\xE4ufige Fragen",
   "faq.subtitle": "Antworten auf die h\xE4ufigsten Fragen",
   "faq.no_answer": "Keine Antwort gefunden? Kontaktieren Sie uns",
+  "services.service1_title": "Umfassende Diagnose",
+  "services.service1_desc": "Personalisierte Diagnose mit fortschrittlichen Tools, klinischen Interviews und computergest\xFCtzten Tests",
+  "services.service2_title": "Medikamentenanpassung",
+  "services.service2_desc": "Personalisierte medikament\xF6se Behandlung mit fortlaufender Sicherheits\xFCberwachung",
+  "services.service3_title": "MOXO-Computertest",
+  "services.service3_desc": "Objektive Bewertung der Aufmerksamkeits- und Konzentrationsfunktionen",
+  "services.service4_title": "Beratung und Nachsorge",
+  "services.service4_desc": "Kontinuierliche fachliche Unterst\xFCtzung und Behandlungs\xFCberwachung",
+  "services.service5_title": "\xDCberweisungen zu erg\xE4nzenden Behandlungen",
+  "services.service5_desc": "\xDCberweisungen zu Ergotherapie, emotionaler Therapie oder psychologischer Unterst\xFCtzung",
+  "faq.q1": "Was ist ADHS?",
+  "faq.a1": "ADHS (Aufmerksamkeitsdefizit-/Hyperaktivit\xE4tsst\xF6rung) ist eine neurologische Entwicklungsst\xF6rung, die Konzentration, Impulskontrolle und Aktivit\xE4tsregulation beeintr\xE4chtigt. Sie ist bei Kindern und Erwachsenen h\xE4ufig und beeintr\xE4chtigt den Alltag, das Studium und die Arbeit.",
+  "faq.q2": "Wie lange dauert der Diagnoseprozess?",
+  "faq.a2": "Der vollst\xE4ndige Diagnoseprozess umfasst mehrere Sitzungen und dauert durchschnittlich 2-4 Wochen. Er umfasst ein ausf\xFChrliches klinisches Interview, computergest\xFCtzte Tests (MOXO), Frageb\xF6gen und die Durchsicht relevanter medizinischer Unterlagen.",
+  "faq.q3": "Ist die Diagnose f\xFCr alle Altersgruppen geeignet?",
+  "faq.a3": "Ja, wir bieten professionelle Diagnosen f\xFCr Kinder ab 6 Jahren, Jugendliche und Erwachsene an. Jede Altersgruppe hat ein ma\xDFgeschneidertes Bewertungsprotokoll, das die besonderen Merkmale dieser Altersgruppe ber\xFCcksichtigt.",
+  "faq.q4": "Was beinhaltet der Behandlungsplan?",
+  "faq.a4": "Der Behandlungsplan ist individuell und umfasst: Medikamentenempfehlungen (falls erforderlich), Elternberatung, praktische Bew\xE4ltigungswerkzeuge f\xFCr den Alltag, \xDCberweisungen zu erg\xE4nzenden Behandlungen und fortlaufende Nachsorge.",
+  "faq.q5": "Ist eine \xE4rztliche \xDCberweisung erforderlich?",
+  "faq.a5": "Nein, eine \xDCberweisung ist nicht erforderlich. Sie k\xF6nnen sich direkt an die Klinik wenden, um einen Diagnosetermin zu vereinbaren. Falls Sie fr\xFChere medizinische Unterlagen haben, wird jedoch empfohlen, diese zum ersten Termin mitzubringen.",
+  "faq.q6": "Was ist der Unterschied zwischen ADS und ADHS?",
+  "faq.a6": "ADS ist der alte Begriff f\xFCr Aufmerksamkeitsdefizit ohne Hyperaktivit\xE4t. Heute wird der Begriff ADHS mit drei Subtypen verwendet: vorwiegend unaufmerksam, vorwiegend hyperaktiv-impulsiv oder kombiniert.",
   "services.process_steps": "Schritte des Diagnoseprozesses",
   "footer.rights": "\xA9 2025 Alle Rechte vorbehalten f\xFCr Keshev Plus",
+  "footer.moxo_certified": "Moxo-zertifiziert",
+  "footer.moxo_certified_desc": "Computergest\xFCtzte ADHS-Bewertung",
+  "cookies.notice": "Diese Website verwendet Cookies, um Ihr Surferlebnis zu verbessern und f\xFCr statistische Zwecke. Durch die weitere Nutzung der Website stimmen Sie der Verwendung von Cookies gem\xE4\xDF unserer Datenschutzrichtlinie zu.",
+  "cookies.used_include": "Die auf dieser Website verwendeten Cookies umfassen:",
+  "cookies.essential": "Essenzielle Cookies - f\xFCr die ordnungsgem\xE4\xDFe Funktion der Website",
+  "cookies.statistical": "Statistik-Cookies - zur Nutzungsanalyse und Serviceverbesserung",
+  "cookies.preference": "Pr\xE4ferenz-Cookies - zum Speichern von Benutzereinstellungen",
+  "cookies.privacy_note": "Gem\xE4\xDF dem Datenschutzgesetz informieren wir Sie \xFCber die Verwendung von Cookies und bitten um Ihre Zustimmung.",
+  "cookies.hide_details": "Details ausblenden",
+  "cookies.more_info": "Mehr Infos",
+  "cookies.accept": "Ich stimme zu",
+  "appt_date.select_date": "Datum ausw\xE4hlen",
+  "appt_date.clinic_closed": "Die Praxis ist an diesem Tag geschlossen",
+  "appt_date.gray_unavailable": "Graue Tage stehen f\xFCr Termine nicht zur Verf\xFCgung.",
+  "appt_for.who": "F\xFCr wen ist der Termin?",
+  "appt_for.me": "F\xFCr mich",
+  "appt_for.child": "F\xFCr das Kind",
+  "appt_for.child_name": "Name des Kindes",
+  "appt_for.child_age": "Alter des Kindes",
+  "appt_for.child_age_placeholder": "(mindestens 6)",
+  "appt_for.min_age_error": "Das Mindestalter betr\xE4gt 6",
   "footer.clinic_desc": "F\xFChrende Klinik f\xFCr ADHS-Diagnose und -Behandlung bei Kindern, Jugendlichen und Erwachsenen.",
   "footer.quick_links": "Schnelllinks",
   "footer.contact_info": "Kontaktinformationen",
@@ -1487,7 +2883,132 @@ var de = {
   "admin.multilingual": "Mehrsprachig (Alle Sprachen)",
   "admin.default_language": "Standardsprache",
   "admin.settings_saved": "Einstellungen gespeichert",
-  "admin.settings_error": "Fehler beim Speichern"
+  "admin.settings_error": "Fehler beim Speichern",
+  "a11y.accessibility_settings": "Barrierefreiheitseinstellungen",
+  "a11y.text_size": "Textgr\xF6\xDFe",
+  "a11y.decrease_text": "Text verkleinern",
+  "a11y.increase_text": "Text vergr\xF6\xDFern",
+  "a11y.line_height": "Zeilenh\xF6he",
+  "a11y.decrease_line_height": "Zeilenh\xF6he verringern",
+  "a11y.increase_line_height": "Zeilenh\xF6he erh\xF6hen",
+  "a11y.letter_spacing": "Buchstabenabstand",
+  "a11y.decrease_letter_spacing": "Buchstabenabstand verringern",
+  "a11y.increase_letter_spacing": "Buchstabenabstand erh\xF6hen",
+  "a11y.reading_guide": "Lesehilfe",
+  "a11y.high_contrast": "Hoher Kontrast",
+  "a11y.highlight_links": "Links hervorheben",
+  "a11y.grayscale": "Graustufen",
+  "a11y.readable_font": "Lesbare Schrift",
+  "a11y.large_cursor": "Gro\xDFer Cursor",
+  "a11y.stop_animations": "Animationen stoppen",
+  "a11y.reset": "Zur\xFCcksetzen",
+  "a11y.close": "Schlie\xDFen",
+  "a11y.accessibility_menu": "Barrierefreiheitsmen\xFC",
+  "a11y.dark_mode": "Dunkler Modus",
+  "a11y.light_mode": "Heller Modus",
+  "a11y.accessibility_statement": "Erkl\xE4rung zur Barrierefreiheit",
+  "a11y.accessibility_statement_text": "Diese Website verpflichtet sich zur digitalen Barrierefreiheit gem\xE4\xDF israelischem Recht.",
+  "terms.title": "Nutzungsbedingungen",
+  "terms.intro": "Die Nutzung der Keshev-Plus-Website (\u201Edie Website\u201C) unterliegt den nachstehenden Bedingungen. Das Browsen auf der Website und/oder die Nutzung ihrer Dienste stellt die Zustimmung zu diesen Bedingungen dar.",
+  "terms.service_nature_title": "Art des Dienstes",
+  "terms.service_nature_p1": "Die Website bietet allgemeine Informationen zur Diagnose und Behandlung von ADHS sowie Online-Tools zur Terminvereinbarung und zum Ausf\xFCllen erster Screening-Frageb\xF6gen.",
+  "terms.service_nature_p2": "Die Online-Screening-Frageb\xF6gen stellen keine medizinische Diagnose dar und ersetzen keine Beratung, Diagnose oder Behandlung durch eine qualifizierte Fachperson. Die Fragebogenergebnisse dienen lediglich der Unterst\xFCtzung unseres klinischen Personals bei einer ersten Einsch\xE4tzung; eine endg\xFCltige Diagnose erfolgt ausschlie\xDFlich im Rahmen einer klinischen Untersuchung.",
+  "terms.fair_use_title": "Angemessene Nutzung der Website",
+  "terms.fair_use_body": "Die Website darf nicht f\xFCr rechtswidrige Zwecke genutzt werden, und es d\xFCrfen keine Versuche unternommen werden, ihren ordnungsgem\xE4\xDFen Betrieb zu st\xF6ren, einschlie\xDFlich Hacking-Versuchen, unbefugtem Zugriff auf Daten oder automatisiertem Scraping ohne vorherige Zustimmung.",
+  "terms.ip_title": "Geistiges Eigentum",
+  "terms.ip_body": "Alle Rechte an den Inhalten der Website, einschlie\xDFlich Texten, Design, Logo und Bildern, geh\xF6ren Keshev Plus oder Dritten, die die Nutzung lizenziert haben, und d\xFCrfen ohne schriftliche Genehmigung nicht kopiert oder verwendet werden.",
+  "terms.liability_title": "Haftungsbeschr\xE4nkung",
+  "terms.liability_body": "Die Informationen auf der Website dienen ausschlie\xDFlich allgemeinen Informationszwecken und stellen keine medizinische Beratung dar. Keshev Plus haftet nicht f\xFCr Sch\xE4den, die aus dem Vertrauen auf die Inhalte der Website ohne entsprechende fachliche Beratung entstehen. Links zu externen Websites und Diensten (wie WhatsApp und soziale Medien) unterliegen den Nutzungsbedingungen und Datenschutzrichtlinien dieser Dritten, f\xFCr deren Inhalte wir nicht verantwortlich sind.",
+  "terms.jurisdiction_title": "Anwendbares Recht und Gerichtsstand",
+  "terms.jurisdiction_body": "Diese Bedingungen unterliegen den Gesetzen des Staates Israel, und die Gerichte des Bezirks Tel Aviv haben ausschlie\xDFliche Zust\xE4ndigkeit f\xFCr alle damit zusammenh\xE4ngenden Angelegenheiten.",
+  "terms.changes_title": "\xC4nderungen dieser Bedingungen",
+  "terms.changes_body": "Wir k\xF6nnen diese Bedingungen von Zeit zu Zeit aktualisieren. Die fortgesetzte Nutzung der Website nach Ver\xF6ffentlichung von \xC4nderungen stellt die Annahme der aktualisierten Bedingungen dar.",
+  "terms.contact_title": "Kontakt",
+  "terms.updated_date": "Diese Bedingungen wurden zuletzt aktualisiert am: 15. Juli 2026.",
+  "privacy.title": "Datenschutzerkl\xE4rung",
+  "privacy.intro": "Keshev Plus (\u201Ewir\u201C, \u201Edie Klinik\u201C) respektiert Ihre Privatsph\xE4re. Diese Richtlinie erkl\xE4rt, welche Daten wir \xFCber die Website sammeln, wof\xFCr wir sie verwenden und wie Sie uns diesbez\xFCglich kontaktieren k\xF6nnen. Sie gilt gem\xE4\xDF dem israelischen Datenschutzgesetz von 1981 und der Datenschutzverordnung (Datensicherheit) von 2017.",
+  "privacy.data_collected_title": "Informationen, die wir sammeln",
+  "privacy.data_collected_1": "Kontaktdaten: Name, E-Mail-Adresse und Telefonnummer, wenn Sie uns kontaktieren, einen Termin vereinbaren oder das Kontaktformular verwenden.",
+  "privacy.data_collected_2": "Daten des ADHS-Screening-Fragebogens: Name, Alter, Geschlecht und Beziehung des Kindes zur antwortenden Person sowie die Antworten auf den Fragebogen. Dies sind sensible Informationen im Zusammenhang mit einer ersten klinischen Einsch\xE4tzung, die wir mit besonderer Sorgfalt behandeln.",
+  "privacy.data_collected_3": "Notwendige, statistische und Pr\xE4ferenz-Cookies, wie im Cookie-Banner der Website detailliert beschrieben.",
+  "privacy.data_collected_4": "Grundlegende technische Nutzungsdaten (wie Browser- und Ger\xE4tetyp), die automatisch zum Betrieb der Website erfasst werden.",
+  "privacy.purposes_title": "Zwecke der Nutzung",
+  "privacy.purpose_1": "Planung und Verwaltung von Terminen.",
+  "privacy.purpose_2": "Verarbeitung von Screening-Frageb\xF6gen f\xFCr eine erste klinische Einsch\xE4tzung durch unser klinisches Personal.",
+  "privacy.purpose_3": "Beantwortung von Anfragen und Informationsw\xFCnschen.",
+  "privacy.purpose_4": "Verbesserung des Dienstes und der Website sowie allgemeine statistische Nutzungsanalyse.",
+  "privacy.purpose_5": "Erf\xFCllung der f\xFCr uns geltenden gesetzlichen und regulatorischen Verpflichtungen.",
+  "privacy.sharing_title": "Weitergabe von Informationen",
+  "privacy.sharing_body": "Wir verkaufen Ihre pers\xF6nlichen Daten nicht. Die Daten sind f\xFCr das Klinikpersonal ausschlie\xDFlich zur Bereitstellung der Behandlung zug\xE4nglich und k\xF6nnen offengelegt werden, wenn dies gesetzlich oder von einer zust\xE4ndigen Beh\xF6rde verlangt wird. Der WhatsApp-Kontaktlink \xF6ffnet die externe WhatsApp-Anwendung, die ihrer eigenen Datenschutzrichtlinie unterliegt.",
+  "privacy.security_title": "Datensicherheit und Aufbewahrung",
+  "privacy.security_body": "Wir treffen angemessene technische und organisatorische Ma\xDFnahmen zum Schutz der von uns gesammelten Informationen. Informationen werden so lange aufbewahrt, wie es zur Erbringung des Dienstes und zur Einhaltung der geltenden Aufbewahrungspflichten f\xFCr medizinische/gesch\xE4ftliche Aufzeichnungen erforderlich ist, danach werden sie gel\xF6scht oder anonymisiert.",
+  "privacy.rights_title": "Ihre Rechte",
+  "privacy.rights_body": "Gem\xE4\xDF dem Datenschutzgesetz haben Sie das Recht, die \xFCber Sie gespeicherten Informationen einzusehen, deren Berichtigung zu verlangen und unter bestimmten Umst\xE4nden deren L\xF6schung zu verlangen. Um diese Rechte auszu\xFCben, kontaktieren Sie uns bitte \xFCber die unten stehenden Angaben.",
+  "privacy.contact_title": "Datenschutzkontakt",
+  "privacy.updated_date": "Diese Richtlinie wurde zuletzt aktualisiert am: 15. Juli 2026.",
+  "a11y_statement.title": "Barrierefreiheitserkl\xE4rung",
+  "a11y_statement.intro": "Keshev Plus arbeitet daran, seine digitalen Dienste f\xFCr die Allgemeinheit zug\xE4nglich zu machen, einschlie\xDFlich Menschen mit Behinderungen, aus der \xDCberzeugung heraus, dass jeder Anspruch auf einen gleichberechtigten und zug\xE4nglichen Service hat. Diese Arbeit erfolgt gem\xE4\xDF dem israelischen Gesetz \xFCber die Gleichberechtigung von Menschen mit Behinderungen von 1998, der Verordnung \xFCber die Gleichberechtigung von Menschen mit Behinderungen (Anpassungen der Servicezug\xE4nglichkeit) von 2013 und im Einklang mit dem israelischen Standard 5568 und den internationalen WCAG-2.0-Richtlinien der Stufe AA.",
+  "a11y_statement.accommodations_title": "Barrierefreiheits-Anpassungen auf dieser Website",
+  "a11y_statement.accommodation_1": "Ein spezielles Barrierefreiheitsmen\xFC (Rollstuhl-Symbol in der Ecke des Bildschirms), mit dem jeder Besucher die Website an seine Bed\xFCrfnisse anpassen kann.",
+  "a11y_statement.accommodation_2": "Vergr\xF6\xDFern und Verkleinern der Textgr\xF6\xDFe.",
+  "a11y_statement.accommodation_3": "Anpassung von Zeilenh\xF6he und Buchstaben-/Wortabstand f\xFCr Leser mit Leseschwierigkeiten.",
+  "a11y_statement.accommodation_4": "Hoher-Kontrast-Modus und Graustufen-Modus.",
+  "a11y_statement.accommodation_5": "Hervorhebung von Links.",
+  "a11y_statement.accommodation_6": "Wechsel zu einer besonders gut lesbaren Schrift.",
+  "a11y_statement.accommodation_7": "Vergr\xF6\xDFerter Mauszeiger.",
+  "a11y_statement.accommodation_8": "Eine bewegliche Lesehilfe, die dem Cursor folgt.",
+  "a11y_statement.accommodation_9": "Stoppen von Animationen und \xDCberg\xE4ngen.",
+  "a11y_statement.accommodation_10": "Dunkler Modus (Dark Mode).",
+  "a11y_statement.accommodation_11": "Beschreibende Alternativtexte (Alt-Texte) f\xFCr Bilder auf der Website.",
+  "a11y_statement.accommodation_12": "Ein direkter Link zum \xDCberspringen zum Hauptinhalt f\xFCr Tastatur- und Screenreader-Nutzer.",
+  "a11y_statement.accommodation_13": "Unterst\xFCtzung der Tastaturnavigation und Kompatibilit\xE4t mit g\xE4ngigen Screenreadern.",
+  "a11y_statement.accommodation_14": "Ein responsives Design, geeignet f\xFCr die Anzeige auf Mobilger\xE4ten, Tablets und Desktops.",
+  "a11y_statement.limitations_title": "Bekannte Einschr\xE4nkungen",
+  "a11y_statement.limitations_body": "Wir arbeiten kontinuierlich daran, die Barrierefreiheit der Website zu verbessern. Trotz unserer Bem\xFChungen sind m\xF6glicherweise einige Teile der Website noch nicht vollst\xE4ndig zug\xE4nglich. Wenn Sie auf Inhalte, eine Seite oder eine Komponente sto\xDFen, die nicht ordnungsgem\xE4\xDF zug\xE4nglich ist, lassen Sie es uns bitte wissen, damit wir das Problem so schnell wie m\xF6glich beheben k\xF6nnen.",
+  "a11y_statement.coordinator_title": "Barrierefreiheitsbeauftragte(r) und Kontakt",
+  "a11y_statement.coordinator_intro": "Fragen, Kommentare und Vorschl\xE4ge zur Barrierefreiheit der Website k\xF6nnen Sie uns \xFCber folgende Wege zukommen lassen:",
+  "a11y_statement.address": "Yigal-Alon-Stra\xDFe 94, Tel Aviv",
+  "a11y_statement.response_time": "Wir bem\xFChen uns, auf Anfragen zur Barrierefreiheit innerhalb angemessener Zeit zu antworten.",
+  "a11y_statement.further_recourse_title": "Weitere Beschwerdem\xF6glichkeiten",
+  "a11y_statement.further_recourse_body": "Wenn Sie von uns keine zufriedenstellende Antwort erhalten haben, k\xF6nnen Sie sich an die Kommission f\xFCr die Gleichberechtigung von Menschen mit Behinderungen im Justizministerium wenden, die f\xFCr die Durchsetzung des Gesetzes \xFCber die Gleichberechtigung von Menschen mit Behinderungen zust\xE4ndig ist.",
+  "a11y_statement.updated_date": "Diese Barrierefreiheitserkl\xE4rung wurde zuletzt aktualisiert am: 15. Juli 2026.",
+  "booking.title": "Termin vereinbaren",
+  "booking.modal_intro": "Geben Sie Ihre Daten ein, und wir best\xE4tigen Ihren Termin. Mit * markierte Felder sind Pflichtfelder.",
+  "booking.page_subtitle": "Geben Sie Ihre Daten ein, und wir best\xE4tigen Ihren Termin",
+  "booking.details_title": "Termindetails",
+  "booking.fields_required_note": "Mit * markierte Felder sind Pflichtfelder",
+  "booking.full_name": "Vollst\xE4ndiger Name",
+  "booking.full_name_placeholder": "Geben Sie Ihren Namen ein",
+  "booking.phone": "Telefon",
+  "booking.phone_placeholder": "Ihre Telefonnummer",
+  "booking.email": "E-Mail",
+  "booking.email_placeholder": "Ihre E-Mail-Adresse",
+  "booking.appointment_type": "Terminart",
+  "booking.date": "Datum",
+  "booking.time": "Uhrzeit",
+  "booking.checking_availability": "Verf\xFCgbarkeit wird gepr\xFCft...",
+  "booking.select_time": "Uhrzeit ausw\xE4hlen",
+  "booking.no_times_available": "Keine verf\xFCgbaren Zeiten an diesem Datum.",
+  "booking.notes": "Anmerkungen (optional)",
+  "booking.notes_placeholder": "Zus\xE4tzliche Informationen...",
+  "booking.submitting": "Wird gesendet...",
+  "booking.submit": "Termin vereinbaren",
+  "booking.close": "Schlie\xDFen",
+  "booking.success_title": "Termin erfolgreich vereinbart!",
+  "booking.success_description": "Wir werden uns in K\xFCrze bei Ihnen melden, um Ihren Termin zu best\xE4tigen. Vielen Dank!",
+  "booking.back_to_home": "Zur\xFCck zur Startseite",
+  "booking.date_unavailable_title": "Datum nicht verf\xFCgbar",
+  "booking.date_unavailable_description": "Wir haben das n\xE4chstgelegene verf\xFCgbare Datum ausgew\xE4hlt.",
+  "booking.time_unavailable_title": "Uhrzeit f\xFCr diese Terminart nicht verf\xFCgbar",
+  "booking.time_unavailable_description": "Bitte w\xE4hlen Sie eine andere Uhrzeit aus der aktualisierten Liste.",
+  "booking.error_title": "Fehler",
+  "booking.availability_check_failed": "Verf\xFCgbarkeit konnte nicht gepr\xFCft werden. Bitte versuchen Sie es erneut.",
+  "booking.fill_required_fields": "Bitte f\xFCllen Sie alle Pflichtfelder aus",
+  "booking.booked_toast_title": "Termin vereinbart!",
+  "booking.booked_toast_description": "Wir werden Ihren Termin in K\xFCrze best\xE4tigen",
+  "booking.submit_failed": "Terminvereinbarung fehlgeschlagen. Bitte versuchen Sie es erneut.",
+  "questionnaire_modal.invalid_type": "Ung\xFCltiger Fragebogentyp",
+  "questionnaire_modal.close": "Schlie\xDFen"
 };
 var de_default = de;
 
@@ -1501,6 +3022,8 @@ var ru = {
   "nav.faq": "\u0427\u0430\u0441\u0442\u044B\u0435 \u0432\u043E\u043F\u0440\u043E\u0441\u044B",
   "nav.questionnaires": "\u041E\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0438",
   "nav.contact": "\u041A\u043E\u043D\u0442\u0430\u043A\u0442\u044B",
+  "nav.book": "\u0417\u0430\u043F\u0438\u0441\u0430\u0442\u044C\u0441\u044F",
+  "nav.book_now": "\u0417\u0430\u043F\u0438\u0441\u0430\u0442\u044C\u0441\u044F \u0441\u0435\u0439\u0447\u0430\u0441",
   "nav.skip_to_content": "\u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u043A \u043E\u0441\u043D\u043E\u0432\u043D\u043E\u043C\u0443 \u0441\u043E\u0434\u0435\u0440\u0436\u0430\u043D\u0438\u044E",
   "nav.main_navigation": "\u041E\u0441\u043D\u043E\u0432\u043D\u0430\u044F \u043D\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u044F",
   "nav.go_home": "\u041D\u0430 \u0433\u043B\u0430\u0432\u043D\u0443\u044E \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443",
@@ -1550,6 +3073,61 @@ var ru = {
   "contact.address": "\u0422\u0435\u043B\u044C-\u0410\u0432\u0438\u0432, \u0418\u0437\u0440\u0430\u0438\u043B\u044C",
   "contact.subtitle": "\u041E\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u0441\u0432\u043E\u0438 \u0434\u0430\u043D\u043D\u044B\u0435, \u0438 \u043C\u044B \u0441\u0432\u044F\u0436\u0435\u043C\u0441\u044F \u0441 \u0432\u0430\u043C\u0438 \u043A\u0430\u043A \u043C\u043E\u0436\u043D\u043E \u0441\u043A\u043E\u0440\u0435\u0435",
   "contact.leave_details": "\u041E\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u0441\u0432\u043E\u0438 \u0434\u0430\u043D\u043D\u044B\u0435",
+  "contact.email_placeholder": "Email",
+  "contact.phone_placeholder": "\u041D\u043E\u043C\u0435\u0440 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0430",
+  "contact.topic_label": "\u0422\u0435\u043C\u0430",
+  "contact.topic_option1": "\u0414\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0430 \u0421\u0414\u0412\u0413",
+  "contact.topic_option2": "\u0422\u0435\u0441\u0442 MOXO",
+  "contact.topic_option3": "\u0414\u0440\u0443\u0433\u043E\u0435",
+  "contact.address_label": "\u0410\u0434\u0440\u0435\u0441:",
+  "contact.email_label": "Email:",
+  "contact.details_title": "\u041A\u043E\u043D\u0442\u0430\u043A\u0442\u043D\u044B\u0435 \u0434\u0430\u043D\u043D\u044B\u0435",
+  "contact.directions_title": "\u041A\u0430\u043A \u0434\u043E\u0431\u0440\u0430\u0442\u044C\u0441\u044F \u0438 \u043F\u0430\u0440\u043A\u043E\u0432\u043A\u0430",
+  "contact.clear_form": "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C \u0444\u043E\u0440\u043C\u0443",
+  "services.subtitle": "\u041C\u044B \u043F\u0440\u0435\u0434\u043B\u0430\u0433\u0430\u0435\u043C \u0448\u0438\u0440\u043E\u043A\u0438\u0439 \u0441\u043F\u0435\u043A\u0442\u0440 \u043F\u0440\u043E\u0444\u0435\u0441\u0441\u0438\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0445 \u0443\u0441\u043B\u0443\u0433 \u043F\u043E \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0435 \u0438 \u043B\u0435\u0447\u0435\u043D\u0438\u044E \u0421\u0414\u0412\u0413",
+  "contact.aria_open_form": "\u041D\u0430\u0436\u043C\u0438\u0442\u0435, \u0447\u0442\u043E\u0431\u044B \u043E\u0442\u043A\u0440\u044B\u0442\u044C \u0444\u043E\u0440\u043C\u0443 \u043E\u0431\u0440\u0430\u0442\u043D\u043E\u0439 \u0441\u0432\u044F\u0437\u0438",
+  "contact.click_to_open_form": "\u041D\u0430\u0436\u043C\u0438\u0442\u0435, \u0447\u0442\u043E\u0431\u044B \u043E\u0442\u043A\u0440\u044B\u0442\u044C \u0444\u043E\u0440\u043C\u0443",
+  "contact.navigate_waze": "\u041C\u0430\u0440\u0448\u0440\u0443\u0442 \u0447\u0435\u0440\u0435\u0437 Waze",
+  "contact.navigate_google_maps": "\u041C\u0430\u0440\u0448\u0440\u0443\u0442 \u0447\u0435\u0440\u0435\u0437 Google Maps",
+  "chat.open": "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0447\u0430\u0442",
+  "chat.how_can_help": "\u0427\u0435\u043C \u044F \u043C\u043E\u0433\u0443 \u043F\u043E\u043C\u043E\u0447\u044C?",
+  "chat.close": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C",
+  "chat.assistant_name": "\u0410\u0441\u0441\u0438\u0441\u0442\u0435\u043D\u0442 KeshevPlus",
+  "chat.not_you": "\u041D\u0435 {name}?",
+  "chat.before_start": "\u041F\u0440\u0435\u0436\u0434\u0435 \u0447\u0435\u043C \u043D\u0430\u0447\u0430\u0442\u044C, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0432\u043E\u0438 \u0434\u0430\u043D\u043D\u044B\u0435:",
+  "chat.full_name_placeholder": "\u041F\u043E\u043B\u043D\u043E\u0435 \u0438\u043C\u044F *",
+  "chat.email_placeholder": "Email *",
+  "chat.phone_placeholder": "\u0422\u0435\u043B\u0435\u0444\u043E\u043D (\u043D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E)",
+  "chat.starting": "\u041D\u0430\u0447\u0438\u043D\u0430\u0435\u043C...",
+  "chat.start_chat": "\u041D\u0430\u0447\u0430\u0442\u044C \u0447\u0430\u0442",
+  "chat.welcome_message": "\u0417\u0434\u0440\u0430\u0432\u0441\u0442\u0432\u0443\u0439\u0442\u0435, {name}! \u042F \u0432\u0438\u0440\u0442\u0443\u0430\u043B\u044C\u043D\u044B\u0439 \u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043D\u0442 KeshevPlus. \u0427\u0435\u043C \u043C\u043E\u0433\u0443 \u043F\u043E\u043C\u043E\u0447\u044C?",
+  "chat.type_message": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435...",
+  "chat.assistant_typing": "\u0410\u0441\u0441\u0438\u0441\u0442\u0435\u043D\u0442 \u043F\u0435\u0447\u0430\u0442\u0430\u0435\u0442",
+  "footer.accessibility_statement": "\u0417\u0430\u044F\u0432\u043B\u0435\u043D\u0438\u0435 \u043E \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u0438",
+  "questionnaires.fill_online": "\u0417\u0430\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u043E\u043D\u043B\u0430\u0439\u043D",
+  "about.doctor_name": "\u0414-\u0440 \u0418\u0440\u0438\u043D\u0430 \u041A\u043E\u0447\u0430\u0432-\u0420\u0430\u0439\u0444\u043C\u0430\u043D",
+  "about.doctor_title": "\u0412\u0440\u0430\u0447-\u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442",
+  "about.doctor_desc": "\u041E\u0431\u0448\u0438\u0440\u043D\u044B\u0439 \u043E\u043F\u044B\u0442 \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0438 \u0434\u0435\u0442\u0435\u0439, \u043F\u043E\u0434\u0440\u043E\u0441\u0442\u043A\u043E\u0432 \u0438 \u0432\u0437\u0440\u043E\u0441\u043B\u044B\u0445. \u0421\u043E\u043F\u0440\u043E\u0432\u043E\u0436\u0434\u0430\u043B\u0430 \u043C\u043D\u043E\u0433\u0438\u0445 \u043F\u0430\u0446\u0438\u0435\u043D\u0442\u043E\u0432 \u043D\u0430 \u043F\u0443\u0442\u0438 \u043A \u043B\u0438\u0447\u043D\u043E\u0439 \u0441\u0430\u043C\u043E\u0440\u0435\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u0438 \u0438 \u043E\u043F\u0442\u0438\u043C\u0430\u043B\u044C\u043D\u043E\u043C\u0443 \u0444\u0443\u043D\u043A\u0446\u0438\u043E\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044E.",
+  "about.doctor_alt": "\u0414-\u0440 \u0418\u0440\u0438\u043D\u0430 \u041A\u043E\u0447\u0430\u0432-\u0420\u0430\u0439\u0444\u043C\u0430\u043D",
+  "about.credential1": "\u0421\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442 \u043F\u043E \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0435 \u0438 \u043B\u0435\u0447\u0435\u043D\u0438\u044E \u0421\u0414\u0412\u0413",
+  "about.credential2": "\u0411\u043E\u043B\u0435\u0435 15 \u043B\u0435\u0442 \u043E\u043F\u044B\u0442\u0430",
+  "about.credential3": "\u0421\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u044F: \u0434\u0435\u0442\u0438, \u043F\u043E\u0434\u0440\u043E\u0441\u0442\u043A\u0438 \u0438 \u0432\u0437\u0440\u043E\u0441\u043B\u044B\u0435",
+  "about.mission": "\u041D\u0430\u0448\u0430 \u043C\u0438\u0441\u0441\u0438\u044F \u2014 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u043B\u044F\u0442\u044C \u0442\u043E\u0447\u043D\u0443\u044E \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0443 \u0438 \u0438\u043D\u0434\u0438\u0432\u0438\u0434\u0443\u0430\u043B\u044C\u043D\u044B\u0435 \u043F\u043B\u0430\u043D\u044B \u043B\u0435\u0447\u0435\u043D\u0438\u044F, \u043F\u043E\u043C\u043E\u0433\u0430\u044F \u043D\u0430\u0448\u0438\u043C \u043F\u0430\u0446\u0438\u0435\u043D\u0442\u0430\u043C \u043F\u043E\u043B\u043D\u043E\u0441\u0442\u044C\u044E \u0440\u0430\u0441\u043A\u0440\u044B\u0442\u044C \u0441\u0432\u043E\u0439 \u043B\u0438\u0447\u043D\u044B\u0439 \u043F\u043E\u0442\u0435\u043D\u0446\u0438\u0430\u043B.",
+  "about.value1_title": "\u0418\u043D\u0434\u0438\u0432\u0438\u0434\u0443\u0430\u043B\u044C\u043D\u044B\u0439 \u043F\u043E\u0434\u0445\u043E\u0434",
+  "about.value1_desc": "\u041A\u0430\u0436\u0434\u044B\u0439 \u043F\u0430\u0446\u0438\u0435\u043D\u0442 \u043F\u043E\u043B\u0443\u0447\u0430\u0435\u0442 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u044C\u043D\u043E\u0435 \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u0435 \u0441 \u0443\u0447\u0451\u0442\u043E\u043C \u0435\u0433\u043E \u0443\u043D\u0438\u043A\u0430\u043B\u044C\u043D\u044B\u0445 \u043F\u043E\u0442\u0440\u0435\u0431\u043D\u043E\u0441\u0442\u0435\u0439",
+  "about.value2_title": "\u041F\u0440\u043E\u0444\u0435\u0441\u0441\u0438\u043E\u043D\u0430\u043B\u0438\u0437\u043C",
+  "about.value2_desc": "\u041A\u043E\u043C\u0430\u043D\u0434\u0430 \u044D\u043A\u0441\u043F\u0435\u0440\u0442\u043E\u0432 \u0441 \u0431\u043E\u043B\u044C\u0448\u0438\u043C \u043E\u043F\u044B\u0442\u043E\u043C \u0438 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u044B\u043C \u043F\u043E\u0432\u044B\u0448\u0435\u043D\u0438\u0435\u043C \u043A\u0432\u0430\u043B\u0438\u0444\u0438\u043A\u0430\u0446\u0438\u0438",
+  "about.value3_title": "\u041A\u043E\u043D\u0444\u0438\u0434\u0435\u043D\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0441\u0442\u044C",
+  "about.value3_desc": "\u041F\u043E\u043B\u043D\u0430\u044F \u0437\u0430\u0449\u0438\u0442\u0430 \u043A\u043E\u043D\u0444\u0438\u0434\u0435\u043D\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0441\u0442\u0438 \u0438 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u0430\u044F \u043E\u0431\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430",
+  "services.step1_title": "\u041A\u043E\u043D\u0442\u0430\u043A\u0442",
+  "services.step1_desc": "\u041F\u0435\u0440\u0432\u0438\u0447\u043D\u044B\u0439 \u043A\u043E\u043D\u0442\u0430\u043A\u0442 \u043F\u043E \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0443 \u0438\u043B\u0438 \u0447\u0435\u0440\u0435\u0437 \u0444\u043E\u0440\u043C\u0443 \u043D\u0430 \u0441\u0430\u0439\u0442\u0435",
+  "services.step2_title": "\u041F\u0435\u0440\u0432\u0438\u0447\u043D\u0430\u044F \u043A\u043E\u043D\u0441\u0443\u043B\u044C\u0442\u0430\u0446\u0438\u044F",
+  "services.step2_desc": "\u041F\u0435\u0440\u0432\u0438\u0447\u043D\u043E\u0435 \u0438\u043D\u0442\u0435\u0440\u0432\u044C\u044E, \u0441\u0431\u043E\u0440 \u0430\u043D\u0430\u043C\u043D\u0435\u0437\u0430 \u0438 \u0437\u0430\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u0430\u043D\u043A\u0435\u0442\u044B",
+  "services.step3_title": "\u041A\u043E\u043C\u043F\u043B\u0435\u043A\u0441\u043D\u0430\u044F \u043E\u0446\u0435\u043D\u043A\u0430",
+  "services.step3_desc": "\u041A\u043E\u043C\u043F\u044C\u044E\u0442\u0435\u0440\u043D\u043E\u0435 \u0442\u0435\u0441\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u0438 \u0443\u0433\u043B\u0443\u0431\u043B\u0451\u043D\u043D\u0430\u044F \u043A\u043B\u0438\u043D\u0438\u0447\u0435\u0441\u043A\u0430\u044F \u043E\u0446\u0435\u043D\u043A\u0430",
+  "services.step4_title": "\u041E\u0442\u0447\u0451\u0442 \u0438 \u043F\u043B\u0430\u043D \u043B\u0435\u0447\u0435\u043D\u0438\u044F",
+  "services.step4_desc": "\u041F\u043E\u043B\u0443\u0447\u0435\u043D\u0438\u0435 \u043F\u043E\u0434\u0440\u043E\u0431\u043D\u043E\u0433\u043E \u043E\u0442\u0447\u0451\u0442\u0430 \u0438 \u0438\u043D\u0434\u0438\u0432\u0438\u0434\u0443\u0430\u043B\u044C\u043D\u044B\u0445 \u0440\u0435\u043A\u043E\u043C\u0435\u043D\u0434\u0430\u0446\u0438\u0439 \u043F\u043E \u043B\u0435\u0447\u0435\u043D\u0438\u044E",
+  "services.list_label": "\u041D\u0430\u0448\u0438 \u0443\u0441\u043B\u0443\u0433\u0438",
   "contact.full_name": "\u041F\u043E\u043B\u043D\u043E\u0435 \u0438\u043C\u044F",
   "contact.phone_label": "\u0422\u0435\u043B\u0435\u0444\u043E\u043D",
   "contact.email_optional": "\u042D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u0430\u044F \u043F\u043E\u0447\u0442\u0430 (\u043D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E)",
@@ -1610,8 +3188,51 @@ var ru = {
   "faq.title": "\u0427\u0430\u0441\u0442\u043E \u0437\u0430\u0434\u0430\u0432\u0430\u0435\u043C\u044B\u0435 \u0432\u043E\u043F\u0440\u043E\u0441\u044B",
   "faq.subtitle": "\u041E\u0442\u0432\u0435\u0442\u044B \u043D\u0430 \u0441\u0430\u043C\u044B\u0435 \u0447\u0430\u0441\u0442\u044B\u0435 \u0432\u043E\u043F\u0440\u043E\u0441\u044B",
   "faq.no_answer": "\u041D\u0435 \u043D\u0430\u0448\u043B\u0438 \u043E\u0442\u0432\u0435\u0442? \u0421\u0432\u044F\u0436\u0438\u0442\u0435\u0441\u044C \u0441 \u043D\u0430\u043C\u0438",
+  "services.service1_title": "\u041A\u043E\u043C\u043F\u043B\u0435\u043A\u0441\u043D\u0430\u044F \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0430",
+  "services.service1_desc": "\u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u0430\u044F \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0430 \u0441 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0435\u043C \u043F\u0435\u0440\u0435\u0434\u043E\u0432\u044B\u0445 \u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u043E\u0432, \u043A\u043B\u0438\u043D\u0438\u0447\u0435\u0441\u043A\u0438\u0445 \u0438\u043D\u0442\u0435\u0440\u0432\u044C\u044E \u0438 \u043A\u043E\u043C\u043F\u044C\u044E\u0442\u0435\u0440\u043D\u044B\u0445 \u0442\u0435\u0441\u0442\u043E\u0432",
+  "services.service2_title": "\u041A\u043E\u0440\u0440\u0435\u043A\u0446\u0438\u044F \u043C\u0435\u0434\u0438\u043A\u0430\u043C\u0435\u043D\u0442\u043E\u0437\u043D\u043E\u0433\u043E \u043B\u0435\u0447\u0435\u043D\u0438\u044F",
+  "services.service2_desc": "\u041F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u043E\u0435 \u043C\u0435\u0434\u0438\u043A\u0430\u043C\u0435\u043D\u0442\u043E\u0437\u043D\u043E\u0435 \u043B\u0435\u0447\u0435\u043D\u0438\u0435 \u0441 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u044B\u043C \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u0435\u043C \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u0438",
+  "services.service3_title": "\u041A\u043E\u043C\u043F\u044C\u044E\u0442\u0435\u0440\u043D\u044B\u0439 \u0442\u0435\u0441\u0442 MOXO",
+  "services.service3_desc": "\u041E\u0431\u044A\u0435\u043A\u0442\u0438\u0432\u043D\u0430\u044F \u043E\u0446\u0435\u043D\u043A\u0430 \u0444\u0443\u043D\u043A\u0446\u0438\u0439 \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u044F \u0438 \u043A\u043E\u043D\u0446\u0435\u043D\u0442\u0440\u0430\u0446\u0438\u0438",
+  "services.service4_title": "\u041A\u043E\u043D\u0441\u0443\u043B\u044C\u0442\u0430\u0446\u0438\u044F \u0438 \u043D\u0430\u0431\u043B\u044E\u0434\u0435\u043D\u0438\u0435",
+  "services.service4_desc": "\u041F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u0430\u044F \u043F\u0440\u043E\u0444\u0435\u0441\u0441\u0438\u043E\u043D\u0430\u043B\u044C\u043D\u0430\u044F \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430 \u0438 \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u044C \u043B\u0435\u0447\u0435\u043D\u0438\u044F",
+  "services.service5_title": "\u041D\u0430\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u043D\u0430 \u0434\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0435 \u0432\u0438\u0434\u044B \u043B\u0435\u0447\u0435\u043D\u0438\u044F",
+  "services.service5_desc": "\u041D\u0430\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u043A \u044D\u0440\u0433\u043E\u0442\u0435\u0440\u0430\u043F\u0435\u0432\u0442\u0443, \u043D\u0430 \u044D\u043C\u043E\u0446\u0438\u043E\u043D\u0430\u043B\u044C\u043D\u0443\u044E \u0442\u0435\u0440\u0430\u043F\u0438\u044E \u0438\u043B\u0438 \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433\u0438\u0447\u0435\u0441\u043A\u0443\u044E \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0443",
+  "faq.q1": "\u0427\u0442\u043E \u0442\u0430\u043A\u043E\u0435 \u0421\u0414\u0412\u0413?",
+  "faq.a1": "\u0421\u0414\u0412\u0413 (\u0441\u0438\u043D\u0434\u0440\u043E\u043C \u0434\u0435\u0444\u0438\u0446\u0438\u0442\u0430 \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u044F \u0438 \u0433\u0438\u043F\u0435\u0440\u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442\u0438) \u2014 \u044D\u0442\u043E \u043D\u0430\u0440\u0443\u0448\u0435\u043D\u0438\u0435 \u043D\u0435\u0439\u0440\u043E\u0440\u0430\u0437\u0432\u0438\u0442\u0438\u044F, \u0432\u043B\u0438\u044F\u044E\u0449\u0435\u0435 \u043D\u0430 \u043A\u043E\u043D\u0446\u0435\u043D\u0442\u0440\u0430\u0446\u0438\u044E \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u044F, \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u044C \u0438\u043C\u043F\u0443\u043B\u044C\u0441\u043E\u0432 \u0438 \u0440\u0435\u0433\u0443\u043B\u044F\u0446\u0438\u044E \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442\u0438. \u041E\u043D \u0440\u0430\u0441\u043F\u0440\u043E\u0441\u0442\u0440\u0430\u043D\u0451\u043D \u043A\u0430\u043A \u0443 \u0434\u0435\u0442\u0435\u0439, \u0442\u0430\u043A \u0438 \u0443 \u0432\u0437\u0440\u043E\u0441\u043B\u044B\u0445 \u0438 \u0432\u043B\u0438\u044F\u0435\u0442 \u043D\u0430 \u043F\u043E\u0432\u0441\u0435\u0434\u043D\u0435\u0432\u043D\u0443\u044E \u0434\u0435\u044F\u0442\u0435\u043B\u044C\u043D\u043E\u0441\u0442\u044C, \u0443\u0447\u0451\u0431\u0443 \u0438 \u0440\u0430\u0431\u043E\u0442\u0443.",
+  "faq.q2": "\u0421\u043A\u043E\u043B\u044C\u043A\u043E \u0432\u0440\u0435\u043C\u0435\u043D\u0438 \u0437\u0430\u043D\u0438\u043C\u0430\u0435\u0442 \u043F\u0440\u043E\u0446\u0435\u0441\u0441 \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0438?",
+  "faq.a2": "\u041F\u043E\u043B\u043D\u044B\u0439 \u043F\u0440\u043E\u0446\u0435\u0441\u0441 \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0438 \u0432\u043A\u043B\u044E\u0447\u0430\u0435\u0442 \u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0441\u0435\u0430\u043D\u0441\u043E\u0432 \u0438 \u0437\u0430\u043D\u0438\u043C\u0430\u0435\u0442 \u0432 \u0441\u0440\u0435\u0434\u043D\u0435\u043C 2-4 \u043D\u0435\u0434\u0435\u043B\u0438. \u041E\u043D \u0432\u043A\u043B\u044E\u0447\u0430\u0435\u0442 \u043F\u043E\u0434\u0440\u043E\u0431\u043D\u043E\u0435 \u043A\u043B\u0438\u043D\u0438\u0447\u0435\u0441\u043A\u043E\u0435 \u0438\u043D\u0442\u0435\u0440\u0432\u044C\u044E, \u043A\u043E\u043C\u043F\u044C\u044E\u0442\u0435\u0440\u043D\u044B\u0435 \u0442\u0435\u0441\u0442\u044B (MOXO), \u0430\u043D\u043A\u0435\u0442\u044B \u0438 \u0440\u0430\u0441\u0441\u043C\u043E\u0442\u0440\u0435\u043D\u0438\u0435 \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u044E\u0449\u0438\u0445 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438\u0445 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u043E\u0432.",
+  "faq.q3": "\u041F\u043E\u0434\u0445\u043E\u0434\u0438\u0442 \u043B\u0438 \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0430 \u0434\u043B\u044F \u0432\u0441\u0435\u0445 \u0432\u043E\u0437\u0440\u0430\u0441\u0442\u043E\u0432?",
+  "faq.a3": "\u0414\u0430, \u043C\u044B \u043F\u0440\u043E\u0432\u043E\u0434\u0438\u043C \u043F\u0440\u043E\u0444\u0435\u0441\u0441\u0438\u043E\u043D\u0430\u043B\u044C\u043D\u0443\u044E \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0443 \u0434\u043B\u044F \u0434\u0435\u0442\u0435\u0439 \u043E\u0442 6 \u043B\u0435\u0442, \u043F\u043E\u0434\u0440\u043E\u0441\u0442\u043A\u043E\u0432 \u0438 \u0432\u0437\u0440\u043E\u0441\u043B\u044B\u0445. \u0414\u043B\u044F \u043A\u0430\u0436\u0434\u043E\u0439 \u0432\u043E\u0437\u0440\u0430\u0441\u0442\u043D\u043E\u0439 \u0433\u0440\u0443\u043F\u043F\u044B \u0440\u0430\u0437\u0440\u0430\u0431\u043E\u0442\u0430\u043D \u0438\u043D\u0434\u0438\u0432\u0438\u0434\u0443\u0430\u043B\u044C\u043D\u044B\u0439 \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B \u043E\u0446\u0435\u043D\u043A\u0438, \u0443\u0447\u0438\u0442\u044B\u0432\u0430\u044E\u0449\u0438\u0439 \u043E\u0441\u043E\u0431\u0435\u043D\u043D\u043E\u0441\u0442\u0438 \u0434\u0430\u043D\u043D\u043E\u0433\u043E \u0432\u043E\u0437\u0440\u0430\u0441\u0442\u0430.",
+  "faq.q4": "\u0427\u0442\u043E \u0432\u043A\u043B\u044E\u0447\u0430\u0435\u0442 \u043F\u043B\u0430\u043D \u043B\u0435\u0447\u0435\u043D\u0438\u044F?",
+  "faq.a4": "\u041F\u043B\u0430\u043D \u043B\u0435\u0447\u0435\u043D\u0438\u044F \u044F\u0432\u043B\u044F\u0435\u0442\u0441\u044F \u0438\u043D\u0434\u0438\u0432\u0438\u0434\u0443\u0430\u043B\u044C\u043D\u044B\u043C \u0438 \u0432\u043A\u043B\u044E\u0447\u0430\u0435\u0442: \u0440\u0435\u043A\u043E\u043C\u0435\u043D\u0434\u0430\u0446\u0438\u0438 \u043F\u043E \u043C\u0435\u0434\u0438\u043A\u0430\u043C\u0435\u043D\u0442\u043E\u0437\u043D\u043E\u043C\u0443 \u043B\u0435\u0447\u0435\u043D\u0438\u044E (\u043F\u0440\u0438 \u043D\u0435\u043E\u0431\u0445\u043E\u0434\u0438\u043C\u043E\u0441\u0442\u0438), \u043A\u043E\u043D\u0441\u0443\u043B\u044C\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u0440\u043E\u0434\u0438\u0442\u0435\u043B\u0435\u0439, \u043F\u0440\u0430\u043A\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0435 \u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u044B \u0434\u043B\u044F \u043F\u043E\u0432\u0441\u0435\u0434\u043D\u0435\u0432\u043D\u043E\u0439 \u0436\u0438\u0437\u043D\u0438, \u043D\u0430\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u043D\u0430 \u0434\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0435 \u0432\u0438\u0434\u044B \u043B\u0435\u0447\u0435\u043D\u0438\u044F \u0438 \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u043E\u0435 \u043D\u0430\u0431\u043B\u044E\u0434\u0435\u043D\u0438\u0435.",
+  "faq.q5": "\u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u043B\u0438 \u043D\u0430\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u043E\u0442 \u0432\u0440\u0430\u0447\u0430?",
+  "faq.a5": "\u041D\u0435\u0442, \u043D\u0430\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u043D\u0435 \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F. \u0412\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u043D\u0430\u043F\u0440\u044F\u043C\u0443\u044E \u0441\u0432\u044F\u0437\u0430\u0442\u044C\u0441\u044F \u0441 \u043A\u043B\u0438\u043D\u0438\u043A\u043E\u0439, \u0447\u0442\u043E\u0431\u044B \u0437\u0430\u043F\u0438\u0441\u0430\u0442\u044C\u0441\u044F \u043D\u0430 \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0443. \u041E\u0434\u043D\u0430\u043A\u043E, \u0435\u0441\u043B\u0438 \u0443 \u0432\u0430\u0441 \u0435\u0441\u0442\u044C \u043F\u0440\u0435\u0434\u044B\u0434\u0443\u0449\u0438\u0435 \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438\u0435 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u044B, \u0440\u0435\u043A\u043E\u043C\u0435\u043D\u0434\u0443\u0435\u0442\u0441\u044F \u043F\u0440\u0438\u043D\u0435\u0441\u0442\u0438 \u0438\u0445 \u043D\u0430 \u043F\u0435\u0440\u0432\u0443\u044E \u0432\u0441\u0442\u0440\u0435\u0447\u0443.",
+  "faq.q6": "\u0412 \u0447\u0451\u043C \u0440\u0430\u0437\u043D\u0438\u0446\u0430 \u043C\u0435\u0436\u0434\u0443 \u0421\u0414\u0412 \u0438 \u0421\u0414\u0412\u0413?",
+  "faq.a6": "\u0421\u0414\u0412 \u2014 \u044D\u0442\u043E \u0443\u0441\u0442\u0430\u0440\u0435\u0432\u0448\u0438\u0439 \u0442\u0435\u0440\u043C\u0438\u043D \u0434\u043B\u044F \u043E\u0431\u043E\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u044F \u0434\u0435\u0444\u0438\u0446\u0438\u0442\u0430 \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u044F \u0431\u0435\u0437 \u0433\u0438\u043F\u0435\u0440\u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442\u0438. \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442\u0441\u044F \u0442\u0435\u0440\u043C\u0438\u043D \u0421\u0414\u0412\u0413 \u0441 \u0442\u0440\u0435\u043C\u044F \u043F\u043E\u0434\u0442\u0438\u043F\u0430\u043C\u0438: \u043F\u0440\u0435\u0438\u043C\u0443\u0449\u0435\u0441\u0442\u0432\u0435\u043D\u043D\u043E \u043D\u0435\u0432\u043D\u0438\u043C\u0430\u0442\u0435\u043B\u044C\u043D\u044B\u0439, \u043F\u0440\u0435\u0438\u043C\u0443\u0449\u0435\u0441\u0442\u0432\u0435\u043D\u043D\u043E \u0433\u0438\u043F\u0435\u0440\u0430\u043A\u0442\u0438\u0432\u043D\u043E-\u0438\u043C\u043F\u0443\u043B\u044C\u0441\u0438\u0432\u043D\u044B\u0439 \u0438\u043B\u0438 \u0441\u043C\u0435\u0448\u0430\u043D\u043D\u044B\u0439.",
   "services.process_steps": "\u042D\u0442\u0430\u043F\u044B \u043F\u0440\u043E\u0446\u0435\u0441\u0441\u0430 \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0438",
   "footer.rights": "\xA9 2025 \u0412\u0441\u0435 \u043F\u0440\u0430\u0432\u0430 \u0437\u0430\u0449\u0438\u0449\u0435\u043D\u044B Keshev Plus",
+  "footer.moxo_certified": "\u0421\u0435\u0440\u0442\u0438\u0444\u0438\u043A\u0430\u0442 Moxo",
+  "footer.moxo_certified_desc": "\u041A\u043E\u043C\u043F\u044C\u044E\u0442\u0435\u0440\u043D\u0430\u044F \u043E\u0446\u0435\u043D\u043A\u0430 \u0421\u0414\u0412\u0413",
+  "cookies.notice": "\u042D\u0442\u043E\u0442 \u0441\u0430\u0439\u0442 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442 \u0444\u0430\u0439\u043B\u044B cookie \u0434\u043B\u044F \u0443\u043B\u0443\u0447\u0448\u0435\u043D\u0438\u044F \u0432\u0430\u0448\u0435\u0433\u043E \u043E\u043F\u044B\u0442\u0430 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u0430 \u0438 \u0432 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0445 \u0446\u0435\u043B\u044F\u0445. \u041F\u0440\u043E\u0434\u043E\u043B\u0436\u0430\u044F \u043F\u0440\u043E\u0441\u043C\u0430\u0442\u0440\u0438\u0432\u0430\u0442\u044C \u0441\u0430\u0439\u0442, \u0432\u044B \u0441\u043E\u0433\u043B\u0430\u0448\u0430\u0435\u0442\u0435\u0441\u044C \u043D\u0430 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0435 \u0444\u0430\u0439\u043B\u043E\u0432 cookie \u0432 \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0438\u0438 \u0441 \u043D\u0430\u0448\u0435\u0439 \u043F\u043E\u043B\u0438\u0442\u0438\u043A\u043E\u0439 \u043A\u043E\u043D\u0444\u0438\u0434\u0435\u043D\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0441\u0442\u0438.",
+  "cookies.used_include": "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u043C\u044B\u0435 \u043D\u0430 \u044D\u0442\u043E\u043C \u0441\u0430\u0439\u0442\u0435 \u0444\u0430\u0439\u043B\u044B cookie \u0432\u043A\u043B\u044E\u0447\u0430\u044E\u0442:",
+  "cookies.essential": "\u041D\u0435\u043E\u0431\u0445\u043E\u0434\u0438\u043C\u044B\u0435 \u0444\u0430\u0439\u043B\u044B cookie - \u0434\u043B\u044F \u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u043E\u0439 \u0440\u0430\u0431\u043E\u0442\u044B \u0441\u0430\u0439\u0442\u0430",
+  "cookies.statistical": "\u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0435 \u0444\u0430\u0439\u043B\u044B cookie - \u0434\u043B\u044F \u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044F \u0438 \u0443\u043B\u0443\u0447\u0448\u0435\u043D\u0438\u044F \u0441\u0435\u0440\u0432\u0438\u0441\u0430",
+  "cookies.preference": "\u0424\u0430\u0439\u043B\u044B cookie \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0442\u0435\u043D\u0438\u0439 - \u0434\u043B\u044F \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043A \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F",
+  "cookies.privacy_note": "\u0412 \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0438\u0438 \u0441 \u0437\u0430\u043A\u043E\u043D\u043E\u043C \u043E \u0437\u0430\u0449\u0438\u0442\u0435 \u043A\u043E\u043D\u0444\u0438\u0434\u0435\u043D\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0441\u0442\u0438 \u043C\u044B \u0438\u043D\u0444\u043E\u0440\u043C\u0438\u0440\u0443\u0435\u043C \u0432\u0430\u0441 \u043E\u0431 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0438 \u0444\u0430\u0439\u043B\u043E\u0432 cookie \u0438 \u0437\u0430\u043F\u0440\u0430\u0448\u0438\u0432\u0430\u0435\u043C \u0432\u0430\u0448\u0435 \u0441\u043E\u0433\u043B\u0430\u0441\u0438\u0435.",
+  "cookies.hide_details": "\u0421\u043A\u0440\u044B\u0442\u044C \u0434\u0435\u0442\u0430\u043B\u0438",
+  "cookies.more_info": "\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u0435\u0435",
+  "cookies.accept": "\u0421\u043E\u0433\u043B\u0430\u0441\u0435\u043D",
+  "appt_date.select_date": "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u0430\u0442\u0443",
+  "appt_date.clinic_closed": "\u041A\u043B\u0438\u043D\u0438\u043A\u0430 \u0437\u0430\u043A\u0440\u044B\u0442\u0430 \u0432 \u044D\u0442\u043E\u0442 \u0434\u0435\u043D\u044C",
+  "appt_date.gray_unavailable": "\u0421\u0435\u0440\u044B\u0435 \u0434\u043D\u0438 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B \u0434\u043B\u044F \u0437\u0430\u043F\u0438\u0441\u0438.",
+  "appt_for.who": "\u0414\u043B\u044F \u043A\u043E\u0433\u043E \u0437\u0430\u043F\u0438\u0441\u044C?",
+  "appt_for.me": "\u0414\u043B\u044F \u0441\u0435\u0431\u044F",
+  "appt_for.child": "\u0414\u043B\u044F \u0440\u0435\u0431\u0451\u043D\u043A\u0430",
+  "appt_for.child_name": "\u0418\u043C\u044F \u0440\u0435\u0431\u0451\u043D\u043A\u0430",
+  "appt_for.child_age": "\u0412\u043E\u0437\u0440\u0430\u0441\u0442 \u0440\u0435\u0431\u0451\u043D\u043A\u0430",
+  "appt_for.child_age_placeholder": "(\u043C\u0438\u043D\u0438\u043C\u0443\u043C 6)",
+  "appt_for.min_age_error": "\u041C\u0438\u043D\u0438\u043C\u0430\u043B\u044C\u043D\u044B\u0439 \u0432\u043E\u0437\u0440\u0430\u0441\u0442 \u2014 6 \u043B\u0435\u0442",
   "footer.clinic_desc": "\u0412\u0435\u0434\u0443\u0449\u0430\u044F \u043A\u043B\u0438\u043D\u0438\u043A\u0430 \u043F\u043E \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0435 \u0438 \u043B\u0435\u0447\u0435\u043D\u0438\u044E \u0421\u0414\u0412\u0413 \u0443 \u0434\u0435\u0442\u0435\u0439, \u043F\u043E\u0434\u0440\u043E\u0441\u0442\u043A\u043E\u0432 \u0438 \u0432\u0437\u0440\u043E\u0441\u043B\u044B\u0445.",
   "footer.quick_links": "\u0411\u044B\u0441\u0442\u0440\u044B\u0435 \u0441\u0441\u044B\u043B\u043A\u0438",
   "footer.contact_info": "\u041A\u043E\u043D\u0442\u0430\u043A\u0442\u043D\u0430\u044F \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F",
@@ -1631,7 +3252,132 @@ var ru = {
   "admin.multilingual": "\u041C\u043D\u043E\u0433\u043E\u044F\u0437\u044B\u0447\u043D\u044B\u0439 (\u0412\u0441\u0435 \u044F\u0437\u044B\u043A\u0438)",
   "admin.default_language": "\u042F\u0437\u044B\u043A \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
   "admin.settings_saved": "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u044B",
-  "admin.settings_error": "\u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F"
+  "admin.settings_error": "\u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F",
+  "a11y.accessibility_settings": "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u0438",
+  "a11y.text_size": "\u0420\u0430\u0437\u043C\u0435\u0440 \u0442\u0435\u043A\u0441\u0442\u0430",
+  "a11y.decrease_text": "\u0423\u043C\u0435\u043D\u044C\u0448\u0438\u0442\u044C \u0442\u0435\u043A\u0441\u0442",
+  "a11y.increase_text": "\u0423\u0432\u0435\u043B\u0438\u0447\u0438\u0442\u044C \u0442\u0435\u043A\u0441\u0442",
+  "a11y.line_height": "\u0412\u044B\u0441\u043E\u0442\u0430 \u0441\u0442\u0440\u043E\u043A\u0438",
+  "a11y.decrease_line_height": "\u0423\u043C\u0435\u043D\u044C\u0448\u0438\u0442\u044C \u0432\u044B\u0441\u043E\u0442\u0443 \u0441\u0442\u0440\u043E\u043A\u0438",
+  "a11y.increase_line_height": "\u0423\u0432\u0435\u043B\u0438\u0447\u0438\u0442\u044C \u0432\u044B\u0441\u043E\u0442\u0443 \u0441\u0442\u0440\u043E\u043A\u0438",
+  "a11y.letter_spacing": "\u041C\u0435\u0436\u0431\u0443\u043A\u0432\u0435\u043D\u043D\u044B\u0439 \u0438\u043D\u0442\u0435\u0440\u0432\u0430\u043B",
+  "a11y.decrease_letter_spacing": "\u0423\u043C\u0435\u043D\u044C\u0448\u0438\u0442\u044C \u043C\u0435\u0436\u0431\u0443\u043A\u0432\u0435\u043D\u043D\u044B\u0439 \u0438\u043D\u0442\u0435\u0440\u0432\u0430\u043B",
+  "a11y.increase_letter_spacing": "\u0423\u0432\u0435\u043B\u0438\u0447\u0438\u0442\u044C \u043C\u0435\u0436\u0431\u0443\u043A\u0432\u0435\u043D\u043D\u044B\u0439 \u0438\u043D\u0442\u0435\u0440\u0432\u0430\u043B",
+  "a11y.reading_guide": "\u041D\u0430\u043F\u0440\u0430\u0432\u043B\u044F\u044E\u0449\u0430\u044F \u0434\u043B\u044F \u0447\u0442\u0435\u043D\u0438\u044F",
+  "a11y.high_contrast": "\u0412\u044B\u0441\u043E\u043A\u0430\u044F \u043A\u043E\u043D\u0442\u0440\u0430\u0441\u0442\u043D\u043E\u0441\u0442\u044C",
+  "a11y.highlight_links": "\u0412\u044B\u0434\u0435\u043B\u0438\u0442\u044C \u0441\u0441\u044B\u043B\u043A\u0438",
+  "a11y.grayscale": "\u041E\u0442\u0442\u0435\u043D\u043A\u0438 \u0441\u0435\u0440\u043E\u0433\u043E",
+  "a11y.readable_font": "\u0423\u0434\u043E\u0431\u043E\u0447\u0438\u0442\u0430\u0435\u043C\u044B\u0439 \u0448\u0440\u0438\u0444\u0442",
+  "a11y.large_cursor": "\u0411\u043E\u043B\u044C\u0448\u043E\u0439 \u043A\u0443\u0440\u0441\u043E\u0440",
+  "a11y.stop_animations": "\u041E\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u044E",
+  "a11y.reset": "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C",
+  "a11y.close": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C",
+  "a11y.accessibility_menu": "\u041C\u0435\u043D\u044E \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u0438",
+  "a11y.dark_mode": "\u0422\u0451\u043C\u043D\u044B\u0439 \u0440\u0435\u0436\u0438\u043C",
+  "a11y.light_mode": "\u0421\u0432\u0435\u0442\u043B\u044B\u0439 \u0440\u0435\u0436\u0438\u043C",
+  "a11y.accessibility_statement": "\u0417\u0430\u044F\u0432\u043B\u0435\u043D\u0438\u0435 \u043E \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u0438",
+  "a11y.accessibility_statement_text": "\u042D\u0442\u043E\u0442 \u0441\u0430\u0439\u0442 \u043F\u0440\u0438\u0432\u0435\u0440\u0436\u0435\u043D \u0446\u0438\u0444\u0440\u043E\u0432\u043E\u0439 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u0438 \u0432 \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0438\u0438 \u0441 \u0438\u0437\u0440\u0430\u0438\u043B\u044C\u0441\u043A\u0438\u043C \u0437\u0430\u043A\u043E\u043D\u043E\u0434\u0430\u0442\u0435\u043B\u044C\u0441\u0442\u0432\u043E\u043C.",
+  "terms.title": "\u0423\u0441\u043B\u043E\u0432\u0438\u044F \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044F",
+  "terms.intro": "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0435 \u0441\u0430\u0439\u0442\u0430 Keshev Plus (\xAB\u0421\u0430\u0439\u0442\xBB) \u0440\u0435\u0433\u0443\u043B\u0438\u0440\u0443\u0435\u0442\u0441\u044F \u043F\u0440\u0438\u0432\u0435\u0434\u0451\u043D\u043D\u044B\u043C\u0438 \u043D\u0438\u0436\u0435 \u0443\u0441\u043B\u043E\u0432\u0438\u044F\u043C\u0438. \u041F\u0440\u043E\u0441\u043C\u043E\u0442\u0440 \u0421\u0430\u0439\u0442\u0430 \u0438/\u0438\u043B\u0438 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0435 \u0435\u0433\u043E \u0443\u0441\u043B\u0443\u0433 \u043E\u0437\u043D\u0430\u0447\u0430\u0435\u0442 \u0441\u043E\u0433\u043B\u0430\u0441\u0438\u0435 \u0441 \u043D\u0430\u0441\u0442\u043E\u044F\u0449\u0438\u043C\u0438 \u0443\u0441\u043B\u043E\u0432\u0438\u044F\u043C\u0438.",
+  "terms.service_nature_title": "\u0425\u0430\u0440\u0430\u043A\u0442\u0435\u0440 \u0443\u0441\u043B\u0443\u0433\u0438",
+  "terms.service_nature_p1": "\u0421\u0430\u0439\u0442 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u043B\u044F\u0435\u0442 \u043E\u0431\u0449\u0443\u044E \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044E \u043E \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0435 \u0438 \u043B\u0435\u0447\u0435\u043D\u0438\u0438 \u0421\u0414\u0412\u0413, \u0430 \u0442\u0430\u043A\u0436\u0435 \u043E\u043D\u043B\u0430\u0439\u043D-\u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u044B \u0434\u043B\u044F \u0437\u0430\u043F\u0438\u0441\u0438 \u043D\u0430 \u043F\u0440\u0438\u0451\u043C \u0438 \u0437\u0430\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F \u043F\u0435\u0440\u0432\u0438\u0447\u043D\u044B\u0445 \u0441\u043A\u0440\u0438\u043D\u0438\u043D\u0433\u043E\u0432\u044B\u0445 \u043E\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u043E\u0432.",
+  "terms.service_nature_p2": "\u041E\u043D\u043B\u0430\u0439\u043D-\u0441\u043A\u0440\u0438\u043D\u0438\u043D\u0433\u043E\u0432\u044B\u0435 \u043E\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0438 \u043D\u0435 \u044F\u0432\u043B\u044F\u044E\u0442\u0441\u044F \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u0438\u043C \u0434\u0438\u0430\u0433\u043D\u043E\u0437\u043E\u043C \u0438 \u043D\u0435 \u0437\u0430\u043C\u0435\u043D\u044F\u044E\u0442 \u043A\u043E\u043D\u0441\u0443\u043B\u044C\u0442\u0430\u0446\u0438\u044E, \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u043A\u0443 \u0438\u043B\u0438 \u043B\u0435\u0447\u0435\u043D\u0438\u0435 \u043A\u0432\u0430\u043B\u0438\u0444\u0438\u0446\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u044B\u043C \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0441\u0442\u043E\u043C. \u0420\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442\u044B \u043E\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u043F\u0440\u0435\u0434\u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u044B \u0442\u043E\u043B\u044C\u043A\u043E \u0434\u043B\u044F \u043F\u043E\u043C\u043E\u0449\u0438 \u043D\u0430\u0448\u0435\u043C\u0443 \u043A\u043B\u0438\u043D\u0438\u0447\u0435\u0441\u043A\u043E\u043C\u0443 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0443 \u0432 \u043F\u0435\u0440\u0432\u0438\u0447\u043D\u043E\u0439 \u043E\u0446\u0435\u043D\u043A\u0435; \u043E\u043A\u043E\u043D\u0447\u0430\u0442\u0435\u043B\u044C\u043D\u044B\u0439 \u0434\u0438\u0430\u0433\u043D\u043E\u0437 \u0441\u0442\u0430\u0432\u0438\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u0432 \u0440\u0430\u043C\u043A\u0430\u0445 \u043A\u043B\u0438\u043D\u0438\u0447\u0435\u0441\u043A\u043E\u0433\u043E \u043E\u0431\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u043D\u0438\u044F.",
+  "terms.fair_use_title": "\u0414\u043E\u0431\u0440\u043E\u0441\u043E\u0432\u0435\u0441\u0442\u043D\u043E\u0435 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0435 \u0441\u0430\u0439\u0442\u0430",
+  "terms.fair_use_body": "\u0421\u0430\u0439\u0442 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C\u0441\u044F \u0432 \u043D\u0435\u0437\u0430\u043A\u043E\u043D\u043D\u044B\u0445 \u0446\u0435\u043B\u044F\u0445, \u0438 \u043D\u0435 \u0434\u043E\u043F\u0443\u0441\u043A\u0430\u044E\u0442\u0441\u044F \u043F\u043E\u043F\u044B\u0442\u043A\u0438 \u043D\u0430\u0440\u0443\u0448\u0438\u0442\u044C \u0435\u0433\u043E \u043D\u043E\u0440\u043C\u0430\u043B\u044C\u043D\u0443\u044E \u0440\u0430\u0431\u043E\u0442\u0443, \u0432\u043A\u043B\u044E\u0447\u0430\u044F \u043F\u043E\u043F\u044B\u0442\u043A\u0438 \u0432\u0437\u043B\u043E\u043C\u0430, \u043D\u0435\u0441\u0430\u043D\u043A\u0446\u0438\u043E\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u044B\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u043A \u0434\u0430\u043D\u043D\u044B\u043C \u0438\u043B\u0438 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u044B\u0439 \u0441\u0431\u043E\u0440 \u043A\u043E\u043D\u0442\u0435\u043D\u0442\u0430 (\u0441\u043A\u0440\u0435\u0439\u043F\u0438\u043D\u0433) \u0431\u0435\u0437 \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0433\u043E \u0441\u043E\u0433\u043B\u0430\u0441\u0438\u044F.",
+  "terms.ip_title": "\u0418\u043D\u0442\u0435\u043B\u043B\u0435\u043A\u0442\u0443\u0430\u043B\u044C\u043D\u0430\u044F \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0441\u0442\u044C",
+  "terms.ip_body": "\u0412\u0441\u0435 \u043F\u0440\u0430\u0432\u0430 \u043D\u0430 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0435 \u0421\u0430\u0439\u0442\u0430, \u0432\u043A\u043B\u044E\u0447\u0430\u044F \u0442\u0435\u043A\u0441\u0442\u044B, \u0434\u0438\u0437\u0430\u0439\u043D, \u043B\u043E\u0433\u043E\u0442\u0438\u043F \u0438 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u044F, \u043F\u0440\u0438\u043D\u0430\u0434\u043B\u0435\u0436\u0430\u0442 Keshev Plus \u0438\u043B\u0438 \u0442\u0440\u0435\u0442\u044C\u0438\u043C \u043B\u0438\u0446\u0430\u043C, \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0438\u0432\u0448\u0438\u043C \u043B\u0438\u0446\u0435\u043D\u0437\u0438\u044E \u043D\u0430 \u0438\u0445 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0435, \u0438 \u043D\u0435 \u043C\u043E\u0433\u0443\u0442 \u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C\u0441\u044F \u0438\u043B\u0438 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C\u0441\u044F \u0431\u0435\u0437 \u043F\u0438\u0441\u044C\u043C\u0435\u043D\u043D\u043E\u0433\u043E \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u044F.",
+  "terms.liability_title": "\u041E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u0435 \u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0441\u0442\u0438",
+  "terms.liability_body": "\u0418\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F \u043D\u0430 \u0421\u0430\u0439\u0442\u0435 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u043B\u044F\u0435\u0442\u0441\u044F \u0438\u0441\u043A\u043B\u044E\u0447\u0438\u0442\u0435\u043B\u044C\u043D\u043E \u0432 \u043E\u0431\u0449\u0438\u0445 \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u043E\u043D\u043D\u044B\u0445 \u0446\u0435\u043B\u044F\u0445 \u0438 \u043D\u0435 \u044F\u0432\u043B\u044F\u0435\u0442\u0441\u044F \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u043E\u0439 \u043A\u043E\u043D\u0441\u0443\u043B\u044C\u0442\u0430\u0446\u0438\u0435\u0439. Keshev Plus \u043D\u0435 \u043D\u0435\u0441\u0451\u0442 \u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0441\u0442\u0438 \u0437\u0430 \u043B\u044E\u0431\u043E\u0439 \u0443\u0449\u0435\u0440\u0431, \u0432\u043E\u0437\u043D\u0438\u043A\u0448\u0438\u0439 \u0432 \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442\u0435 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044F \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0433\u043E \u0421\u0430\u0439\u0442\u0430 \u0431\u0435\u0437 \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u044E\u0449\u0435\u0439 \u043F\u0440\u043E\u0444\u0435\u0441\u0441\u0438\u043E\u043D\u0430\u043B\u044C\u043D\u043E\u0439 \u043A\u043E\u043D\u0441\u0443\u043B\u044C\u0442\u0430\u0446\u0438\u0438. \u0421\u0441\u044B\u043B\u043A\u0438 \u043D\u0430 \u0432\u043D\u0435\u0448\u043D\u0438\u0435 \u0441\u0430\u0439\u0442\u044B \u0438 \u0441\u0435\u0440\u0432\u0438\u0441\u044B (\u0442\u0430\u043A\u0438\u0435 \u043A\u0430\u043A WhatsApp \u0438 \u0441\u043E\u0446\u0438\u0430\u043B\u044C\u043D\u044B\u0435 \u0441\u0435\u0442\u0438) \u0440\u0435\u0433\u0443\u043B\u0438\u0440\u0443\u044E\u0442\u0441\u044F \u0443\u0441\u043B\u043E\u0432\u0438\u044F\u043C\u0438 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044F \u0438 \u043F\u043E\u043B\u0438\u0442\u0438\u043A\u043E\u0439 \u043A\u043E\u043D\u0444\u0438\u0434\u0435\u043D\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0441\u0442\u0438 \u044D\u0442\u0438\u0445 \u0442\u0440\u0435\u0442\u044C\u0438\u0445 \u043B\u0438\u0446, \u0438 \u043C\u044B \u043D\u0435 \u043D\u0435\u0441\u0451\u043C \u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0441\u0442\u0438 \u0437\u0430 \u0438\u0445 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0435.",
+  "terms.jurisdiction_title": "\u041F\u0440\u0438\u043C\u0435\u043D\u0438\u043C\u043E\u0435 \u043F\u0440\u0430\u0432\u043E \u0438 \u044E\u0440\u0438\u0441\u0434\u0438\u043A\u0446\u0438\u044F",
+  "terms.jurisdiction_body": "\u041D\u0430\u0441\u0442\u043E\u044F\u0449\u0438\u0435 \u0443\u0441\u043B\u043E\u0432\u0438\u044F \u0440\u0435\u0433\u0443\u043B\u0438\u0440\u0443\u044E\u0442\u0441\u044F \u0437\u0430\u043A\u043E\u043D\u043E\u0434\u0430\u0442\u0435\u043B\u044C\u0441\u0442\u0432\u043E\u043C \u0413\u043E\u0441\u0443\u0434\u0430\u0440\u0441\u0442\u0432\u0430 \u0418\u0437\u0440\u0430\u0438\u043B\u044C, \u0438 \u0441\u0443\u0434\u044B \u043E\u043A\u0440\u0443\u0433\u0430 \u0422\u0435\u043B\u044C-\u0410\u0432\u0438\u0432 \u043E\u0431\u043B\u0430\u0434\u0430\u044E\u0442 \u0438\u0441\u043A\u043B\u044E\u0447\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0439 \u044E\u0440\u0438\u0441\u0434\u0438\u043A\u0446\u0438\u0435\u0439 \u043F\u043E \u043B\u044E\u0431\u044B\u043C \u0441\u0432\u044F\u0437\u0430\u043D\u043D\u044B\u043C \u0441 \u043D\u0438\u043C\u0438 \u0432\u043E\u043F\u0440\u043E\u0441\u0430\u043C.",
+  "terms.changes_title": "\u0418\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F \u043D\u0430\u0441\u0442\u043E\u044F\u0449\u0438\u0445 \u0443\u0441\u043B\u043E\u0432\u0438\u0439",
+  "terms.changes_body": "\u041C\u044B \u043C\u043E\u0436\u0435\u043C \u0432\u0440\u0435\u043C\u044F \u043E\u0442 \u0432\u0440\u0435\u043C\u0435\u043D\u0438 \u043E\u0431\u043D\u043E\u0432\u043B\u044F\u0442\u044C \u043D\u0430\u0441\u0442\u043E\u044F\u0449\u0438\u0435 \u0443\u0441\u043B\u043E\u0432\u0438\u044F. \u041F\u0440\u043E\u0434\u043E\u043B\u0436\u0435\u043D\u0438\u0435 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044F \u0421\u0430\u0439\u0442\u0430 \u043F\u043E\u0441\u043B\u0435 \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u0438 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u0439 \u043E\u0437\u043D\u0430\u0447\u0430\u0435\u0442 \u0441\u043E\u0433\u043B\u0430\u0441\u0438\u0435 \u0441 \u043E\u0431\u043D\u043E\u0432\u043B\u0451\u043D\u043D\u044B\u043C\u0438 \u0443\u0441\u043B\u043E\u0432\u0438\u044F\u043C\u0438.",
+  "terms.contact_title": "\u041A\u043E\u043D\u0442\u0430\u043A\u0442\u044B",
+  "terms.updated_date": "\u041D\u0430\u0441\u0442\u043E\u044F\u0449\u0438\u0435 \u0443\u0441\u043B\u043E\u0432\u0438\u044F \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0439 \u0440\u0430\u0437 \u043E\u0431\u043D\u043E\u0432\u043B\u044F\u043B\u0438\u0441\u044C: 15 \u0438\u044E\u043B\u044F 2026 \u0433.",
+  "privacy.title": "\u041F\u043E\u043B\u0438\u0442\u0438\u043A\u0430 \u043A\u043E\u043D\u0444\u0438\u0434\u0435\u043D\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0441\u0442\u0438",
+  "privacy.intro": "Keshev Plus (\xAB\u043C\u044B\xBB, \xAB\u043A\u043B\u0438\u043D\u0438\u043A\u0430\xBB) \u0443\u0432\u0430\u0436\u0430\u0435\u0442 \u0432\u0430\u0448\u0443 \u043A\u043E\u043D\u0444\u0438\u0434\u0435\u043D\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0441\u0442\u044C. \u041D\u0430\u0441\u0442\u043E\u044F\u0449\u0430\u044F \u043F\u043E\u043B\u0438\u0442\u0438\u043A\u0430 \u043E\u0431\u044A\u044F\u0441\u043D\u044F\u0435\u0442, \u043A\u0430\u043A\u0438\u0435 \u0434\u0430\u043D\u043D\u044B\u0435 \u043C\u044B \u0441\u043E\u0431\u0438\u0440\u0430\u0435\u043C \u0447\u0435\u0440\u0435\u0437 \u0441\u0430\u0439\u0442, \u0434\u043B\u044F \u0447\u0435\u0433\u043E \u043C\u044B \u0438\u0445 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u043C \u0438 \u043A\u0430\u043A \u0441\u0432\u044F\u0437\u0430\u0442\u044C\u0441\u044F \u0441 \u043D\u0430\u043C\u0438 \u043F\u043E \u044D\u0442\u043E\u043C\u0443 \u043F\u043E\u0432\u043E\u0434\u0443. \u041E\u043D\u0430 \u0434\u0435\u0439\u0441\u0442\u0432\u0443\u0435\u0442 \u0432 \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0438\u0438 \u0441 \u0417\u0430\u043A\u043E\u043D\u043E\u043C \u0418\u0437\u0440\u0430\u0438\u043B\u044F \u043E \u0437\u0430\u0449\u0438\u0442\u0435 \u043A\u043E\u043D\u0444\u0438\u0434\u0435\u043D\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0441\u0442\u0438 1981 \u0433\u043E\u0434\u0430 \u0438 \u041F\u043E\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u043C \u043E \u0437\u0430\u0449\u0438\u0442\u0435 \u043A\u043E\u043D\u0444\u0438\u0434\u0435\u043D\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0441\u0442\u0438 (\u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u044C \u0434\u0430\u043D\u043D\u044B\u0445) 2017 \u0433\u043E\u0434\u0430.",
+  "privacy.data_collected_title": "\u0418\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F, \u043A\u043E\u0442\u043E\u0440\u0443\u044E \u043C\u044B \u0441\u043E\u0431\u0438\u0440\u0430\u0435\u043C",
+  "privacy.data_collected_1": "\u041A\u043E\u043D\u0442\u0430\u043A\u0442\u043D\u044B\u0435 \u0434\u0430\u043D\u043D\u044B\u0435: \u0438\u043C\u044F, \u0430\u0434\u0440\u0435\u0441 \u044D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u043E\u0439 \u043F\u043E\u0447\u0442\u044B \u0438 \u043D\u043E\u043C\u0435\u0440 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0430, \u043A\u043E\u0433\u0434\u0430 \u0432\u044B \u0441\u0432\u044F\u0437\u044B\u0432\u0430\u0435\u0442\u0435\u0441\u044C \u0441 \u043D\u0430\u043C\u0438, \u0437\u0430\u043F\u0438\u0441\u044B\u0432\u0430\u0435\u0442\u0435\u0441\u044C \u043D\u0430 \u043F\u0440\u0438\u0451\u043C \u0438\u043B\u0438 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442\u0435 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u043D\u0443\u044E \u0444\u043E\u0440\u043C\u0443.",
+  "privacy.data_collected_2": "\u0414\u0430\u043D\u043D\u044B\u0435 \u0441\u043A\u0440\u0438\u043D\u0438\u043D\u0433\u043E\u0432\u043E\u0433\u043E \u043E\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430 \u0421\u0414\u0412\u0413: \u0438\u043C\u044F \u0440\u0435\u0431\u0451\u043D\u043A\u0430, \u0432\u043E\u0437\u0440\u0430\u0441\u0442, \u043F\u043E\u043B \u0438 \u0440\u043E\u0434\u0441\u0442\u0432\u043E \u0441 respondent, \u0430 \u0442\u0430\u043A\u0436\u0435 \u043E\u0442\u0432\u0435\u0442\u044B \u043D\u0430 \u043E\u043F\u0440\u043E\u0441\u043D\u0438\u043A. \u042D\u0442\u043E \u0447\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u044C\u043D\u0430\u044F \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F, \u0441\u0432\u044F\u0437\u0430\u043D\u043D\u0430\u044F \u0441 \u043F\u0435\u0440\u0432\u0438\u0447\u043D\u043E\u0439 \u043A\u043B\u0438\u043D\u0438\u0447\u0435\u0441\u043A\u043E\u0439 \u043E\u0446\u0435\u043D\u043A\u043E\u0439, \u0438 \u043C\u044B \u043E\u0431\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u0435\u043C \u0435\u0451 \u0441 \u043E\u0441\u043E\u0431\u043E\u0439 \u043E\u0441\u0442\u043E\u0440\u043E\u0436\u043D\u043E\u0441\u0442\u044C\u044E.",
+  "privacy.data_collected_3": "\u041D\u0435\u043E\u0431\u0445\u043E\u0434\u0438\u043C\u044B\u0435, \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0435 \u0438 \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0442\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0435 \u0444\u0430\u0439\u043B\u044B cookie, \u043A\u0430\u043A \u0443\u043A\u0430\u0437\u0430\u043D\u043E \u0432 \u0431\u0430\u043D\u043D\u0435\u0440\u0435 cookie \u043D\u0430 \u0441\u0430\u0439\u0442\u0435.",
+  "privacy.data_collected_4": "\u0411\u0430\u0437\u043E\u0432\u044B\u0435 \u0442\u0435\u0445\u043D\u0438\u0447\u0435\u0441\u043A\u0438\u0435 \u0434\u0430\u043D\u043D\u044B\u0435 \u043E\u0431 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0438 (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440, \u0442\u0438\u043F \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0430 \u0438 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430), \u0441\u043E\u0431\u0438\u0440\u0430\u0435\u043C\u044B\u0435 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0434\u043B\u044F \u0440\u0430\u0431\u043E\u0442\u044B \u0441\u0430\u0439\u0442\u0430.",
+  "privacy.purposes_title": "\u0426\u0435\u043B\u0438 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044F",
+  "privacy.purpose_1": "\u041F\u043B\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u0438 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0437\u0430\u043F\u0438\u0441\u044F\u043C\u0438 \u043D\u0430 \u043F\u0440\u0438\u0451\u043C.",
+  "privacy.purpose_2": "\u041E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0430 \u0441\u043A\u0440\u0438\u043D\u0438\u043D\u0433\u043E\u0432\u044B\u0445 \u043E\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u043E\u0432 \u0434\u043B\u044F \u043F\u0435\u0440\u0432\u0438\u0447\u043D\u043E\u0439 \u043A\u043B\u0438\u043D\u0438\u0447\u0435\u0441\u043A\u043E\u0439 \u043E\u0446\u0435\u043D\u043A\u0438 \u043D\u0430\u0448\u0438\u043C \u043A\u043B\u0438\u043D\u0438\u0447\u0435\u0441\u043A\u0438\u043C \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u043E\u043C.",
+  "privacy.purpose_3": "\u041E\u0442\u0432\u0435\u0442\u044B \u043D\u0430 \u0437\u0430\u043F\u0440\u043E\u0441\u044B \u0438 \u043F\u0440\u043E\u0441\u044C\u0431\u044B \u043E \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D\u0438\u0438 \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u0438.",
+  "privacy.purpose_4": "\u0423\u043B\u0443\u0447\u0448\u0435\u043D\u0438\u0435 \u0441\u0435\u0440\u0432\u0438\u0441\u0430 \u0438 \u0441\u0430\u0439\u0442\u0430, \u0430 \u0442\u0430\u043A\u0436\u0435 \u043E\u0431\u0449\u0438\u0439 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0439 \u0430\u043D\u0430\u043B\u0438\u0437 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044F.",
+  "privacy.purpose_5": "\u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u043F\u0440\u0438\u043C\u0435\u043D\u0438\u043C\u044B\u0445 \u043A \u043D\u0430\u043C \u044E\u0440\u0438\u0434\u0438\u0447\u0435\u0441\u043A\u0438\u0445 \u0438 \u043D\u043E\u0440\u043C\u0430\u0442\u0438\u0432\u043D\u044B\u0445 \u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u0441\u0442\u0432.",
+  "privacy.sharing_title": "\u041F\u0435\u0440\u0435\u0434\u0430\u0447\u0430 \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u0438",
+  "privacy.sharing_body": "\u041C\u044B \u043D\u0435 \u043F\u0440\u043E\u0434\u0430\u0451\u043C \u0432\u0430\u0448\u0443 \u043B\u0438\u0447\u043D\u0443\u044E \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044E. \u0414\u0430\u043D\u043D\u044B\u0435 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0443 \u043A\u043B\u0438\u043D\u0438\u043A\u0438 \u0438\u0441\u043A\u043B\u044E\u0447\u0438\u0442\u0435\u043B\u044C\u043D\u043E \u0434\u043B\u044F \u043E\u043A\u0430\u0437\u0430\u043D\u0438\u044F \u043F\u043E\u043C\u043E\u0449\u0438 \u0438 \u043C\u043E\u0433\u0443\u0442 \u0431\u044B\u0442\u044C \u0440\u0430\u0441\u043A\u0440\u044B\u0442\u044B \u043F\u043E \u0442\u0440\u0435\u0431\u043E\u0432\u0430\u043D\u0438\u044E \u0437\u0430\u043A\u043E\u043D\u0430 \u0438\u043B\u0438 \u0443\u043F\u043E\u043B\u043D\u043E\u043C\u043E\u0447\u0435\u043D\u043D\u043E\u0433\u043E \u043E\u0440\u0433\u0430\u043D\u0430. \u0421\u0441\u044B\u043B\u043A\u0430 \u0434\u043B\u044F \u0441\u0432\u044F\u0437\u0438 \u0447\u0435\u0440\u0435\u0437 WhatsApp \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442 \u0432\u043D\u0435\u0448\u043D\u0435\u0435 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 WhatsApp, \u043A\u043E\u0442\u043E\u0440\u043E\u0435 \u0440\u0435\u0433\u0443\u043B\u0438\u0440\u0443\u0435\u0442\u0441\u044F \u0435\u0433\u043E \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0439 \u043F\u043E\u043B\u0438\u0442\u0438\u043A\u043E\u0439 \u043A\u043E\u043D\u0444\u0438\u0434\u0435\u043D\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0441\u0442\u0438.",
+  "privacy.security_title": "\u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u044C \u0438 \u0445\u0440\u0430\u043D\u0435\u043D\u0438\u0435 \u0434\u0430\u043D\u043D\u044B\u0445",
+  "privacy.security_body": "\u041C\u044B \u043F\u0440\u0438\u043D\u0438\u043C\u0430\u0435\u043C \u0440\u0430\u0437\u0443\u043C\u043D\u044B\u0435 \u0442\u0435\u0445\u043D\u0438\u0447\u0435\u0441\u043A\u0438\u0435 \u0438 \u043E\u0440\u0433\u0430\u043D\u0438\u0437\u0430\u0446\u0438\u043E\u043D\u043D\u044B\u0435 \u043C\u0435\u0440\u044B \u0434\u043B\u044F \u0437\u0430\u0449\u0438\u0442\u044B \u0441\u043E\u0431\u0438\u0440\u0430\u0435\u043C\u043E\u0439 \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u0438. \u0418\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F \u0445\u0440\u0430\u043D\u0438\u0442\u0441\u044F \u0441\u0442\u043E\u043B\u044C\u043A\u043E, \u0441\u043A\u043E\u043B\u044C\u043A\u043E \u043D\u0435\u043E\u0431\u0445\u043E\u0434\u0438\u043C\u043E \u0434\u043B\u044F \u043E\u043A\u0430\u0437\u0430\u043D\u0438\u044F \u0443\u0441\u043B\u0443\u0433\u0438 \u0438 \u0441\u043E\u0431\u043B\u044E\u0434\u0435\u043D\u0438\u044F \u043F\u0440\u0438\u043C\u0435\u043D\u0438\u043C\u044B\u0445 \u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u0441\u0442\u0432 \u043F\u043E \u0432\u0435\u0434\u0435\u043D\u0438\u044E \u043C\u0435\u0434\u0438\u0446\u0438\u043D\u0441\u043A\u043E\u0439/\u0434\u0435\u043B\u043E\u0432\u043E\u0439 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0430\u0446\u0438\u0438, \u043F\u043E\u0441\u043B\u0435 \u0447\u0435\u0433\u043E \u043E\u043D\u0430 \u0443\u0434\u0430\u043B\u044F\u0435\u0442\u0441\u044F \u0438\u043B\u0438 \u043E\u0431\u0435\u0437\u043B\u0438\u0447\u0438\u0432\u0430\u0435\u0442\u0441\u044F.",
+  "privacy.rights_title": "\u0412\u0430\u0448\u0438 \u043F\u0440\u0430\u0432\u0430",
+  "privacy.rights_body": "\u0412 \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0438\u0438 \u0441 \u0417\u0430\u043A\u043E\u043D\u043E\u043C \u043E \u0437\u0430\u0449\u0438\u0442\u0435 \u043A\u043E\u043D\u0444\u0438\u0434\u0435\u043D\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0441\u0442\u0438 \u0432\u044B \u0438\u043C\u0435\u0435\u0442\u0435 \u043F\u0440\u0430\u0432\u043E \u043E\u0437\u043D\u0430\u043A\u043E\u043C\u0438\u0442\u044C\u0441\u044F \u0441 \u0445\u0440\u0430\u043D\u044F\u0449\u0435\u0439\u0441\u044F \u043E \u0432\u0430\u0441 \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u0435\u0439, \u043F\u043E\u0442\u0440\u0435\u0431\u043E\u0432\u0430\u0442\u044C \u0435\u0451 \u0438\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F, \u0430 \u0432 \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0451\u043D\u043D\u044B\u0445 \u0441\u043B\u0443\u0447\u0430\u044F\u0445 \u2014 \u0435\u0451 \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u044F. \u0414\u043B\u044F \u0440\u0435\u0430\u043B\u0438\u0437\u0430\u0446\u0438\u0438 \u044D\u0442\u0438\u0445 \u043F\u0440\u0430\u0432, \u043F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0441\u0432\u044F\u0436\u0438\u0442\u0435\u0441\u044C \u0441 \u043D\u0430\u043C\u0438, \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u044F \u0443\u043A\u0430\u0437\u0430\u043D\u043D\u044B\u0435 \u043D\u0438\u0436\u0435 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u043D\u044B\u0435 \u0434\u0430\u043D\u043D\u044B\u0435.",
+  "privacy.contact_title": "\u041A\u043E\u043D\u0442\u0430\u043A\u0442\u044B \u043F\u043E \u0432\u043E\u043F\u0440\u043E\u0441\u0430\u043C \u043A\u043E\u043D\u0444\u0438\u0434\u0435\u043D\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0441\u0442\u0438",
+  "privacy.updated_date": "\u042D\u0442\u0430 \u043F\u043E\u043B\u0438\u0442\u0438\u043A\u0430 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0439 \u0440\u0430\u0437 \u043E\u0431\u043D\u043E\u0432\u043B\u044F\u043B\u0430\u0441\u044C: 15 \u0438\u044E\u043B\u044F 2026 \u0433.",
+  "a11y_statement.title": "\u0417\u0430\u044F\u0432\u043B\u0435\u043D\u0438\u0435 \u043E \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u0438",
+  "a11y_statement.intro": "Keshev Plus \u0441\u0442\u0440\u0435\u043C\u0438\u0442\u0441\u044F \u0441\u0434\u0435\u043B\u0430\u0442\u044C \u0441\u0432\u043E\u0438 \u0446\u0438\u0444\u0440\u043E\u0432\u044B\u0435 \u0443\u0441\u043B\u0443\u0433\u0438 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B\u043C\u0438 \u0434\u043B\u044F \u0448\u0438\u0440\u043E\u043A\u043E\u0439 \u043F\u0443\u0431\u043B\u0438\u043A\u0438, \u0432\u043A\u043B\u044E\u0447\u0430\u044F \u043B\u044E\u0434\u0435\u0439 \u0441 \u0438\u043D\u0432\u0430\u043B\u0438\u0434\u043D\u043E\u0441\u0442\u044C\u044E, \u0438\u0441\u0445\u043E\u0434\u044F \u0438\u0437 \u0443\u0431\u0435\u0436\u0434\u0435\u043D\u0438\u044F, \u0447\u0442\u043E \u043A\u0430\u0436\u0434\u044B\u0439 \u0437\u0430\u0441\u043B\u0443\u0436\u0438\u0432\u0430\u0435\u0442 \u0440\u0430\u0432\u043D\u043E\u0433\u043E \u0438 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0433\u043E \u043E\u0431\u0441\u043B\u0443\u0436\u0438\u0432\u0430\u043D\u0438\u044F. \u042D\u0442\u0430 \u0440\u0430\u0431\u043E\u0442\u0430 \u043E\u0441\u0443\u0449\u0435\u0441\u0442\u0432\u043B\u044F\u0435\u0442\u0441\u044F \u0432 \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0438\u0438 \u0441 \u0417\u0430\u043A\u043E\u043D\u043E\u043C \u0418\u0437\u0440\u0430\u0438\u043B\u044F \u043E \u0440\u0430\u0432\u043D\u044B\u0445 \u043F\u0440\u0430\u0432\u0430\u0445 \u0438\u043D\u0432\u0430\u043B\u0438\u0434\u043E\u0432 1998 \u0433\u043E\u0434\u0430, \u041F\u043E\u043B\u043E\u0436\u0435\u043D\u0438\u0435\u043C \u043E \u0440\u0430\u0432\u043D\u044B\u0445 \u043F\u0440\u0430\u0432\u0430\u0445 \u0438\u043D\u0432\u0430\u043B\u0438\u0434\u043E\u0432 (\u0430\u0434\u0430\u043F\u0442\u0430\u0446\u0438\u044F \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u0438 \u0443\u0441\u043B\u0443\u0433) 2013 \u0433\u043E\u0434\u0430, \u0430 \u0442\u0430\u043A\u0436\u0435 \u0432 \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0438\u0438 \u0441 \u0438\u0437\u0440\u0430\u0438\u043B\u044C\u0441\u043A\u0438\u043C \u0441\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u043E\u043C 5568 \u0438 \u043C\u0435\u0436\u0434\u0443\u043D\u0430\u0440\u043E\u0434\u043D\u044B\u043C\u0438 \u0440\u0435\u043A\u043E\u043C\u0435\u043D\u0434\u0430\u0446\u0438\u044F\u043C\u0438 WCAG 2.0 \u0443\u0440\u043E\u0432\u043D\u044F AA.",
+  "a11y_statement.accommodations_title": "\u041C\u0435\u0440\u044B \u043F\u043E \u043E\u0431\u0435\u0441\u043F\u0435\u0447\u0435\u043D\u0438\u044E \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u0438 \u043D\u0430 \u044D\u0442\u043E\u043C \u0441\u0430\u0439\u0442\u0435",
+  "a11y_statement.accommodation_1": "\u0421\u043F\u0435\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0435 \u043C\u0435\u043D\u044E \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u0438 (\u0437\u043D\u0430\u0447\u043E\u043A \u0438\u043D\u0432\u0430\u043B\u0438\u0434\u043D\u043E\u0439 \u043A\u043E\u043B\u044F\u0441\u043A\u0438 \u0432 \u0443\u0433\u043B\u0443 \u044D\u043A\u0440\u0430\u043D\u0430), \u043F\u043E\u0437\u0432\u043E\u043B\u044F\u044E\u0449\u0435\u0435 \u043A\u0430\u0436\u0434\u043E\u043C\u0443 \u043F\u043E\u0441\u0435\u0442\u0438\u0442\u0435\u043B\u044E \u043D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C \u0441\u0430\u0439\u0442 \u043F\u043E\u0434 \u0441\u0432\u043E\u0438 \u043F\u043E\u0442\u0440\u0435\u0431\u043D\u043E\u0441\u0442\u0438.",
+  "a11y_statement.accommodation_2": "\u0423\u0432\u0435\u043B\u0438\u0447\u0435\u043D\u0438\u0435 \u0438 \u0443\u043C\u0435\u043D\u044C\u0448\u0435\u043D\u0438\u0435 \u0440\u0430\u0437\u043C\u0435\u0440\u0430 \u0442\u0435\u043A\u0441\u0442\u0430.",
+  "a11y_statement.accommodation_3": "\u0420\u0435\u0433\u0443\u043B\u0438\u0440\u043E\u0432\u043A\u0430 \u0432\u044B\u0441\u043E\u0442\u044B \u0441\u0442\u0440\u043E\u043A\u0438 \u0438 \u043C\u0435\u0436\u0431\u0443\u043A\u0432\u0435\u043D\u043D\u043E\u0433\u043E/\u043C\u0435\u0436\u0441\u043B\u043E\u0432\u0435\u0441\u043D\u043E\u0433\u043E \u0438\u043D\u0442\u0435\u0440\u0432\u0430\u043B\u0430 \u0434\u043B\u044F \u0447\u0438\u0442\u0430\u0442\u0435\u043B\u0435\u0439 \u0441 \u0442\u0440\u0443\u0434\u043D\u043E\u0441\u0442\u044F\u043C\u0438 \u0447\u0442\u0435\u043D\u0438\u044F.",
+  "a11y_statement.accommodation_4": "\u0420\u0435\u0436\u0438\u043C \u0432\u044B\u0441\u043E\u043A\u043E\u0439 \u043A\u043E\u043D\u0442\u0440\u0430\u0441\u0442\u043D\u043E\u0441\u0442\u0438 \u0438 \u0440\u0435\u0436\u0438\u043C \u043E\u0442\u0442\u0435\u043D\u043A\u043E\u0432 \u0441\u0435\u0440\u043E\u0433\u043E.",
+  "a11y_statement.accommodation_5": "\u0412\u044B\u0434\u0435\u043B\u0435\u043D\u0438\u0435 \u0441\u0441\u044B\u043B\u043E\u043A.",
+  "a11y_statement.accommodation_6": "\u041F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435 \u043D\u0430 \u043B\u0435\u0433\u043A\u043E \u0447\u0438\u0442\u0430\u0435\u043C\u044B\u0439 \u0448\u0440\u0438\u0444\u0442.",
+  "a11y_statement.accommodation_7": "\u0423\u0432\u0435\u043B\u0438\u0447\u0435\u043D\u043D\u044B\u0439 \u043A\u0443\u0440\u0441\u043E\u0440 \u043C\u044B\u0448\u0438.",
+  "a11y_statement.accommodation_8": "\u041F\u043E\u0434\u0432\u0438\u0436\u043D\u0430\u044F \u043D\u0430\u043F\u0440\u0430\u0432\u043B\u044F\u044E\u0449\u0430\u044F \u0434\u043B\u044F \u0447\u0442\u0435\u043D\u0438\u044F, \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0430\u044F \u0437\u0430 \u043A\u0443\u0440\u0441\u043E\u0440\u043E\u043C.",
+  "a11y_statement.accommodation_9": "\u041E\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430 \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u0439 \u0438 \u043F\u0435\u0440\u0435\u0445\u043E\u0434\u043E\u0432.",
+  "a11y_statement.accommodation_10": "\u0422\u0451\u043C\u043D\u044B\u0439 \u0440\u0435\u0436\u0438\u043C.",
+  "a11y_statement.accommodation_11": "\u041E\u043F\u0438\u0441\u0430\u0442\u0435\u043B\u044C\u043D\u044B\u0439 \u0430\u043B\u044C\u0442\u0435\u0440\u043D\u0430\u0442\u0438\u0432\u043D\u044B\u0439 \u0442\u0435\u043A\u0441\u0442 (alt) \u0434\u043B\u044F \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0439 \u043D\u0430 \u0441\u0430\u0439\u0442\u0435.",
+  "a11y_statement.accommodation_12": "\u041F\u0440\u044F\u043C\u0430\u044F \u0441\u0441\u044B\u043B\u043A\u0430 \u0434\u043B\u044F \u043F\u0435\u0440\u0435\u0445\u043E\u0434\u0430 \u043A \u043E\u0441\u043D\u043E\u0432\u043D\u043E\u043C\u0443 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u043C\u0443 \u0434\u043B\u044F \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0435\u0439 \u043A\u043B\u0430\u0432\u0438\u0430\u0442\u0443\u0440\u044B \u0438 \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u043C \u0447\u0442\u0435\u043D\u0438\u044F \u0441 \u044D\u043A\u0440\u0430\u043D\u0430.",
+  "a11y_statement.accommodation_13": "\u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430 \u043D\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u0438 \u0441 \u043A\u043B\u0430\u0432\u0438\u0430\u0442\u0443\u0440\u044B \u0438 \u0441\u043E\u0432\u043C\u0435\u0441\u0442\u0438\u043C\u043E\u0441\u0442\u044C \u0441 \u0440\u0430\u0441\u043F\u0440\u043E\u0441\u0442\u0440\u0430\u043D\u0451\u043D\u043D\u044B\u043C\u0438 \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0430\u043C\u0438 \u0447\u0442\u0435\u043D\u0438\u044F \u0441 \u044D\u043A\u0440\u0430\u043D\u0430.",
+  "a11y_statement.accommodation_14": "\u0410\u0434\u0430\u043F\u0442\u0438\u0432\u043D\u044B\u0439 \u0434\u0438\u0437\u0430\u0439\u043D, \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0438\u0439 \u0434\u043B\u044F \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u0430 \u043D\u0430 \u043C\u043E\u0431\u0438\u043B\u044C\u043D\u044B\u0445 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u0445, \u043F\u043B\u0430\u043D\u0448\u0435\u0442\u0430\u0445 \u0438 \u043A\u043E\u043C\u043F\u044C\u044E\u0442\u0435\u0440\u0430\u0445.",
+  "a11y_statement.limitations_title": "\u0418\u0437\u0432\u0435\u0441\u0442\u043D\u044B\u0435 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F",
+  "a11y_statement.limitations_body": "\u041C\u044B \u043F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u043E \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u043C \u043D\u0430\u0434 \u0443\u043B\u0443\u0447\u0448\u0435\u043D\u0438\u0435\u043C \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u0438 \u0441\u0430\u0439\u0442\u0430. \u041D\u0435\u0441\u043C\u043E\u0442\u0440\u044F \u043D\u0430 \u043D\u0430\u0448\u0438 \u0443\u0441\u0438\u043B\u0438\u044F, \u043D\u0435\u043A\u043E\u0442\u043E\u0440\u044B\u0435 \u0447\u0430\u0441\u0442\u0438 \u0441\u0430\u0439\u0442\u0430 \u043C\u043E\u0433\u0443\u0442 \u0431\u044B\u0442\u044C \u0435\u0449\u0451 \u043D\u0435 \u043F\u043E\u043B\u043D\u043E\u0441\u0442\u044C\u044E \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B. \u0415\u0441\u043B\u0438 \u0432\u044B \u0441\u0442\u043E\u043B\u043A\u043D\u0443\u043B\u0438\u0441\u044C \u0441 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u044B\u043C, \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0435\u0439 \u0438\u043B\u0438 \u043A\u043E\u043C\u043F\u043E\u043D\u0435\u043D\u0442\u043E\u043C, \u043A\u043E\u0442\u043E\u0440\u044B\u0435 \u043D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B, \u043F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0441\u043E\u043E\u0431\u0449\u0438\u0442\u0435 \u043D\u0430\u043C \u043E\u0431 \u044D\u0442\u043E\u043C, \u0447\u0442\u043E\u0431\u044B \u043C\u044B \u043C\u043E\u0433\u043B\u0438 \u0443\u0441\u0442\u0440\u0430\u043D\u0438\u0442\u044C \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0443 \u043A\u0430\u043A \u043C\u043E\u0436\u043D\u043E \u0441\u043A\u043E\u0440\u0435\u0435.",
+  "a11y_statement.coordinator_title": "\u041A\u043E\u043E\u0440\u0434\u0438\u043D\u0430\u0442\u043E\u0440 \u043F\u043E \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u0438 \u0438 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u044B",
+  "a11y_statement.coordinator_intro": "\u0412\u043E\u043F\u0440\u043E\u0441\u044B, \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438 \u0438 \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u044F \u043F\u043E \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u0438 \u0441\u0430\u0439\u0442\u0430 \u043C\u043E\u0436\u043D\u043E \u043D\u0430\u043F\u0440\u0430\u0432\u043B\u044F\u0442\u044C \u043D\u0430\u043C \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u043C\u0438 \u0441\u043F\u043E\u0441\u043E\u0431\u0430\u043C\u0438:",
+  "a11y_statement.address": "\u0443\u043B. \u0418\u0433\u0430\u043B\u044C \u0410\u043B\u043E\u043D 94, \u0422\u0435\u043B\u044C-\u0410\u0432\u0438\u0432",
+  "a11y_statement.response_time": "\u041C\u044B \u0441\u0442\u0440\u0435\u043C\u0438\u043C\u0441\u044F \u043E\u0442\u0432\u0435\u0447\u0430\u0442\u044C \u043D\u0430 \u0437\u0430\u043F\u0440\u043E\u0441\u044B \u043F\u043E \u0432\u043E\u043F\u0440\u043E\u0441\u0430\u043C \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u0438 \u0432 \u0440\u0430\u0437\u0443\u043C\u043D\u044B\u0435 \u0441\u0440\u043E\u043A\u0438.",
+  "a11y_statement.further_recourse_title": "\u0414\u0430\u043B\u044C\u043D\u0435\u0439\u0448\u0438\u0435 \u043E\u0431\u0440\u0430\u0449\u0435\u043D\u0438\u044F",
+  "a11y_statement.further_recourse_body": "\u0415\u0441\u043B\u0438 \u0432\u044B \u043D\u0435 \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u0438 \u0443\u0434\u043E\u0432\u043B\u0435\u0442\u0432\u043E\u0440\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0433\u043E \u043E\u0442\u0432\u0435\u0442\u0430 \u043E\u0442 \u043D\u0430\u0441, \u0432\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u043E\u0431\u0440\u0430\u0442\u0438\u0442\u044C\u0441\u044F \u0432 \u041A\u043E\u043C\u0438\u0441\u0441\u0438\u044E \u043F\u043E \u0440\u0430\u0432\u043D\u044B\u043C \u043F\u0440\u0430\u0432\u0430\u043C \u0438\u043D\u0432\u0430\u043B\u0438\u0434\u043E\u0432 \u043F\u0440\u0438 \u041C\u0438\u043D\u0438\u0441\u0442\u0435\u0440\u0441\u0442\u0432\u0435 \u044E\u0441\u0442\u0438\u0446\u0438\u0438, \u043A\u043E\u0442\u043E\u0440\u0430\u044F \u043E\u0442\u0432\u0435\u0447\u0430\u0435\u0442 \u0437\u0430 \u0438\u0441\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u0417\u0430\u043A\u043E\u043D\u0430 \u043E \u0440\u0430\u0432\u043D\u044B\u0445 \u043F\u0440\u0430\u0432\u0430\u0445 \u0438\u043D\u0432\u0430\u043B\u0438\u0434\u043E\u0432.",
+  "a11y_statement.updated_date": "\u042D\u0442\u043E \u0437\u0430\u044F\u0432\u043B\u0435\u043D\u0438\u0435 \u043E \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u0438 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0439 \u0440\u0430\u0437 \u043E\u0431\u043D\u043E\u0432\u043B\u044F\u043B\u043E\u0441\u044C: 15 \u0438\u044E\u043B\u044F 2026 \u0433.",
+  "booking.title": "\u0417\u0430\u043F\u0438\u0441\u0430\u0442\u044C\u0441\u044F \u043D\u0430 \u043F\u0440\u0438\u0451\u043C",
+  "booking.modal_intro": "\u0417\u0430\u043F\u043E\u043B\u043D\u0438\u0442\u0435 \u0441\u0432\u043E\u0438 \u0434\u0430\u043D\u043D\u044B\u0435, \u0438 \u043C\u044B \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u043C \u0432\u0430\u0448\u0443 \u0437\u0430\u043F\u0438\u0441\u044C. \u041F\u043E\u043B\u044F, \u043E\u0442\u043C\u0435\u0447\u0435\u043D\u043D\u044B\u0435 *, \u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u044B \u0434\u043B\u044F \u0437\u0430\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F.",
+  "booking.page_subtitle": "\u0417\u0430\u043F\u043E\u043B\u043D\u0438\u0442\u0435 \u0441\u0432\u043E\u0438 \u0434\u0430\u043D\u043D\u044B\u0435, \u0438 \u043C\u044B \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u043C \u0432\u0430\u0448\u0443 \u0437\u0430\u043F\u0438\u0441\u044C",
+  "booking.details_title": "\u0414\u0435\u0442\u0430\u043B\u0438 \u0437\u0430\u043F\u0438\u0441\u0438",
+  "booking.fields_required_note": "\u041F\u043E\u043B\u044F, \u043E\u0442\u043C\u0435\u0447\u0435\u043D\u043D\u044B\u0435 *, \u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u044B \u0434\u043B\u044F \u0437\u0430\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F",
+  "booking.full_name": "\u041F\u043E\u043B\u043D\u043E\u0435 \u0438\u043C\u044F",
+  "booking.full_name_placeholder": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0432\u0430\u0448\u0435 \u0438\u043C\u044F",
+  "booking.phone": "\u0422\u0435\u043B\u0435\u0444\u043E\u043D",
+  "booking.phone_placeholder": "\u0412\u0430\u0448 \u043D\u043E\u043C\u0435\u0440 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0430",
+  "booking.email": "\u042D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u0430\u044F \u043F\u043E\u0447\u0442\u0430",
+  "booking.email_placeholder": "\u0412\u0430\u0448 \u0430\u0434\u0440\u0435\u0441 \u044D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u043E\u0439 \u043F\u043E\u0447\u0442\u044B",
+  "booking.appointment_type": "\u0422\u0438\u043F \u043F\u0440\u0438\u0451\u043C\u0430",
+  "booking.date": "\u0414\u0430\u0442\u0430",
+  "booking.time": "\u0412\u0440\u0435\u043C\u044F",
+  "booking.checking_availability": "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u0438...",
+  "booking.select_time": "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0432\u0440\u0435\u043C\u044F",
+  "booking.no_times_available": "\u041D\u0430 \u044D\u0442\u0443 \u0434\u0430\u0442\u0443 \u043D\u0435\u0442 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0433\u043E \u0432\u0440\u0435\u043C\u0435\u043D\u0438.",
+  "booking.notes": "\u041F\u0440\u0438\u043C\u0435\u0447\u0430\u043D\u0438\u044F (\u043D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E)",
+  "booking.notes_placeholder": "\u041B\u044E\u0431\u0430\u044F \u0434\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u0430\u044F \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F...",
+  "booking.submitting": "\u041E\u0442\u043F\u0440\u0430\u0432\u043A\u0430...",
+  "booking.submit": "\u0417\u0430\u043F\u0438\u0441\u0430\u0442\u044C\u0441\u044F \u043D\u0430 \u043F\u0440\u0438\u0451\u043C",
+  "booking.close": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C",
+  "booking.success_title": "\u0417\u0430\u043F\u0438\u0441\u044C \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0430!",
+  "booking.success_description": "\u041C\u044B \u0441\u0432\u044F\u0436\u0435\u043C\u0441\u044F \u0441 \u0432\u0430\u043C\u0438 \u0432 \u0431\u043B\u0438\u0436\u0430\u0439\u0448\u0435\u0435 \u0432\u0440\u0435\u043C\u044F \u0434\u043B\u044F \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0438\u044F \u0437\u0430\u043F\u0438\u0441\u0438. \u0421\u043F\u0430\u0441\u0438\u0431\u043E!",
+  "booking.back_to_home": "\u0412\u0435\u0440\u043D\u0443\u0442\u044C\u0441\u044F \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u0443\u044E",
+  "booking.date_unavailable_title": "\u0414\u0430\u0442\u0430 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0430",
+  "booking.date_unavailable_description": "\u041C\u044B \u0432\u044B\u0431\u0440\u0430\u043B\u0438 \u0431\u043B\u0438\u0436\u0430\u0439\u0448\u0443\u044E \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0443\u044E \u0434\u0430\u0442\u0443.",
+  "booking.time_unavailable_title": "\u0412\u0440\u0435\u043C\u044F \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E \u0434\u043B\u044F \u044D\u0442\u043E\u0433\u043E \u0442\u0438\u043F\u0430",
+  "booking.time_unavailable_description": "\u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u0440\u0443\u0433\u043E\u0435 \u0432\u0440\u0435\u043C\u044F \u0438\u0437 \u043E\u0431\u043D\u043E\u0432\u043B\u0451\u043D\u043D\u043E\u0433\u043E \u0441\u043F\u0438\u0441\u043A\u0430.",
+  "booking.error_title": "\u041E\u0448\u0438\u0431\u043A\u0430",
+  "booking.availability_check_failed": "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u044C. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u043F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0441\u043D\u043E\u0432\u0430.",
+  "booking.fill_required_fields": "\u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0437\u0430\u043F\u043E\u043B\u043D\u0438\u0442\u0435 \u0432\u0441\u0435 \u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u044B\u0435 \u043F\u043E\u043B\u044F",
+  "booking.booked_toast_title": "\u0417\u0430\u043F\u0438\u0441\u044C \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0430!",
+  "booking.booked_toast_description": "\u041C\u044B \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u043C \u0432\u0430\u0448\u0443 \u0437\u0430\u043F\u0438\u0441\u044C \u0432 \u0431\u043B\u0438\u0436\u0430\u0439\u0448\u0435\u0435 \u0432\u0440\u0435\u043C\u044F",
+  "booking.submit_failed": "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043E\u0444\u043E\u0440\u043C\u0438\u0442\u044C \u0437\u0430\u043F\u0438\u0441\u044C. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u043F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0441\u043D\u043E\u0432\u0430.",
+  "questionnaire_modal.invalid_type": "\u041D\u0435\u0434\u043E\u043F\u0443\u0441\u0442\u0438\u043C\u044B\u0439 \u0442\u0438\u043F \u043E\u043F\u0440\u043E\u0441\u043D\u0438\u043A\u0430",
+  "questionnaire_modal.close": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C"
 };
 var ru_default = ru;
 
@@ -1645,6 +3391,8 @@ var am = {
   "nav.faq": "\u1260\u1265\u12DB\u1275 \u12E8\u121A\u1320\u12E8\u1241 \u1325\u12EB\u1244\u12CE\u127D",
   "nav.questionnaires": "\u1218\u1320\u12ED\u1246\u127D",
   "nav.contact": "\u12A5\u12E8\u1293 \u12EB\u130D\u1299\u1295",
+  "nav.book": "\u1240\u1320\u122E \u12ED\u12EB\u12D9",
+  "nav.book_now": "\u12A0\u1201\u1295 \u1240\u1320\u122E \u12ED\u12EB\u12D9",
   "nav.skip_to_content": "\u12C8\u12F0 \u12CB\u1293 \u12ED\u12D8\u1275 \u12DD\u1208\u120D",
   "nav.main_navigation": "\u12CB\u1293 \u1293\u126A\u130C\u123D\u1295",
   "nav.go_home": "\u12C8\u12F0 \u1218\u1290\u123B \u1308\u133D \u1202\u12F5",
@@ -1694,6 +3442,61 @@ var am = {
   "contact.address": "\u1270\u120D \u12A0\u1262\u1265\u1363 \u12A5\u1235\u122B\u12A4\u120D",
   "contact.subtitle": "\u12DD\u122D\u12DD\u122E\u127D\u12CE\u1295 \u12ED\u1270\u12C9 \u12A5\u1293 \u1260\u1270\u127B\u1208 \u134D\u1325\u1290\u1275 \u12A5\u1293\u1308\u129D\u12CE\u1273\u1208\u1295",
   "contact.leave_details": "\u12DD\u122D\u12DD\u122E\u127D\u12CE\u1295 \u12ED\u1270\u12C9",
+  "contact.email_placeholder": "\u12A2\u121C\u12ED\u120D",
+  "contact.phone_placeholder": "\u1235\u120D\u12AD \u1241\u1325\u122D",
+  "contact.topic_label": "\u122D\u12D5\u1235",
+  "contact.topic_option1": "\u12E8 ADHD \u121D\u122D\u1218\u122B",
+  "contact.topic_option2": "\u12E8MOXO \u1348\u1270\u1293",
+  "contact.topic_option3": "\u120C\u120B",
+  "contact.address_label": "\u12A0\u12F5\u122B\u123B\u1366",
+  "contact.email_label": "\u12A2\u121C\u12ED\u120D\u1366",
+  "contact.details_title": "\u12E8\u1218\u1308\u1293\u129B \u12DD\u122D\u12DD\u122E\u127D",
+  "contact.directions_title": "\u12A0\u1245\u1323\u132B \u12A5\u1293 \u121B\u1246\u121A\u12EB",
+  "contact.clear_form": "\u1245\u1339\u1295 \u12A0\u133D\u12F3",
+  "services.subtitle": "\u1260 ADHD \u121D\u122D\u1218\u122B \u12A5\u1293 \u1205\u12AD\u121D\u1293 \u12D8\u122D\u134D \u1230\u134A \u12E8\u1219\u12EB \u12A0\u1308\u120D\u130D\u120E\u1276\u127D\u1295 \u12A5\u1293\u1240\u122D\u1263\u1208\u1295",
+  "contact.aria_open_form": "\u12E8\u1218\u1308\u1293\u129B \u1245\u1339\u1295 \u1208\u1218\u12AD\u1348\u1275 \u12ED\u132B\u1291",
+  "contact.click_to_open_form": "\u1245\u1339\u1295 \u1208\u1218\u12AD\u1348\u1275 \u12ED\u132B\u1291",
+  "contact.navigate_waze": "\u1260 Waze \u12ED\u121D\u1229",
+  "contact.navigate_google_maps": "\u1260 Google Maps \u12ED\u121D\u1229",
+  "chat.open": "\u12CD\u12ED\u12ED\u1275 \u12AD\u1348\u1275",
+  "chat.how_can_help": "\u12A5\u1295\u12F4\u1275 \u120D\u122D\u12F3\u12CE\u1275 \u12A5\u127D\u120B\u1208\u1201?",
+  "chat.close": "\u12DD\u130B",
+  "chat.assistant_name": "\u12E8KeshevPlus \u1228\u12F3\u1275",
+  "chat.not_you": "{name} \u12A0\u12ED\u12F0\u1208\u121D?",
+  "chat.before_start": "\u12A8\u1218\u1300\u1218\u122B\u127D\u1295 \u1260\u134A\u1275\u1363 \u12A5\u1263\u12AD\u12CE \u12DD\u122D\u12DD\u122E\u127D\u12CE\u1295 \u12ED\u1219\u1209\u1366",
+  "chat.full_name_placeholder": "\u1219\u1209 \u1235\u121D *",
+  "chat.email_placeholder": "\u12A2\u121C\u12ED\u120D *",
+  "chat.phone_placeholder": "\u1235\u120D\u12AD (\u12A0\u121B\u122B\u132D)",
+  "chat.starting": "\u1260\u1218\u1300\u1218\u122D \u120B\u12ED...",
+  "chat.start_chat": "\u12CD\u12ED\u12ED\u1275 \u1300\u121D\u122D",
+  "chat.welcome_message": "\u1230\u120B\u121D {name}! \u12A5\u1294 \u12E8KeshevPlus \u121D\u1293\u1263\u12CA \u1228\u12F3\u1275 \u1290\u129D\u1362 \u12A5\u1295\u12F4\u1275 \u120D\u122D\u12F3\u12CE\u1275 \u12A5\u127D\u120B\u1208\u1201?",
+  "chat.type_message": "\u1218\u120D\u12A5\u12AD\u1275 \u12ED\u1270\u12ED\u1261...",
+  "chat.assistant_typing": "\u1228\u12F3\u1271 \u12A5\u12E8\u1270\u12E8\u1260 \u1290\u12CD",
+  "footer.accessibility_statement": "\u12E8\u1270\u12F0\u122B\u123D\u1290\u1275 \u1218\u130D\u1208\u132B",
+  "questionnaires.fill_online": "\u1260\u1218\u1235\u1218\u122D \u120B\u12ED \u12ED\u1219\u1209",
+  "about.doctor_name": "\u12F6/\u122D Irine Kochav-Raifman",
+  "about.doctor_title": "\u1235\u1354\u123B\u120A\u1235\u1275 \u1210\u12AA\u121D",
+  "about.doctor_desc": "\u120D\u1306\u127D\u1295\u1363 \u1273\u12F3\u130A\u12CE\u127D\u1295 \u12A5\u1293 \u12A0\u12CB\u1242\u12CE\u127D\u1295 \u1260\u1218\u1218\u122D\u1218\u122D \u1230\u134A \u120D\u121D\u12F5 \u12A0\u120B\u1275\u1362 \u1265\u12D9 \u1273\u12AB\u121A\u12CE\u127D\u1295 \u12C8\u12F0 \u130D\u120B\u12CA \u12A5\u122D\u12AB\u1273 \u12A5\u1293 \u121D\u122D\u1325 \u12A0\u1230\u122B\u122D \u1260\u121A\u12C8\u1235\u12F0\u12CD \u1218\u1295\u1308\u12F3\u1278\u12CD \u120B\u12ED \u12A0\u1305\u1263\u1208\u127D\u1362",
+  "about.doctor_alt": "\u12F6/\u122D Irine Kochav-Raifman",
+  "about.credential1": "\u12E8ADHD \u121D\u122D\u1218\u122B \u12A5\u1293 \u1205\u12AD\u121D\u1293 \u1235\u1354\u123B\u120A\u1235\u1275",
+  "about.credential2": "\u12A815 \u12D3\u1218\u1273\u1275 \u1260\u120B\u12ED \u120D\u121D\u12F5",
+  "about.credential3": "\u1260\u120D\u1306\u127D\u1363 \u1273\u12F3\u130A\u12CE\u127D \u12A5\u1293 \u12A0\u12CB\u1242\u12CE\u127D \u120B\u12ED \u120D\u12E9 \u1275\u12A9\u1228\u1275",
+  "about.mission": "\u12E8\u12A5\u129B \u1270\u120D\u12D5\u12AE \u1275\u12AD\u12AD\u1208\u129B \u121D\u122D\u1218\u122B \u12A5\u1293 \u130D\u120B\u12CA \u12E8\u1205\u12AD\u121D\u1293 \u12A5\u1245\u12F6\u127D\u1295 \u121B\u1245\u1228\u1265 \u1232\u1206\u1295 \u12ED\u1205\u121D \u1273\u12AB\u121A\u12CE\u127B\u127D\u1295 \u1219\u1209 \u130D\u120B\u12CA \u12A0\u1245\u121B\u1278\u12CD\u1295 \u12A5\u1295\u12F2\u12F0\u122D\u1231 \u12EB\u1235\u127D\u120B\u120D\u1362",
+  "about.value1_title": "\u130D\u120B\u12CA \u12A0\u1240\u122B\u1228\u1265",
+  "about.value1_desc": "\u12A5\u12EB\u1295\u12F3\u1295\u12F1 \u1273\u12AB\u121A \u1208\u120D\u12E9 \u134D\u120B\u130E\u1271 \u12E8\u1270\u1260\u1300 \u130D\u120B\u12CA \u1275\u12A9\u1228\u1275 \u12EB\u1308\u129B\u120D",
+  "about.value2_title": "\u1219\u12EB\u12CA\u1290\u1275",
+  "about.value2_desc": "\u1230\u134A \u120D\u121D\u12F5 \u12A5\u1293 \u1240\u1323\u12ED\u1290\u1275 \u12EB\u1208\u12CD \u1235\u120D\u1320\u1293 \u12EB\u1208\u12CD \u12E8\u1263\u1208\u1219\u12EB\u12CE\u127D \u1261\u12F5\u1295",
+  "about.value3_title": "\u121A\u1235\u1325\u122B\u12CA\u1290\u1275",
+  "about.value3_desc": "\u1219\u1209 \u12E8\u130D\u120B\u12CA\u1290\u1275 \u1325\u1260\u1243 \u12A5\u1293 \u12F0\u1205\u1295\u1290\u1271 \u12E8\u1270\u1320\u1260\u1240 \u12A0\u12AB\u1263\u1262",
+  "services.step1_title": "\u130D\u1295\u1299\u1290\u1275",
+  "services.step1_desc": "\u12E8\u1218\u1300\u1218\u122A\u12EB \u130D\u1295\u1299\u1290\u1275 \u1260\u1235\u120D\u12AD \u12C8\u12ED\u121D \u1260\u12F5\u1205\u1228 \u1308\u1339 \u1245\u133D \u1260\u12A9\u120D",
+  "services.step2_title": "\u12E8\u1218\u1300\u1218\u122A\u12EB \u121D\u12AD\u12AD\u122D",
+  "services.step2_desc": "\u12E8\u1218\u1300\u1218\u122A\u12EB \u1243\u1208 \u1218\u1320\u12ED\u1245\u1363 \u12E8\u1205\u12AD\u121D\u1293 \u1273\u122A\u12AD \u121B\u1230\u1263\u1230\u1265 \u12A5\u1293 \u1218\u1320\u12ED\u1245 \u1218\u1219\u120B\u1275",
+  "services.step3_title": "\u12A0\u1320\u1243\u120B\u12ED \u130D\u121D\u1308\u121B",
+  "services.step3_desc": "\u12E8\u12AE\u121D\u1352\u12E9\u1270\u122D \u121D\u122D\u1218\u122B \u12A5\u1293 \u1325\u120D\u1245 \u12AD\u120A\u1292\u12AB\u12CA \u130D\u121D\u1308\u121B",
+  "services.step4_title": "\u122A\u1356\u122D\u1275 \u12A5\u1293 \u12E8\u1205\u12AD\u121D\u1293 \u12A5\u1245\u12F5",
+  "services.step4_desc": "\u12DD\u122D\u12DD\u122D \u122A\u1356\u122D\u1275 \u12A5\u1293 \u130D\u120B\u12CA \u12E8\u1205\u12AD\u121D\u1293 \u121D\u12AD\u122E\u127D\u1295 \u1218\u1240\u1260\u120D",
+  "services.list_label": "\u12A0\u1308\u120D\u130D\u120E\u1276\u127B\u127D\u1295",
   "contact.full_name": "\u1219\u1209 \u1235\u121D",
   "contact.phone_label": "\u1235\u120D\u12AD",
   "contact.email_optional": "\u12A2\u121C\u12ED\u120D (\u12A0\u121B\u122B\u132D)",
@@ -1754,8 +3557,51 @@ var am = {
   "faq.title": "\u1260\u1265\u12DB\u1275 \u12E8\u121A\u1320\u12E8\u1241 \u1325\u12EB\u1244\u12CE\u127D",
   "faq.subtitle": "\u1208\u1270\u1208\u1218\u12F1 \u1325\u12EB\u1244\u12CE\u127D \u1218\u120D\u1236\u127D",
   "faq.no_answer": "\u1218\u120D\u1235 \u12A0\u120B\u1308\u1299\u121D? \u12EB\u130D\u1299\u1295",
+  "services.service1_title": "\u12A0\u1320\u1243\u120B\u12ED \u121D\u122D\u1218\u122B",
+  "services.service1_desc": "\u12E8\u120B\u1241 \u1218\u1233\u122A\u12EB\u12CE\u127D\u1295\u1363 \u12AD\u120A\u1292\u12AB\u12CA \u1243\u1208 \u1218\u1320\u12ED\u1246\u127D\u1295 \u12A5\u1293 \u1260\u12AE\u121D\u1352\u12E9\u1270\u122D \u12E8\u1270\u12F0\u1308\u1349 \u1348\u1270\u1293\u12CE\u127D\u1295 \u1260\u1218\u1320\u1240\u121D \u130D\u120B\u12CA \u121D\u122D\u1218\u122B",
+  "services.service2_title": "\u12E8\u1218\u12F5\u1203\u1292\u1275 \u121B\u1235\u1270\u12AB\u12A8\u12EB",
+  "services.service2_desc": "\u1240\u1323\u12ED\u1290\u1275 \u1263\u1208\u12CD \u12E8\u12F0\u1205\u1295\u1290\u1275 \u12AD\u1275\u1275\u120D \u12E8\u130D\u120D \u1218\u12F5\u1203\u1292\u1275 \u1205\u12AD\u121D\u1293",
+  "services.service3_title": "\u12E8MOXO \u12AE\u121D\u1352\u12E9\u1270\u122B\u12ED\u12DD\u12F5 \u1348\u1270\u1293",
+  "services.service3_desc": "\u12E8\u1275\u12A9\u1228\u1275 \u12A5\u1293 \u12E8\u121B\u1270\u12AE\u122D \u1270\u130D\u1263\u122B\u1275 \u1270\u1328\u1263\u132D \u130D\u121D\u1308\u121B",
+  "services.service4_title": "\u121D\u12AD\u12AD\u122D \u12A5\u1293 \u12AD\u1275\u1275\u120D",
+  "services.service4_desc": "\u1240\u1323\u12ED\u1290\u1275 \u12EB\u1208\u12CD \u1219\u12EB\u12CA \u12F5\u130B\u134D \u12A5\u1293 \u12E8\u1205\u12AD\u121D\u1293 \u12AD\u1275\u1275\u120D",
+  "services.service5_title": "\u12C8\u12F0 \u1270\u1328\u121B\u122A \u1205\u12AD\u121D\u1293\u12CE\u127D \u121B\u1235\u1270\u120B\u1208\u134D",
+  "services.service5_desc": "\u12C8\u12F0 \u12E8\u1235\u122B \u1205\u12AD\u121D\u1293\u1363 \u12E8\u1235\u121C\u1275 \u1205\u12AD\u121D\u1293 \u12C8\u12ED\u121D \u12E8\u1235\u1290-\u120D\u1266\u1293 \u12F5\u130B\u134D \u121B\u1235\u1270\u120B\u1208\u134D",
+  "faq.q1": "ADHD \u121D\u1295\u12F5\u1295 \u1290\u12CD?",
+  "faq.a1": "ADHD (\u12E8\u1275\u12A9\u1228\u1275 \u1309\u12F5\u1208\u1275 \u12A8\u1218\u1320\u1295 \u12EB\u1208\u1348 \u12A5\u1295\u1245\u1235\u1243\u1234 \u1260\u123D\u1273) \u1275\u12A9\u1228\u1275\u1295\u1363 \u12E8\u130D\u134A\u1275 \u1241\u1325\u1325\u122D\u1295 \u12A5\u1293 \u12E8\u12A5\u1295\u1245\u1235\u1243\u1234 \u12F0\u1295\u1265\u1295 \u12E8\u121A\u1290\u12AB \u12E8\u1290\u122D\u126D \u12A5\u12F5\u1308\u1275 \u127D\u130D\u122D \u1290\u12CD\u1362 \u1260\u120D\u1306\u127D\u121D \u1206\u1290 \u1260\u12A0\u12CB\u1242\u12CE\u127D \u12D8\u1295\u12F5 \u12E8\u1270\u1208\u1218\u12F0 \u1232\u1206\u1295 \u12E8\u12D5\u1208\u1275 \u1270\u12D5\u1208\u1275 \u1270\u130D\u1263\u122D\u1295\u1363 \u1275\u121D\u1205\u122D\u1275\u1295 \u12A5\u1293 \u1235\u122B\u1295 \u12ED\u1290\u12AB\u120D\u1362",
+  "faq.q2": "\u12E8\u121D\u122D\u1218\u122B\u12CD \u1202\u12F0\u1275 \u121D\u1295 \u12EB\u1205\u120D \u130A\u12DC \u12ED\u12C8\u1235\u12F3\u120D?",
+  "faq.a2": "\u1219\u1209\u12CD \u12E8\u121D\u122D\u1218\u122B \u1202\u12F0\u1275 \u1260\u122D\u12AB\u1273 \u12AD\u134D\u1208 \u130A\u12DC\u12EB\u1275\u1295 \u12EB\u12AB\u1275\u1273\u120D \u12A5\u1293 \u1260\u12A0\u121B\u12AB\u12ED 2-4 \u1233\u121D\u1295\u1273\u1275 \u12ED\u12C8\u1235\u12F3\u120D\u1362 \u1325\u120D\u1245 \u12AD\u120A\u1292\u12AB\u12CA \u1243\u1208 \u1218\u1320\u12ED\u1245\u1295\u1363 \u12E8\u12AE\u121D\u1352\u12E9\u1270\u122D \u1348\u1270\u1293\u12CE\u127D\u1295 (MOXO)\u1363 \u1218\u1320\u12ED\u1246\u127D\u1295 \u12A5\u1293 \u1270\u12DB\u121B\u1305 \u12E8\u1205\u12AD\u121D\u1293 \u1230\u1290\u12F6\u127D\u1295 \u1218\u1308\u121D\u1308\u121D\u1295 \u12EB\u12AB\u1275\u1273\u120D\u1362",
+  "faq.q3": "\u121D\u122D\u1218\u122B\u12CD \u1208\u1201\u1209\u121D \u12D5\u12F5\u121C\u12CE\u127D \u1270\u1235\u121B\u121A \u1290\u12CD?",
+  "faq.a3": "\u12A0\u12CE\u1363 \u12A86 \u12D3\u1218\u1275 \u1300\u121D\u122E \u1208\u1206\u1291 \u120D\u1306\u127D\u1363 \u1208\u1273\u12F3\u130A\u12CE\u127D \u12A5\u1293 \u1208\u12A0\u12CB\u1242\u12CE\u127D \u1219\u12EB\u12CA \u121D\u122D\u1218\u122B \u12A5\u1293\u1240\u122D\u1263\u1208\u1295\u1362 \u12A5\u12EB\u1295\u12F3\u1295\u12F1 \u12E8\u12D5\u12F5\u121C \u12AD\u120D\u120D \u12E8\u122B\u1231 \u12E8\u1206\u1290 \u120D\u12E9 \u1263\u1205\u122A\u12EB\u1275\u1295 \u130D\u121D\u1275 \u12CD\u1235\u1325 \u12E8\u121A\u12EB\u1235\u1308\u1263 \u12E8\u1270\u1260\u1300 \u12E8\u130D\u121D\u1308\u121B \u1355\u122E\u1276\u12AE\u120D \u12A0\u1208\u12CD\u1362",
+  "faq.q4": "\u12E8\u1205\u12AD\u121D\u1293 \u12A5\u1245\u12F1 \u121D\u1295 \u12EB\u12AB\u1275\u1273\u120D?",
+  "faq.a4": "\u12E8\u1205\u12AD\u121D\u1293 \u12A5\u1245\u12F1 \u130D\u120B\u12CA \u1232\u1206\u1295 \u12E8\u121A\u12A8\u1270\u1209\u1275\u1295 \u12EB\u12AB\u1275\u1273\u120D\u1366 \u12E8\u1218\u12F5\u1203\u1292\u1275 \u121D\u12AD\u122E\u127D (\u12A0\u1235\u1348\u120B\u130A \u12A8\u1206\u1290)\u1363 \u12E8\u12C8\u120B\u1305 \u1218\u1218\u122A\u12EB\u1363 \u1270\u130D\u1263\u122B\u12CA \u12E8\u12D5\u1208\u1275 \u1270\u12D5\u1208\u1275 \u1218\u124B\u124B\u121A\u12EB \u1218\u1233\u122A\u12EB\u12CE\u127D\u1363 \u12C8\u12F0 \u1270\u1328\u121B\u122A \u1205\u12AD\u121D\u1293\u12CE\u127D \u121B\u1235\u1270\u120B\u1208\u134D \u12A5\u1293 \u1240\u1323\u12ED\u1290\u1275 \u12EB\u1208\u12CD \u12AD\u1275\u1275\u120D\u1362",
+  "faq.q5": "\u12E8\u1200\u12AA\u121D \u121B\u1235\u1270\u120B\u1208\u134A\u12EB \u12EB\u1235\u1348\u120D\u130B\u120D?",
+  "faq.a5": "\u12A0\u12ED\u1363 \u121B\u1235\u1270\u120B\u1208\u134A\u12EB \u12A0\u12EB\u1235\u1348\u120D\u130D\u121D\u1362 \u1208\u121D\u122D\u1218\u122B \u1240\u1320\u122E \u1208\u1218\u12EB\u12DD \u1260\u1240\u1325\u1273 \u12AD\u120A\u1292\u12A9\u1295 \u121B\u1290\u130B\u1308\u122D \u12ED\u127D\u120B\u1209\u1362 \u1290\u1308\u122D \u130D\u1295 \u12E8\u1240\u12F5\u121E \u12E8\u1205\u12AD\u121D\u1293 \u1230\u1290\u12F6\u127D \u12AB\u1209\u12CE\u1275\u1363 \u12C8\u12F0 \u1218\u1300\u1218\u122A\u12EB\u12CD \u1235\u1265\u1230\u1263 \u12A5\u1295\u12F2\u12EB\u1218\u1321 \u12ED\u1218\u12A8\u122B\u120D\u1362",
+  "faq.q6": "\u1260 ADD \u12A5\u1293 ADHD \u1218\u12AB\u12A8\u120D \u12EB\u1208\u12CD \u120D\u12E9\u1290\u1275 \u121D\u1295\u12F5\u1295 \u1290\u12CD?",
+  "faq.a6": "ADD \u12EB\u1208 \u12A8\u1218\u1320\u1295 \u12EB\u1208\u1348 \u12A5\u1295\u1245\u1235\u1243\u1234 \u1208\u1275\u12A9\u1228\u1275 \u1309\u12F5\u1208\u1275 \u12E8\u1246\u12E8 \u1235\u121D \u1290\u12CD\u1362 \u12DB\u122C\u1363 ADHD \u12E8\u121A\u1208\u12CD \u1243\u120D \u1260\u1236\u1235\u1275 \u1295\u12D1\u1235 \u12D3\u12ED\u1290\u1276\u127D \u1325\u1245\u121D \u120B\u12ED \u12ED\u12CD\u120B\u120D\u1366 \u1260\u12CB\u1293\u1290\u1275 \u1275\u12A9\u1228\u1275-\u12A0\u120D\u1263\u1363 \u1260\u12CB\u1293\u1290\u1275 \u12A8\u1218\u1320\u1295 \u12EB\u1208\u1348 \u12A5\u1295\u1245\u1235\u1243\u1234-\u130D\u134A\u1275 \u12C8\u12ED\u121D \u12E8\u1270\u12CB\u1203\u12F0\u1362",
   "services.process_steps": "\u12E8\u121D\u122D\u1218\u122B \u1202\u12F0\u1275 \u12A5\u122D\u121D\u1303\u12CE\u127D",
   "footer.rights": "\xA9 2025 \u1201\u1209\u121D \u1218\u1265\u1276\u127D \u12E8\u1270\u1320\u1260\u1241 \u1293\u127D\u12C8 - Keshev Plus",
+  "footer.moxo_certified": "\u12E8Moxo \u1230\u122D\u1270\u134D\u12AC\u1275",
+  "footer.moxo_certified_desc": "\u12E8\u12AE\u121D\u1352\u12E9\u1270\u122D ADHD \u130D\u121D\u1308\u121B",
+  "cookies.notice": "\u12ED\u1205 \u12F5\u1205\u1228 \u1308\u133D \u12E8\u12A0\u1230\u1233 \u120D\u121D\u12F5\u12CE\u1295 \u1208\u121B\u123B\u123B\u120D \u12A5\u1293 \u1208\u1235\u1273\u1272\u1235\u1272\u12AD\u1235 \u12D3\u120B\u121B\u12CE\u127D \u12A9\u12AA\u12CE\u127D\u1295 \u12ED\u1320\u1240\u121B\u120D\u1362 \u12F5\u1205\u1228 \u1308\u1339\u1295 \u1218\u1240\u1320\u120D \u1260\u1218\u1240\u1320\u120D\u1363 \u12A8\u130D\u120B\u12CA\u1290\u1275 \u1218\u1218\u122A\u12EB\u127D\u1295 \u130B\u122D \u1260\u121A\u1235\u121B\u121B \u1218\u120D\u12A9 \u12E8\u12A9\u12AA\u12CE\u127D\u1295 \u12A0\u1320\u1243\u1240\u121D \u1270\u1235\u121B\u121D\u1270\u12CB\u120D\u1362",
+  "cookies.used_include": "\u1260\u12DA\u1205 \u12F5\u1205\u1228 \u1308\u133D \u120B\u12ED \u12E8\u121A\u12EB\u1308\u1208\u130D\u1209 \u12A9\u12AA\u12CE\u127D \u12E8\u121A\u12A8\u1270\u1209\u1275\u1295 \u12EB\u12AB\u1275\u1273\u1209\u1366",
+  "cookies.essential": "\u12A0\u1235\u1348\u120B\u130A \u12A9\u12AA\u12CE\u127D - \u12F5\u1205\u1228 \u1308\u1339 \u1260\u1275\u12AD\u12AD\u120D \u12A5\u1295\u12F2\u1230\u122B",
+  "cookies.statistical": "\u12E8\u1235\u1273\u1272\u1235\u1272\u12AD\u1235 \u12A9\u12AA\u12CE\u127D - \u12A0\u1320\u1243\u1240\u121D\u1295 \u1208\u1218\u1270\u1295\u1270\u1295 \u12A5\u1293 \u12A0\u1308\u120D\u130D\u120E\u1275\u1295 \u1208\u121B\u123B\u123B\u120D",
+  "cookies.preference": "\u12E8\u121D\u122D\u132B \u12A9\u12AA\u12CE\u127D - \u12E8\u1270\u1320\u1243\u121A \u121D\u122D\u132B\u12CE\u127D\u1295 \u1208\u121B\u1235\u1240\u1218\u1325",
+  "cookies.privacy_note": "\u1260\u130D\u120B\u12CA\u1290\u1275 \u1325\u1260\u1243 \u1205\u130D \u1218\u1230\u1228\u1275\u1363 \u1235\u1208 \u12A9\u12AA\u12CE\u127D \u12A0\u1320\u1243\u1240\u121D \u12A5\u1293\u1233\u12CD\u1245\u12CE\u1273\u1208\u1295 \u12A5\u1293 \u1348\u1243\u12F5\u12CE\u1295 \u12A5\u1295\u1320\u12ED\u1243\u1208\u1295\u1362",
+  "cookies.hide_details": "\u12DD\u122D\u12DD\u122E\u127D\u1295 \u12F0\u1265\u1245",
+  "cookies.more_info": "\u1270\u1328\u121B\u122A \u1218\u1228\u1303",
+  "cookies.accept": "\u12A5\u1235\u121B\u121B\u1208\u1201",
+  "appt_date.select_date": "\u1240\u1295 \u12ED\u121D\u1228\u1321",
+  "appt_date.clinic_closed": "\u12AD\u120A\u1292\u12A9 \u1260\u12DA\u1205 \u1240\u1295 \u12DD\u130D \u1290\u12CD",
+  "appt_date.gray_unavailable": "\u130D\u122B\u132B \u1240\u1293\u1275 \u1208\u1240\u1320\u122E \u12A0\u12ED\u1308\u1299\u121D\u1362",
+  "appt_for.who": "\u1240\u1320\u122E\u12CD \u1208\u121B\u1295 \u1290\u12CD?",
+  "appt_for.me": "\u1208\u122B\u1234",
+  "appt_for.child": "\u1208\u120D\u1301",
+  "appt_for.child_name": "\u12E8\u120D\u1301 \u1235\u121D",
+  "appt_for.child_age": "\u12E8\u120D\u1301 \u12D5\u12F5\u121C",
+  "appt_for.child_age_placeholder": "(\u1262\u12EB\u1295\u1235 6)",
+  "appt_for.min_age_error": "\u12DD\u1245\u1270\u129B\u12CD \u12D5\u12F5\u121C 6 \u1290\u12CD",
   "footer.clinic_desc": "\u1260\u1215\u133B\u1293\u1275\u1363 \u1260\u12A0\u12E9\u1218\u122B\u12CE\u127D \u12A5\u1293 \u1260\u12A0\u12CB\u1242\u12CE\u127D \u12E8ADHD \u121D\u122D\u1218\u122B \u12A5\u1293 \u1215\u12AD\u121D\u1293 \u130D\u1295\u1263\u122D \u1240\u12F0\u121D \u12AD\u120A\u1292\u12AD.",
   "footer.quick_links": "\u1348\u1323\u1295 \u121B\u1308\u1293\u129B\u12CE\u127D",
   "footer.contact_info": "\u12E8\u130D\u1295\u1299\u1290\u1275 \u1218\u1228\u1303",
@@ -1775,7 +3621,132 @@ var am = {
   "admin.multilingual": "\u1265\u12D9 \u1240\u1295\u12CE\u127D (\u1201\u1209\u121D \u1240\u1295\u12CE\u127D)",
   "admin.default_language": "\u12E8\u1218\u1230\u1228\u1271 \u1240\u1295",
   "admin.settings_saved": "\u1270\u1246\u121D \u1270\u1240\u121D\u1327\u120D",
-  "admin.settings_error": "\u1270\u1246\u121D \u121B\u12A8\u121B\u127B\u1275 \u12A0\u120D\u1270\u1233\u12AB\u121D"
+  "admin.settings_error": "\u1270\u1246\u121D \u121B\u12A8\u121B\u127B\u1275 \u12A0\u120D\u1270\u1233\u12AB\u121D",
+  "a11y.accessibility_settings": "\u12E8\u1270\u12F0\u122B\u123D\u1290\u1275 \u1245\u1295\u1265\u122E\u127D",
+  "a11y.text_size": "\u12E8\u133D\u1211\u134D \u1218\u1320\u1295",
+  "a11y.decrease_text": "\u133D\u1211\u134D \u12A0\u1233\u1295\u1235",
+  "a11y.increase_text": "\u133D\u1211\u134D \u12A0\u1233\u12F5\u130D",
+  "a11y.line_height": "\u12E8\u1218\u1235\u1218\u122D \u1241\u1218\u1275",
+  "a11y.decrease_line_height": "\u12E8\u1218\u1235\u1218\u122D \u1241\u1218\u1275 \u1240\u1295\u1235",
+  "a11y.increase_line_height": "\u12E8\u1218\u1235\u1218\u122D \u1241\u1218\u1275 \u1328\u121D\u122D",
+  "a11y.letter_spacing": "\u12E8\u134A\u12F0\u120D \u12AD\u134D\u1270\u1275",
+  "a11y.decrease_letter_spacing": "\u12E8\u134A\u12F0\u120D \u12AD\u134D\u1270\u1275 \u1240\u1295\u1235",
+  "a11y.increase_letter_spacing": "\u12E8\u134A\u12F0\u120D \u12AD\u134D\u1270\u1275 \u1328\u121D\u122D",
+  "a11y.reading_guide": "\u12E8\u1295\u1263\u1265 \u1218\u1218\u122A\u12EB",
+  "a11y.high_contrast": "\u12A8\u134D\u1270\u129B \u1295\u1345\u1345\u122D",
+  "a11y.highlight_links": "\u12A0\u1308\u1293\u129E\u127D\u1295 \u12A0\u1309\u120D\u1275",
+  "a11y.grayscale": "\u130D\u122B\u132B \u1235\u12AC\u120D",
+  "a11y.readable_font": "\u120A\u1290\u1260\u1265 \u12E8\u121A\u127D\u120D \u134A\u12F0\u120D",
+  "a11y.large_cursor": "\u1275\u120D\u1245 \u1320\u124B\u121A",
+  "a11y.stop_animations": "\u12A5\u1295\u1245\u1235\u1243\u1234\u12CE\u127D\u1295 \u12A0\u1241\u121D",
+  "a11y.reset": "\u12F3\u130D\u121D \u12A0\u1235\u1300\u121D\u122D",
+  "a11y.close": "\u12DD\u130B",
+  "a11y.accessibility_menu": "\u12E8\u1270\u12F0\u122B\u123D\u1290\u1275 \u121D\u1293\u120C",
+  "a11y.dark_mode": "\u1328\u1208\u121B \u1201\u1290\u1273",
+  "a11y.light_mode": "\u1265\u122D\u1203\u1295 \u1201\u1290\u1273",
+  "a11y.accessibility_statement": "\u12E8\u1270\u12F0\u122B\u123D\u1290\u1275 \u1218\u130D\u1208\u132B",
+  "a11y.accessibility_statement_text": "\u12ED\u1205 \u12F5\u1228-\u1308\u133D \u1260\u12A5\u1235\u122B\u12A4\u120D \u1205\u130D \u1218\u1230\u1228\u1275 \u1208\u12F2\u1302\u1273\u120D \u1270\u12F0\u122B\u123D\u1290\u1275 \u1241\u122D\u1320\u129B \u1290\u12CD\u1362",
+  "terms.title": "\u12E8\u12A0\u1320\u1243\u1240\u121D \u12CD\u120E\u127D",
+  "terms.intro": '\u12E8\u12AC\u1238\u126D \u1355\u120B\u1235 \u12F5\u1228-\u1308\u133D ("\u12F5\u1228-\u1308\u1339") \u12A0\u1320\u1243\u1240\u121D \u12A8\u12DA\u1205 \u1260\u1273\u127D \u1263\u1209\u1275 \u12CD\u120E\u127D \u1270\u1308\u12E2 \u1290\u12CD\u1362 \u12F5\u1228-\u1308\u1339\u1295 \u1218\u130E\u1265\u1298\u1275 \u12A5\u1293/\u12C8\u12ED\u121D \u12A0\u1308\u120D\u130D\u120E\u1276\u1279\u1295 \u1218\u1320\u1240\u121D \u1208\u12A5\u1290\u12DA\u1205 \u12CD\u120E\u127D \u1218\u1235\u121B\u121B\u1275\u1295 \u12EB\u1218\u1208\u12AD\u1273\u120D\u1362',
+  "terms.service_nature_title": "\u12E8\u12A0\u1308\u120D\u130D\u120E\u1271 \u1263\u1205\u122A",
+  "terms.service_nature_p1": "\u12F5\u1228-\u1308\u1339 \u1235\u1208 ADHD \u121D\u122D\u1218\u122B \u12A5\u1293 \u1205\u12AD\u121D\u1293 \u12A0\u1320\u1243\u120B\u12ED \u1218\u1228\u1303 \u12A5\u1295\u12F2\u1201\u121D \u1240\u1320\u122E \u1208\u121B\u1235\u12EB\u12DD \u12A5\u1293 \u12E8\u1218\u1300\u1218\u122A\u12EB \u121B\u1323\u122A\u12EB \u1218\u1320\u12ED\u1246\u127D\u1295 \u1208\u1218\u1219\u120B\u1275 \u12E8\u1218\u1235\u1218\u122D \u120B\u12ED \u1218\u1233\u122A\u12EB\u12CE\u127D\u1295 \u12EB\u1240\u122D\u1263\u120D\u1362",
+  "terms.service_nature_p2": "\u12E8\u1218\u1235\u1218\u122D \u120B\u12ED \u121B\u1323\u122A\u12EB \u1218\u1320\u12ED\u1246\u127D \u12E8\u1205\u12AD\u121D\u1293 \u121D\u122D\u1218\u122B \u12A0\u12ED\u12F0\u1209\u121D \u12A5\u1293 \u1265\u1241 \u1263\u1208\u1219\u12EB \u1260\u121A\u12EB\u12F0\u122D\u1308\u12CD \u121D\u12AD\u12AD\u122D\u1363 \u121D\u122D\u1218\u122B \u12C8\u12ED\u121D \u1205\u12AD\u121D\u1293 \u121D\u1275\u12AD \u12A0\u12ED\u1206\u1291\u121D\u1362 \u12E8\u1218\u1320\u12ED\u1241 \u12CD\u1324\u1276\u127D \u12E8\u12AD\u120A\u1292\u12AB\u127D\u1295\u1295 \u1230\u122B\u1270\u129E\u127D \u1260\u1218\u1300\u1218\u122A\u12EB \u130D\u121D\u1308\u121B \u1265\u127B \u1208\u1218\u122D\u12F3\u1275 \u12E8\u1273\u1230\u1261 \u1293\u1278\u12CD\u1364 \u12E8\u1218\u1328\u1228\u123B \u121D\u122D\u1218\u122B \u12E8\u121A\u1230\u1320\u12CD \u1260\u12AD\u120A\u1292\u12AB\u12CA \u130D\u121D\u1308\u121B \u1265\u127B \u1290\u12CD\u1362",
+  "terms.fair_use_title": "\u12F5\u1228-\u1308\u1339\u1295 \u1260\u1270\u1308\u1262 \u1218\u1320\u1240\u121D",
+  "terms.fair_use_body": "\u12F5\u1228-\u1308\u1339 \u1208\u121B\u1295\u129B\u12CD\u121D \u1205\u1308-\u12C8\u1325 \u12D3\u120B\u121B \u1325\u1245\u121D \u120B\u12ED \u1218\u12CB\u120D \u12E8\u1208\u1260\u1275\u121D\u1363 \u12A5\u1293 \u1218\u12F0\u1260\u129B \u12A0\u1230\u122B\u1229\u1295 \u1208\u121B\u12C8\u12AD \u121D\u1295\u121D \u1219\u12A8\u122B \u1218\u12F0\u1228\u130D \u12E8\u1208\u1260\u1275\u121D\u1363 \u12ED\u1205\u121D \u12E8\u1218\u130D\u1262\u12EB \u1219\u12A8\u122B\u12CE\u127D\u1295\u1363 \u12EB\u120D\u1270\u1348\u1240\u12F0 \u12E8\u1218\u1228\u1303 \u1218\u12F3\u1228\u123B\u1295\u1363 \u12C8\u12ED\u121D \u1245\u12F5\u121A\u12EB \u1348\u1243\u12F5 \u1233\u12ED\u1296\u122D \u12A0\u12CD\u1276\u121B\u1272\u12AD \u12E8\u12ED\u12D8\u1275 \u1218\u1230\u1265\u1230\u1265\u1295 (scraping) \u12EB\u12AB\u1275\u1273\u120D\u1362",
+  "terms.ip_title": "\u12A0\u12A5\u121D\u122F\u12CA \u1295\u1265\u1228\u1275",
+  "terms.ip_body": "\u1260\u12F5\u1228-\u1308\u1339 \u12ED\u12D8\u1275 \u120B\u12ED \u12EB\u1209 \u1201\u1209\u121D \u1218\u1265\u1276\u127D\u1363 \u133D\u1201\u134E\u127D\u1295\u1363 \u1295\u12F5\u134D\u1295\u1363 \u12A0\u122D\u121B\u1295 \u12A5\u1293 \u121D\u1235\u120E\u127D\u1295 \u1328\u121D\u122E\u1363 \u12E8\u12AC\u1238\u126D \u1355\u120B\u1235 \u12C8\u12ED\u121D \u12A0\u1320\u1243\u1240\u1219\u1295 \u1348\u1243\u12F5 \u12E8\u1230\u1321 \u1236\u1235\u1270\u129B \u12C8\u1308\u1296\u127D \u1293\u1278\u12CD\u1363 \u12A5\u1293 \u12EB\u1208 \u133D\u1201\u134B\u12CA \u1348\u1243\u12F5 \u120A\u1308\u1208\u1260\u1321 \u12C8\u12ED\u121D \u1325\u1245\u121D \u120B\u12ED \u120A\u12CD\u1209 \u12A0\u12ED\u127D\u1209\u121D\u1362",
+  "terms.liability_title": "\u12E8\u1270\u1320\u12EB\u1242\u1290\u1275 \u1308\u12F0\u1265",
+  "terms.liability_body": "\u1260\u12F5\u1228-\u1308\u1339 \u120B\u12ED \u12EB\u1208\u12CD \u1218\u1228\u1303 \u1208\u12A0\u1320\u1243\u120B\u12ED \u1218\u1228\u1303 \u12D3\u120B\u121B \u1265\u127B \u12E8\u1240\u1228\u1260 \u1232\u1206\u1295 \u12E8\u1205\u12AD\u121D\u1293 \u121D\u12AD\u122D \u12A0\u12ED\u12F0\u1208\u121D\u1362 \u12AC\u1238\u126D \u1355\u120B\u1235 \u1270\u1308\u1262 \u1219\u12EB\u12CA \u121D\u12AD\u12AD\u122D \u1233\u12ED\u12F0\u1228\u130D \u1260\u12F5\u1228-\u1308\u1339 \u12ED\u12D8\u1275 \u1260\u1218\u1270\u121B\u1218\u1295 \u1208\u121A\u12F0\u122D\u1235 \u121B\u1295\u129B\u12CD\u121D \u1309\u12F3\u1275 \u1270\u1320\u12EB\u1242 \u12A0\u12ED\u12F0\u1208\u121D\u1362 \u12C8\u12F0 \u12CD\u132B\u12CA \u12F5\u1228-\u1308\u133E\u127D \u12A5\u1293 \u12A0\u1308\u120D\u130D\u120E\u1276\u127D (\u12A5\u1295\u12F0 WhatsApp \u12A5\u1293 \u121B\u1205\u1260\u122B\u12CA \u121A\u12F2\u12EB) \u12EB\u1209 \u12A0\u1308\u1293\u129E\u127D \u12E8\u12A5\u1290\u12DA\u12EB \u1236\u1235\u1270\u129B \u12C8\u1308\u1296\u127D \u12E8\u12A0\u1320\u1243\u1240\u121D \u12CD\u120E\u127D \u12A5\u1293 \u12E8\u130D\u120B\u12CA\u1290\u1275 \u1356\u120A\u1232\u12CE\u127D \u1270\u1308\u12E2 \u1293\u1278\u12CD\u1363 \u12A5\u1293 \u1208\u12ED\u12D8\u1273\u1278\u12CD \u1270\u1320\u12EB\u1242 \u12A0\u12ED\u12F0\u1208\u1295\u121D\u1362",
+  "terms.jurisdiction_title": "\u1270\u1348\u133B\u121A \u1205\u130D \u12A5\u1293 \u12E8\u134D\u122D\u12F5 \u1264\u1275 \u1235\u120D\u1323\u1295",
+  "terms.jurisdiction_body": "\u12A5\u1290\u12DA\u1205 \u12CD\u120E\u127D \u1260\u12A5\u1235\u122B\u12A4\u120D \u130D\u12DB\u1275 \u1205\u130E\u127D \u12ED\u1270\u12F3\u12F0\u122B\u1209\u1363 \u12A5\u1293 \u12A8\u12A5\u1290\u1231 \u130B\u122D \u1260\u1270\u12EB\u12EB\u12D8 \u121B\u1295\u129B\u12CD\u121D \u1309\u12F3\u12ED \u120B\u12ED \u12E8\u1274\u120D \u12A0\u126A\u126D \u12C8\u1228\u12F3 \u134D\u122D\u12F5 \u1264\u1276\u127D \u1265\u1278\u129B \u1235\u120D\u1323\u1295 \u12ED\u1296\u122B\u1278\u12CB\u120D\u1362",
+  "terms.changes_title": "\u1260\u12A5\u1290\u12DA\u1205 \u12CD\u120E\u127D \u120B\u12ED \u12E8\u121A\u12F0\u1228\u1309 \u1208\u12CD\u1326\u127D",
+  "terms.changes_body": "\u12A5\u1290\u12DA\u1205\u1295 \u12CD\u120E\u127D \u12A8\u130A\u12DC \u12C8\u12F0 \u130A\u12DC \u120D\u1293\u12D8\u121D\u1293\u1278\u12CD \u12A5\u1295\u127D\u120B\u1208\u1295\u1362 \u1208\u12CD\u1326\u127D \u12A8\u1273\u1270\u1219 \u1260\u128B\u120B \u12F5\u1228-\u1308\u1339\u1295 \u1218\u1320\u1240\u121D \u1218\u1240\u1320\u120D \u12E8\u1270\u12D8\u1218\u1291\u1275\u1295 \u12CD\u120E\u127D \u1218\u1240\u1260\u120D\u1295 \u12EB\u1218\u1208\u12AD\u1273\u120D\u1362",
+  "terms.contact_title": "\u12EB\u130D\u1299\u1295",
+  "terms.updated_date": "\u12A5\u1290\u12DA\u1205 \u12CD\u120E\u127D \u1218\u1328\u1228\u123B \u12E8\u1270\u12D8\u1218\u1291\u1275\u1361 \u1301\u120B\u12ED 15\u1363 2026 \u1290\u12CD\u1362",
+  "privacy.title": "\u12E8\u130D\u120B\u12CA\u1290\u1275 \u1356\u120A\u1232",
+  "privacy.intro": '\u12AC\u1238\u126D \u1355\u120B\u1235 ("\u12A5\u129B"\u1363 "\u12AD\u120A\u1292\u12AB\u127D\u1295") \u12E8\u12A5\u122D\u1235\u12CE\u1295 \u130D\u120B\u12CA\u1290\u1275 \u12EB\u12A8\u1265\u122B\u120D\u1362 \u12ED\u1205 \u1356\u120A\u1232 \u1260\u12F5\u1228-\u1308\u1339 \u1260\u12A9\u120D \u121D\u1295 \u1218\u1228\u1303 \u12A5\u1295\u12F0\u121D\u1295\u1230\u1260\u1235\u1265\u1363 \u1208\u121D\u1295 \u12A5\u1295\u12F0\u121D\u1295\u1320\u1240\u121D\u1260\u1275 \u12A5\u1293 \u1235\u1208 \u12A5\u1231 \u12A5\u1295\u12F4\u1275 \u120D\u1273\u1308\u1299\u1295 \u12A5\u1295\u12F0\u121D\u1275\u127D\u1209 \u12EB\u1265\u122B\u122B\u120D\u1362 \u12ED\u1205 \u12601981 \u12E8\u12A5\u1235\u122B\u12A4\u120D \u12E8\u130D\u120B\u12CA\u1290\u1275 \u1325\u1260\u1243 \u1205\u130D \u12A5\u1293 \u12602017 \u12E8\u130D\u120B\u12CA\u1290\u1275 \u1325\u1260\u1243 (\u12E8\u1218\u1228\u1303 \u12F0\u1205\u1295\u1290\u1275) \u12F0\u1295\u1266\u127D \u1218\u1230\u1228\u1275 \u12ED\u1230\u122B\u120D\u1362',
+  "privacy.data_collected_title": "\u12E8\u121D\u1295\u1230\u1260\u1235\u1260\u12CD \u1218\u1228\u1303",
+  "privacy.data_collected_1": "\u12E8\u1218\u1308\u1293\u129B \u12DD\u122D\u12DD\u122E\u127D\u1361 \u1235\u121D\u1363 \u12E8\u12A2\u121C\u12ED\u120D \u12A0\u12F5\u122B\u123B \u12A5\u1293 \u1235\u120D\u12AD \u1241\u1325\u122D\u1363 \u12A5\u129B\u1295 \u1235\u1273\u1308\u1299\u1295\u1363 \u1240\u1320\u122E \u1235\u1275\u12ED\u12D9 \u12C8\u12ED\u121D \u12E8\u1218\u1308\u1293\u129B \u1245\u1339\u1295 \u1235\u1275\u1320\u1240\u1219\u1362",
+  "privacy.data_collected_2": "\u12E8ADHD \u121B\u1323\u122A\u12EB \u1218\u1320\u12ED\u1245 \u1218\u1228\u1303\u1361 \u12E8\u120D\u1301 \u1235\u121D\u1363 \u12D5\u12F5\u121C\u1363 \u133E\u1273 \u12A5\u1293 \u12A8\u1218\u120B\u1239 \u130B\u122D \u12EB\u1208\u12CD \u130D\u1295\u1299\u1290\u1275\u1363 \u12A8\u1218\u1320\u12ED\u1241 \u1218\u120D\u1236\u127D \u130B\u122D\u1362 \u12ED\u1205 \u12A8\u1218\u1300\u1218\u122A\u12EB \u12AD\u120A\u1292\u12AB\u12CA \u130D\u121D\u1308\u121B \u130B\u122D \u12E8\u1270\u12EB\u12EB\u12D8 \u121A\u1235\u1325\u122B\u12CA \u1218\u1228\u1303 \u1232\u1206\u1295 \u1260\u1270\u1328\u121B\u122A \u1325\u1295\u1243\u1244 \u12A5\u1293\u1235\u1270\u1293\u130D\u12F0\u12CB\u1208\u1295\u1362",
+  "privacy.data_collected_3": "\u12A0\u1235\u1348\u120B\u130A\u1363 \u1235\u1273\u1272\u1235\u1272\u12AB\u12CA \u12A5\u1293 \u121D\u122D\u132B \u12A9\u12AA\u12CE\u127D\u1363 \u1260\u12F5\u1228-\u1308\u1339 \u12A9\u12AA \u1263\u1290\u122D \u120B\u12ED \u12A5\u1295\u12F0\u1270\u1308\u1208\u1338\u12CD\u1362",
+  "privacy.data_collected_4": "\u12F5\u1228-\u1308\u1339\u1295 \u1208\u121B\u1295\u1240\u1233\u1240\u1235 \u1260\u122B\u1235-\u1230\u122D \u12E8\u121A\u1230\u1260\u1230\u1265 \u1218\u1230\u1228\u1273\u12CA \u1274\u12AD\u1292\u12AB\u12CA \u12E8\u12A0\u1320\u1243\u1240\u121D \u1218\u1228\u1303 (\u12A5\u1295\u12F0 \u12A0\u1233\u123D \u12A5\u1293 \u1218\u1233\u122A\u12EB \u12A0\u12ED\u1290\u1275)\u1362",
+  "privacy.purposes_title": "\u12E8\u12A0\u1320\u1243\u1240\u121D \u12D3\u120B\u121B\u12CE\u127D",
+  "privacy.purpose_1": "\u1240\u1320\u122E\u12CE\u127D\u1295 \u121B\u1240\u12F5 \u12A5\u1293 \u121B\u1235\u1270\u12F3\u12F0\u122D\u1362",
+  "privacy.purpose_2": "\u1260\u12AD\u120A\u1292\u12AB\u127D\u1295 \u1230\u122B\u1270\u129E\u127D \u12E8\u1218\u1300\u1218\u122A\u12EB \u12AD\u120A\u1292\u12AB\u12CA \u130D\u121D\u1308\u121B \u1208\u121B\u12F5\u1228\u130D \u12E8\u121B\u1323\u122A\u12EB \u1218\u1320\u12ED\u1246\u127D\u1295 \u121B\u1235\u12AC\u12F5\u1362",
+  "privacy.purpose_3": "\u1208\u1325\u12EB\u1244\u12CE\u127D \u12A5\u1293 \u12E8\u1218\u1228\u1303 \u1325\u12EB\u1244\u12CE\u127D \u121D\u120B\u123D \u1218\u1235\u1320\u1275\u1362",
+  "privacy.purpose_4": "\u12A0\u1308\u120D\u130D\u120E\u1271\u1295 \u12A5\u1293 \u12F5\u1228-\u1308\u1339\u1295 \u121B\u123B\u123B\u120D\u1363 \u12A5\u1293 \u12A0\u1320\u1243\u120B\u12ED \u1235\u1273\u1272\u1235\u1272\u12AB\u12CA \u12E8\u12A0\u1320\u1243\u1240\u121D \u1275\u1295\u1270\u1293\u1362",
+  "privacy.purpose_5": "\u1260\u12A5\u129B \u120B\u12ED \u1270\u1348\u133B\u121A \u12E8\u1206\u1291 \u1205\u130B\u12CA \u12A5\u1293 \u1270\u1246\u1323\u1323\u122A \u130D\u12F4\u1273\u12CE\u127D\u1295 \u121B\u121F\u120B\u1275\u1362",
+  "privacy.sharing_title": "\u1218\u1228\u1303 \u121B\u130B\u122B\u1275",
+  "privacy.sharing_body": "\u12E8\u130D\u120D \u1218\u1228\u1303\u12CE\u1295 \u12A0\u1295\u1238\u1325\u121D\u1362 \u1218\u1228\u1303\u12CD \u1208\u12AD\u120A\u1292\u12AD \u1230\u122B\u1270\u129E\u127D \u1265\u127B \u12A5\u1295\u12AD\u1265\u12AB\u1264 \u1208\u1218\u1235\u1320\u1275 \u1270\u12F0\u122B\u123D \u1290\u12CD\u1363 \u12A5\u1293 \u1260\u1205\u130D \u12C8\u12ED\u121D \u1260\u1265\u1241 \u1263\u1208\u1235\u120D\u1323\u1295 \u12A8\u1270\u1320\u12E8\u1240 \u120A\u1308\u1208\u133D \u12ED\u127D\u120B\u120D\u1362 \u12E8WhatsApp \u12E8\u1218\u1308\u1293\u129B \u12A0\u1308\u1293\u129D \u1260\u122B\u1231 \u12E8\u130D\u120B\u12CA\u1290\u1275 \u1356\u120A\u1232 \u12E8\u121A\u1270\u12F3\u12F0\u1228\u12CD\u1295 \u12CD\u132B\u12CA WhatsApp \u1218\u1270\u130D\u1260\u122A\u12EB \u12ED\u12A8\u134D\u1273\u120D\u1362",
+  "privacy.security_title": "\u12E8\u1218\u1228\u1303 \u12F0\u1205\u1295\u1290\u1275 \u12A5\u1293 \u121B\u1246\u12EB",
+  "privacy.security_body": "\u12E8\u121D\u1295\u1230\u1260\u1235\u1260\u12CD\u1295 \u1218\u1228\u1303 \u1208\u1218\u1320\u1260\u1245 \u121D\u12AD\u1295\u12EB\u1273\u12CA \u1274\u12AD\u1292\u12AB\u12CA \u12A5\u1293 \u12F5\u122D\u1305\u1273\u12CA \u12A5\u122D\u121D\u1303\u12CE\u127D\u1295 \u12A5\u1295\u12C8\u1235\u12F3\u1208\u1295\u1362 \u1218\u1228\u1303\u12CD \u12A0\u1308\u120D\u130D\u120E\u1271\u1295 \u1208\u1218\u1235\u1320\u1275 \u12A5\u1293 \u1270\u1348\u133B\u121A \u12E8\u1206\u1291 \u12E8\u1205\u12AD\u121D\u1293/\u12E8\u1295\u130D\u12F5 \u1218\u12DD\u1308\u1265 \u12A0\u12EB\u12EB\u12DD \u130D\u12F4\u1273\u12CE\u127D\u1295 \u1208\u121B\u121F\u120B\u1275 \u12A0\u1235\u1348\u120B\u130A \u12A5\u1235\u12A8\u1206\u1290 \u12F5\u1228\u1235 \u12ED\u1246\u12EB\u120D\u1363 \u12A8\u12DA\u12EB \u1260\u128B\u120B \u12ED\u1230\u1228\u12DB\u120D \u12C8\u12ED\u121D \u1235\u121D-\u12A0\u120D\u1263 \u12ED\u12F0\u1228\u130B\u120D\u1362",
+  "privacy.rights_title": "\u12E8\u12A5\u122D\u1235\u12CE \u1218\u1265\u1276\u127D",
+  "privacy.rights_body": "\u1260\u130D\u120B\u12CA\u1290\u1275 \u1325\u1260\u1243 \u1205\u130D \u1218\u1230\u1228\u1275\u1363 \u1235\u1208\u12A5\u122D\u1235\u12CE \u12E8\u1270\u12EB\u12D8\u12CD\u1295 \u1218\u1228\u1303 \u12E8\u1218\u1218\u120D\u12A8\u1275\u1363 \u121B\u1235\u1270\u12AB\u12A8\u12EB \u12E8\u1218\u1320\u12E8\u1245\u1363 \u12A5\u1293 \u1260\u1270\u12C8\u1230\u1291 \u1201\u1294\u1273\u12CE\u127D \u12CD\u1235\u1325 \u1218\u1230\u1228\u12D9\u1295 \u12E8\u1218\u1320\u12E8\u1245 \u1218\u1265\u1275 \u12A0\u1208\u12CE\u1275\u1362 \u12A5\u1290\u12DA\u1205\u1295 \u1218\u1265\u1276\u127D \u1208\u1218\u1320\u1240\u121D\u1363 \u12A5\u1263\u12AD\u12CE \u12A8\u12DA\u1205 \u1260\u1273\u127D \u1263\u1209\u1275 \u12DD\u122D\u12DD\u122E\u127D \u12EB\u130D\u1299\u1295\u1362",
+  "privacy.contact_title": "\u12E8\u130D\u120B\u12CA\u1290\u1275 \u130D\u1295\u1299\u1290\u1275",
+  "privacy.updated_date": "\u12ED\u1205 \u1356\u120A\u1232 \u1218\u1328\u1228\u123B \u12E8\u1270\u12D8\u1218\u1290\u12CD\u1361 \u1301\u120B\u12ED 15\u1363 2026 \u1290\u12CD\u1362",
+  "a11y_statement.title": "\u12E8\u1270\u12F0\u122B\u123D\u1290\u1275 \u1218\u130D\u1208\u132B",
+  "a11y_statement.intro": "\u12AC\u1238\u126D \u1355\u120B\u1235 \u1201\u1209\u121D \u1230\u12CD \u134D\u1275\u1203\u12CA \u12A5\u1293 \u1270\u12F0\u122B\u123D \u12A0\u1308\u120D\u130D\u120E\u1275 \u12ED\u1308\u1263\u12CB\u120D \u12A8\u121A\u120D \u12A5\u121D\u1290\u1275 \u1260\u1218\u1290\u1233\u1275\u1363 \u12A0\u12AB\u120D \u1309\u12F3\u1270\u129E\u127D\u1295 \u1328\u121D\u122E \u1208\u12A0\u1320\u1243\u120B\u12ED \u1205\u12DD\u1265 \u12F2\u1302\u1273\u120D \u12A0\u1308\u120D\u130D\u120E\u1276\u1279\u1295 \u1270\u12F0\u122B\u123D \u1208\u121B\u12F5\u1228\u130D \u12ED\u1230\u122B\u120D\u1362 \u12ED\u1205 \u1235\u122B \u12601998 \u12E8\u12A5\u1235\u122B\u12A4\u120D \u12E8\u12A0\u12AB\u120D \u1309\u12F3\u1270\u129E\u127D \u12A5\u12A9\u120D \u1218\u1265\u1276\u127D \u1205\u130D\u1363 \u12602013 \u12E8\u12A0\u12AB\u120D \u1309\u12F3\u1270\u129E\u127D \u12A5\u12A9\u120D \u1218\u1265\u1276\u127D \u12F0\u1295\u1266\u127D (\u12E8\u12A0\u1308\u120D\u130D\u120E\u1275 \u1270\u12F0\u122B\u123D\u1290\u1275 \u121B\u1235\u1270\u12AB\u12A8\u12EB\u12CE\u127D)\u1363 \u12A5\u1293 \u12A8\u12A5\u1235\u122B\u12A4\u120D \u1218\u1235\u1348\u122D\u1275 5568 \u12A5\u1293 \u12A8\u12D3\u1208\u121D \u12A0\u1240\u134D WCAG 2.0 \u12F0\u1228\u1303 AA \u1218\u1218\u122A\u12EB\u12CE\u127D \u130B\u122D \u1260\u121A\u1323\u1323\u121D \u1218\u120D\u12A9 \u12ED\u12A8\u1293\u12C8\u1293\u120D\u1362",
+  "a11y_statement.accommodations_title": "\u1260\u12DA\u1205 \u12F5\u1228-\u1308\u133D \u120B\u12ED \u12E8\u1270\u12F0\u1228\u1309 \u12E8\u1270\u12F0\u122B\u123D\u1290\u1275 \u121B\u1235\u1270\u12AB\u12A8\u12EB\u12CE\u127D",
+  "a11y_statement.accommodation_1": "\u12A5\u12EB\u1295\u12F3\u1295\u12F1 \u130E\u1265\u129A \u12F5\u1228-\u1308\u1339\u1295 \u1208\u122B\u1231 \u134D\u120B\u130E\u1275 \u12A5\u1295\u12F2\u12EB\u1235\u1270\u12AB\u12AD\u120D \u12E8\u121A\u12EB\u1235\u127D\u120D \u120D\u12E9 \u12E8\u1270\u12F0\u122B\u123D\u1290\u1275 \u121D\u1293\u120C (\u1260\u1235\u12AD\u122A\u1291 \u1325\u130D \u120B\u12ED \u12EB\u1208 \u12E8\u1270\u123D\u12A8\u122D\u12AB\u122A \u12C8\u1295\u1260\u122D \u12A0\u12F6)\u1362",
+  "a11y_statement.accommodation_2": "\u12E8\u133D\u1201\u134D \u1218\u1320\u1295\u1295 \u121B\u1233\u12F0\u130D \u12A5\u1293 \u1218\u1240\u1290\u1235\u1362",
+  "a11y_statement.accommodation_3": "\u12E8\u1295\u1263\u1265 \u127D\u130D\u122D \u120B\u1208\u1263\u1278\u12CD \u12A0\u1295\u1263\u1262\u12CE\u127D \u12E8\u1218\u1235\u1218\u122D \u1241\u1218\u1275 \u12A5\u1293 \u12E8\u134A\u12F0\u120D/\u1243\u120D \u12AD\u134D\u1270\u1275\u1295 \u121B\u1235\u1270\u12AB\u12A8\u120D\u1362",
+  "a11y_statement.accommodation_4": "\u12A8\u134D\u1270\u129B \u1295\u1345\u1345\u122D \u1201\u1290\u1273 \u12A5\u1293 \u130D\u122B\u132B \u1235\u12AC\u120D \u1201\u1290\u1273\u1362",
+  "a11y_statement.accommodation_5": "\u12A0\u1308\u1293\u129E\u127D\u1295 \u121B\u1309\u120B\u1275\u1362",
+  "a11y_statement.accommodation_6": "\u12C8\u12F0 \u1260\u1323\u121D \u120A\u1290\u1260\u1265 \u12E8\u121A\u127D\u120D \u134A\u12F0\u120D \u1218\u1240\u12E8\u122D\u1362",
+  "a11y_statement.accommodation_7": "\u12E8\u1270\u1328\u1218\u1228 \u12E8\u1218\u12F3\u134A\u1275 \u1320\u124B\u121A\u1362",
+  "a11y_statement.accommodation_8": "\u1320\u124B\u121A\u12CD\u1295 \u12E8\u121A\u12A8\u1270\u120D \u1270\u1295\u1240\u1233\u1243\u123D \u12E8\u1295\u1263\u1265 \u1218\u1218\u122A\u12EB\u1362",
+  "a11y_statement.accommodation_9": "\u12A5\u1295\u1245\u1235\u1243\u1234\u12CE\u127D\u1295 \u12A5\u1293 \u123D\u130D\u130D\u122E\u127D\u1295 \u121B\u1246\u121D\u1362",
+  "a11y_statement.accommodation_10": "\u1328\u1208\u121B \u1201\u1290\u1273 (Dark Mode)\u1362",
+  "a11y_statement.accommodation_11": "\u1260\u12F5\u1228-\u1308\u1339 \u120B\u12ED \u120B\u1209 \u121D\u1235\u120E\u127D \u1308\u120B\u132D \u12A0\u121B\u122B\u132D \u133D\u1201\u134E\u127D (alt)\u1362",
+  "a11y_statement.accommodation_12": "\u1208\u1241\u120D\u134D \u1230\u120C\u12F3 \u12A5\u1293 \u1235\u12AD\u122A\u1295 \u12A0\u1295\u1263\u1262 \u1270\u1320\u1243\u121A\u12CE\u127D \u12C8\u12F0 \u12CB\u1293 \u12ED\u12D8\u1275 \u1240\u1325\u1270\u129B \u12DD\u120B\u12ED \u12A0\u1308\u1293\u129D\u1362",
+  "a11y_statement.accommodation_13": "\u12E8\u1241\u120D\u134D \u1230\u120C\u12F3 \u12A0\u1230\u1233 \u12F5\u130B\u134D \u12A5\u1293 \u12A8\u1270\u1208\u1218\u12F1 \u1235\u12AD\u122A\u1295 \u12A0\u1295\u1263\u1262\u12CE\u127D \u130B\u122D \u1270\u12B3\u1203\u129D\u1290\u1275\u1362",
+  "a11y_statement.accommodation_14": "\u1260\u121E\u1263\u12ED\u120D\u1363 \u1260\u1321\u1263\u12CA \u12A5\u1293 \u1260\u12F4\u1235\u12AD\u1276\u1355 \u120B\u12ED \u1208\u1218\u1218\u120D\u12A8\u1275 \u12E8\u121A\u1235\u121B\u121B \u121D\u120B\u123D \u1230\u132A \u1295\u12F5\u134D\u1362",
+  "a11y_statement.limitations_title": "\u12E8\u1273\u12C8\u1241 \u1308\u12F0\u1266\u127D",
+  "a11y_statement.limitations_body": "\u12E8\u12F5\u1228-\u1308\u1339\u1295 \u1270\u12F0\u122B\u123D\u1290\u1275 \u1208\u121B\u123B\u123B\u120D \u12EB\u1208\u121B\u124B\u1228\u1325 \u12A5\u1295\u1230\u122B\u1208\u1295\u1362 \u1325\u1228\u1273\u127D\u1295 \u1262\u1296\u122D\u121D\u1363 \u12A0\u1295\u12F3\u1295\u12F5 \u12E8\u12F5\u1228-\u1308\u1339 \u12AD\u134D\u120E\u127D \u1308\u1293 \u1219\u1209 \u1260\u1219\u1209 \u1270\u12F0\u122B\u123D \u120B\u12ED\u1206\u1291 \u12ED\u127D\u120B\u1209\u1362 \u1260\u12A0\u130D\u1263\u1261 \u1270\u12F0\u122B\u123D \u12EB\u120D\u1206\u1290 \u12ED\u12D8\u1275\u1363 \u1308\u133D \u12C8\u12ED\u121D \u12A0\u12AB\u120D \u12AB\u130B\u1320\u1218\u12CE\u1275\u1363 \u1260\u1270\u127B\u1208 \u134D\u1325\u1290\u1275 \u12A5\u1295\u12F5\u1293\u1235\u1270\u12AB\u12AD\u1208\u12CD \u12A5\u1263\u12AD\u12CE \u12EB\u1233\u12CD\u1241\u1295\u1362",
+  "a11y_statement.coordinator_title": "\u12E8\u1270\u12F0\u122B\u123D\u1290\u1275 \u12A0\u1235\u1270\u1263\u1263\u122A \u12A5\u1293 \u130D\u1295\u1299\u1290\u1275",
+  "a11y_statement.coordinator_intro": "\u1235\u1208 \u12F5\u1228-\u1308\u1339 \u1270\u12F0\u122B\u123D\u1290\u1275 \u1325\u12EB\u1244\u12CE\u127D\u1363 \u12A0\u1235\u1270\u12EB\u12E8\u1276\u127D \u12A5\u1293 \u1200\u1233\u1266\u127D \u1260\u121A\u12A8\u1270\u1209\u1275 \u1218\u1295\u1308\u12F6\u127D \u12C8\u12F0 \u12A5\u129B \u120A\u120B\u12A9 \u12ED\u127D\u120B\u1209\u1361",
+  "a11y_statement.address": "\u12ED\u130B\u120D \u12A0\u120E\u1295 94\u1363 \u1270\u120D \u12A0\u126A\u126D",
+  "a11y_statement.response_time": "\u1260\u1270\u12F0\u122B\u123D\u1290\u1275 \u1325\u12EB\u1244\u12CE\u127D \u120B\u12ED \u1260\u121D\u12AD\u1295\u12EB\u1273\u12CA \u130A\u12DC \u12CD\u1235\u1325 \u121D\u120B\u123D \u1208\u1218\u1235\u1320\u1275 \u12A5\u1295\u1325\u122B\u1208\u1295\u1362",
+  "a11y_statement.further_recourse_title": "\u1270\u1328\u121B\u122A \u12A0\u1264\u1271\u1273",
+  "a11y_statement.further_recourse_body": "\u12A8\u12A5\u129B \u12A0\u1325\u130B\u1262 \u121D\u120B\u123D \u12AB\u120B\u1308\u1299\u1363 \u12E8\u12A0\u12AB\u120D \u1309\u12F3\u1270\u129E\u127D\u1295 \u12A5\u12A9\u120D \u1218\u1265\u1276\u127D \u1205\u130D \u121B\u1235\u1348\u1338\u121D\u1295 \u1260\u121A\u1218\u1208\u12A8\u1270\u12CD \u1260\u134D\u1275\u1205 \u121A\u1292\u1235\u1274\u122D \u12CD\u1235\u1325 \u120B\u1208\u12CD \u12E8\u12A0\u12AB\u120D \u1309\u12F3\u1270\u129E\u127D \u12A5\u12A9\u120D \u1218\u1265\u1276\u127D \u12AE\u121A\u123D\u1295 \u121B\u1290\u130B\u1308\u122D \u12ED\u127D\u120B\u1209\u1362",
+  "a11y_statement.updated_date": "\u12ED\u1205 \u12E8\u1270\u12F0\u122B\u123D\u1290\u1275 \u1218\u130D\u1208\u132B \u1218\u1328\u1228\u123B \u12E8\u1270\u12D8\u1218\u1290\u12CD\u1361 \u1301\u120B\u12ED 15\u1363 2026 \u1290\u12CD\u1362",
+  "booking.title": "\u1240\u1320\u122E \u12ED\u12EB\u12D9",
+  "booking.modal_intro": "\u12DD\u122D\u12DD\u122E\u127D\u12CE\u1295 \u12ED\u1219\u1209 \u12A5\u1293 \u1240\u1320\u122E\u12CE\u1295 \u12A5\u1293\u1228\u130B\u130D\u1323\u1208\u1295\u1362 \u1260* \u12E8\u1270\u1218\u1208\u12A8\u1271 \u1218\u1235\u12AE\u127D \u12EB\u1235\u1348\u120D\u130B\u1209\u1362",
+  "booking.page_subtitle": "\u12DD\u122D\u12DD\u122E\u127D\u12CE\u1295 \u12ED\u1219\u1209 \u12A5\u1293 \u1240\u1320\u122E\u12CE\u1295 \u12A5\u1293\u1228\u130B\u130D\u1323\u1208\u1295",
+  "booking.details_title": "\u12E8\u1240\u1320\u122E \u12DD\u122D\u12DD\u122E\u127D",
+  "booking.fields_required_note": "\u1260* \u12E8\u1270\u1218\u1208\u12A8\u1271 \u1218\u1235\u12AE\u127D \u12EB\u1235\u1348\u120D\u130B\u1209",
+  "booking.full_name": "\u1219\u1209 \u1235\u121D",
+  "booking.full_name_placeholder": "\u1235\u121D\u12CE\u1295 \u12EB\u1235\u1308\u1261",
+  "booking.phone": "\u1235\u120D\u12AD",
+  "booking.phone_placeholder": "\u12E8\u1235\u120D\u12AD \u1241\u1325\u122D\u12CE",
+  "booking.email": "\u12A2\u121C\u12ED\u120D",
+  "booking.email_placeholder": "\u12E8\u12A2\u121C\u12ED\u120D \u12A0\u12F5\u122B\u123B\u12CE",
+  "booking.appointment_type": "\u12E8\u1240\u1320\u122E \u12A0\u12ED\u1290\u1275",
+  "booking.date": "\u1240\u1295",
+  "booking.time": "\u1230\u12D3\u1275",
+  "booking.checking_availability": "\u1218\u1308\u1298\u1275\u1295 \u1260\u1218\u1348\u1270\u123D \u120B\u12ED...",
+  "booking.select_time": "\u1230\u12D3\u1275 \u12ED\u121D\u1228\u1321",
+  "booking.no_times_available": "\u1260\u12DA\u1205 \u1240\u1295 \u121D\u1295\u121D \u12AD\u134D\u1275 \u1230\u12D3\u1276\u127D \u12E8\u1209\u121D\u1362",
+  "booking.notes": "\u121B\u1235\u1273\u12C8\u123B\u12CE\u127D (\u12A0\u121B\u122B\u132D)",
+  "booking.notes_placeholder": "\u121B\u1295\u129B\u12CD\u121D \u1270\u1328\u121B\u122A \u1218\u1228\u1303...",
+  "booking.submitting": "\u1260\u1218\u120B\u12AD \u120B\u12ED...",
+  "booking.submit": "\u1240\u1320\u122E \u12ED\u12EB\u12D9",
+  "booking.close": "\u12DD\u130B",
+  "booking.success_title": "\u1240\u1320\u122E \u1260\u1270\u1233\u12AB \u1201\u1294\u1273 \u1270\u12ED\u12DF\u120D!",
+  "booking.success_description": "\u1240\u1320\u122E\u12CE\u1295 \u1208\u121B\u1228\u130B\u1308\u1325 \u1260\u1245\u122D\u1261 \u12A5\u1293\u1308\u129D\u12CE\u1273\u1208\u1295\u1362 \u12A5\u1293\u1218\u1230\u130D\u1293\u1208\u1295!",
+  "booking.back_to_home": "\u12C8\u12F0 \u1218\u1290\u123B \u1308\u133D \u1270\u1218\u1208\u1235",
+  "booking.date_unavailable_title": "\u1240\u1291 \u12A0\u12ED\u1308\u129D\u121D",
+  "booking.date_unavailable_description": "\u1208\u12A5\u122D\u1235\u12CE \u1260\u1323\u121D \u1245\u122D\u1265 \u12E8\u1206\u1290\u12CD\u1295 \u12AD\u134D\u1275 \u1240\u1295 \u1218\u122D\u1320\u1293\u120D\u1362",
+  "booking.time_unavailable_title": "\u1208\u12DA\u1205 \u12A0\u12ED\u1290\u1275 \u1230\u12D3\u1271 \u12A0\u12ED\u1308\u129D\u121D",
+  "booking.time_unavailable_description": "\u12A5\u1263\u12AD\u12CE \u12A8\u1270\u12D8\u1218\u1290\u12CD \u12DD\u122D\u12DD\u122D \u12CD\u1235\u1325 \u120C\u120B \u1230\u12D3\u1275 \u12ED\u121D\u1228\u1321\u1362",
+  "booking.error_title": "\u1235\u1205\u1270\u1275",
+  "booking.availability_check_failed": "\u1218\u1308\u1298\u1275\u1295 \u121B\u1228\u130B\u1308\u1325 \u12A0\u120D\u127B\u120D\u1295\u121D\u1362 \u12A5\u1263\u12AD\u12CE \u12A5\u1295\u12F0\u1308\u1293 \u12ED\u121E\u12AD\u1229\u1362",
+  "booking.fill_required_fields": "\u12A5\u1263\u12AD\u12CE \u1201\u1209\u1295\u121D \u12A0\u1235\u1348\u120B\u130A \u1218\u1235\u12AE\u127D \u12ED\u1219\u1209",
+  "booking.booked_toast_title": "\u1240\u1320\u122E \u1270\u12ED\u12DF\u120D!",
+  "booking.booked_toast_description": "\u1240\u1320\u122E\u12CE\u1295 \u1260\u1245\u122D\u1261 \u12A5\u1293\u1228\u130B\u130D\u1323\u1208\u1295",
+  "booking.submit_failed": "\u1240\u1320\u122E \u1218\u12EB\u12DD \u12A0\u120D\u1270\u1233\u12AB\u121D\u1362 \u12A5\u1263\u12AD\u12CE \u12A5\u1295\u12F0\u1308\u1293 \u12ED\u121E\u12AD\u1229\u1362",
+  "questionnaire_modal.invalid_type": "\u120D\u12AD \u12EB\u120D\u1206\u1290 \u12E8\u1218\u1320\u12ED\u1245 \u12A0\u12ED\u1290\u1275",
+  "questionnaire_modal.close": "\u12DD\u130B"
 };
 var am_default = am;
 
@@ -1789,6 +3760,8 @@ var ar = {
   "nav.faq": "\u0623\u0633\u0626\u0644\u0629 \u0634\u0627\u0626\u0639\u0629",
   "nav.questionnaires": "\u0627\u0633\u062A\u0628\u064A\u0627\u0646\u0627\u062A",
   "nav.contact": "\u0627\u062A\u0651\u0635\u0644 \u0628\u0646\u0627",
+  "nav.book": "\u0627\u062D\u062C\u0632",
+  "nav.book_now": "\u0627\u062D\u062C\u0632 \u0627\u0644\u0622\u0646",
   "nav.skip_to_content": "\u0627\u0646\u062A\u0642\u0644 \u0625\u0644\u0649 \u0627\u0644\u0645\u062D\u062A\u0648\u0649 \u0627\u0644\u0631\u0626\u064A\u0633\u064A",
   "nav.main_navigation": "\u0627\u0644\u062A\u0646\u0642\u0644 \u0627\u0644\u0631\u0626\u064A\u0633\u064A",
   "nav.go_home": "\u0627\u0644\u0630\u0647\u0627\u0628 \u0625\u0644\u0649 \u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629",
@@ -1838,6 +3811,61 @@ var ar = {
   "contact.address": "\u062A\u0644 \u0623\u0628\u064A\u0628\u060C \u0625\u0633\u0631\u0627\u0626\u064A\u0644",
   "contact.subtitle": "\u0627\u062A\u0631\u0643 \u0628\u064A\u0627\u0646\u0627\u062A\u0643 \u0648\u0633\u0646\u0639\u0648\u062F \u0625\u0644\u064A\u0643 \u0641\u064A \u0623\u0642\u0631\u0628 \u0648\u0642\u062A \u0645\u0645\u0643\u0646",
   "contact.leave_details": "\u0627\u062A\u0631\u0643 \u0628\u064A\u0627\u0646\u0627\u062A\u0643",
+  "contact.email_placeholder": "\u0627\u0644\u0628\u0631\u064A\u062F \u0627\u0644\u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A",
+  "contact.phone_placeholder": "\u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062A\u0641",
+  "contact.topic_label": "\u0627\u0644\u0645\u0648\u0636\u0648\u0639",
+  "contact.topic_option1": "\u062A\u0634\u062E\u064A\u0635 ADHD",
+  "contact.topic_option2": "\u0627\u062E\u062A\u0628\u0627\u0631 MOXO",
+  "contact.topic_option3": "\u0623\u062E\u0631\u0649",
+  "contact.address_label": "\u0627\u0644\u0639\u0646\u0648\u0627\u0646:",
+  "contact.email_label": "\u0627\u0644\u0628\u0631\u064A\u062F \u0627\u0644\u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A:",
+  "contact.details_title": "\u062A\u0641\u0627\u0635\u064A\u0644 \u0627\u0644\u0627\u062A\u0635\u0627\u0644",
+  "contact.directions_title": "\u0627\u0644\u0627\u062A\u062C\u0627\u0647\u0627\u062A \u0648\u0645\u0648\u0627\u0642\u0641 \u0627\u0644\u0633\u064A\u0627\u0631\u0627\u062A",
+  "contact.clear_form": "\u0645\u0633\u062D \u0627\u0644\u0646\u0645\u0648\u0630\u062C",
+  "services.subtitle": "\u0646\u0642\u062F\u0645 \u0645\u062C\u0645\u0648\u0639\u0629 \u0648\u0627\u0633\u0639\u0629 \u0645\u0646 \u0627\u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0645\u0647\u0646\u064A\u0629 \u0641\u064A \u062A\u0634\u062E\u064A\u0635 \u0648\u0639\u0644\u0627\u062C ADHD",
+  "contact.aria_open_form": "\u0627\u0646\u0642\u0631 \u0644\u0641\u062A\u062D \u0646\u0645\u0648\u0630\u062C \u0627\u0644\u0627\u062A\u0635\u0627\u0644",
+  "contact.click_to_open_form": "\u0627\u0646\u0642\u0631 \u0644\u0641\u062A\u062D \u0627\u0644\u0646\u0645\u0648\u0630\u062C",
+  "contact.navigate_waze": "\u0627\u0644\u062A\u0646\u0642\u0644 \u0639\u0628\u0631 Waze",
+  "contact.navigate_google_maps": "\u0627\u0644\u062A\u0646\u0642\u0644 \u0639\u0628\u0631 \u062E\u0631\u0627\u0626\u0637 \u062C\u0648\u062C\u0644",
+  "chat.open": "\u0627\u0641\u062A\u062D \u0627\u0644\u062F\u0631\u062F\u0634\u0629",
+  "chat.how_can_help": "\u0643\u064A\u0641 \u064A\u0645\u0643\u0646\u0646\u064A \u0627\u0644\u0645\u0633\u0627\u0639\u062F\u0629\u061F",
+  "chat.close": "\u0625\u063A\u0644\u0627\u0642",
+  "chat.assistant_name": "\u0645\u0633\u0627\u0639\u062F KeshevPlus",
+  "chat.not_you": "\u0644\u0633\u062A {name}\u061F",
+  "chat.before_start": "\u0642\u0628\u0644 \u0623\u0646 \u0646\u0628\u062F\u0623\u060C \u064A\u0631\u062C\u0649 \u0645\u0644\u0621 \u0628\u064A\u0627\u0646\u0627\u062A\u0643:",
+  "chat.full_name_placeholder": "\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0643\u0627\u0645\u0644 *",
+  "chat.email_placeholder": "\u0627\u0644\u0628\u0631\u064A\u062F \u0627\u0644\u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A *",
+  "chat.phone_placeholder": "\u0627\u0644\u0647\u0627\u062A\u0641 (\u0627\u062E\u062A\u064A\u0627\u0631\u064A)",
+  "chat.starting": "\u062C\u0627\u0631\u064D \u0627\u0644\u0628\u062F\u0621...",
+  "chat.start_chat": "\u0627\u0628\u062F\u0623 \u0627\u0644\u062F\u0631\u062F\u0634\u0629",
+  "chat.welcome_message": "\u0645\u0631\u062D\u0628\u064B\u0627 {name}! \u0623\u0646\u0627 \u0627\u0644\u0645\u0633\u0627\u0639\u062F \u0627\u0644\u0627\u0641\u062A\u0631\u0627\u0636\u064A \u0644\u0640 KeshevPlus. \u0643\u064A\u0641 \u064A\u0645\u0643\u0646\u0646\u064A \u0645\u0633\u0627\u0639\u062F\u062A\u0643\u061F",
+  "chat.type_message": "\u0627\u0643\u062A\u0628 \u0631\u0633\u0627\u0644\u0629...",
+  "chat.assistant_typing": "\u0627\u0644\u0645\u0633\u0627\u0639\u062F \u064A\u0643\u062A\u0628",
+  "footer.accessibility_statement": "\u0628\u064A\u0627\u0646 \u0625\u0645\u0643\u0627\u0646\u064A\u0629 \u0627\u0644\u0648\u0635\u0648\u0644",
+  "questionnaires.fill_online": "\u0627\u0645\u0644\u0623 \u0639\u0628\u0631 \u0627\u0644\u0625\u0646\u062A\u0631\u0646\u062A",
+  "about.doctor_name": "\u062F. \u0625\u064A\u0631\u064A\u0646 \u0643\u0648\u0634\u0627\u0641-\u0631\u0627\u064A\u0641\u0645\u0627\u0646",
+  "about.doctor_title": "\u0637\u0628\u064A\u0628\u0629 \u0623\u062E\u0635\u0627\u0626\u064A\u0629",
+  "about.doctor_desc": "\u062E\u0628\u0631\u0629 \u0648\u0627\u0633\u0639\u0629 \u0641\u064A \u062A\u0634\u062E\u064A\u0635 \u0627\u0644\u0623\u0637\u0641\u0627\u0644 \u0648\u0627\u0644\u0645\u0631\u0627\u0647\u0642\u064A\u0646 \u0648\u0627\u0644\u0628\u0627\u0644\u063A\u064A\u0646. \u0631\u0627\u0641\u0642\u062A \u0627\u0644\u0639\u062F\u064A\u062F \u0645\u0646 \u0627\u0644\u0645\u0631\u0636\u0649 \u0641\u064A \u0631\u062D\u0644\u062A\u0647\u0645 \u0646\u062D\u0648 \u062A\u062D\u0642\u064A\u0642 \u0627\u0644\u0630\u0627\u062A \u0648\u0627\u0644\u0623\u062F\u0627\u0621 \u0627\u0644\u0623\u0645\u062B\u0644.",
+  "about.doctor_alt": "\u062F. \u0625\u064A\u0631\u064A\u0646 \u0643\u0648\u0634\u0627\u0641-\u0631\u0627\u064A\u0641\u0645\u0627\u0646",
+  "about.credential1": "\u0623\u062E\u0635\u0627\u0626\u064A\u0629 \u062A\u0634\u062E\u064A\u0635 \u0648\u0639\u0644\u0627\u062C ADHD",
+  "about.credential2": "\u0623\u0643\u062B\u0631 \u0645\u0646 15 \u0639\u0627\u0645\u064B\u0627 \u0645\u0646 \u0627\u0644\u062E\u0628\u0631\u0629",
+  "about.credential3": "\u0627\u0644\u062A\u062E\u0635\u0635 \u0641\u064A \u0627\u0644\u0623\u0637\u0641\u0627\u0644 \u0648\u0627\u0644\u0645\u0631\u0627\u0647\u0642\u064A\u0646 \u0648\u0627\u0644\u0628\u0627\u0644\u063A\u064A\u0646",
+  "about.mission": "\u0645\u0647\u0645\u062A\u0646\u0627 \u0647\u064A \u062A\u0642\u062F\u064A\u0645 \u062A\u0634\u062E\u064A\u0635 \u062F\u0642\u064A\u0642 \u0648\u062E\u0637\u0637 \u0639\u0644\u0627\u062C \u0645\u062E\u0635\u0635\u0629\u060C \u0645\u0645\u0627 \u064A\u0645\u0643\u0651\u0646 \u0645\u0631\u0636\u0627\u0646\u0627 \u0645\u0646 \u062A\u062D\u0642\u064A\u0642 \u0643\u0627\u0645\u0644 \u0625\u0645\u0643\u0627\u0646\u0627\u062A\u0647\u0645 \u0627\u0644\u0634\u062E\u0635\u064A\u0629.",
+  "about.value1_title": "\u0646\u0647\u062C \u0634\u062E\u0635\u064A",
+  "about.value1_desc": "\u064A\u062D\u0635\u0644 \u0643\u0644 \u0645\u0631\u064A\u0636 \u0639\u0644\u0649 \u0627\u0647\u062A\u0645\u0627\u0645 \u0634\u062E\u0635\u064A \u0645\u0635\u0645\u0645 \u062E\u0635\u064A\u0635\u064B\u0627 \u0644\u0627\u062D\u062A\u064A\u0627\u062C\u0627\u062A\u0647 \u0627\u0644\u0641\u0631\u064A\u062F\u0629",
+  "about.value2_title": "\u0627\u0644\u0627\u062D\u062A\u0631\u0627\u0641\u064A\u0629",
+  "about.value2_desc": "\u0641\u0631\u064A\u0642 \u062E\u0628\u0631\u0627\u0621 \u0630\u0648 \u062E\u0628\u0631\u0629 \u0648\u0627\u0633\u0639\u0629 \u0648\u062A\u062F\u0631\u064A\u0628 \u0645\u0633\u062A\u0645\u0631",
+  "about.value3_title": "\u0627\u0644\u0633\u0631\u064A\u0629",
+  "about.value3_desc": "\u062D\u0645\u0627\u064A\u0629 \u0643\u0627\u0645\u0644\u0629 \u0644\u0644\u062E\u0635\u0648\u0635\u064A\u0629 \u0648\u0628\u064A\u0626\u0629 \u0622\u0645\u0646\u0629",
+  "services.step1_title": "\u0627\u0644\u062A\u0648\u0627\u0635\u0644",
+  "services.step1_desc": "\u0627\u0644\u062A\u0648\u0627\u0635\u0644 \u0627\u0644\u0623\u0648\u0644\u064A \u0639\u0628\u0631 \u0627\u0644\u0647\u0627\u062A\u0641 \u0623\u0648 \u0645\u0646 \u062E\u0644\u0627\u0644 \u0646\u0645\u0648\u0630\u062C \u0627\u0644\u0645\u0648\u0642\u0639",
+  "services.step2_title": "\u0627\u0644\u0627\u0633\u062A\u0634\u0627\u0631\u0629 \u0627\u0644\u0623\u0648\u0644\u064A\u0629",
+  "services.step2_desc": "\u0645\u0642\u0627\u0628\u0644\u0629 \u0623\u0648\u0644\u064A\u0629 \u0648\u062C\u0645\u0639 \u0627\u0644\u062A\u0627\u0631\u064A\u062E \u0627\u0644\u0637\u0628\u064A \u0648\u0625\u0643\u0645\u0627\u0644 \u0627\u0644\u0627\u0633\u062A\u0628\u064A\u0627\u0646",
+  "services.step3_title": "\u062A\u0642\u064A\u064A\u0645 \u0634\u0627\u0645\u0644",
+  "services.step3_desc": "\u0627\u062E\u062A\u0628\u0627\u0631\u0627\u062A \u0645\u062D\u0648\u0633\u0628\u0629 \u0648\u062A\u0642\u064A\u064A\u0645 \u0633\u0631\u064A\u0631\u064A \u0645\u062A\u0639\u0645\u0642",
+  "services.step4_title": "\u0627\u0644\u062A\u0642\u0631\u064A\u0631 \u0648\u062E\u0637\u0629 \u0627\u0644\u0639\u0644\u0627\u062C",
+  "services.step4_desc": "\u0627\u0633\u062A\u0644\u0627\u0645 \u062A\u0642\u0631\u064A\u0631 \u0645\u0641\u0635\u0644 \u0648\u062A\u0648\u0635\u064A\u0627\u062A \u0639\u0644\u0627\u062C \u0645\u062E\u0635\u0635\u0629",
+  "services.list_label": "\u062E\u062F\u0645\u0627\u062A\u0646\u0627",
   "contact.full_name": "\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0643\u0627\u0645\u0644",
   "contact.phone_label": "\u0627\u0644\u0647\u0627\u062A\u0641",
   "contact.email_optional": "\u0627\u0644\u0628\u0631\u064A\u062F \u0627\u0644\u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A (\u0627\u062E\u062A\u064A\u0627\u0631\u064A)",
@@ -1898,8 +3926,51 @@ var ar = {
   "faq.title": "\u0623\u0633\u0626\u0644\u0629 \u0634\u0627\u0626\u0639\u0629",
   "faq.subtitle": "\u0625\u062C\u0627\u0628\u0627\u062A \u0639\u0644\u0649 \u0627\u0644\u0623\u0633\u0626\u0644\u0629 \u0627\u0644\u0623\u0643\u062B\u0631 \u0634\u064A\u0648\u0639\u0627\u064B",
   "faq.no_answer": "\u0644\u0645 \u062A\u062C\u062F \u0625\u062C\u0627\u0628\u0629\u061F \u062A\u0648\u0627\u0635\u0644 \u0645\u0639\u0646\u0627",
+  "services.service1_title": "\u062A\u0634\u062E\u064A\u0635 \u0634\u0627\u0645\u0644",
+  "services.service1_desc": "\u062A\u0634\u062E\u064A\u0635 \u0645\u062E\u0635\u0635 \u0628\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0623\u062F\u0648\u0627\u062A \u0645\u062A\u0642\u062F\u0645\u0629 \u0648\u0645\u0642\u0627\u0628\u0644\u0627\u062A \u0633\u0631\u064A\u0631\u064A\u0629 \u0648\u0627\u062E\u062A\u0628\u0627\u0631\u0627\u062A \u0645\u062D\u0648\u0633\u0628\u0629",
+  "services.service2_title": "\u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0623\u062F\u0648\u064A\u0629",
+  "services.service2_desc": "\u0639\u0644\u0627\u062C \u062F\u0648\u0627\u0626\u064A \u0645\u062E\u0635\u0635 \u0645\u0639 \u0645\u0631\u0627\u0642\u0628\u0629 \u0645\u0633\u062A\u0645\u0631\u0629 \u0644\u0644\u0633\u0644\u0627\u0645\u0629",
+  "services.service3_title": "\u0627\u062E\u062A\u0628\u0627\u0631 MOXO \u0627\u0644\u0645\u062D\u0648\u0633\u0628",
+  "services.service3_desc": "\u062A\u0642\u064A\u064A\u0645 \u0645\u0648\u0636\u0648\u0639\u064A \u0644\u0648\u0638\u0627\u0626\u0641 \u0627\u0644\u0627\u0646\u062A\u0628\u0627\u0647 \u0648\u0627\u0644\u062A\u0631\u0643\u064A\u0632",
+  "services.service4_title": "\u0627\u0644\u0627\u0633\u062A\u0634\u0627\u0631\u0629 \u0648\u0627\u0644\u0645\u062A\u0627\u0628\u0639\u0629",
+  "services.service4_desc": "\u062F\u0639\u0645 \u0645\u0647\u0646\u064A \u0645\u0633\u062A\u0645\u0631 \u0648\u0645\u062A\u0627\u0628\u0639\u0629 \u0627\u0644\u0639\u0644\u0627\u062C",
+  "services.service5_title": "\u0625\u062D\u0627\u0644\u0627\u062A \u0625\u0644\u0649 \u0639\u0644\u0627\u062C\u0627\u062A \u062A\u0643\u0645\u064A\u0644\u064A\u0629",
+  "services.service5_desc": "\u0625\u062D\u0627\u0644\u0627\u062A \u0625\u0644\u0649 \u0627\u0644\u0639\u0644\u0627\u062C \u0627\u0644\u0648\u0638\u064A\u0641\u064A \u0623\u0648 \u0627\u0644\u0639\u0644\u0627\u062C \u0627\u0644\u0639\u0627\u0637\u0641\u064A \u0623\u0648 \u0627\u0644\u062F\u0639\u0645 \u0627\u0644\u0646\u0641\u0633\u064A",
+  "faq.q1": "\u0645\u0627 \u0647\u0648 \u0627\u0636\u0637\u0631\u0627\u0628 \u0641\u0631\u0637 \u0627\u0644\u062D\u0631\u0643\u0629 \u0648\u0646\u0642\u0635 \u0627\u0644\u0627\u0646\u062A\u0628\u0627\u0647 (ADHD)\u061F",
+  "faq.a1": "\u0627\u0636\u0637\u0631\u0627\u0628 \u0641\u0631\u0637 \u0627\u0644\u062D\u0631\u0643\u0629 \u0648\u0646\u0642\u0635 \u0627\u0644\u0627\u0646\u062A\u0628\u0627\u0647 \u0647\u0648 \u0627\u0636\u0637\u0631\u0627\u0628 \u0641\u064A \u0627\u0644\u0646\u0645\u0648 \u0627\u0644\u0639\u0635\u0628\u064A \u064A\u0624\u062B\u0631 \u0639\u0644\u0649 \u0627\u0644\u062A\u0631\u0643\u064A\u0632 \u0648\u0627\u0644\u062A\u062D\u0643\u0645 \u0641\u064A \u0627\u0644\u0627\u0646\u062F\u0641\u0627\u0639 \u0648\u062A\u0646\u0638\u064A\u0645 \u0627\u0644\u0646\u0634\u0627\u0637. \u0648\u0647\u0648 \u0634\u0627\u0626\u0639 \u0644\u062F\u0649 \u0627\u0644\u0623\u0637\u0641\u0627\u0644 \u0648\u0627\u0644\u0628\u0627\u0644\u063A\u064A\u0646 \u0639\u0644\u0649 \u062D\u062F \u0633\u0648\u0627\u0621 \u0648\u064A\u0624\u062B\u0631 \u0639\u0644\u0649 \u0627\u0644\u0623\u062F\u0627\u0621 \u0627\u0644\u064A\u0648\u0645\u064A \u0648\u0627\u0644\u062F\u0631\u0627\u0633\u0629 \u0648\u0627\u0644\u0639\u0645\u0644.",
+  "faq.q2": "\u0643\u0645 \u0645\u0646 \u0627\u0644\u0648\u0642\u062A \u062A\u0633\u062A\u063A\u0631\u0642 \u0639\u0645\u0644\u064A\u0629 \u0627\u0644\u062A\u0634\u062E\u064A\u0635\u061F",
+  "faq.a2": "\u062A\u062A\u0636\u0645\u0646 \u0639\u0645\u0644\u064A\u0629 \u0627\u0644\u062A\u0634\u062E\u064A\u0635 \u0627\u0644\u0643\u0627\u0645\u0644\u0629 \u0639\u062F\u0629 \u062C\u0644\u0633\u0627\u062A \u0648\u062A\u0633\u062A\u063A\u0631\u0642 \u0641\u064A \u0627\u0644\u0645\u062A\u0648\u0633\u0637 2-4 \u0623\u0633\u0627\u0628\u064A\u0639. \u0648\u062A\u0634\u0645\u0644 \u0645\u0642\u0627\u0628\u0644\u0629 \u0633\u0631\u064A\u0631\u064A\u0629 \u0645\u062A\u0639\u0645\u0642\u0629 \u0648\u0627\u062E\u062A\u0628\u0627\u0631\u0627\u062A \u0645\u062D\u0648\u0633\u0628\u0629 (MOXO) \u0648\u0627\u0633\u062A\u0628\u064A\u0627\u0646\u0627\u062A \u0648\u0645\u0631\u0627\u062C\u0639\u0629 \u0627\u0644\u0648\u062B\u0627\u0626\u0642 \u0627\u0644\u0637\u0628\u064A\u0629 \u0630\u0627\u062A \u0627\u0644\u0635\u0644\u0629.",
+  "faq.q3": "\u0647\u0644 \u0627\u0644\u062A\u0634\u062E\u064A\u0635 \u0645\u0646\u0627\u0633\u0628 \u0644\u062C\u0645\u064A\u0639 \u0627\u0644\u0623\u0639\u0645\u0627\u0631\u061F",
+  "faq.a3": "\u0646\u0639\u0645\u060C \u0646\u0642\u062F\u0645 \u062A\u0634\u062E\u064A\u0635\u064B\u0627 \u0627\u062D\u062A\u0631\u0627\u0641\u064A\u064B\u0627 \u0644\u0644\u0623\u0637\u0641\u0627\u0644 \u0645\u0646 \u0633\u0646 6 \u0633\u0646\u0648\u0627\u062A \u0648\u0627\u0644\u0645\u0631\u0627\u0647\u0642\u064A\u0646 \u0648\u0627\u0644\u0628\u0627\u0644\u063A\u064A\u0646. \u0644\u0643\u0644 \u0641\u0626\u0629 \u0639\u0645\u0631\u064A\u0629 \u0628\u0631\u0648\u062A\u0648\u0643\u0648\u0644 \u062A\u0642\u064A\u064A\u0645 \u0645\u062E\u0635\u0635 \u064A\u0623\u062E\u0630 \u0641\u064A \u0627\u0644\u0627\u0639\u062A\u0628\u0627\u0631 \u0627\u0644\u062E\u0635\u0627\u0626\u0635 \u0627\u0644\u0641\u0631\u064A\u062F\u0629 \u0644\u062A\u0644\u0643 \u0627\u0644\u0641\u0626\u0629 \u0627\u0644\u0639\u0645\u0631\u064A\u0629.",
+  "faq.q4": "\u0645\u0627 \u0627\u0644\u0630\u064A \u062A\u062A\u0636\u0645\u0646\u0647 \u062E\u0637\u0629 \u0627\u0644\u0639\u0644\u0627\u062C\u061F",
+  "faq.a4": "\u062E\u0637\u0629 \u0627\u0644\u0639\u0644\u0627\u062C \u0645\u062E\u0635\u0635\u0629 \u0648\u062A\u0634\u0645\u0644: \u062A\u0648\u0635\u064A\u0627\u062A \u062F\u0648\u0627\u0626\u064A\u0629 (\u0625\u0630\u0627 \u0644\u0632\u0645 \u0627\u0644\u0623\u0645\u0631)\u060C \u0648\u0625\u0631\u0634\u0627\u062F \u0627\u0644\u0648\u0627\u0644\u062F\u064A\u0646\u060C \u0648\u0623\u062F\u0648\u0627\u062A \u0639\u0645\u0644\u064A\u0629 \u0644\u0644\u062A\u0623\u0642\u0644\u0645 \u0627\u0644\u064A\u0648\u0645\u064A\u060C \u0648\u0625\u062D\u0627\u0644\u0627\u062A \u0625\u0644\u0649 \u0639\u0644\u0627\u062C\u0627\u062A \u062A\u0643\u0645\u064A\u0644\u064A\u0629\u060C \u0648\u0645\u062A\u0627\u0628\u0639\u0629 \u0645\u0633\u062A\u0645\u0631\u0629.",
+  "faq.q5": "\u0647\u0644 \u064A\u0644\u0632\u0645 \u062A\u062D\u0648\u064A\u0644 \u0645\u0646 \u0627\u0644\u0637\u0628\u064A\u0628\u061F",
+  "faq.a5": "\u0644\u0627\u060C \u0644\u0627 \u064A\u0644\u0632\u0645 \u062A\u062D\u0648\u064A\u0644. \u064A\u0645\u0643\u0646\u0643 \u0627\u0644\u062A\u0648\u0627\u0635\u0644 \u0645\u0628\u0627\u0634\u0631\u0629 \u0645\u0639 \u0627\u0644\u0639\u064A\u0627\u062F\u0629 \u0644\u062A\u062D\u062F\u064A\u062F \u0645\u0648\u0639\u062F \u0644\u0644\u062A\u0634\u062E\u064A\u0635. \u0648\u0645\u0639 \u0630\u0644\u0643\u060C \u0625\u0630\u0627 \u0643\u0627\u0646 \u0644\u062F\u064A\u0643 \u0645\u0633\u062A\u0646\u062F\u0627\u062A \u0637\u0628\u064A\u0629 \u0633\u0627\u0628\u0642\u0629\u060C \u064A\u064F\u0646\u0635\u062D \u0628\u0625\u062D\u0636\u0627\u0631\u0647\u0627 \u0625\u0644\u0649 \u0627\u0644\u0627\u062C\u062A\u0645\u0627\u0639 \u0627\u0644\u0623\u0648\u0644.",
+  "faq.q6": "\u0645\u0627 \u0627\u0644\u0641\u0631\u0642 \u0628\u064A\u0646 ADD \u0648 ADHD\u061F",
+  "faq.a6": "ADD \u0647\u0648 \u0627\u0644\u0645\u0635\u0637\u0644\u062D \u0627\u0644\u0642\u062F\u064A\u0645 \u0644\u0646\u0642\u0635 \u0627\u0644\u0627\u0646\u062A\u0628\u0627\u0647 \u062F\u0648\u0646 \u0641\u0631\u0637 \u0627\u0644\u062D\u0631\u0643\u0629. \u0627\u0644\u064A\u0648\u0645\u060C \u064A\u064F\u0633\u062A\u062E\u062F\u0645 \u0645\u0635\u0637\u0644\u062D ADHD \u0645\u0639 \u062B\u0644\u0627\u062B\u0629 \u0623\u0646\u0648\u0627\u0639 \u0641\u0631\u0639\u064A\u0629: \u0627\u0644\u0646\u0645\u0637 \u0627\u0644\u063A\u0627\u0644\u0628 \u0641\u064A\u0647 \u0646\u0642\u0635 \u0627\u0644\u0627\u0646\u062A\u0628\u0627\u0647\u060C \u0623\u0648 \u0627\u0644\u0646\u0645\u0637 \u0627\u0644\u063A\u0627\u0644\u0628 \u0641\u064A\u0647 \u0641\u0631\u0637 \u0627\u0644\u062D\u0631\u0643\u0629 \u0648\u0627\u0644\u0627\u0646\u062F\u0641\u0627\u0639\u060C \u0623\u0648 \u0627\u0644\u0646\u0645\u0637 \u0627\u0644\u0645\u0634\u062A\u0631\u0643.",
   "services.process_steps": "\u062E\u0637\u0648\u0627\u062A \u0639\u0645\u0644\u064A\u062E \u0627\u0644\u062A\u0634\u062E\u064A\u0635",
   "footer.rights": "\xA9 2025 \u062C\u0645\u064A\u0639 \u0627\u0644\u062D\u0642\u0648\u0642 \u0645\u062D\u0641\u0648\u0638\u0629 \u0644\u0640 Keshev Plus",
+  "footer.moxo_certified": "\u0645\u0639\u062A\u0645\u062F \u0645\u0646 Moxo",
+  "footer.moxo_certified_desc": "\u062A\u0642\u064A\u064A\u0645 ADHD \u0645\u062D\u0648\u0633\u0628",
+  "cookies.notice": "\u064A\u0633\u062A\u062E\u062F\u0645 \u0647\u0630\u0627 \u0627\u0644\u0645\u0648\u0642\u0639 \u0645\u0644\u0641\u0627\u062A \u062A\u0639\u0631\u064A\u0641 \u0627\u0644\u0627\u0631\u062A\u0628\u0627\u0637 (\u0627\u0644\u0643\u0648\u0643\u064A\u0632) \u0644\u062A\u062D\u0633\u064A\u0646 \u062A\u062C\u0631\u0628\u0629 \u0627\u0644\u062A\u0635\u0641\u062D \u0648\u0644\u0623\u063A\u0631\u0627\u0636 \u0625\u062D\u0635\u0627\u0626\u064A\u0629. \u0645\u0646 \u062E\u0644\u0627\u0644 \u0645\u062A\u0627\u0628\u0639\u0629 \u062A\u0635\u0641\u062D \u0627\u0644\u0645\u0648\u0642\u0639\u060C \u0641\u0625\u0646\u0643 \u062A\u0648\u0627\u0641\u0642 \u0639\u0644\u0649 \u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0645\u0644\u0641\u0627\u062A \u062A\u0639\u0631\u064A\u0641 \u0627\u0644\u0627\u0631\u062A\u0628\u0627\u0637 \u0648\u0641\u0642\u064B\u0627 \u0644\u0633\u064A\u0627\u0633\u0629 \u0627\u0644\u062E\u0635\u0648\u0635\u064A\u0629 \u0627\u0644\u062E\u0627\u0635\u0629 \u0628\u0646\u0627.",
+  "cookies.used_include": "\u062A\u0634\u0645\u0644 \u0645\u0644\u0641\u0627\u062A \u062A\u0639\u0631\u064A\u0641 \u0627\u0644\u0627\u0631\u062A\u0628\u0627\u0637 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645\u0629 \u0641\u064A \u0647\u0630\u0627 \u0627\u0644\u0645\u0648\u0642\u0639:",
+  "cookies.essential": "\u0645\u0644\u0641\u0627\u062A \u062A\u0639\u0631\u064A\u0641 \u0627\u0644\u0627\u0631\u062A\u0628\u0627\u0637 \u0627\u0644\u0623\u0633\u0627\u0633\u064A\u0629 - \u0644\u0636\u0645\u0627\u0646 \u0639\u0645\u0644 \u0627\u0644\u0645\u0648\u0642\u0639 \u0628\u0634\u0643\u0644 \u0635\u062D\u064A\u062D",
+  "cookies.statistical": "\u0645\u0644\u0641\u0627\u062A \u062A\u0639\u0631\u064A\u0641 \u0627\u0644\u0627\u0631\u062A\u0628\u0627\u0637 \u0627\u0644\u0625\u062D\u0635\u0627\u0626\u064A\u0629 - \u0644\u062A\u062D\u0644\u064A\u0644 \u0627\u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0648\u062A\u062D\u0633\u064A\u0646 \u0627\u0644\u062E\u062F\u0645\u0629",
+  "cookies.preference": "\u0645\u0644\u0641\u0627\u062A \u062A\u0639\u0631\u064A\u0641 \u0627\u0631\u062A\u0628\u0627\u0637 \u0627\u0644\u062A\u0641\u0636\u064A\u0644\u0627\u062A - \u0644\u062D\u0641\u0638 \u062A\u0641\u0636\u064A\u0644\u0627\u062A \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645",
+  "cookies.privacy_note": "\u0648\u0641\u0642\u064B\u0627 \u0644\u0642\u0627\u0646\u0648\u0646 \u062D\u0645\u0627\u064A\u0629 \u0627\u0644\u062E\u0635\u0648\u0635\u064A\u0629\u060C \u0646\u0628\u0644\u063A\u0643 \u0628\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0645\u0644\u0641\u0627\u062A \u062A\u0639\u0631\u064A\u0641 \u0627\u0644\u0627\u0631\u062A\u0628\u0627\u0637 \u0648\u0646\u0637\u0644\u0628 \u0645\u0648\u0627\u0641\u0642\u062A\u0643.",
+  "cookies.hide_details": "\u0625\u062E\u0641\u0627\u0621 \u0627\u0644\u062A\u0641\u0627\u0635\u064A\u0644",
+  "cookies.more_info": "\u0645\u0632\u064A\u062F \u0645\u0646 \u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0627\u062A",
+  "cookies.accept": "\u0623\u0648\u0627\u0641\u0642",
+  "appt_date.select_date": "\u0627\u062E\u062A\u0631 \u0627\u0644\u062A\u0627\u0631\u064A\u062E",
+  "appt_date.clinic_closed": "\u0627\u0644\u0639\u064A\u0627\u062F\u0629 \u0645\u063A\u0644\u0642\u0629 \u0641\u064A \u0647\u0630\u0627 \u0627\u0644\u064A\u0648\u0645",
+  "appt_date.gray_unavailable": "\u0627\u0644\u0623\u064A\u0627\u0645 \u0627\u0644\u0631\u0645\u0627\u062F\u064A\u0629 \u063A\u064A\u0631 \u0645\u062A\u0627\u062D\u0629 \u0644\u062A\u062D\u062F\u064A\u062F \u0627\u0644\u0645\u0648\u0627\u0639\u064A\u062F.",
+  "appt_for.who": "\u0644\u0645\u0646 \u0627\u0644\u0645\u0648\u0639\u062F\u061F",
+  "appt_for.me": "\u0644\u064A",
+  "appt_for.child": "\u0644\u0644\u0637\u0641\u0644",
+  "appt_for.child_name": "\u0627\u0633\u0645 \u0627\u0644\u0637\u0641\u0644",
+  "appt_for.child_age": "\u0639\u0645\u0631 \u0627\u0644\u0637\u0641\u0644",
+  "appt_for.child_age_placeholder": "(\u0627\u0644\u062D\u062F \u0627\u0644\u0623\u062F\u0646\u0649 6)",
+  "appt_for.min_age_error": "\u0627\u0644\u062D\u062F \u0627\u0644\u0623\u062F\u0646\u0649 \u0644\u0644\u0639\u0645\u0631 \u0647\u0648 6",
   "footer.clinic_desc": "\u0639\u064A\u0627\u062F\u0629 \u0631\u0627\u0626\u062F\u0629 \u0641\u064A \u062A\u0634\u062E\u064A\u0635 \u0648\u0639\u0644\u0627\u062C ADHD \u0639\u0646\u062F \u0627\u0644\u0623\u0637\u0641\u0627\u0644 \u0648\u0627\u0644\u0645\u0631\u0627\u0647\u0642\u064A\u0646 \u0648\u0627\u0644\u0628\u0627\u0644\u063A\u064A\u0646.",
   "footer.quick_links": "\u0631\u0648\u0627\u0628\u0637 \u0633\u0631\u064A\u0639\u0629",
   "footer.contact_info": "\u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0627\u0644\u0627\u062A\u0635\u0627\u0644",
@@ -1919,7 +3990,132 @@ var ar = {
   "admin.multilingual": "\u0645\u062A\u0639\u062F\u062F \u0627\u0644\u0644\u063A\u0627\u062A (\u062C\u0645\u064A\u0639 \u0627\u0644\u0644\u063A\u0627\u062A)",
   "admin.default_language": "\u0627\u0644\u0644\u063A\u0629 \u0627\u0644\u0627\u0641\u062A\u0631\u0627\u0636\u064A\u0629",
   "admin.settings_saved": "\u062A\u0645 \u062D\u0641\u0638 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A",
-  "admin.settings_error": "\u0641\u0634\u0644 \u0641\u064A \u062D\u0641\u0638 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A"
+  "admin.settings_error": "\u0641\u0634\u0644 \u0641\u064A \u062D\u0641\u0638 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A",
+  "a11y.accessibility_settings": "\u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0625\u0645\u0643\u0627\u0646\u064A\u0629 \u0627\u0644\u0648\u0635\u0648\u0644",
+  "a11y.text_size": "\u062D\u062C\u0645 \u0627\u0644\u0646\u0635",
+  "a11y.decrease_text": "\u062A\u0635\u063A\u064A\u0631 \u0627\u0644\u0646\u0635",
+  "a11y.increase_text": "\u062A\u0643\u0628\u064A\u0631 \u0627\u0644\u0646\u0635",
+  "a11y.line_height": "\u0627\u0631\u062A\u0641\u0627\u0639 \u0627\u0644\u0633\u0637\u0631",
+  "a11y.decrease_line_height": "\u062A\u0642\u0644\u064A\u0644 \u0627\u0631\u062A\u0641\u0627\u0639 \u0627\u0644\u0633\u0637\u0631",
+  "a11y.increase_line_height": "\u0632\u064A\u0627\u062F\u0629 \u0627\u0631\u062A\u0641\u0627\u0639 \u0627\u0644\u0633\u0637\u0631",
+  "a11y.letter_spacing": "\u062A\u0628\u0627\u0639\u062F \u0627\u0644\u0623\u062D\u0631\u0641",
+  "a11y.decrease_letter_spacing": "\u062A\u0642\u0644\u064A\u0644 \u062A\u0628\u0627\u0639\u062F \u0627\u0644\u0623\u062D\u0631\u0641",
+  "a11y.increase_letter_spacing": "\u0632\u064A\u0627\u062F\u0629 \u062A\u0628\u0627\u0639\u062F \u0627\u0644\u0623\u062D\u0631\u0641",
+  "a11y.reading_guide": "\u062F\u0644\u064A\u0644 \u0627\u0644\u0642\u0631\u0627\u0621\u0629",
+  "a11y.high_contrast": "\u062A\u0628\u0627\u064A\u0646 \u0639\u0627\u0644\u064D",
+  "a11y.highlight_links": "\u0625\u0628\u0631\u0627\u0632 \u0627\u0644\u0631\u0648\u0627\u0628\u0637",
+  "a11y.grayscale": "\u062A\u062F\u0631\u062C \u0627\u0644\u0631\u0645\u0627\u062F\u064A",
+  "a11y.readable_font": "\u062E\u0637 \u0633\u0647\u0644 \u0627\u0644\u0642\u0631\u0627\u0621\u0629",
+  "a11y.large_cursor": "\u0645\u0624\u0634\u0631 \u0643\u0628\u064A\u0631",
+  "a11y.stop_animations": "\u0625\u064A\u0642\u0627\u0641 \u0627\u0644\u062D\u0631\u0643\u0627\u062A",
+  "a11y.reset": "\u0625\u0639\u0627\u062F\u0629 \u062A\u0639\u064A\u064A\u0646",
+  "a11y.close": "\u0625\u063A\u0644\u0627\u0642",
+  "a11y.accessibility_menu": "\u0642\u0627\u0626\u0645\u0629 \u0625\u0645\u0643\u0627\u0646\u064A\u0629 \u0627\u0644\u0648\u0635\u0648\u0644",
+  "a11y.dark_mode": "\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u062F\u0627\u0643\u0646",
+  "a11y.light_mode": "\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0641\u0627\u062A\u062D",
+  "a11y.accessibility_statement": "\u0628\u064A\u0627\u0646 \u0625\u0645\u0643\u0627\u0646\u064A\u0629 \u0627\u0644\u0648\u0635\u0648\u0644",
+  "a11y.accessibility_statement_text": "\u064A\u0644\u062A\u0632\u0645 \u0647\u0630\u0627 \u0627\u0644\u0645\u0648\u0642\u0639 \u0628\u0625\u0645\u0643\u0627\u0646\u064A\u0629 \u0627\u0644\u0648\u0635\u0648\u0644 \u0627\u0644\u0631\u0642\u0645\u064A \u0648\u0641\u0642\u064B\u0627 \u0644\u0644\u0642\u0627\u0646\u0648\u0646 \u0627\u0644\u0625\u0633\u0631\u0627\u0626\u064A\u0644\u064A.",
+  "terms.title": "\u0634\u0631\u0648\u0637 \u0627\u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645",
+  "terms.intro": '\u064A\u062E\u0636\u0639 \u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0645\u0648\u0642\u0639 \u0643\u05E9\u05D1 \u05E4\u05DC\u05D5\u0633 ("\u0627\u0644\u0645\u0648\u0642\u0639") \u0644\u0644\u0634\u0631\u0648\u0637 \u0627\u0644\u0648\u0627\u0631\u062F\u0629 \u0623\u062F\u0646\u0627\u0647. \u064A\u0634\u0643\u0644 \u062A\u0635\u0641\u062D \u0627\u0644\u0645\u0648\u0642\u0639 \u0648/\u0623\u0648 \u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u062E\u062F\u0645\u0627\u062A\u0647 \u0645\u0648\u0627\u0641\u0642\u0629 \u0639\u0644\u0649 \u0647\u0630\u0647 \u0627\u0644\u0634\u0631\u0648\u0637.',
+  "terms.service_nature_title": "\u0637\u0628\u064A\u0639\u0629 \u0627\u0644\u062E\u062F\u0645\u0629",
+  "terms.service_nature_p1": "\u064A\u0648\u0641\u0631 \u0627\u0644\u0645\u0648\u0642\u0639 \u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0639\u0627\u0645\u0629 \u062D\u0648\u0644 \u062A\u0634\u062E\u064A\u0635 \u0648\u0639\u0644\u0627\u062C \u0627\u0636\u0637\u0631\u0627\u0628 \u0641\u0631\u0637 \u0627\u0644\u062D\u0631\u0643\u0629 \u0648\u0646\u0642\u0635 \u0627\u0644\u0627\u0646\u062A\u0628\u0627\u0647 (ADHD)\u060C \u0628\u0627\u0644\u0625\u0636\u0627\u0641\u0629 \u0625\u0644\u0649 \u0623\u062F\u0648\u0627\u062A \u0639\u0628\u0631 \u0627\u0644\u0625\u0646\u062A\u0631\u0646\u062A \u0644\u062A\u062D\u062F\u064A\u062F \u0627\u0644\u0645\u0648\u0627\u0639\u064A\u062F \u0648\u0645\u0644\u0621 \u0627\u0633\u062A\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0641\u0631\u0632 \u0627\u0644\u0623\u0648\u0644\u064A\u0629.",
+  "terms.service_nature_p2": "\u0644\u0627 \u062A\u0634\u0643\u0644 \u0627\u0633\u062A\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0641\u0631\u0632 \u0639\u0628\u0631 \u0627\u0644\u0625\u0646\u062A\u0631\u0646\u062A \u062A\u0634\u062E\u064A\u0635\u064B\u0627 \u0637\u0628\u064A\u064B\u0627 \u0648\u0644\u0627 \u062A\u064F\u063A\u0646\u064A \u0639\u0646 \u0627\u0644\u0627\u0633\u062A\u0634\u0627\u0631\u0629 \u0623\u0648 \u0627\u0644\u062A\u0634\u062E\u064A\u0635 \u0623\u0648 \u0627\u0644\u0639\u0644\u0627\u062C \u0645\u0646 \u0642\u0628\u0644 \u0645\u062E\u062A\u0635 \u0645\u0624\u0647\u0644. \u062A\u0647\u062F\u0641 \u0646\u062A\u0627\u0626\u062C \u0627\u0644\u0627\u0633\u062A\u0628\u064A\u0627\u0646 \u0641\u0642\u0637 \u0625\u0644\u0649 \u0645\u0633\u0627\u0639\u062F\u0629 \u0637\u0627\u0642\u0645\u0646\u0627 \u0627\u0644\u0633\u0631\u064A\u0631\u064A \u0641\u064A \u0627\u0644\u062A\u0642\u064A\u064A\u0645 \u0627\u0644\u0623\u0648\u0644\u064A\u061B \u0648\u0644\u0627 \u064A\u064F\u0639\u0637\u0649 \u0627\u0644\u062A\u0634\u062E\u064A\u0635 \u0627\u0644\u0646\u0647\u0627\u0626\u064A \u0625\u0644\u0627 \u0645\u0646 \u062E\u0644\u0627\u0644 \u062A\u0642\u064A\u064A\u0645 \u0633\u0631\u064A\u0631\u064A.",
+  "terms.fair_use_title": "\u0627\u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0627\u0644\u0639\u0627\u062F\u0644 \u0644\u0644\u0645\u0648\u0642\u0639",
+  "terms.fair_use_body": "\u0644\u0627 \u064A\u062C\u0648\u0632 \u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0627\u0644\u0645\u0648\u0642\u0639 \u0644\u0623\u064A \u063A\u0631\u0636 \u063A\u064A\u0631 \u0642\u0627\u0646\u0648\u0646\u064A\u060C \u0648\u0644\u0627 \u064A\u062C\u0648\u0632 \u0645\u062D\u0627\u0648\u0644\u0629 \u0627\u0644\u062A\u062F\u062E\u0644 \u0641\u064A \u062A\u0634\u063A\u064A\u0644\u0647 \u0627\u0644\u0633\u0644\u064A\u0645\u060C \u0628\u0645\u0627 \u0641\u064A \u0630\u0644\u0643 \u0645\u062D\u0627\u0648\u0644\u0627\u062A \u0627\u0644\u0627\u062E\u062A\u0631\u0627\u0642 \u0623\u0648 \u0627\u0644\u0648\u0635\u0648\u0644 \u063A\u064A\u0631 \u0627\u0644\u0645\u0635\u0631\u062D \u0628\u0647 \u0625\u0644\u0649 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0623\u0648 \u0627\u0644\u0627\u0633\u062A\u062E\u0631\u0627\u062C \u0627\u0644\u0622\u0644\u064A \u0644\u0644\u0645\u062D\u062A\u0648\u0649 (scraping) \u062F\u0648\u0646 \u0645\u0648\u0627\u0641\u0642\u0629 \u0645\u0633\u0628\u0642\u0629.",
+  "terms.ip_title": "\u0627\u0644\u0645\u0644\u0643\u064A\u0629 \u0627\u0644\u0641\u0643\u0631\u064A\u0629",
+  "terms.ip_body": "\u062C\u0645\u064A\u0639 \u0627\u0644\u062D\u0642\u0648\u0642 \u0641\u064A \u0645\u062D\u062A\u0648\u0649 \u0627\u0644\u0645\u0648\u0642\u0639\u060C \u0628\u0645\u0627 \u0641\u064A \u0630\u0644\u0643 \u0627\u0644\u0646\u0635\u0648\u0635 \u0648\u0627\u0644\u062A\u0635\u0645\u064A\u0645 \u0648\u0627\u0644\u0634\u0639\u0627\u0631 \u0648\u0627\u0644\u0635\u0648\u0631\u060C \u0645\u0644\u0643 \u0644\u0640 \u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 \u0623\u0648 \u0644\u0623\u0637\u0631\u0627\u0641 \u062B\u0627\u0644\u062B\u0629 \u0645\u0646\u062D\u062A\u0647\u0627 \u062A\u0631\u062E\u064A\u0635 \u0627\u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645\u060C \u0648\u0644\u0627 \u064A\u062C\u0648\u0632 \u0646\u0633\u062E\u0647\u0627 \u0623\u0648 \u0627\u0633\u062A\u062E\u062F\u0627\u0645\u0647\u0627 \u062F\u0648\u0646 \u0625\u0630\u0646 \u0643\u062A\u0627\u0628\u064A.",
+  "terms.liability_title": "\u062A\u062D\u062F\u064A\u062F \u0627\u0644\u0645\u0633\u0624\u0648\u0644\u064A\u0629",
+  "terms.liability_body": "\u062A\u064F\u0642\u062F\u064E\u0651\u0645 \u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0627\u0644\u0648\u0627\u0631\u062F\u0629 \u0641\u064A \u0627\u0644\u0645\u0648\u0642\u0639 \u0644\u0623\u063A\u0631\u0627\u0636 \u0625\u0639\u0644\u0627\u0645\u064A\u0629 \u0639\u0627\u0645\u0629 \u0641\u0642\u0637 \u0648\u0644\u0627 \u062A\u0634\u0643\u0644 \u0627\u0633\u062A\u0634\u0627\u0631\u0629 \u0637\u0628\u064A\u0629. \u0644\u0627 \u062A\u062A\u062D\u0645\u0644 \u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 \u0645\u0633\u0624\u0648\u0644\u064A\u0629 \u0623\u064A \u0636\u0631\u0631 \u064A\u0646\u0634\u0623 \u0639\u0646 \u0627\u0644\u0627\u0639\u062A\u0645\u0627\u062F \u0639\u0644\u0649 \u0645\u062D\u062A\u0648\u0649 \u0627\u0644\u0645\u0648\u0642\u0639 \u062F\u0648\u0646 \u0627\u0633\u062A\u0634\u0627\u0631\u0629 \u0645\u0647\u0646\u064A\u0629 \u0645\u0646\u0627\u0633\u0628\u0629. \u062A\u062E\u0636\u0639 \u0627\u0644\u0631\u0648\u0627\u0628\u0637 \u0625\u0644\u0649 \u0627\u0644\u0645\u0648\u0627\u0642\u0639 \u0648\u0627\u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u062E\u0627\u0631\u062C\u064A\u0629 (\u0645\u062B\u0644 \u0648\u0627\u062A\u0633\u0627\u0628 \u0648\u0648\u0633\u0627\u0626\u0644 \u0627\u0644\u062A\u0648\u0627\u0635\u0644 \u0627\u0644\u0627\u062C\u062A\u0645\u0627\u0639\u064A) \u0644\u0634\u0631\u0648\u0637 \u0627\u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0648\u0633\u064A\u0627\u0633\u0627\u062A \u0627\u0644\u062E\u0635\u0648\u0635\u064A\u0629 \u0627\u0644\u062E\u0627\u0635\u0629 \u0628\u062A\u0644\u0643 \u0627\u0644\u0623\u0637\u0631\u0627\u0641 \u0627\u0644\u062B\u0627\u0644\u062B\u0629\u060C \u0648\u0644\u0633\u0646\u0627 \u0645\u0633\u0624\u0648\u0644\u064A\u0646 \u0639\u0646 \u0645\u062D\u062A\u0648\u0627\u0647\u0627.",
+  "terms.jurisdiction_title": "\u0627\u0644\u0642\u0627\u0646\u0648\u0646 \u0627\u0644\u062D\u0627\u0643\u0645 \u0648\u0627\u0644\u0627\u062E\u062A\u0635\u0627\u0635 \u0627\u0644\u0642\u0636\u0627\u0626\u064A",
+  "terms.jurisdiction_body": "\u062A\u062E\u0636\u0639 \u0647\u0630\u0647 \u0627\u0644\u0634\u0631\u0648\u0637 \u0644\u0642\u0648\u0627\u0646\u064A\u0646 \u062F\u0648\u0644\u0629 \u0625\u0633\u0631\u0627\u0626\u064A\u0644\u060C \u0648\u062A\u062E\u062A\u0635 \u0645\u062D\u0627\u0643\u0645 \u0645\u0646\u0637\u0642\u0629 \u062A\u0644 \u0623\u0628\u064A\u0628 \u062D\u0635\u0631\u064A\u064B\u0627 \u0628\u0627\u0644\u0646\u0638\u0631 \u0641\u064A \u0623\u064A \u0645\u0633\u0623\u0644\u0629 \u062A\u062A\u0639\u0644\u0642 \u0628\u0647\u0627.",
+  "terms.changes_title": "\u0627\u0644\u062A\u063A\u064A\u064A\u0631\u0627\u062A \u0639\u0644\u0649 \u0647\u0630\u0647 \u0627\u0644\u0634\u0631\u0648\u0637",
+  "terms.changes_body": "\u064A\u062C\u0648\u0632 \u0644\u0646\u0627 \u062A\u062D\u062F\u064A\u062B \u0647\u0630\u0647 \u0627\u0644\u0634\u0631\u0648\u0637 \u0645\u0646 \u0648\u0642\u062A \u0644\u0622\u062E\u0631. \u064A\u0634\u0643\u0644 \u0627\u0633\u062A\u0645\u0631\u0627\u0631 \u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0627\u0644\u0645\u0648\u0642\u0639 \u0628\u0639\u062F \u0646\u0634\u0631 \u0627\u0644\u062A\u063A\u064A\u064A\u0631\u0627\u062A \u0645\u0648\u0627\u0641\u0642\u0629 \u0639\u0644\u0649 \u0627\u0644\u0634\u0631\u0648\u0637 \u0627\u0644\u0645\u062D\u062F\u0651\u062B\u0629.",
+  "terms.contact_title": "\u0627\u0644\u062A\u0648\u0627\u0635\u0644",
+  "terms.updated_date": "\u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u0647\u0630\u0647 \u0627\u0644\u0634\u0631\u0648\u0637 \u0622\u062E\u0631 \u0645\u0631\u0629 \u0628\u062A\u0627\u0631\u064A\u062E: 15 \u064A\u0648\u0644\u064A\u0648 2026.",
+  "privacy.title": "\u0633\u064A\u0627\u0633\u0629 \u0627\u0644\u062E\u0635\u0648\u0635\u064A\u0629",
+  "privacy.intro": '\u062A\u062D\u062A\u0631\u0645 \u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 ("\u0646\u062D\u0646"\u060C "\u0627\u0644\u0639\u064A\u0627\u062F\u0629") \u062E\u0635\u0648\u0635\u064A\u062A\u0643. \u062A\u0648\u0636\u062D \u0647\u0630\u0647 \u0627\u0644\u0633\u064A\u0627\u0633\u0629 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u062A\u064A \u0646\u062C\u0645\u0639\u0647\u0627 \u0645\u0646 \u062E\u0644\u0627\u0644 \u0627\u0644\u0645\u0648\u0642\u0639\u060C \u0648\u0627\u0644\u063A\u0631\u0636 \u0645\u0646 \u0627\u0633\u062A\u062E\u062F\u0627\u0645\u0647\u0627\u060C \u0648\u0643\u064A\u0641\u064A\u0629 \u0627\u0644\u062A\u0648\u0627\u0635\u0644 \u0645\u0639\u0646\u0627 \u0628\u0634\u0623\u0646\u0647\u0627. \u0648\u0647\u064A \u062A\u0639\u0645\u0644 \u0648\u0641\u0642\u064B\u0627 \u0644\u0642\u0627\u0646\u0648\u0646 \u062D\u0645\u0627\u064A\u0629 \u0627\u0644\u062E\u0635\u0648\u0635\u064A\u0629 \u0627\u0644\u0625\u0633\u0631\u0627\u0626\u064A\u0644\u064A \u0644\u0639\u0627\u0645 1981\u060C \u0648\u0644\u0648\u0627\u0626\u062D \u062D\u0645\u0627\u064A\u0629 \u0627\u0644\u062E\u0635\u0648\u0635\u064A\u0629 (\u0623\u0645\u0646 \u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0627\u062A) \u0644\u0639\u0627\u0645 2017.',
+  "privacy.data_collected_title": "\u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0627\u0644\u062A\u064A \u0646\u062C\u0645\u0639\u0647\u0627",
+  "privacy.data_collected_1": "\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u062A\u0648\u0627\u0635\u0644: \u0627\u0644\u0627\u0633\u0645 \u0648\u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u0628\u0631\u064A\u062F \u0627\u0644\u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A \u0648\u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062A\u0641\u060C \u0639\u0646\u062F \u0627\u0644\u062A\u0648\u0627\u0635\u0644 \u0645\u0639\u0646\u0627 \u0623\u0648 \u062D\u062C\u0632 \u0645\u0648\u0639\u062F \u0623\u0648 \u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0646\u0645\u0648\u0630\u062C \u0627\u0644\u062A\u0648\u0627\u0635\u0644.",
+  "privacy.data_collected_2": "\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0633\u062A\u0628\u064A\u0627\u0646 \u0641\u0631\u0632 ADHD: \u0627\u0633\u0645 \u0627\u0644\u0637\u0641\u0644 \u0648\u0639\u0645\u0631\u0647 \u0648\u062C\u0646\u0633\u0647 \u0648\u0639\u0644\u0627\u0642\u062A\u0647 \u0628\u0645\u0642\u062F\u0645 \u0627\u0644\u0625\u062C\u0627\u0628\u0627\u062A\u060C \u0625\u0644\u0649 \u062C\u0627\u0646\u0628 \u0625\u062C\u0627\u0628\u0627\u062A \u0627\u0644\u0627\u0633\u062A\u0628\u064A\u0627\u0646. \u0647\u0630\u0647 \u0645\u0639\u0644\u0648\u0645\u0627\u062A \u062D\u0633\u0627\u0633\u0629 \u062A\u062A\u0639\u0644\u0642 \u0628\u062A\u0642\u064A\u064A\u0645 \u0633\u0631\u064A\u0631\u064A \u0623\u0648\u0644\u064A\u060C \u0648\u0646\u062A\u0639\u0627\u0645\u0644 \u0645\u0639\u0647\u0627 \u0628\u0639\u0646\u0627\u064A\u0629 \u0625\u0636\u0627\u0641\u064A\u0629.",
+  "privacy.data_collected_3": "\u0645\u0644\u0641\u0627\u062A \u062A\u0639\u0631\u064A\u0641 \u0627\u0644\u0627\u0631\u062A\u0628\u0627\u0637 \u0627\u0644\u0623\u0633\u0627\u0633\u064A\u0629 \u0648\u0627\u0644\u0625\u062D\u0635\u0627\u0626\u064A\u0629 \u0648\u0627\u0644\u062A\u0641\u0636\u064A\u0644\u064A\u0629\u060C \u0643\u0645\u0627 \u0647\u0648 \u0645\u0641\u0635\u0644 \u0641\u064A \u0634\u0631\u064A\u0637 \u0645\u0644\u0641\u0627\u062A \u062A\u0639\u0631\u064A\u0641 \u0627\u0644\u0627\u0631\u062A\u0628\u0627\u0637 \u0641\u064A \u0627\u0644\u0645\u0648\u0642\u0639.",
+  "privacy.data_collected_4": "\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u062A\u0642\u0646\u064A\u0629 \u0623\u0633\u0627\u0633\u064A\u0629 (\u0645\u062B\u0644 \u0646\u0648\u0639 \u0627\u0644\u0645\u062A\u0635\u0641\u062D \u0648\u0627\u0644\u062C\u0647\u0627\u0632) \u062A\u064F\u062C\u0645\u0639 \u062A\u0644\u0642\u0627\u0626\u064A\u064B\u0627 \u0644\u062A\u0634\u063A\u064A\u0644 \u0627\u0644\u0645\u0648\u0642\u0639.",
+  "privacy.purposes_title": "\u0623\u063A\u0631\u0627\u0636 \u0627\u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645",
+  "privacy.purpose_1": "\u062C\u062F\u0648\u0644\u0629 \u0648\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0645\u0648\u0627\u0639\u064A\u062F.",
+  "privacy.purpose_2": "\u0645\u0639\u0627\u0644\u062C\u0629 \u0627\u0633\u062A\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0641\u0631\u0632 \u0644\u0625\u062C\u0631\u0627\u0621 \u062A\u0642\u064A\u064A\u0645 \u0633\u0631\u064A\u0631\u064A \u0623\u0648\u0644\u064A \u0645\u0646 \u0642\u0628\u0644 \u0637\u0627\u0642\u0645\u0646\u0627 \u0627\u0644\u0633\u0631\u064A\u0631\u064A.",
+  "privacy.purpose_3": "\u0627\u0644\u0631\u062F \u0639\u0644\u0649 \u0627\u0644\u0627\u0633\u062A\u0641\u0633\u0627\u0631\u0627\u062A \u0648\u0637\u0644\u0628\u0627\u062A \u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0627\u062A.",
+  "privacy.purpose_4": "\u062A\u062D\u0633\u064A\u0646 \u0627\u0644\u062E\u062F\u0645\u0629 \u0648\u0627\u0644\u0645\u0648\u0642\u0639\u060C \u0648\u062A\u062D\u0644\u064A\u0644 \u0625\u062D\u0635\u0627\u0626\u064A \u0639\u0627\u0645 \u0644\u0644\u0627\u0633\u062A\u062E\u062F\u0627\u0645.",
+  "privacy.purpose_5": "\u0627\u0644\u0648\u0641\u0627\u0621 \u0628\u0627\u0644\u0627\u0644\u062A\u0632\u0627\u0645\u0627\u062A \u0627\u0644\u0642\u0627\u0646\u0648\u0646\u064A\u0629 \u0648\u0627\u0644\u062A\u0646\u0638\u064A\u0645\u064A\u0629 \u0627\u0644\u0645\u0637\u0628\u0642\u0629 \u0639\u0644\u064A\u0646\u0627.",
+  "privacy.sharing_title": "\u0645\u0634\u0627\u0631\u0643\u0629 \u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0627\u062A",
+  "privacy.sharing_body": "\u0646\u062D\u0646 \u0644\u0627 \u0646\u0628\u064A\u0639 \u0645\u0639\u0644\u0648\u0645\u0627\u062A\u0643 \u0627\u0644\u0634\u062E\u0635\u064A\u0629. \u062A\u0643\u0648\u0646 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0645\u062A\u0627\u062D\u0629 \u0644\u0637\u0627\u0642\u0645 \u0627\u0644\u0639\u064A\u0627\u062F\u0629 \u0641\u0642\u0637 \u0644\u063A\u0631\u0636 \u062A\u0642\u062F\u064A\u0645 \u0627\u0644\u0631\u0639\u0627\u064A\u0629\u060C \u0648\u064A\u062C\u0648\u0632 \u0627\u0644\u0643\u0634\u0641 \u0639\u0646\u0647\u0627 \u0625\u0630\u0627 \u0627\u0642\u062A\u0636\u0649 \u0627\u0644\u0642\u0627\u0646\u0648\u0646 \u0623\u0648 \u062C\u0647\u0629 \u0645\u062E\u062A\u0635\u0629 \u0630\u0644\u0643. \u064A\u0641\u062A\u062D \u0631\u0627\u0628\u0637 \u0627\u0644\u062A\u0648\u0627\u0635\u0644 \u0639\u0628\u0631 \u0648\u0627\u062A\u0633\u0627\u0628 \u062A\u0637\u0628\u064A\u0642 \u0648\u0627\u062A\u0633\u0627\u0628 \u0627\u0644\u062E\u0627\u0631\u062C\u064A\u060C \u0627\u0644\u0630\u064A \u064A\u062E\u0636\u0639 \u0644\u0633\u064A\u0627\u0633\u0629 \u0627\u0644\u062E\u0635\u0648\u0635\u064A\u0629 \u0627\u0644\u062E\u0627\u0635\u0629 \u0628\u0647.",
+  "privacy.security_title": "\u0623\u0645\u0646 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0648\u0627\u0644\u0627\u062D\u062A\u0641\u0627\u0638 \u0628\u0647\u0627",
+  "privacy.security_body": "\u0646\u062A\u062E\u0630 \u062A\u062F\u0627\u0628\u064A\u0631 \u062A\u0642\u0646\u064A\u0629 \u0648\u062A\u0646\u0638\u064A\u0645\u064A\u0629 \u0645\u0639\u0642\u0648\u0644\u0629 \u0644\u062D\u0645\u0627\u064A\u0629 \u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0627\u0644\u062A\u064A \u0646\u062C\u0645\u0639\u0647\u0627. \u064A\u064F\u062D\u062A\u0641\u0638 \u0628\u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0637\u0648\u0627\u0644 \u0627\u0644\u0645\u062F\u0629 \u0627\u0644\u0644\u0627\u0632\u0645\u0629 \u0644\u062A\u0642\u062F\u064A\u0645 \u0627\u0644\u062E\u062F\u0645\u0629 \u0648\u0627\u0644\u0648\u0641\u0627\u0621 \u0628\u0627\u0644\u062A\u0632\u0627\u0645\u0627\u062A \u062D\u0641\u0638 \u0627\u0644\u0633\u062C\u0644\u0627\u062A \u0627\u0644\u0637\u0628\u064A\u0629/\u0627\u0644\u062A\u062C\u0627\u0631\u064A\u0629 \u0627\u0644\u0645\u0639\u0645\u0648\u0644 \u0628\u0647\u0627\u060C \u0648\u0628\u0639\u062F \u0630\u0644\u0643 \u064A\u062A\u0645 \u062D\u0630\u0641\u0647\u0627 \u0623\u0648 \u0625\u062E\u0641\u0627\u0621 \u0647\u0648\u064A\u062A\u0647\u0627.",
+  "privacy.rights_title": "\u062D\u0642\u0648\u0642\u0643",
+  "privacy.rights_body": "\u0648\u0641\u0642\u064B\u0627 \u0644\u0642\u0627\u0646\u0648\u0646 \u062D\u0645\u0627\u064A\u0629 \u0627\u0644\u062E\u0635\u0648\u0635\u064A\u0629\u060C \u064A\u062D\u0642 \u0644\u0643 \u0627\u0644\u0627\u0637\u0644\u0627\u0639 \u0639\u0644\u0649 \u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629 \u0639\u0646\u0643\u060C \u0648\u0637\u0644\u0628 \u062A\u0635\u062D\u064A\u062D\u0647\u0627\u060C \u0648\u0641\u064A \u0638\u0631\u0648\u0641 \u0645\u0639\u064A\u0646\u0629 \u0637\u0644\u0628 \u062D\u0630\u0641\u0647\u0627. \u0644\u0645\u0645\u0627\u0631\u0633\u0629 \u0647\u0630\u0647 \u0627\u0644\u062D\u0642\u0648\u0642\u060C \u064A\u0631\u062C\u0649 \u0627\u0644\u062A\u0648\u0627\u0635\u0644 \u0645\u0639\u0646\u0627 \u0628\u0627\u0633\u062A\u062E\u062F\u0627\u0645 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0627\u062A\u0635\u0627\u0644 \u0623\u062F\u0646\u0627\u0647.",
+  "privacy.contact_title": "\u0627\u0644\u062A\u0648\u0627\u0635\u0644 \u0628\u0634\u0623\u0646 \u0627\u0644\u062E\u0635\u0648\u0635\u064A\u0629",
+  "privacy.updated_date": "\u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u0647\u0630\u0647 \u0627\u0644\u0633\u064A\u0627\u0633\u0629 \u0622\u062E\u0631 \u0645\u0631\u0629 \u0628\u062A\u0627\u0631\u064A\u062E: 15 \u064A\u0648\u0644\u064A\u0648 2026.",
+  "a11y_statement.title": "\u0628\u064A\u0627\u0646 \u0625\u0645\u0643\u0627\u0646\u064A\u0629 \u0627\u0644\u0648\u0635\u0648\u0644",
+  "a11y_statement.intro": "\u062A\u0639\u0645\u0644 \u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 \u0639\u0644\u0649 \u062C\u0639\u0644 \u062E\u062F\u0645\u0627\u062A\u0647\u0627 \u0627\u0644\u0631\u0642\u0645\u064A\u0629 \u0645\u062A\u0627\u062D\u0629 \u0644\u0639\u0627\u0645\u0629 \u0627\u0644\u062C\u0645\u0647\u0648\u0631\u060C \u0628\u0645\u0627 \u0641\u064A \u0630\u0644\u0643 \u0627\u0644\u0623\u0634\u062E\u0627\u0635 \u0630\u0648\u064A \u0627\u0644\u0625\u0639\u0627\u0642\u0629\u060C \u0627\u0646\u0637\u0644\u0627\u0642\u064B\u0627 \u0645\u0646 \u0625\u064A\u0645\u0627\u0646\u0647\u0627 \u0628\u0623\u0646 \u0643\u0644 \u0634\u062E\u0635 \u064A\u0633\u062A\u062D\u0642 \u062E\u062F\u0645\u0629 \u0639\u0627\u062F\u0644\u0629 \u0648\u0645\u064A\u0633\u0651\u0631\u0629. \u064A\u062A\u0645 \u062A\u0646\u0641\u064A\u0630 \u0647\u0630\u0627 \u0627\u0644\u0639\u0645\u0644 \u0648\u0641\u0642\u064B\u0627 \u0644\u0642\u0627\u0646\u0648\u0646 \u0627\u0644\u0645\u0633\u0627\u0648\u0627\u0629 \u0641\u064A \u0627\u0644\u062D\u0642\u0648\u0642 \u0644\u0644\u0623\u0634\u062E\u0627\u0635 \u0630\u0648\u064A \u0627\u0644\u0625\u0639\u0627\u0642\u0629 \u0627\u0644\u0625\u0633\u0631\u0627\u0626\u064A\u0644\u064A \u0644\u0639\u0627\u0645 1998\u060C \u0648\u0644\u0648\u0627\u0626\u062D \u0627\u0644\u0645\u0633\u0627\u0648\u0627\u0629 \u0641\u064A \u0627\u0644\u062D\u0642\u0648\u0642 \u0644\u0644\u0623\u0634\u062E\u0627\u0635 \u0630\u0648\u064A \u0627\u0644\u0625\u0639\u0627\u0642\u0629 (\u062A\u0639\u062F\u064A\u0644\u0627\u062A \u0625\u0645\u0643\u0627\u0646\u064A\u0629 \u0627\u0644\u0648\u0635\u0648\u0644 \u0644\u0644\u062E\u062F\u0645\u0629) \u0644\u0639\u0627\u0645 2013\u060C \u0648\u0628\u0645\u0627 \u064A\u062A\u0645\u0627\u0634\u0649 \u0645\u0639 \u0627\u0644\u0645\u0639\u064A\u0627\u0631 \u0627\u0644\u0625\u0633\u0631\u0627\u0626\u064A\u0644\u064A 5568 \u0648\u0625\u0631\u0634\u0627\u062F\u0627\u062A WCAG 2.0 \u0627\u0644\u062F\u0648\u0644\u064A\u0629 \u0628\u0645\u0633\u062A\u0648\u0649 AA.",
+  "a11y_statement.accommodations_title": "\u062A\u062F\u0627\u0628\u064A\u0631 \u0625\u0645\u0643\u0627\u0646\u064A\u0629 \u0627\u0644\u0648\u0635\u0648\u0644 \u0639\u0644\u0649 \u0647\u0630\u0627 \u0627\u0644\u0645\u0648\u0642\u0639",
+  "a11y_statement.accommodation_1": "\u0642\u0627\u0626\u0645\u0629 \u0645\u062E\u0635\u0635\u0629 \u0644\u0625\u0645\u0643\u0627\u0646\u064A\u0629 \u0627\u0644\u0648\u0635\u0648\u0644 (\u0623\u064A\u0642\u0648\u0646\u0629 \u0643\u0631\u0633\u064A \u0645\u062A\u062D\u0631\u0643 \u0641\u064A \u0632\u0627\u0648\u064A\u0629 \u0627\u0644\u0634\u0627\u0634\u0629) \u062A\u062A\u064A\u062D \u0644\u0643\u0644 \u0632\u0627\u0626\u0631 \u062A\u0643\u064A\u064A\u0641 \u0627\u0644\u0645\u0648\u0642\u0639 \u0645\u0639 \u0627\u062D\u062A\u064A\u0627\u062C\u0627\u062A\u0647.",
+  "a11y_statement.accommodation_2": "\u062A\u0643\u0628\u064A\u0631 \u0648\u062A\u0635\u063A\u064A\u0631 \u062D\u062C\u0645 \u0627\u0644\u0646\u0635.",
+  "a11y_statement.accommodation_3": "\u0636\u0628\u0637 \u0627\u0631\u062A\u0641\u0627\u0639 \u0627\u0644\u0633\u0637\u0631 \u0648\u0627\u0644\u0645\u0633\u0627\u0641\u0627\u062A \u0628\u064A\u0646 \u0627\u0644\u0623\u062D\u0631\u0641/\u0627\u0644\u0643\u0644\u0645\u0627\u062A \u0644\u0644\u0642\u0631\u0627\u0621 \u0627\u0644\u0630\u064A\u0646 \u064A\u0639\u0627\u0646\u0648\u0646 \u0645\u0646 \u0635\u0639\u0648\u0628\u0627\u062A \u0641\u064A \u0627\u0644\u0642\u0631\u0627\u0621\u0629.",
+  "a11y_statement.accommodation_4": "\u0648\u0636\u0639 \u0627\u0644\u062A\u0628\u0627\u064A\u0646 \u0627\u0644\u0639\u0627\u0644\u064A \u0648\u0648\u0636\u0639 \u062A\u062F\u0631\u062C \u0627\u0644\u0631\u0645\u0627\u062F\u064A.",
+  "a11y_statement.accommodation_5": "\u0625\u0628\u0631\u0627\u0632 \u0627\u0644\u0631\u0648\u0627\u0628\u0637.",
+  "a11y_statement.accommodation_6": "\u0627\u0644\u062A\u0628\u062F\u064A\u0644 \u0625\u0644\u0649 \u062E\u0637 \u0633\u0647\u0644 \u0627\u0644\u0642\u0631\u0627\u0621\u0629 \u0628\u0634\u0643\u0644 \u062E\u0627\u0635.",
+  "a11y_statement.accommodation_7": "\u0645\u0624\u0634\u0631 \u0641\u0623\u0631\u0629 \u0645\u0643\u0628\u0651\u0631.",
+  "a11y_statement.accommodation_8": "\u062F\u0644\u064A\u0644 \u0642\u0631\u0627\u0621\u0629 \u0645\u062A\u062D\u0631\u0643 \u064A\u062A\u0628\u0639 \u0645\u0624\u0634\u0631 \u0627\u0644\u0641\u0623\u0631\u0629.",
+  "a11y_statement.accommodation_9": "\u0625\u064A\u0642\u0627\u0641 \u0627\u0644\u062D\u0631\u0643\u0627\u062A \u0648\u0627\u0644\u0627\u0646\u062A\u0642\u0627\u0644\u0627\u062A \u0627\u0644\u0631\u0633\u0648\u0645\u064A\u0629.",
+  "a11y_statement.accommodation_10": "\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u062F\u0627\u0643\u0646 (Dark Mode).",
+  "a11y_statement.accommodation_11": "\u0646\u0635\u0648\u0635 \u0628\u062F\u064A\u0644\u0629 \u0648\u0635\u0641\u064A\u0629 (alt) \u0644\u0635\u0648\u0631 \u0627\u0644\u0645\u0648\u0642\u0639.",
+  "a11y_statement.accommodation_12": "\u0631\u0627\u0628\u0637 \u062A\u062E\u0637\u064D\u0651 \u0645\u0628\u0627\u0634\u0631 \u0625\u0644\u0649 \u0627\u0644\u0645\u062D\u062A\u0648\u0649 \u0627\u0644\u0631\u0626\u064A\u0633\u064A \u0644\u0645\u0633\u062A\u062E\u062F\u0645\u064A \u0644\u0648\u062D\u0629 \u0627\u0644\u0645\u0641\u0627\u062A\u064A\u062D \u0648\u0642\u0627\u0631\u0626\u0627\u062A \u0627\u0644\u0634\u0627\u0634\u0629.",
+  "a11y_statement.accommodation_13": "\u062F\u0639\u0645 \u0627\u0644\u062A\u0646\u0642\u0644 \u0639\u0628\u0631 \u0644\u0648\u062D\u0629 \u0627\u0644\u0645\u0641\u0627\u062A\u064A\u062D \u0648\u0627\u0644\u062A\u0648\u0627\u0641\u0642 \u0645\u0639 \u0642\u0627\u0631\u0626\u0627\u062A \u0627\u0644\u0634\u0627\u0634\u0629 \u0627\u0644\u0634\u0627\u0626\u0639\u0629.",
+  "a11y_statement.accommodation_14": "\u062A\u0635\u0645\u064A\u0645 \u0645\u062A\u062C\u0627\u0648\u0628 \u064A\u0646\u0627\u0633\u0628 \u0627\u0644\u0639\u0631\u0636 \u0639\u0644\u0649 \u0627\u0644\u0647\u0627\u062A\u0641 \u0648\u0627\u0644\u062C\u0647\u0627\u0632 \u0627\u0644\u0644\u0648\u062D\u064A \u0648\u0627\u0644\u062D\u0627\u0633\u0648\u0628.",
+  "a11y_statement.limitations_title": "\u0627\u0644\u0642\u064A\u0648\u062F \u0627\u0644\u0645\u0639\u0631\u0648\u0641\u0629",
+  "a11y_statement.limitations_body": "\u0646\u0639\u0645\u0644 \u0628\u0627\u0633\u062A\u0645\u0631\u0627\u0631 \u0639\u0644\u0649 \u062A\u062D\u0633\u064A\u0646 \u0625\u0645\u0643\u0627\u0646\u064A\u0629 \u0627\u0644\u0648\u0635\u0648\u0644 \u0644\u0644\u0645\u0648\u0642\u0639. \u0648\u0639\u0644\u0649 \u0627\u0644\u0631\u063A\u0645 \u0645\u0646 \u062C\u0647\u0648\u062F\u0646\u0627\u060C \u0642\u062F \u062A\u0648\u062C\u062F \u0623\u062C\u0632\u0627\u0621 \u0641\u064A \u0627\u0644\u0645\u0648\u0642\u0639 \u0644\u0645 \u062A\u064F\u062A\u064E\u062D \u0628\u0627\u0644\u0643\u0627\u0645\u0644 \u0628\u0639\u062F. \u0625\u0630\u0627 \u0648\u0627\u062C\u0647\u062A\u0645 \u0645\u062D\u062A\u0648\u0649 \u0623\u0648 \u0635\u0641\u062D\u0629 \u0623\u0648 \u0639\u0646\u0635\u0631\u064B\u0627 \u0644\u0627 \u064A\u0645\u0643\u0646 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u064A\u0647 \u0628\u0634\u0643\u0644 \u0635\u062D\u064A\u062D\u060C \u064A\u0633\u0639\u062F\u0646\u0627 \u0623\u0646 \u062A\u062E\u0628\u0631\u0648\u0646\u0627 \u062D\u062A\u0649 \u0646\u062A\u0645\u0643\u0646 \u0645\u0646 \u0645\u0639\u0627\u0644\u062C\u0629 \u0627\u0644\u0623\u0645\u0631 \u0641\u064A \u0623\u0642\u0631\u0628 \u0648\u0642\u062A \u0645\u0645\u0643\u0646.",
+  "a11y_statement.coordinator_title": "\u0645\u0646\u0633\u0642 \u0625\u0645\u0643\u0627\u0646\u064A\u0629 \u0627\u0644\u0648\u0635\u0648\u0644 \u0648\u0627\u0644\u062A\u0648\u0627\u0635\u0644",
+  "a11y_statement.coordinator_intro": "\u064A\u0645\u0643\u0646 \u062A\u0648\u062C\u064A\u0647 \u0627\u0644\u0623\u0633\u0626\u0644\u0629 \u0648\u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0648\u0627\u0644\u0627\u0642\u062A\u0631\u0627\u062D\u0627\u062A \u0628\u0634\u0623\u0646 \u0625\u0645\u0643\u0627\u0646\u064A\u0629 \u0627\u0644\u0648\u0635\u0648\u0644 \u0644\u0644\u0645\u0648\u0642\u0639 \u0625\u0644\u064A\u0646\u0627 \u0639\u0628\u0631 \u0627\u0644\u0637\u0631\u0642 \u0627\u0644\u062A\u0627\u0644\u064A\u0629:",
+  "a11y_statement.address": "\u0634\u0627\u0631\u0639 \u064A\u062C\u0622\u0644 \u0623\u0644\u0648\u0646 94\u060C \u062A\u0644 \u0623\u0628\u064A\u0628",
+  "a11y_statement.response_time": "\u0646\u0633\u0639\u0649 \u0644\u0644\u0631\u062F \u0639\u0644\u0649 \u0627\u0633\u062A\u0641\u0633\u0627\u0631\u0627\u062A \u0625\u0645\u0643\u0627\u0646\u064A\u0629 \u0627\u0644\u0648\u0635\u0648\u0644 \u0641\u064A \u063A\u0636\u0648\u0646 \u0648\u0642\u062A \u0645\u0639\u0642\u0648\u0644.",
+  "a11y_statement.further_recourse_title": "\u0627\u0644\u0644\u062C\u0648\u0621 \u0625\u0644\u0649 \u062C\u0647\u0627\u062A \u0623\u062E\u0631\u0649",
+  "a11y_statement.further_recourse_body": "\u0625\u0630\u0627 \u0644\u0645 \u062A\u062A\u0644\u0642\u0648\u0627 \u0631\u062F\u064B\u0627 \u0645\u064F\u0631\u0636\u064A\u064B\u0627 \u0645\u0646\u0627\u060C \u064A\u0645\u0643\u0646\u0643\u0645 \u0627\u0644\u062A\u0648\u0627\u0635\u0644 \u0645\u0639 \u0644\u062C\u0646\u0629 \u0627\u0644\u0645\u0633\u0627\u0648\u0627\u0629 \u0641\u064A \u0627\u0644\u062D\u0642\u0648\u0642 \u0644\u0644\u0623\u0634\u062E\u0627\u0635 \u0630\u0648\u064A \u0627\u0644\u0625\u0639\u0627\u0642\u0629 \u0641\u064A \u0648\u0632\u0627\u0631\u0629 \u0627\u0644\u0639\u062F\u0644\u060C \u0627\u0644\u0645\u0633\u0624\u0648\u0644\u0629 \u0639\u0646 \u0625\u0646\u0641\u0627\u0630 \u0642\u0627\u0646\u0648\u0646 \u0627\u0644\u0645\u0633\u0627\u0648\u0627\u0629 \u0641\u064A \u0627\u0644\u062D\u0642\u0648\u0642 \u0644\u0644\u0623\u0634\u062E\u0627\u0635 \u0630\u0648\u064A \u0627\u0644\u0625\u0639\u0627\u0642\u0629.",
+  "a11y_statement.updated_date": "\u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u0628\u064A\u0627\u0646 \u0625\u0645\u0643\u0627\u0646\u064A\u0629 \u0627\u0644\u0648\u0635\u0648\u0644 \u0647\u0630\u0627 \u0622\u062E\u0631 \u0645\u0631\u0629 \u0628\u062A\u0627\u0631\u064A\u062E: 15 \u064A\u0648\u0644\u064A\u0648 2026.",
+  "booking.title": "\u062D\u062C\u0632 \u0645\u0648\u0639\u062F",
+  "booking.modal_intro": "\u0627\u0645\u0644\u0623\u0648\u0627 \u0628\u064A\u0627\u0646\u0627\u062A\u0643\u0645 \u0648\u0633\u0646\u0624\u0643\u062F \u0645\u0648\u0639\u062F\u0643\u0645. \u0627\u0644\u062D\u0642\u0648\u0644 \u0627\u0644\u0645\u0645\u064A\u0632\u0629 \u0628\u0639\u0644\u0627\u0645\u0629 * \u0625\u0644\u0632\u0627\u0645\u064A\u0629.",
+  "booking.page_subtitle": "\u0627\u0645\u0644\u0623\u0648\u0627 \u0628\u064A\u0627\u0646\u0627\u062A\u0643\u0645 \u0648\u0633\u0646\u0624\u0643\u062F \u0645\u0648\u0639\u062F\u0643\u0645",
+  "booking.details_title": "\u062A\u0641\u0627\u0635\u064A\u0644 \u0627\u0644\u0645\u0648\u0639\u062F",
+  "booking.fields_required_note": "\u0627\u0644\u062D\u0642\u0648\u0644 \u0627\u0644\u0645\u0645\u064A\u0632\u0629 \u0628\u0639\u0644\u0627\u0645\u0629 * \u0625\u0644\u0632\u0627\u0645\u064A\u0629",
+  "booking.full_name": "\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0643\u0627\u0645\u0644",
+  "booking.full_name_placeholder": "\u0623\u062F\u062E\u0644\u0648\u0627 \u0627\u0633\u0645\u0643\u0645",
+  "booking.phone": "\u0627\u0644\u0647\u0627\u062A\u0641",
+  "booking.phone_placeholder": "\u0631\u0642\u0645 \u0647\u0627\u062A\u0641\u0643\u0645",
+  "booking.email": "\u0627\u0644\u0628\u0631\u064A\u062F \u0627\u0644\u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A",
+  "booking.email_placeholder": "\u0639\u0646\u0648\u0627\u0646 \u0628\u0631\u064A\u062F\u0643\u0645 \u0627\u0644\u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A",
+  "booking.appointment_type": "\u0646\u0648\u0639 \u0627\u0644\u0645\u0648\u0639\u062F",
+  "booking.date": "\u0627\u0644\u062A\u0627\u0631\u064A\u062E",
+  "booking.time": "\u0627\u0644\u0648\u0642\u062A",
+  "booking.checking_availability": "\u062C\u0627\u0631\u064D \u0627\u0644\u062A\u062D\u0642\u0642 \u0645\u0646 \u0627\u0644\u062A\u0648\u0641\u0631...",
+  "booking.select_time": "\u0627\u062E\u062A\u0631 \u0627\u0644\u0648\u0642\u062A",
+  "booking.no_times_available": "\u0644\u0627 \u062A\u0648\u062C\u062F \u0623\u0648\u0642\u0627\u062A \u0645\u062A\u0627\u062D\u0629 \u0641\u064A \u0647\u0630\u0627 \u0627\u0644\u062A\u0627\u0631\u064A\u062E.",
+  "booking.notes": "\u0645\u0644\u0627\u062D\u0638\u0627\u062A (\u0627\u062E\u062A\u064A\u0627\u0631\u064A)",
+  "booking.notes_placeholder": "\u0623\u064A \u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0625\u0636\u0627\u0641\u064A\u0629...",
+  "booking.submitting": "\u062C\u0627\u0631\u064D \u0627\u0644\u0625\u0631\u0633\u0627\u0644...",
+  "booking.submit": "\u062D\u062C\u0632 \u0645\u0648\u0639\u062F",
+  "booking.close": "\u0625\u063A\u0644\u0627\u0642",
+  "booking.success_title": "\u062A\u0645 \u062D\u062C\u0632 \u0627\u0644\u0645\u0648\u0639\u062F \u0628\u0646\u062C\u0627\u062D!",
+  "booking.success_description": "\u0633\u0646\u0639\u0627\u0648\u062F \u0627\u0644\u062A\u0648\u0627\u0635\u0644 \u0645\u0639\u0643\u0645 \u0642\u0631\u064A\u0628\u064B\u0627 \u0644\u062A\u0623\u0643\u064A\u062F \u0645\u0648\u0639\u062F\u0643\u0645. \u0634\u0643\u0631\u064B\u0627 \u0644\u0643\u0645!",
+  "booking.back_to_home": "\u0627\u0644\u0639\u0648\u062F\u0629 \u0625\u0644\u0649 \u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629",
+  "booking.date_unavailable_title": "\u0627\u0644\u062A\u0627\u0631\u064A\u062E \u063A\u064A\u0631 \u0645\u062A\u0627\u062D",
+  "booking.date_unavailable_description": "\u0627\u062E\u062A\u0631\u0646\u0627 \u0644\u0643\u0645 \u0623\u0642\u0631\u0628 \u062A\u0627\u0631\u064A\u062E \u0645\u062A\u0627\u062D.",
+  "booking.time_unavailable_title": "\u0627\u0644\u0648\u0642\u062A \u063A\u064A\u0631 \u0645\u062A\u0627\u062D \u0644\u0647\u0630\u0627 \u0627\u0644\u0646\u0648\u0639",
+  "booking.time_unavailable_description": "\u064A\u0631\u062C\u0649 \u0627\u062E\u062A\u064A\u0627\u0631 \u0648\u0642\u062A \u0622\u062E\u0631 \u0645\u0646 \u0627\u0644\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u062D\u062F\u0651\u062B\u0629.",
+  "booking.error_title": "\u062E\u0637\u0623",
+  "booking.availability_check_failed": "\u062A\u0639\u0630\u0651\u0631 \u0627\u0644\u062A\u062D\u0642\u0642 \u0645\u0646 \u0627\u0644\u062A\u0648\u0641\u0631. \u064A\u0631\u062C\u0649 \u0627\u0644\u0645\u062D\u0627\u0648\u0644\u0629 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649.",
+  "booking.fill_required_fields": "\u064A\u0631\u062C\u0649 \u0645\u0644\u0621 \u062C\u0645\u064A\u0639 \u0627\u0644\u062D\u0642\u0648\u0644 \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629",
+  "booking.booked_toast_title": "\u062A\u0645 \u062D\u062C\u0632 \u0627\u0644\u0645\u0648\u0639\u062F!",
+  "booking.booked_toast_description": "\u0633\u0646\u0624\u0643\u062F \u0645\u0648\u0639\u062F\u0643\u0645 \u0642\u0631\u064A\u0628\u064B\u0627",
+  "booking.submit_failed": "\u062A\u0639\u0630\u0651\u0631 \u062D\u062C\u0632 \u0627\u0644\u0645\u0648\u0639\u062F. \u064A\u0631\u062C\u0649 \u0627\u0644\u0645\u062D\u0627\u0648\u0644\u0629 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649.",
+  "questionnaire_modal.invalid_type": "\u0646\u0648\u0639 \u0627\u0633\u062A\u0628\u064A\u0627\u0646 \u063A\u064A\u0631 \u0635\u0627\u0644\u062D",
+  "questionnaire_modal.close": "\u0625\u063A\u0644\u0627\u0642"
 };
 var ar_default = ar;
 
@@ -1933,6 +4129,8 @@ var yi = {
   "nav.faq": "\u05D0\u05E4\u05D8 \u05D2\u05E2\u05E4\u05E8\u05E2\u05D2\u05D8\u05E2 \u05E4\u05E8\u05D0\u05B7\u05D2\u05DF",
   "nav.questionnaires": "\u05E4\u05E8\u05D0\u05B7\u05D2\u05E2\u05D1\u05D5\u05D9\u05D2\u05E0\u05E1",
   "nav.contact": "\u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8",
+  "nav.book": "\u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05DC\u05DF",
+  "nav.book_now": "\u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05DC\u05DF \u05D0\u05D9\u05E6\u05D8",
   "nav.skip_to_content": "\u05E9\u05E4\u05BC\u05E8\u05D9\u05E0\u05D2 \u05E6\u05D5\u05DD \u05D4\u05D5\u05D9\u05E4\u05BC\u05D8 \u05D0\u05D9\u05E0\u05D4\u05D0\u05B7\u05DC\u05D8",
   "nav.main_navigation": "\u05D4\u05D5\u05D9\u05E4\u05BC\u05D8 \u05E0\u05D0\u05B7\u05D5\u05D5\u05D9\u05D2\u05D0\u05B7\u05E6\u05D9\u05E2",
   "nav.go_home": "\u05D2\u05D9\u05D9 \u05E6\u05D5\u05DD \u05D4\u05D9\u05D9\u05DD \u05D1\u05DC\u05D0\u05B7\u05D8",
@@ -1982,6 +4180,61 @@ var yi = {
   "contact.address": "\u05EA\u05DC \u05D0\u05D1\u05D9\u05D1, \u05D9\u05E9\u05E8\u05D0\u05DC",
   "contact.subtitle": "\u05DC\u05D0\u05B8\u05D6\u05D8 \u05D0\u05F2\u05B7\u05E2\u05E8\u05E2 \u05E4\u05BC\u05E8\u05D8\u05D9\u05DD \u05D0\u05D5\u05DF \u05DE\u05D9\u05E8 \u05D5\u05D5\u05E2\u05DC\u05DF \u05D6\u05D9\u05DA \u05E6\u05D5\u05E8\u05D9\u05E7 \u05DE\u05E2\u05DC\u05D3\u05DF \u05D5\u05D5\u05D9 \u05E9\u05E0\u05E2\u05DC \u05D5\u05D5\u05D9 \u05DE\u05E2\u05D2\u05DC\u05E2\u05DA",
   "contact.leave_details": "\u05DC\u05D0\u05B8\u05D6\u05D8 \u05D0\u05F2\u05B7\u05E2\u05E8\u05E2 \u05E4\u05BC\u05E8\u05D8\u05D9\u05DD",
+  "contact.email_placeholder": "E-\u05DE\u05D9\u05D9\u05DC",
+  "contact.phone_placeholder": "\u05D8\u05E2\u05DC\u05E2\u05E4\u05BF\u05D0\u05B8\u05DF \u05E0\u05D5\u05DE\u05E2\u05E8",
+  "contact.topic_label": "\u05D8\u05E2\u05DE\u05E2",
+  "contact.topic_option1": "ADHD \u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6",
+  "contact.topic_option2": "MOXO \u05D8\u05E2\u05E1\u05D8",
+  "contact.topic_option3": "\u05D0\u05B7\u05E0\u05D3\u05E2\u05E8",
+  "contact.address_label": "\u05D0\u05B7\u05D3\u05E8\u05E2\u05E1:",
+  "contact.email_label": "E-\u05DE\u05D9\u05D9\u05DC:",
+  "contact.details_title": "\u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8 \u05E4\u05BC\u05E8\u05D8\u05D9\u05DD",
+  "contact.directions_title": "\u05D5\u05D5\u05E2\u05D2\u05DF \u05D0\u05D5\u05DF \u05E4\u05BC\u05D0\u05B7\u05E8\u05E7\u05D9\u05E0\u05D2",
+  "contact.clear_form": "\u05D0\u05D5\u05D9\u05E1\u05DC\u05D9\u05D9\u05D6\u05DF \u05E4\u05BF\u05D0\u05B8\u05E8\u05E2\u05DD",
+  "services.subtitle": "\u05DE\u05D9\u05E8 \u05D0\u05B8\u05E4\u05BF\u05E2\u05E8\u05D9\u05E8\u05DF \u05D0\u05B7 \u05D1\u05E8\u05D9\u05D9\u05D8\u05E2 \u05E7\u05D9\u05D9\u05D8 \u05E4\u05BF\u05D5\u05DF \u05E4\u05BC\u05E8\u05D0\u05B8\u05E4\u05BF\u05E2\u05E1\u05D9\u05D0\u05B8\u05E0\u05E2\u05DC\u05E2 \u05D1\u05D0\u05B7\u05D3\u05D9\u05E0\u05D5\u05E0\u05D2\u05E2\u05DF \u05D0\u05D9\u05DF ADHD \u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6 \u05D0\u05D5\u05DF \u05D1\u05D0\u05B7\u05D4\u05D0\u05B7\u05E0\u05D3\u05DC\u05D5\u05E0\u05D2",
+  "contact.aria_open_form": "\u05E7\u05DC\u05D9\u05E7\u05D8 \u05E6\u05D5 \u05E2\u05E4\u05BF\u05E2\u05E0\u05E2\u05DF \u05D3\u05E2\u05DD \u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8 \u05E4\u05BF\u05D0\u05B8\u05E8\u05E2\u05DD",
+  "contact.click_to_open_form": "\u05E7\u05DC\u05D9\u05E7\u05D8 \u05E6\u05D5 \u05E2\u05E4\u05BF\u05E2\u05E0\u05E2\u05DF \u05D3\u05E2\u05DD \u05E4\u05BF\u05D0\u05B8\u05E8\u05E2\u05DD",
+  "contact.navigate_waze": "\u05E0\u05D0\u05B7\u05D5\u05D5\u05D9\u05D2\u05D9\u05E8\u05DF \u05DE\u05D9\u05D8 Waze",
+  "contact.navigate_google_maps": "\u05E0\u05D0\u05B7\u05D5\u05D5\u05D9\u05D2\u05D9\u05E8\u05DF \u05DE\u05D9\u05D8 Google Maps",
+  "chat.open": "\u05E2\u05E4\u05BF\u05E2\u05E0\u05E2\u05DF \u05D8\u05E9\u05D0\u05B7\u05D8",
+  "chat.how_can_help": "\u05D5\u05D5\u05D9 \u05E7\u05E2\u05DF \u05D0\u05D9\u05DA \u05D4\u05E2\u05DC\u05E4\u05BF\u05DF?",
+  "chat.close": "\u05E4\u05BF\u05D0\u05B7\u05E8\u05DE\u05D0\u05B7\u05DB\u05DF",
+  "chat.assistant_name": "KeshevPlus \u05D0\u05B7\u05E1\u05D9\u05E1\u05D8\u05E2\u05E0\u05D8",
+  "chat.not_you": "\u05E0\u05D9\u05E9\u05D8 {name}?",
+  "chat.before_start": "\u05D0\u05D9\u05D9\u05D3\u05E2\u05E8 \u05DE\u05D9\u05E8 \u05D4\u05D9\u05D9\u05D1\u05DF \u05D0\u05B8\u05DF, \u05D1\u05D9\u05D8\u05E2 \u05E4\u05BF\u05D9\u05DC\u05D8 \u05D0\u05D5\u05D9\u05E1 \u05D0\u05F2\u05B7\u05E2\u05E8\u05E2 \u05E4\u05BC\u05E8\u05D8\u05D9\u05DD:",
+  "chat.full_name_placeholder": "\u05E4\u05BF\u05D5\u05DC\u05E2\u05E8 \u05E0\u05D0\u05B8\u05DE\u05E2\u05DF *",
+  "chat.email_placeholder": "E-\u05DE\u05D9\u05D9\u05DC *",
+  "chat.phone_placeholder": "\u05D8\u05E2\u05DC\u05E2\u05E4\u05BF\u05D0\u05B8\u05DF (\u05E8\u05E9\u05D5\u05EA)",
+  "chat.starting": "\u05D4\u05D9\u05D9\u05D1\u05D8 \u05D0\u05B8\u05DF...",
+  "chat.start_chat": "\u05D4\u05D9\u05D9\u05D1\u05DF \u05D0\u05B8\u05DF \u05D8\u05E9\u05D0\u05B7\u05D8",
+  "chat.welcome_message": "\u05E9\u05DC\u05D5\u05DD {name}! \u05D0\u05D9\u05DA \u05D1\u05D9\u05DF \u05D3\u05E2\u05E8 \u05D5\u05D5\u05D9\u05E8\u05D8\u05D5\u05E2\u05DC\u05E2\u05E8 \u05D0\u05B7\u05E1\u05D9\u05E1\u05D8\u05E2\u05E0\u05D8 \u05E4\u05BF\u05D5\u05DF KeshevPlus. \u05D5\u05D5\u05D9 \u05E7\u05E2\u05DF \u05D0\u05D9\u05DA \u05D0\u05F2\u05B7\u05DA \u05D4\u05E2\u05DC\u05E4\u05BF\u05DF?",
+  "chat.type_message": "\u05D8\u05D9\u05E4\u05BC\u05D8 \u05D0\u05B7 \u05DE\u05E2\u05E1\u05E2\u05D3\u05D6\u05E9...",
+  "chat.assistant_typing": "\u05D3\u05E2\u05E8 \u05D0\u05B7\u05E1\u05D9\u05E1\u05D8\u05E2\u05E0\u05D8 \u05D8\u05D9\u05E4\u05BC\u05D8",
+  "footer.accessibility_statement": "\u05E6\u05D5\u05D8\u05E8\u05D9\u05D8\u05DC\u05E2\u05DB\u05E7\u05D9\u05D9\u05D8 \u05D3\u05E2\u05E8\u05E7\u05DC\u05E2\u05E8\u05D5\u05E0\u05D2",
+  "questionnaires.fill_online": "\u05D0\u05D5\u05D9\u05E1\u05E4\u05BF\u05D9\u05DC\u05DF \u05D0\u05B8\u05E0\u05DC\u05D9\u05D9\u05DF",
+  "about.doctor_name": "\u05D3\u05F4\u05E8 Irine Kochav-Raifman",
+  "about.doctor_title": "\u05E1\u05E4\u05BC\u05E2\u05E6\u05D9\u05D0\u05B7\u05DC\u05D9\u05E1\u05D8 \u05D3\u05D0\u05B8\u05E7\u05D8\u05E2\u05E8",
+  "about.doctor_desc": "\u05D1\u05E8\u05D9\u05D9\u05D8\u05E2 \u05D3\u05E2\u05E8\u05E4\u05BF\u05D0\u05B7\u05E8\u05D5\u05E0\u05D2 \u05D0\u05D9\u05DF \u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6\u05D9\u05E8\u05DF \u05E7\u05D9\u05E0\u05D3\u05E2\u05E8, \u05D8\u05D9\u05E0\u05D0\u05D9\u05D9\u05D2\u05E2\u05E8\u05E1, \u05D0\u05D5\u05DF \u05D3\u05E2\u05E8\u05D5\u05D5\u05D0\u05B7\u05E7\u05E1\u05E2\u05E0\u05E2. \u05D4\u05D0\u05B8\u05D8 \u05D1\u05D0\u05B7\u05D2\u05DC\u05D9\u05D9\u05D8 \u05E4\u05D9\u05DC\u05E2 \u05E4\u05BC\u05D0\u05B7\u05E6\u05D9\u05E2\u05E0\u05D8\u05DF \u05D0\u05D5\u05D9\u05E3 \u05D6\u05D9\u05D9\u05E2\u05E8 \u05D5\u05D5\u05E2\u05D2 \u05E6\u05D5 \u05E4\u05BC\u05E2\u05E8\u05D6\u05E2\u05E0\u05DC\u05E2\u05DB\u05E2\u05E8 \u05D3\u05E2\u05E8\u05E4\u05BF\u05D9\u05DC\u05D5\u05E0\u05D2 \u05D0\u05D5\u05DF \u05D0\u05B8\u05E4\u05BC\u05D8\u05D9\u05DE\u05D0\u05B7\u05DC\u05E2\u05E8 \u05E4\u05BF\u05D5\u05E0\u05E7\u05E6\u05D9\u05D0\u05B8\u05E0\u05D9\u05E8\u05DF.",
+  "about.doctor_alt": "\u05D3\u05F4\u05E8 Irine Kochav-Raifman",
+  "about.credential1": "ADHD \u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6 \u05D0\u05D5\u05DF \u05D1\u05D0\u05B7\u05D4\u05D0\u05B7\u05E0\u05D3\u05DC\u05D5\u05E0\u05D2 \u05E1\u05E4\u05BC\u05E2\u05E6\u05D9\u05D0\u05B7\u05DC\u05D9\u05E1\u05D8",
+  "about.credential2": "\u05D0\u05D9\u05D1\u05E2\u05E8 15 \u05D9\u05D0\u05B8\u05E8 \u05D3\u05E2\u05E8\u05E4\u05BF\u05D0\u05B7\u05E8\u05D5\u05E0\u05D2",
+  "about.credential3": "\u05E1\u05E4\u05BC\u05E2\u05E6\u05D9\u05D0\u05B7\u05DC\u05D9\u05D6\u05D0\u05B7\u05E6\u05D9\u05E2 \u05D0\u05D9\u05DF \u05E7\u05D9\u05E0\u05D3\u05E2\u05E8, \u05D8\u05D9\u05E0\u05D0\u05D9\u05D9\u05D2\u05E2\u05E8\u05E1, \u05D0\u05D5\u05DF \u05D3\u05E2\u05E8\u05D5\u05D5\u05D0\u05B7\u05E7\u05E1\u05E2\u05E0\u05E2",
+  "about.mission": "\u05D0\u05D5\u05E0\u05D3\u05D6\u05E2\u05E8 \u05DE\u05D9\u05E1\u05D9\u05E2 \u05D0\u05D9\u05D6 \u05E6\u05D5 \u05D2\u05E2\u05D1\u05DF \u05E4\u05BC\u05D9\u05E0\u05D8\u05DC\u05E2\u05DB\u05E2 \u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6 \u05D0\u05D5\u05DF \u05E4\u05BC\u05E2\u05E8\u05D6\u05E2\u05E0\u05DC\u05E2\u05DB\u05E2 \u05D1\u05D0\u05B7\u05D4\u05D0\u05B7\u05E0\u05D3\u05DC\u05D5\u05E0\u05D2 \u05E4\u05BC\u05DC\u05E2\u05E0\u05E2\u05E8, \u05D5\u05D5\u05D0\u05B8\u05E1 \u05DC\u05D0\u05B8\u05D6\u05DF \u05D0\u05D5\u05E0\u05D3\u05D6\u05E2\u05E8\u05E2 \u05E4\u05BC\u05D0\u05B7\u05E6\u05D9\u05E2\u05E0\u05D8\u05DF \u05D3\u05E2\u05E8\u05D2\u05E8\u05D9\u05D9\u05DB\u05DF \u05D6\u05D9\u05D9\u05E2\u05E8 \u05E4\u05BF\u05D5\u05DC\u05DF \u05E4\u05BC\u05E2\u05E8\u05D6\u05E2\u05E0\u05DC\u05E2\u05DB\u05DF \u05E4\u05BC\u05D0\u05B8\u05D8\u05E2\u05E0\u05E6\u05D9\u05D0\u05B7\u05DC.",
+  "about.value1_title": "\u05E4\u05BC\u05E2\u05E8\u05D6\u05E2\u05E0\u05DC\u05E2\u05DB\u05E2 \u05E6\u05D5\u05D2\u05D0\u05B7\u05E0\u05D2",
+  "about.value1_desc": "\u05D9\u05E2\u05D3\u05E2\u05E8 \u05E4\u05BC\u05D0\u05B7\u05E6\u05D9\u05E2\u05E0\u05D8 \u05D1\u05D0\u05B7\u05E7\u05D5\u05DE\u05D8 \u05E4\u05BC\u05E2\u05E8\u05D6\u05E2\u05E0\u05DC\u05E2\u05DB\u05E2 \u05D0\u05D5\u05D9\u05E4\u05BF\u05DE\u05E2\u05E8\u05E7\u05D6\u05D0\u05B7\u05DE\u05E7\u05D9\u05D9\u05D8 \u05D0\u05B8\u05E0\u05D2\u05E2\u05E4\u05BC\u05D0\u05B7\u05E1\u05D8 \u05E6\u05D5 \u05D6\u05D9\u05D9\u05E2\u05E8\u05E2 \u05D1\u05D0\u05B7\u05D6\u05D5\u05E0\u05D3\u05E2\u05E8\u05E2 \u05D1\u05D0\u05B7\u05D3\u05E2\u05E8\u05E4\u05BF\u05E2\u05E0\u05D9\u05E9\u05DF",
+  "about.value2_title": "\u05E4\u05BC\u05E8\u05D0\u05B8\u05E4\u05BF\u05E2\u05E1\u05D9\u05D0\u05B8\u05E0\u05D0\u05B7\u05DC\u05D9\u05D6\u05DD",
+  "about.value2_desc": "\u05E2\u05E7\u05E1\u05E4\u05BC\u05E2\u05E8\u05D8 \u05D8\u05D9\u05DD \u05DE\u05D9\u05D8 \u05D1\u05E8\u05D9\u05D9\u05D8\u05E2 \u05D3\u05E2\u05E8\u05E4\u05BF\u05D0\u05B7\u05E8\u05D5\u05E0\u05D2 \u05D0\u05D5\u05DF \u05E7\u05E2\u05E1\u05D9\u05D9\u05D3\u05E2\u05E8\u05D3\u05D9\u05E7\u05E2 \u05E4\u05BF\u05D0\u05B8\u05E8\u05D8\u05D1\u05D9\u05DC\u05D3\u05D5\u05E0\u05D2",
+  "about.value3_title": "\u05D3\u05D9\u05E1\u05E7\u05E8\u05E2\u05D8\u05E7\u05D9\u05D9\u05D8",
+  "about.value3_desc": "\u05E4\u05BF\u05D5\u05DC\u05E2 \u05E4\u05BC\u05E8\u05D9\u05D5\u05D5\u05D0\u05B7\u05D8\u05E7\u05D9\u05D9\u05D8 \u05E9\u05D5\u05E5 \u05D0\u05D5\u05DF \u05D0\u05B7 \u05D6\u05D9\u05DB\u05E2\u05E8\u05E2 \u05E1\u05D1\u05BF\u05D9\u05D1\u05D4",
+  "services.step1_title": "\u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8",
+  "services.step1_desc": "\u05E2\u05E8\u05E9\u05D8\u05E2\u05E8 \u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8 \u05D3\u05D5\u05E8\u05DA \u05D8\u05E2\u05DC\u05E2\u05E4\u05BF\u05D0\u05B8\u05DF \u05D0\u05B8\u05D3\u05E2\u05E8 \u05D3\u05D5\u05E8\u05DA \u05D3\u05E2\u05DD \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC \u05E4\u05BF\u05D0\u05B8\u05E8\u05E2\u05DD",
+  "services.step2_title": "\u05E2\u05E8\u05E9\u05D8\u05E2 \u05E7\u05D0\u05B8\u05E0\u05E1\u05D5\u05DC\u05D8\u05D0\u05B7\u05E6\u05D9\u05E2",
+  "services.step2_desc": "\u05E2\u05E8\u05E9\u05D8\u05E2\u05E8 \u05D0\u05D9\u05E0\u05D8\u05E2\u05E8\u05D5\u05D5\u05D9\u05D5, \u05DE\u05E2\u05D3\u05D9\u05E6\u05D9\u05E0\u05D9\u05E9\u05E2 \u05D2\u05E2\u05E9\u05D9\u05DB\u05D8\u05E2 \u05D6\u05D0\u05B7\u05DE\u05DC\u05D5\u05E0\u05D2, \u05D0\u05D5\u05DF \u05E4\u05BF\u05E8\u05D0\u05B7\u05D2\u05E2\u05D1\u05D5\u05D9\u05D2\u05DF \u05D0\u05D5\u05D9\u05E1\u05E4\u05BF\u05D9\u05DC\u05DF",
+  "services.step3_title": "\u05D0\u05B7\u05E8\u05D5\u05DE\u05E0\u05E2\u05DE\u05D9\u05E7\u05E2 \u05D0\u05B8\u05E4\u05BC\u05E9\u05D0\u05B7\u05E6\u05D5\u05E0\u05D2",
+  "services.step3_desc": "\u05E7\u05D0\u05B8\u05DE\u05E4\u05BC\u05D9\u05D5\u05D8\u05E2\u05E8 \u05D8\u05E2\u05E1\u05D8\u05D9\u05E0\u05D2 \u05D0\u05D5\u05DF \u05D8\u05D9\u05E4\u05BF\u05E2 \u05E7\u05DC\u05D9\u05E0\u05D9\u05E9 \u05D0\u05B8\u05E4\u05BC\u05E9\u05D0\u05B7\u05E6\u05D5\u05E0\u05D2",
+  "services.step4_title": "\u05E8\u05E2\u05E4\u05BC\u05D0\u05B8\u05E8\u05D8 \u05D0\u05D5\u05DF \u05D1\u05D0\u05B7\u05D4\u05D0\u05B7\u05E0\u05D3\u05DC\u05D5\u05E0\u05D2 \u05E4\u05BC\u05DC\u05D0\u05B7\u05DF",
+  "services.step4_desc": "\u05D1\u05D0\u05B7\u05E7\u05D5\u05DE\u05E2\u05DF \u05D0\u05B7 \u05E4\u05BF\u05D5\u05DC\u05DF \u05E8\u05E2\u05E4\u05BC\u05D0\u05B8\u05E8\u05D8 \u05D0\u05D5\u05DF \u05E4\u05BC\u05E2\u05E8\u05D6\u05E2\u05E0\u05DC\u05E2\u05DB\u05E2 \u05D1\u05D0\u05B7\u05D4\u05D0\u05B7\u05E0\u05D3\u05DC\u05D5\u05E0\u05D2 \u05E8\u05E2\u05E7\u05D0\u05B8\u05DE\u05E2\u05E0\u05D3\u05D0\u05B7\u05E6\u05D9\u05E2\u05E1",
+  "services.list_label": "\u05D0\u05D5\u05E0\u05D3\u05D6\u05E2\u05E8\u05E2 \u05E1\u05E2\u05E8\u05D5\u05D5\u05D9\u05E1\u05E2\u05E1",
   "contact.full_name": "\u05E4\u05BF\u05D5\u05DC\u05E2\u05E8 \u05E0\u05D0\u05B8\u05DE\u05E2\u05DF",
   "contact.phone_label": "\u05D8\u05E2\u05DC\u05E2\u05E4\u05BF\u05D0\u05B8\u05DF",
   "contact.email_optional": "\u05D0\u05D9\u05DE\u05E2\u05D9\u05DC (\u05D0\u05B8\u05E4\u05BC\u05E6\u05D9\u05D0\u05B8\u05E0\u05D0\u05B7\u05DC)",
@@ -2042,8 +4295,51 @@ var yi = {
   "faq.title": "\u05D0\u05B8\u05E4\u05D8 \u05D2\u05E2\u05E4\u05E8\u05E2\u05D2\u05D8\u05E2 \u05E4\u05BF\u05E8\u05D0\u05B7\u05D2\u05DF",
   "faq.subtitle": "\u05E2\u05E0\u05D8\u05E4\u05BF\u05E2\u05E8\u05E1 \u05D0\u05D5\u05D9\u05E3 \u05D3\u05D9 \u05DE\u05E2\u05E8\u05E1\u05D8 \u05E4\u05BF\u05D0\u05B7\u05E8\u05E9\u05E4\u05BC\u05E8\u05D9\u05D9\u05D8\u05E2 \u05E4\u05BF\u05E8\u05D0\u05B7\u05D2\u05DF",
   "faq.no_answer": "\u05E0\u05D9\u05E9\u05D8 \u05D2\u05E2\u05E4\u05BF\u05D5\u05E0\u05E2\u05DF \u05D0\u05B7\u05DF \u05E2\u05E0\u05D8\u05E4\u05BF\u05E2\u05E8? \u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8 \u05D0\u05D5\u05E0\u05D3\u05D6",
+  "services.service1_title": "\u05D0\u05B7\u05E8\u05D5\u05DE\u05E0\u05E2\u05DE\u05D9\u05E7\u05E2 \u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6",
+  "services.service1_desc": "\u05E4\u05BC\u05E2\u05E8\u05D6\u05E2\u05E0\u05DC\u05E2\u05DB\u05E2 \u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6 \u05DE\u05D9\u05D8 \u05DE\u05D0\u05B8\u05D3\u05E2\u05E8\u05E0\u05E2 \u05D2\u05E2\u05E6\u05D9\u05D9\u05D2, \u05E7\u05DC\u05D9\u05E0\u05D9\u05E9 \u05D0\u05D9\u05E0\u05D8\u05E2\u05E8\u05D5\u05D5\u05D9\u05D5\u05E2\u05DF \u05D0\u05D5\u05DF \u05E7\u05D0\u05B8\u05DE\u05E4\u05BC\u05D9\u05D5\u05D8\u05E2\u05E8 \u05D8\u05E2\u05E1\u05D8\u05DF",
+  "services.service2_title": "\u05DE\u05E2\u05D3\u05D9\u05E6\u05D9\u05DF \u05D1\u05D0\u05B7\u05E8\u05D9\u05DB\u05D8\u05D9\u05E7\u05D5\u05E0\u05D2",
+  "services.service2_desc": "\u05E4\u05BC\u05E2\u05E8\u05D6\u05E2\u05E0\u05DC\u05E2\u05DB\u05E2 \u05E4\u05BF\u05D0\u05B7\u05E8\u05DE\u05D0\u05B7\u05E7\u05D0\u05B8\u05DC\u05D0\u05B8\u05D2\u05D9\u05E9\u05E2 \u05D1\u05D0\u05B7\u05D4\u05D0\u05B7\u05E0\u05D3\u05DC\u05D5\u05E0\u05D2 \u05DE\u05D9\u05D8 \u05E7\u05E2\u05E1\u05D9\u05D9\u05D3\u05E2\u05E8\u05D3\u05D9\u05E7\u05E2 \u05D6\u05D9\u05DB\u05E2\u05E8\u05D4\u05D9\u05D9\u05D8 \u05E7\u05D0\u05B8\u05E0\u05D8\u05E8\u05D0\u05B8\u05DC",
+  "services.service3_title": "MOXO \u05E7\u05D0\u05B8\u05DE\u05E4\u05BC\u05D9\u05D5\u05D8\u05E2\u05E8\u05D9\u05D9\u05D6\u05D9\u05E8\u05D8\u05E2 \u05D8\u05E2\u05E1\u05D8",
+  "services.service3_desc": "\u05D0\u05B8\u05D1\u05D9\u05E2\u05E7\u05D8\u05D9\u05D5\u05D5\u05E2 \u05D0\u05B8\u05E4\u05BC\u05E9\u05D0\u05B7\u05E6\u05D5\u05E0\u05D2 \u05E4\u05BF\u05D5\u05DF \u05D0\u05D5\u05D9\u05E4\u05BF\u05DE\u05E2\u05E8\u05E7\u05D6\u05D0\u05B7\u05DE\u05E7\u05D9\u05D9\u05D8 \u05D0\u05D5\u05DF \u05E7\u05D0\u05B8\u05E0\u05E6\u05E2\u05E0\u05D8\u05E8\u05D0\u05B7\u05E6\u05D9\u05E2 \u05E4\u05BF\u05D5\u05E0\u05E7\u05E6\u05D9\u05E2\u05E1",
+  "services.service4_title": "\u05E7\u05D0\u05B8\u05E0\u05E1\u05D5\u05DC\u05D8\u05D0\u05B7\u05E6\u05D9\u05E2 \u05D0\u05D5\u05DF \u05E0\u05D0\u05B8\u05DB\u05E4\u05BF\u05D0\u05B8\u05DC\u05D2",
+  "services.service4_desc": "\u05E7\u05E2\u05E1\u05D9\u05D9\u05D3\u05E2\u05E8\u05D3\u05D9\u05E7\u05E2 \u05E4\u05BC\u05E8\u05D0\u05B8\u05E4\u05BF\u05E2\u05E1\u05D9\u05D0\u05B8\u05E0\u05E2\u05DC\u05E2 \u05E9\u05D8\u05D9\u05E6\u05E2 \u05D0\u05D5\u05DF \u05D1\u05D0\u05B7\u05D4\u05D0\u05B7\u05E0\u05D3\u05DC\u05D5\u05E0\u05D2 \u05E7\u05D0\u05B8\u05E0\u05D8\u05E8\u05D0\u05B8\u05DC",
+  "services.service5_title": "\u05D0\u05D9\u05D1\u05E2\u05E8\u05E4\u05BF\u05D9\u05E8\u05D5\u05E0\u05D2\u05E2\u05DF \u05E6\u05D5 \u05E7\u05D0\u05B8\u05DE\u05E4\u05BC\u05DC\u05E2\u05DE\u05E2\u05E0\u05D8\u05D0\u05B7\u05E8\u05E2 \u05D1\u05D0\u05B7\u05D4\u05D0\u05B7\u05E0\u05D3\u05DC\u05D5\u05E0\u05D2\u05E2\u05DF",
+  "services.service5_desc": "\u05D0\u05D9\u05D1\u05E2\u05E8\u05E4\u05BF\u05D9\u05E8\u05D5\u05E0\u05D2\u05E2\u05DF \u05E6\u05D5 \u05D0\u05B8\u05E7\u05D5\u05E4\u05BC\u05D0\u05B7\u05E6\u05D9\u05D0\u05B8\u05E0\u05E2\u05DC\u05E2 \u05D8\u05E2\u05E8\u05D0\u05B7\u05E4\u05BC\u05D9\u05E2, \u05E2\u05DE\u05D0\u05B8\u05E6\u05D9\u05D0\u05B8\u05E0\u05E2\u05DC\u05E2 \u05D8\u05E2\u05E8\u05D0\u05B7\u05E4\u05BC\u05D9\u05E2, \u05D0\u05B8\u05D3\u05E2\u05E8 \u05E4\u05BC\u05E1\u05D9\u05DB\u05D0\u05B8\u05DC\u05D0\u05B8\u05D2\u05D9\u05E9\u05E2 \u05E9\u05D8\u05D9\u05E6\u05E2",
+  "faq.q1": "\u05D5\u05D5\u05D0\u05B8\u05E1 \u05D0\u05D9\u05D6 ADHD?",
+  "faq.a1": "ADHD (\u05D0\u05D5\u05D9\u05E4\u05BF\u05DE\u05E2\u05E8\u05E7\u05D6\u05D0\u05B7\u05DE\u05E7\u05D9\u05D9\u05D8 \u05D3\u05E2\u05E4\u05BF\u05D9\u05E6\u05D9\u05D8 \u05D4\u05D9\u05E4\u05BC\u05E2\u05E8\u05D0\u05B7\u05E7\u05D8\u05D9\u05D5\u05D5\u05D9\u05D8\u05E2\u05D8 \u05D3\u05D9\u05E1\u05D0\u05B8\u05E8\u05D3\u05E2\u05E8) \u05D0\u05D9\u05D6 \u05D0\u05B7 \u05E0\u05E2\u05D5\u05D5\u05E8\u05D0\u05B8\u05DC\u05D0\u05B8\u05D2\u05D9\u05E9\u05E2 \u05D0\u05B7\u05E0\u05D8\u05D5\u05D5\u05D9\u05E7\u05DC\u05D5\u05E0\u05D2 \u05D3\u05D9\u05E1\u05D0\u05B8\u05E8\u05D3\u05E2\u05E8 \u05D5\u05D5\u05D0\u05B8\u05E1 \u05D1\u05D0\u05B7\u05D5\u05D5\u05D9\u05E8\u05E7\u05D8 \u05E7\u05D0\u05B8\u05E0\u05E6\u05E2\u05E0\u05D8\u05E8\u05D0\u05B7\u05E6\u05D9\u05E2, \u05D0\u05D9\u05DE\u05E4\u05BC\u05D5\u05DC\u05E1 \u05E7\u05D0\u05B8\u05E0\u05D8\u05E8\u05D0\u05B8\u05DC, \u05D0\u05D5\u05DF \u05D0\u05B7\u05E7\u05D8\u05D9\u05D5\u05D5\u05D9\u05D8\u05E2\u05D8 \u05E8\u05E2\u05D2\u05D5\u05DC\u05D9\u05E8\u05D5\u05E0\u05D2. \u05E2\u05E1 \u05D0\u05D9\u05D6 \u05D2\u05E2\u05D5\u05D5\u05D9\u05D9\u05E0\u05D8\u05DC\u05E2\u05DA \u05D1\u05D9\u05D9 \u05D1\u05D9\u05D9\u05D3\u05E2 \u05E7\u05D9\u05E0\u05D3\u05E2\u05E8 \u05D0\u05D5\u05DF \u05D3\u05E2\u05E8\u05D5\u05D5\u05D0\u05B7\u05E7\u05E1\u05E2\u05E0\u05E2 \u05D0\u05D5\u05DF \u05D1\u05D0\u05B7\u05D5\u05D5\u05D9\u05E8\u05E7\u05D8 \u05D8\u05E2\u05D2\u05DC\u05E2\u05DB\u05E2 \u05E4\u05BF\u05D5\u05E0\u05E7\u05E6\u05D9\u05D0\u05B8\u05E0\u05D9\u05E8\u05DF, \u05DC\u05E2\u05E8\u05E0\u05E2\u05DF, \u05D0\u05D5\u05DF \u05D0\u05B7\u05E8\u05D1\u05E2\u05D8.",
+  "faq.q2": "\u05D5\u05D5\u05D9 \u05DC\u05D0\u05B7\u05E0\u05D2 \u05E0\u05E2\u05DE\u05D8 \u05D3\u05E2\u05E8 \u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6 \u05E4\u05BC\u05E8\u05D0\u05B8\u05E6\u05E2\u05E1?",
+  "faq.a2": "\u05D3\u05E2\u05E8 \u05E4\u05BF\u05D5\u05DC\u05E2\u05E8 \u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6 \u05E4\u05BC\u05E8\u05D0\u05B8\u05E6\u05E2\u05E1 \u05E0\u05E2\u05DE\u05D8 \u05D0\u05B7\u05E8\u05F2\u05B7\u05DF \u05E2\u05D8\u05DC\u05E2\u05DB\u05E2 \u05D6\u05D9\u05E6\u05D5\u05E0\u05D2\u05E2\u05DF \u05D0\u05D5\u05DF \u05E0\u05E2\u05DE\u05D8 \u05D0\u05D9\u05DF \u05D3\u05D5\u05E8\u05DB\u05E9\u05E0\u05D9\u05D8 2-4 \u05D5\u05D5\u05D0\u05B8\u05DB\u05DF. \u05E2\u05E1 \u05E0\u05E2\u05DE\u05D8 \u05D0\u05B7\u05E8\u05F2\u05B7\u05DF \u05D0\u05B7 \u05D8\u05D9\u05E4\u05BF\u05DF \u05E7\u05DC\u05D9\u05E0\u05D9\u05E9 \u05D0\u05D9\u05E0\u05D8\u05E2\u05E8\u05D5\u05D5\u05D9\u05D5, \u05E7\u05D0\u05B8\u05DE\u05E4\u05BC\u05D9\u05D5\u05D8\u05E2\u05E8 \u05D8\u05E2\u05E1\u05D8\u05DF (MOXO), \u05E4\u05BF\u05E8\u05D0\u05B7\u05D2\u05E2\u05D1\u05D5\u05D9\u05D2\u05DF, \u05D0\u05D5\u05DF \u05D0\u05D9\u05D1\u05E2\u05E8\u05E7\u05D5\u05E7\u05DF \u05E4\u05BF\u05D5\u05DF \u05E8\u05E2\u05DC\u05E2\u05D5\u05D5\u05D0\u05B7\u05E0\u05D8\u05E2 \u05DE\u05E2\u05D3\u05D9\u05E6\u05D9\u05E0\u05D9\u05E9\u05E2 \u05D3\u05D0\u05B8\u05E7\u05D5\u05DE\u05E2\u05E0\u05D8\u05DF.",
+  "faq.q3": "\u05D0\u05D9\u05D6 \u05D3\u05D9 \u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6 \u05E4\u05BC\u05D0\u05B7\u05E1\u05D9\u05E7 \u05E4\u05BF\u05D0\u05B7\u05E8 \u05D0\u05B7\u05DC\u05E2 \u05E2\u05DC\u05D8\u05E2\u05E8?",
+  "faq.a3": "\u05D9\u05D0\u05B8, \u05DE\u05D9\u05E8 \u05D2\u05D9\u05D1\u05DF \u05E4\u05BC\u05E8\u05D0\u05B8\u05E4\u05BF\u05E2\u05E1\u05D9\u05D0\u05B8\u05E0\u05E2\u05DC\u05E2 \u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6 \u05E4\u05BF\u05D0\u05B7\u05E8 \u05E7\u05D9\u05E0\u05D3\u05E2\u05E8 \u05E4\u05BF\u05D5\u05DF \u05E2\u05DC\u05D8\u05E2\u05E8 6, \u05D8\u05D9\u05E0\u05D0\u05D9\u05D9\u05D2\u05E2\u05E8\u05E1, \u05D0\u05D5\u05DF \u05D3\u05E2\u05E8\u05D5\u05D5\u05D0\u05B7\u05E7\u05E1\u05E2\u05E0\u05E2. \u05D9\u05E2\u05D3\u05E2 \u05E2\u05DC\u05D8\u05E2\u05E8 \u05D2\u05E8\u05D5\u05E4\u05BC\u05E2 \u05D4\u05D0\u05B8\u05D8 \u05D0\u05B7\u05DF \u05D0\u05B8\u05E0\u05D2\u05E2\u05E4\u05BC\u05D0\u05B7\u05E1\u05D8\u05DF \u05D0\u05B8\u05E4\u05BC\u05E9\u05D0\u05B7\u05E6\u05D5\u05E0\u05D2 \u05E4\u05BC\u05E8\u05D0\u05B8\u05D8\u05D0\u05B8\u05E7\u05D0\u05B8\u05DC \u05D5\u05D5\u05D0\u05B8\u05E1 \u05E0\u05E2\u05DE\u05D8 \u05D0\u05D9\u05DF \u05D1\u05D0\u05B7\u05D8\u05E8\u05D0\u05B7\u05DB\u05D8 \u05D3\u05D9 \u05D1\u05D0\u05B7\u05D6\u05D5\u05E0\u05D3\u05E2\u05E8\u05E2 \u05DB\u05D0\u05B7\u05E8\u05D0\u05B7\u05E7\u05D8\u05E2\u05E8\u05D9\u05E1\u05D8\u05D9\u05E7\u05DF \u05E4\u05BF\u05D5\u05DF \u05D9\u05E2\u05E0\u05E2\u05E8 \u05E2\u05DC\u05D8\u05E2\u05E8.",
+  "faq.q4": "\u05D5\u05D5\u05D0\u05B8\u05E1 \u05D0\u05D9\u05D6 \u05D0\u05B7\u05E8\u05F2\u05B7\u05E0\u05D2\u05E2\u05E8\u05E2\u05DB\u05E0\u05D8 \u05D0\u05D9\u05DF \u05D3\u05E2\u05DD \u05D1\u05D0\u05B7\u05D4\u05D0\u05B7\u05E0\u05D3\u05DC\u05D5\u05E0\u05D2 \u05E4\u05BC\u05DC\u05D0\u05B7\u05DF?",
+  "faq.a4": "\u05D3\u05E2\u05E8 \u05D1\u05D0\u05B7\u05D4\u05D0\u05B7\u05E0\u05D3\u05DC\u05D5\u05E0\u05D2 \u05E4\u05BC\u05DC\u05D0\u05B7\u05DF \u05D0\u05D9\u05D6 \u05E4\u05BC\u05E2\u05E8\u05D6\u05E2\u05E0\u05DC\u05E2\u05DA \u05D0\u05D5\u05DF \u05E0\u05E2\u05DE\u05D8 \u05D0\u05B7\u05E8\u05F2\u05B7\u05DF: \u05DE\u05E2\u05D3\u05D9\u05E6\u05D9\u05DF \u05E8\u05E2\u05E7\u05D0\u05B8\u05DE\u05E2\u05E0\u05D3\u05D0\u05B7\u05E6\u05D9\u05E2\u05E1 (\u05D0\u05D5\u05D9\u05D1 \u05E0\u05D9\u05D9\u05D8\u05D9\u05E7), \u05E2\u05DC\u05D8\u05E2\u05E8\u05DF \u05D0\u05B8\u05E0\u05D5\u05D5\u05F2\u05B7\u05D6\u05D5\u05E0\u05D2, \u05E4\u05BC\u05E8\u05D0\u05B7\u05E7\u05D8\u05D9\u05E9\u05E2 \u05D8\u05E2\u05D2\u05DC\u05E2\u05DB\u05E2 \u05D0\u05B7\u05E8\u05D5\u05D9\u05E1\u05E7\u05D5\u05DE\u05E2\u05DF \u05D2\u05E2\u05E6\u05D9\u05D9\u05D2, \u05D0\u05D9\u05D1\u05E2\u05E8\u05E4\u05BF\u05D9\u05E8\u05D5\u05E0\u05D2\u05E2\u05DF \u05E6\u05D5 \u05E7\u05D0\u05B8\u05DE\u05E4\u05BC\u05DC\u05E2\u05DE\u05E2\u05E0\u05D8\u05D0\u05B7\u05E8\u05E2 \u05D1\u05D0\u05B7\u05D4\u05D0\u05B7\u05E0\u05D3\u05DC\u05D5\u05E0\u05D2\u05E2\u05DF, \u05D0\u05D5\u05DF \u05E7\u05E2\u05E1\u05D9\u05D9\u05D3\u05E2\u05E8\u05D3\u05D9\u05E7\u05E2 \u05E0\u05D0\u05B8\u05DB\u05E4\u05BF\u05D0\u05B8\u05DC\u05D2.",
+  "faq.q5": "\u05D0\u05D9\u05D6 \u05D0\u05B7 \u05D3\u05D0\u05B8\u05E7\u05D8\u05E2\u05E8 \u05D0\u05D9\u05D1\u05E2\u05E8\u05E4\u05BF\u05D9\u05E8\u05D5\u05E0\u05D2 \u05E0\u05D9\u05D9\u05D8\u05D9\u05E7?",
+  "faq.a5": "\u05E0\u05D9\u05D9\u05DF, \u05D0\u05B7\u05DF \u05D0\u05D9\u05D1\u05E2\u05E8\u05E4\u05BF\u05D9\u05E8\u05D5\u05E0\u05D2 \u05D0\u05D9\u05D6 \u05E0\u05D9\u05E9\u05D8 \u05E0\u05D9\u05D9\u05D8\u05D9\u05E7. \u05D0\u05D9\u05E8 \u05E7\u05E2\u05E0\u05D8 \u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8\u05D9\u05E8\u05DF \u05D3\u05D9 \u05E7\u05DC\u05D9\u05E0\u05D9\u05E7 \u05D2\u05DC\u05F2\u05B7\u05DA \u05E6\u05D5 \u05E4\u05BF\u05D0\u05B7\u05E8\u05D8\u05E8\u05D0\u05B7\u05DB\u05D8\u05DF \u05D0\u05B7 \u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6 \u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05DC\u05D5\u05E0\u05D2. \u05D0\u05B8\u05D1\u05E2\u05E8, \u05D0\u05D5\u05D9\u05D1 \u05D0\u05D9\u05E8 \u05D4\u05D0\u05B8\u05D8 \u05E4\u05BF\u05E8\u05D9\u05E2\u05E8\u05D3\u05D9\u05E7\u05E2 \u05DE\u05E2\u05D3\u05D9\u05E6\u05D9\u05E0\u05D9\u05E9\u05E2 \u05D3\u05D0\u05B8\u05E7\u05D5\u05DE\u05E2\u05E0\u05D8\u05DF, \u05D5\u05D5\u05E2\u05E8\u05D8 \u05E2\u05DE\u05E4\u05BF\u05D5\u05D9\u05DC\u05DF \u05D6\u05D9\u05D9 \u05E6\u05D5 \u05D1\u05E8\u05E2\u05E0\u05D2\u05E2\u05DF \u05E6\u05D5\u05DD \u05E2\u05E8\u05E9\u05D8\u05DF \u05D8\u05E8\u05E2\u05E4\u05BF\u05DF.",
+  "faq.q6": "\u05D5\u05D5\u05D0\u05B8\u05E1 \u05D0\u05D9\u05D6 \u05D3\u05E2\u05E8 \u05D7\u05D9\u05DC\u05D5\u05E7 \u05E6\u05D5\u05D5\u05D9\u05E9\u05DF ADD \u05D0\u05D5\u05DF ADHD?",
+  "faq.a6": "ADD \u05D0\u05D9\u05D6 \u05D3\u05E2\u05E8 \u05D0\u05B7\u05DC\u05D8\u05E2\u05E8 \u05D8\u05E2\u05E8\u05DE\u05D9\u05DF \u05E4\u05BF\u05D0\u05B7\u05E8 \u05D0\u05D5\u05D9\u05E4\u05BF\u05DE\u05E2\u05E8\u05E7\u05D6\u05D0\u05B7\u05DE\u05E7\u05D9\u05D9\u05D8 \u05D3\u05E2\u05E4\u05BF\u05D9\u05E6\u05D9\u05D8 \u05D0\u05B8\u05DF \u05D4\u05D9\u05E4\u05BC\u05E2\u05E8\u05D0\u05B7\u05E7\u05D8\u05D9\u05D5\u05D5\u05D9\u05D8\u05E2\u05D8. \u05D4\u05F2\u05B7\u05E0\u05D8, \u05D5\u05D5\u05E2\u05E8\u05D8 \u05D3\u05E2\u05E8 \u05D8\u05E2\u05E8\u05DE\u05D9\u05DF ADHD \u05D2\u05E2\u05E0\u05D5\u05E6\u05D8 \u05DE\u05D9\u05D8 \u05D3\u05E8\u05F2\u05B7 \u05E1\u05D0\u05B7\u05D1-\u05D8\u05D9\u05E4\u05BC\u05DF: \u05D4\u05D5\u05D9\u05E4\u05BC\u05D8\u05D6\u05E2\u05DB\u05DC\u05E2\u05DA \u05D0\u05D5\u05DE\u05D0\u05D5\u05D9\u05E4\u05BF\u05DE\u05E2\u05E8\u05E7\u05D6\u05D0\u05B7\u05DD, \u05D4\u05D5\u05D9\u05E4\u05BC\u05D8\u05D6\u05E2\u05DB\u05DC\u05E2\u05DA \u05D4\u05D9\u05E4\u05BC\u05E2\u05E8\u05D0\u05B7\u05E7\u05D8\u05D9\u05D5\u05D5-\u05D0\u05D9\u05DE\u05E4\u05BC\u05D5\u05DC\u05E1\u05D9\u05D5\u05D5, \u05D0\u05B8\u05D3\u05E2\u05E8 \u05E7\u05D0\u05B8\u05DE\u05D1\u05D9\u05E0\u05D9\u05E8\u05D8.",
   "services.process_steps": "\u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6 \u05E4\u05BC\u05E8\u05D0\u05B8\u05E6\u05E2\u05E1 \u05D8\u05E8\u05D9\u05D8",
   "footer.rights": "\xA9 2025 \u05D0\u05B7\u05DC\u05E2 \u05E8\u05E2\u05DB\u05D8\u05DF \u05E8\u05E2\u05D6\u05E2\u05E8\u05D5\u05D5\u05D9\u05E8\u05D8 \u05E4\u05BF\u05D0\u05B7\u05E8 Keshev Plus",
+  "footer.moxo_certified": "Moxo \u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05D8\u05D9\u05E7\u05D8",
+  "footer.moxo_certified_desc": "\u05E7\u05D0\u05B8\u05DE\u05E4\u05BC\u05D9\u05D5\u05D8\u05E2\u05E8\u05D9\u05D9\u05D6\u05D9\u05E8\u05D8\u05E2 ADHD \u05D0\u05B8\u05E4\u05BC\u05E9\u05D0\u05B7\u05E6\u05D5\u05E0\u05D2",
+  "cookies.notice": "\u05D3\u05E2\u05E8 \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC \u05E0\u05D9\u05E6\u05D8 \u05E7\u05D9\u05E7\u05E1 \u05E6\u05D5 \u05E4\u05BF\u05D0\u05B7\u05E8\u05D1\u05E2\u05E1\u05E2\u05E8\u05DF \u05D0\u05F2\u05B7\u05E2\u05E8 \u05D1\u05DC\u05E2\u05D8\u05E2\u05E8 \u05D3\u05E2\u05E8\u05E4\u05BF\u05D0\u05B7\u05E8\u05D5\u05E0\u05D2 \u05D0\u05D5\u05DF \u05E4\u05BF\u05D0\u05B7\u05E8 \u05E1\u05D8\u05D0\u05B7\u05D8\u05D9\u05E1\u05D8\u05D9\u05E9\u05E2 \u05E6\u05D5\u05D5\u05E2\u05E7\u05DF. \u05D0\u05D9\u05E0\u05D3\u05E2\u05DD \u05D0\u05D9\u05E8 \u05D2\u05D9\u05D9\u05D8 \u05D5\u05D5\u05F2\u05B7\u05D8\u05E2\u05E8 \u05D1\u05DC\u05E2\u05D8\u05E2\u05E8\u05DF \u05D3\u05E2\u05DD \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC, \u05E9\u05D8\u05D9\u05DE\u05D8 \u05D0\u05D9\u05E8 \u05E6\u05D5 \u05E6\u05D5\u05DD \u05E0\u05D9\u05E6\u05DF \u05E7\u05D9\u05E7\u05E1 \u05DC\u05D5\u05D9\u05D8 \u05D0\u05D5\u05E0\u05D3\u05D6\u05E2\u05E8 \u05E4\u05BC\u05E8\u05D9\u05D5\u05D5\u05D0\u05B7\u05D8\u05E7\u05D9\u05D9\u05D8 \u05E4\u05BC\u05D0\u05B8\u05DC\u05D9\u05D8\u05D9\u05E7.",
+  "cookies.used_include": "\u05D3\u05D9 \u05E7\u05D9\u05E7\u05E1 \u05D5\u05D5\u05D0\u05B8\u05E1 \u05D5\u05D5\u05E2\u05E8\u05DF \u05D2\u05E2\u05E0\u05D5\u05E6\u05D8 \u05D0\u05D5\u05D9\u05E3 \u05D3\u05E2\u05DD \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC \u05D0\u05B7\u05E8\u05F2\u05B7\u05E0\u05E0\u05E2\u05DE\u05E2\u05DF:",
+  "cookies.essential": "\u05E0\u05D9\u05D9\u05D8\u05D9\u05E7\u05E2 \u05E7\u05D9\u05E7\u05E1 - \u05E4\u05BF\u05D0\u05B7\u05E8 \u05D3\u05D9 \u05E8\u05D9\u05DB\u05D8\u05D9\u05E7\u05E2 \u05E4\u05BF\u05D5\u05E0\u05E7\u05E6\u05D9\u05D0\u05B8\u05E0\u05D9\u05E8\u05D5\u05E0\u05D2 \u05E4\u05BF\u05D5\u05DF \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC",
+  "cookies.statistical": "\u05E1\u05D8\u05D0\u05B7\u05D8\u05D9\u05E1\u05D8\u05D9\u05E9\u05E2 \u05E7\u05D9\u05E7\u05E1 - \u05E4\u05BF\u05D0\u05B7\u05E8 \u05D0\u05B7\u05E0\u05D0\u05B7\u05DC\u05D9\u05D6 \u05E4\u05BF\u05D5\u05DF \u05E0\u05D9\u05E6\u05D5\u05E0\u05D2 \u05D0\u05D5\u05DF \u05E4\u05BF\u05D0\u05B7\u05E8\u05D1\u05E2\u05E1\u05E2\u05E8\u05DF \u05D3\u05E2\u05DD \u05E1\u05E2\u05E8\u05D5\u05D5\u05D9\u05E1",
+  "cookies.preference": "\u05E4\u05BC\u05E8\u05E2\u05E4\u05BF\u05E2\u05E8\u05E2\u05E0\u05E5 \u05E7\u05D9\u05E7\u05E1 - \u05E6\u05D5 \u05E8\u05D0\u05B7\u05D8\u05E2\u05D5\u05D5\u05E2\u05DF \u05D3\u05D9 \u05D1\u05D0\u05B7\u05E0\u05D9\u05E6\u05E2\u05E8 \u05E4\u05BC\u05E8\u05E2\u05E4\u05BF\u05E2\u05E8\u05E2\u05E0\u05E6\u05DF",
+  "cookies.privacy_note": "\u05DC\u05D5\u05D9\u05D8 \u05D3\u05E2\u05DD \u05E4\u05BC\u05E8\u05D9\u05D5\u05D5\u05D0\u05B7\u05D8\u05E7\u05D9\u05D9\u05D8 \u05E9\u05D5\u05E5 \u05D2\u05E2\u05D6\u05E2\u05E5, \u05DE\u05D9\u05E8 \u05D0\u05D9\u05E0\u05E4\u05BF\u05D0\u05B8\u05E8\u05DE\u05D9\u05E8\u05DF \u05D0\u05F2\u05B7\u05DA \u05D5\u05D5\u05E2\u05D2\u05DF \u05D3\u05D9 \u05E0\u05D9\u05E6\u05D5\u05E0\u05D2 \u05E4\u05BF\u05D5\u05DF \u05E7\u05D9\u05E7\u05E1 \u05D0\u05D5\u05DF \u05D1\u05E2\u05D8\u05DF \u05D0\u05F2\u05B7\u05E2\u05E8 \u05E6\u05D5\u05E9\u05D8\u05D9\u05DE\u05D5\u05E0\u05D2.",
+  "cookies.hide_details": "\u05D1\u05D0\u05B7\u05D4\u05D0\u05B7\u05DC\u05D8\u05DF \u05E4\u05BC\u05E8\u05D8\u05D9\u05DD",
+  "cookies.more_info": "\u05DE\u05E2\u05E8 \u05D0\u05D9\u05E0\u05E4\u05BF\u05D0\u05B8\u05E8\u05DE\u05D0\u05B7\u05E6\u05D9\u05E2",
+  "cookies.accept": "\u05D0\u05D9\u05DA \u05E9\u05D8\u05D9\u05DD \u05E6\u05D5",
+  "appt_date.select_date": "\u05E7\u05DC\u05F2\u05B7\u05D1\u05D8 \u05D0\u05B7 \u05D8\u05D0\u05B8\u05D2",
+  "appt_date.clinic_closed": "\u05D3\u05E2\u05E8 \u05E7\u05DC\u05D9\u05E0\u05D9\u05E7 \u05D0\u05D9\u05D6 \u05E4\u05BF\u05D0\u05B7\u05E8\u05DE\u05D0\u05B7\u05DB\u05D8 \u05D0\u05D5\u05D9\u05E3 \u05D3\u05E2\u05DD \u05D8\u05D0\u05B8\u05D2",
+  "appt_date.gray_unavailable": "\u05D2\u05E8\u05D5\u05D9\u05E2 \u05D8\u05E2\u05D2 \u05D6\u05E2\u05E0\u05E2\u05DF \u05E0\u05D9\u05E9\u05D8 \u05E6\u05D5\u05D8\u05E8\u05D9\u05D8\u05DC\u05E2\u05DA \u05E4\u05BF\u05D0\u05B7\u05E8 \u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05DC\u05D5\u05E0\u05D2\u05E2\u05DF.",
+  "appt_for.who": "\u05E4\u05BF\u05D0\u05B7\u05E8 \u05D5\u05D5\u05E2\u05DE\u05E2\u05DF \u05D0\u05D9\u05D6 \u05D3\u05E2\u05E8 \u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05DC\u05D5\u05E0\u05D2?",
+  "appt_for.me": "\u05E4\u05BF\u05D0\u05B7\u05E8 \u05D6\u05D9\u05DA",
+  "appt_for.child": "\u05E4\u05BF\u05D0\u05B7\u05E8 \u05D3\u05E2\u05DD \u05E7\u05D9\u05E0\u05D3",
+  "appt_for.child_name": "\u05E0\u05D0\u05B8\u05DE\u05E2\u05DF \u05E4\u05BF\u05D5\u05DF \u05E7\u05D9\u05E0\u05D3",
+  "appt_for.child_age": "\u05E2\u05DC\u05D8\u05E2\u05E8 \u05E4\u05BF\u05D5\u05DF \u05E7\u05D9\u05E0\u05D3",
+  "appt_for.child_age_placeholder": "(\u05DE\u05D9\u05E0\u05D9\u05DE\u05D5\u05DD 6)",
+  "appt_for.min_age_error": "\u05D3\u05E2\u05E8 \u05DE\u05D9\u05E0\u05D9\u05DE\u05D5\u05DD \u05E2\u05DC\u05D8\u05E2\u05E8 \u05D0\u05D9\u05D6 6",
   "footer.clinic_desc": "\u05E4\u05BF\u05D9\u05E8\u05E0\u05D3\u05E2 \u05E7\u05DC\u05D9\u05E0\u05D9\u05E7 \u05E4\u05BF\u05D0\u05B7\u05E8 ADHD \u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6 \u05D0\u05D5\u05DF \u05D1\u05D0\u05B7\u05D4\u05D0\u05B7\u05E0\u05D3\u05DC\u05D5\u05E0\u05D2 \u05D1\u05D9\u05D9 \u05E7\u05D9\u05E0\u05D3\u05E2\u05E8, \u05D9\u05D5\u05D2\u05E0\u05D8\u05DC\u05E2\u05DB\u05E2 \u05D0\u05D5\u05DF \u05D3\u05E2\u05E8\u05D5\u05D5\u05D0\u05B7\u05E7\u05E1\u05E2\u05E0\u05E2.",
   "footer.quick_links": "\u05E9\u05E0\u05E2\u05DC\u05E2 \u05DC\u05D9\u05E0\u05E7\u05E1",
   "footer.contact_info": "\u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8 \u05D0\u05D9\u05E0\u05E4\u05BF\u05D0\u05B8\u05E8\u05DE\u05D0\u05B7\u05E6\u05D9\u05E2",
@@ -2063,7 +4359,132 @@ var yi = {
   "admin.multilingual": "\u05DE\u05E2\u05E8\u05E9\u05E4\u05BC\u05E8\u05D0\u05B7\u05DB\u05D9\u05E7 (\u05D0\u05B7\u05DC\u05E2 \u05E9\u05E4\u05BC\u05E8\u05D0\u05B7\u05DB\u05DF)",
   "admin.default_language": "\u05D3\u05E2\u05E4\u05BF\u05D0\u05B8\u05DC\u05D8 \u05E9\u05E4\u05BC\u05E8\u05D0\u05B7\u05DA",
   "admin.settings_saved": "\u05D0\u05D9\u05D9\u05E0\u05E9\u05D8\u05E2\u05DC\u05D5\u05E0\u05D2\u05E2\u05DF \u05D2\u05E2\u05E8\u05D0\u05B8\u05D8\u05E2\u05D5\u05D5\u05E2\u05D8",
-  "admin.settings_error": "\u05E4\u05BF\u05E2\u05DC\u05E2\u05E8 \u05D1\u05F2\u05B7\u05DD \u05E8\u05D0\u05B8\u05D8\u05E2\u05D5\u05D5\u05DF"
+  "admin.settings_error": "\u05E4\u05BF\u05E2\u05DC\u05E2\u05E8 \u05D1\u05F2\u05B7\u05DD \u05E8\u05D0\u05B8\u05D8\u05E2\u05D5\u05D5\u05DF",
+  "a11y.accessibility_settings": "\u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05E7\u05D9\u05D9\u05D8 \u05D0\u05F2\u05B7\u05E0\u05E9\u05D8\u05E2\u05DC\u05D5\u05E0\u05D2\u05E2\u05DF",
+  "a11y.text_size": "\u05D8\u05E2\u05E7\u05E1\u05D8 \u05D2\u05E8\u05D9\u05D9\u05E1",
+  "a11y.decrease_text": "\u05E4\u05BF\u05D0\u05B7\u05E8\u05E7\u05DC\u05E2\u05E0\u05E2\u05E8\u05DF \u05D8\u05E2\u05E7\u05E1\u05D8",
+  "a11y.increase_text": "\u05E4\u05BF\u05D0\u05B7\u05E8\u05D2\u05E8\u05E2\u05E1\u05E2\u05E8\u05DF \u05D8\u05E2\u05E7\u05E1\u05D8",
+  "a11y.line_height": "\u05E9\u05D5\u05E8\u05D4 \u05D4\u05D9\u05D9\u05DA",
+  "a11y.decrease_line_height": "\u05E4\u05BF\u05D0\u05B7\u05E8\u05E7\u05DC\u05E2\u05E0\u05E2\u05E8\u05DF \u05E9\u05D5\u05E8\u05D4 \u05D4\u05D9\u05D9\u05DA",
+  "a11y.increase_line_height": "\u05E4\u05BF\u05D0\u05B7\u05E8\u05D2\u05E8\u05E2\u05E1\u05E2\u05E8\u05DF \u05E9\u05D5\u05E8\u05D4 \u05D4\u05D9\u05D9\u05DA",
+  "a11y.letter_spacing": "\u05D0\u05D5\u05EA\u05D9\u05D5\u05EA \u05E8\u05D0\u05B7\u05DD",
+  "a11y.decrease_letter_spacing": "\u05E4\u05BF\u05D0\u05B7\u05E8\u05E7\u05DC\u05E2\u05E0\u05E2\u05E8\u05DF \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA \u05E8\u05D0\u05B7\u05DD",
+  "a11y.increase_letter_spacing": "\u05E4\u05BF\u05D0\u05B7\u05E8\u05D2\u05E8\u05E2\u05E1\u05E2\u05E8\u05DF \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA \u05E8\u05D0\u05B7\u05DD",
+  "a11y.reading_guide": "\u05DC\u05D9\u05D9\u05E2\u05DF \u05E4\u05D9\u05E8\u05E2\u05E8",
+  "a11y.high_contrast": "\u05D4\u05D5\u05D9\u05DB\u05E2 \u05E7\u05D0\u05B8\u05E0\u05D8\u05E8\u05D0\u05B7\u05E1\u05D8",
+  "a11y.highlight_links": "\u05D1\u05D0\u05B7\u05D8\u05D0\u05B8\u05E0\u05E2\u05DF \u05DC\u05D9\u05E0\u05E7\u05E1",
+  "a11y.grayscale": "\u05D2\u05E8\u05D5\u05D9 \u05E1\u05E7\u05D0\u05B7\u05DC\u05E2",
+  "a11y.readable_font": "\u05DC\u05D9\u05D9\u05E2\u05E0\u05E2\u05D5\u05D5\u05D3\u05D9\u05E7\u05E2 \u05E4\u05BF\u05D0\u05B8\u05E0\u05D8",
+  "a11y.large_cursor": "\u05D2\u05E8\u05D5\u05D9\u05E1\u05E2\u05E8 \u05E7\u05D5\u05E8\u05E1\u05D0\u05B8\u05E8",
+  "a11y.stop_animations": "\u05D0\u05B8\u05E4\u05BC\u05E9\u05D8\u05E2\u05DC\u05DF \u05D0\u05B7\u05E0\u05D9\u05DE\u05D0\u05B7\u05E6\u05D9\u05E2\u05E1",
+  "a11y.reset": "\u05E6\u05D5\u05E8\u05D9\u05E7\u05E9\u05D8\u05E2\u05DC\u05DF",
+  "a11y.close": "\u05E4\u05BF\u05D0\u05B7\u05E8\u05DE\u05D0\u05B7\u05DB\u05DF",
+  "a11y.accessibility_menu": "\u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05E7\u05D9\u05D9\u05D8 \u05DE\u05E2\u05E0\u05D9\u05D5",
+  "a11y.dark_mode": "\u05D8\u05D5\u05E0\u05E7\u05E2\u05DC\u05E2\u05E8 \u05DE\u05D0\u05B8\u05D3\u05D5\u05E1",
+  "a11y.light_mode": "\u05DC\u05D9\u05DB\u05D8\u05D9\u05E7\u05E2\u05E8 \u05DE\u05D0\u05B8\u05D3\u05D5\u05E1",
+  "a11y.accessibility_statement": "\u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05E7\u05D9\u05D9\u05D8 \u05D3\u05E2\u05E8\u05E7\u05DC\u05E2\u05E8\u05D5\u05E0\u05D2",
+  "a11y.accessibility_statement_text": "\u05D3\u05E2\u05E8 \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC \u05D0\u05D9\u05D6 \u05DE\u05D5\u05E7\u05D3\u05E9 \u05E6\u05D5 \u05D3\u05D9\u05D2\u05D9\u05D8\u05D0\u05B7\u05DC\u05E2\u05E8 \u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05E7\u05D9\u05D9\u05D8 \u05DC\u05D5\u05D9\u05D8 \u05D9\u05E9\u05E8\u05D0\u05DC\u05D3\u05D9\u05E7\u05DF \u05D2\u05E2\u05D6\u05E2\u05E5.",
+  "terms.title": "\u05D8\u05E2\u05E8\u05DE\u05D9\u05E0\u05E2\u05DF \u05E4\u05BF\u05D5\u05DF \u05D1\u05D0\u05B7\u05E0\u05D9\u05E5",
+  "terms.intro": '\u05D3\u05E2\u05E8 \u05D1\u05D0\u05B7\u05E0\u05D9\u05E5 \u05E4\u05BF\u05D5\u05DF \u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC ("\u05D3\u05E2\u05E8 \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC") \u05D0\u05D9\u05D6 \u05D0\u05D5\u05E0\u05D8\u05E2\u05E8\u05D8\u05E2\u05E0\u05D9\u05E7 \u05E6\u05D5 \u05D3\u05D9 \u05D8\u05E2\u05E8\u05DE\u05D9\u05E0\u05E2\u05DF \u05D0\u05D5\u05E0\u05D8\u05DF. \u05D1\u05DC\u05E2\u05D8\u05E2\u05E8\u05DF \u05D0\u05D9\u05DF \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC \u05D0\u05D5\u05DF/\u05D0\u05B8\u05D3\u05E2\u05E8 \u05D1\u05D0\u05B7\u05E0\u05D9\u05E6\u05DF \u05D6\u05F2\u05B7\u05E0\u05E2 \u05E1\u05E2\u05E8\u05D5\u05D5\u05D9\u05E1\u05DF \u05D0\u05D9\u05D6 \u05D0\u05B7 \u05D4\u05E1\u05DB\u05DE\u05D4 \u05E6\u05D5 \u05D3\u05D9 \u05D8\u05E2\u05E8\u05DE\u05D9\u05E0\u05E2\u05DF.',
+  "terms.service_nature_title": "\u05D3\u05E2\u05E8 \u05DB\u05D0\u05B7\u05E8\u05D0\u05B7\u05E7\u05D8\u05E2\u05E8 \u05E4\u05BF\u05D5\u05DF \u05D3\u05E2\u05E8 \u05E1\u05E2\u05E8\u05D5\u05D5\u05D9\u05E1",
+  "terms.service_nature_p1": "\u05D3\u05E2\u05E8 \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC \u05D2\u05D9\u05D8 \u05D0\u05B7\u05DC\u05D2\u05E2\u05DE\u05D9\u05D9\u05E0\u05E2 \u05D0\u05D9\u05E0\u05E4\u05BF\u05D0\u05B8\u05E8\u05DE\u05D0\u05B7\u05E6\u05D9\u05E2 \u05D5\u05D5\u05E2\u05D2\u05DF \u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6 \u05D0\u05D5\u05DF \u05E7\u05D5\u05E8 \u05E4\u05BF\u05D5\u05DF ADHD, \u05D0\u05D5\u05DF \u05D0\u05D5\u05D9\u05DA \u05D0\u05B8\u05E0\u05DC\u05D9\u05D9\u05DF\u05BE\u05DB\u05DC\u05D9\u05DD \u05E4\u05BF\u05D0\u05B7\u05E8 \u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05DC\u05DF \u05D0\u05B7 \u05D8\u05E2\u05E8\u05DE\u05D9\u05DF \u05D0\u05D5\u05DF \u05D0\u05D5\u05D9\u05E1\u05E4\u05BF\u05D9\u05DC\u05DF \u05E2\u05E8\u05E9\u05D8\u05D9\u05E7\u05E2 \u05E1\u05E7\u05E8\u05D9\u05E0\u05D9\u05E0\u05D2 \u05E4\u05BF\u05E8\u05D0\u05B7\u05D2\u05E2\u05D1\u05D5\u05D9\u05D2\u05E0\u05E1.",
+  "terms.service_nature_p2": "\u05D3\u05D9 \u05D0\u05B8\u05E0\u05DC\u05D9\u05D9\u05DF \u05E1\u05E7\u05E8\u05D9\u05E0\u05D9\u05E0\u05D2 \u05E4\u05BF\u05E8\u05D0\u05B7\u05D2\u05E2\u05D1\u05D5\u05D9\u05D2\u05E0\u05E1 \u05D6\u05E2\u05E0\u05E2\u05DF \u05E0\u05D9\u05E9\u05D8 \u05E7\u05D9\u05D9\u05DF \u05DE\u05E2\u05D3\u05D9\u05E6\u05D9\u05E0\u05D9\u05E9\u05E2\u05E8 \u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6 \u05D0\u05D5\u05DF \u05E7\u05E2\u05E0\u05E2\u05DF \u05E0\u05D9\u05E9\u05D8 \u05E4\u05BF\u05D0\u05B7\u05E8\u05D1\u05F2\u05B7\u05D8\u05DF \u05D0\u05B7 \u05E7\u05D0\u05B8\u05E0\u05E1\u05D5\u05DC\u05D8\u05D0\u05B7\u05E6\u05D9\u05E2, \u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6 \u05D0\u05B8\u05D3\u05E2\u05E8 \u05E7\u05D5\u05E8 \u05E4\u05BF\u05D5\u05DF \u05D0\u05B7 \u05E7\u05D5\u05D5\u05D0\u05B7\u05DC\u05D9\u05E4\u05BF\u05D9\u05E6\u05D9\u05E8\u05D8\u05DF \u05E4\u05BC\u05E8\u05D0\u05B8\u05E4\u05BF\u05E2\u05E1\u05D9\u05D0\u05B8\u05E0\u05D0\u05B7\u05DC. \u05D3\u05D9 \u05E8\u05E2\u05D6\u05D5\u05DC\u05D8\u05D0\u05B7\u05D8\u05DF \u05D6\u05E2\u05E0\u05E2\u05DF \u05E0\u05D0\u05B8\u05E8 \u05D2\u05E2\u05DE\u05D9\u05D9\u05E0\u05D8 \u05E6\u05D5 \u05D4\u05E2\u05DC\u05E4\u05BF\u05DF \u05D0\u05D5\u05E0\u05D3\u05D6\u05E2\u05E8 \u05E7\u05DC\u05D9\u05E0\u05D9\u05E9 \u05E4\u05BC\u05E2\u05E8\u05E1\u05D0\u05B8\u05E0\u05D0\u05B7\u05DC \u05D0\u05D9\u05DF \u05D0\u05B7\u05DF \u05E2\u05E8\u05E9\u05D8\u05D9\u05E7\u05E2\u05E8 \u05D0\u05B8\u05E4\u05BC\u05E9\u05D0\u05B7\u05E6\u05D5\u05E0\u05D2; \u05D0\u05B7 \u05E1\u05D5\u05E4\u05BF\u05D9\u05E7\u05E2\u05E8 \u05D3\u05D9\u05D0\u05B7\u05D2\u05E0\u05D0\u05B8\u05D6 \u05D5\u05D5\u05E2\u05E8\u05D8 \u05D2\u05E2\u05D2\u05E2\u05D1\u05DF \u05E0\u05D0\u05B8\u05E8 \u05D3\u05D5\u05E8\u05DA \u05D0\u05B7 \u05E7\u05DC\u05D9\u05E0\u05D9\u05E9 \u05D0\u05D5\u05D9\u05E1\u05E4\u05BF\u05D0\u05B8\u05E8\u05E9\u05D5\u05E0\u05D2.",
+  "terms.fair_use_title": "\u05E2\u05E8\u05DC\u05E2\u05DB\u05E2\u05E8 \u05D1\u05D0\u05B7\u05E0\u05D9\u05E5 \u05E4\u05BF\u05D5\u05DF \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC",
+  "terms.fair_use_body": "\u05D3\u05E2\u05E8 \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC \u05D8\u05D0\u05B8\u05E8 \u05E0\u05D9\u05E9\u05D8 \u05D6\u05F2\u05B7\u05DF \u05D2\u05E2\u05E0\u05D5\u05E6\u05D8 \u05E4\u05BF\u05D0\u05B7\u05E8 \u05E7\u05D9\u05D9\u05DF \u05D0\u05D5\u05DE\u05DC\u05E2\u05D2\u05D0\u05B7\u05DC\u05E2\u05E8 \u05E6\u05D5\u05D5\u05E2\u05E7, \u05D0\u05D5\u05DF \u05DE\u05E2\u05DF \u05D8\u05D0\u05B8\u05E8 \u05E0\u05D9\u05E9\u05D8 \u05E4\u05BC\u05E8\u05D5\u05BC\u05D5\u05D5\u05DF \u05E9\u05D8\u05E2\u05E8\u05DF \u05D6\u05F2\u05B7\u05DF \u05E8\u05D9\u05DB\u05D8\u05D9\u05E7\u05DF \u05E4\u05BF\u05D5\u05E0\u05E7\u05E6\u05D9\u05D0\u05B8\u05E0\u05D9\u05E8\u05DF, \u05D0\u05F2\u05B7\u05E0\u05E9\u05DC\u05D9\u05E1\u05E0\u05D3\u05D9\u05E7 \u05E4\u05BC\u05E8\u05D5\u05BC\u05D5\u05D5\u05DF \u05E6\u05D5 \u05D4\u05D0\u05B7\u05E7\u05DF, \u05D0\u05D5\u05DE\u05D3\u05E2\u05E8\u05DC\u05D5\u05D9\u05D1\u05D8\u05DF \u05E6\u05D5\u05D8\u05E8\u05D9\u05D8 \u05E6\u05D5 \u05D3\u05D0\u05B7\u05D8\u05DF, \u05D0\u05B8\u05D3\u05E2\u05E8 \u05D0\u05D5\u05D9\u05D8\u05D0\u05B8\u05DE\u05D0\u05B7\u05D8\u05D9\u05E9\u05E2 \u05E9\u05D0\u05B7\u05E4\u05BF\u05DF \u05E4\u05BF\u05D5\u05DF \u05D0\u05D9\u05E0\u05D4\u05D0\u05B7\u05DC\u05D8 (scraping) \u05D0\u05B8\u05DF \u05E4\u05BF\u05E8\u05D9\u05B4\u05E2\u05E8\u05D3\u05D9\u05E7\u05E2\u05E8 \u05D3\u05E2\u05E8\u05DC\u05D5\u05D9\u05D1\u05E2\u05E0\u05D9\u05E9.",
+  "terms.ip_title": "\u05D0\u05D9\u05E0\u05D8\u05E2\u05DC\u05E2\u05E7\u05D8\u05D5\u05E2\u05DC\u05E2 \u05D0\u05D9\u05D9\u05D2\u05E0\u05D8\u05D5\u05DD",
+  "terms.ip_body": "\u05D0\u05B7\u05DC\u05E2 \u05E8\u05E2\u05DB\u05D8 \u05D0\u05D9\u05DF \u05D3\u05E2\u05DD \u05D0\u05D9\u05E0\u05D4\u05D0\u05B7\u05DC\u05D8 \u05E4\u05BF\u05D5\u05DF \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC, \u05D0\u05F2\u05B7\u05E0\u05E9\u05DC\u05D9\u05E1\u05E0\u05D3\u05D9\u05E7 \u05D8\u05E2\u05E7\u05E1\u05D8\u05DF, \u05D3\u05D9\u05D6\u05D9\u05D9\u05DF, \u05DC\u05D0\u05B8\u05D2\u05D0\u05B8 \u05D0\u05D5\u05DF \u05D1\u05D9\u05DC\u05D3\u05E2\u05E8, \u05D2\u05E2\u05D4\u05E2\u05E8\u05DF \u05E6\u05D5 \u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 \u05D0\u05B8\u05D3\u05E2\u05E8 \u05E6\u05D5 \u05D3\u05E8\u05D9\u05D8\u05E2 \u05E6\u05D3\u05D3\u05D9\u05DD \u05D5\u05D5\u05D0\u05B8\u05E1 \u05D4\u05D0\u05B8\u05D1\u05DF \u05D2\u05E2\u05D2\u05E2\u05D1\u05DF \u05DC\u05D9\u05E6\u05E2\u05E0\u05E5 \u05E4\u05BF\u05D0\u05B7\u05E8 \u05D6\u05D9\u05D9\u05E2\u05E8 \u05D1\u05D0\u05B7\u05E0\u05D9\u05E5, \u05D0\u05D5\u05DF \u05E7\u05E2\u05E0\u05E2\u05DF \u05E0\u05D9\u05E9\u05D8 \u05D6\u05F2\u05B7\u05DF \u05E7\u05D0\u05B8\u05E4\u05BC\u05D9\u05E8\u05D8 \u05D0\u05B8\u05D3\u05E2\u05E8 \u05D2\u05E2\u05E0\u05D5\u05E6\u05D8 \u05D0\u05B8\u05DF \u05E9\u05E8\u05D9\u05E4\u05BF\u05D8\u05DC\u05E2\u05DB\u05E2\u05E8 \u05D3\u05E2\u05E8\u05DC\u05D5\u05D9\u05D1\u05E2\u05E0\u05D9\u05E9.",
+  "terms.liability_title": "\u05D1\u05D0\u05B7\u05D2\u05E8\u05E2\u05E0\u05E2\u05E6\u05D5\u05E0\u05D2 \u05E4\u05BF\u05D5\u05DF \u05D0\u05B7\u05D7\u05E8\u05D9\u05D5\u05EA",
+  "terms.liability_body": "\u05D3\u05D9 \u05D0\u05D9\u05E0\u05E4\u05BF\u05D0\u05B8\u05E8\u05DE\u05D0\u05B7\u05E6\u05D9\u05E2 \u05D0\u05D5\u05D9\u05E3 \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC \u05D5\u05D5\u05E2\u05E8\u05D8 \u05D2\u05E2\u05D2\u05E2\u05D1\u05DF \u05E0\u05D0\u05B8\u05E8 \u05E4\u05BF\u05D0\u05B7\u05E8 \u05D0\u05B7\u05DC\u05D2\u05E2\u05DE\u05D9\u05D9\u05E0\u05E2 \u05D0\u05D9\u05E0\u05E4\u05BF\u05D0\u05B8\u05E8\u05DE\u05D0\u05B7\u05D8\u05D9\u05D5\u05D5\u05E2 \u05E6\u05D5\u05D5\u05E2\u05E7\u05DF \u05D0\u05D5\u05DF \u05D0\u05D9\u05D6 \u05E0\u05D9\u05E9\u05D8 \u05E7\u05D9\u05D9\u05DF \u05DE\u05E2\u05D3\u05D9\u05E6\u05D9\u05E0\u05D9\u05E9\u05E2 \u05E2\u05E6\u05D4. \u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 \u05D0\u05D9\u05D6 \u05E0\u05D9\u05E9\u05D8 \u05D0\u05B7\u05D7\u05E8\u05D0\u05D9\u05EA \u05E4\u05BF\u05D0\u05B7\u05E8 \u05E7\u05D9\u05D9\u05DF \u05E9\u05D0\u05B8\u05D3\u05DF \u05D5\u05D5\u05D0\u05B8\u05E1 \u05E7\u05D5\u05DE\u05D8 \u05E4\u05BF\u05D5\u05DF \u05E4\u05BF\u05D0\u05B7\u05E8\u05DC\u05D0\u05B8\u05D6\u05DF \u05D6\u05D9\u05DA \u05D0\u05D5\u05D9\u05E3 \u05D3\u05E2\u05DD \u05D0\u05D9\u05E0\u05D4\u05D0\u05B7\u05DC\u05D8 \u05E4\u05BF\u05D5\u05DF \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC \u05D0\u05B8\u05DF \u05E4\u05BC\u05D0\u05B7\u05E1\u05D9\u05E7\u05E2\u05E8 \u05E4\u05BC\u05E8\u05D0\u05B8\u05E4\u05BF\u05E2\u05E1\u05D9\u05D0\u05B8\u05E0\u05E2\u05DC\u05E2\u05E8 \u05E7\u05D0\u05B8\u05E0\u05E1\u05D5\u05DC\u05D8\u05D0\u05B7\u05E6\u05D9\u05E2. \u05DC\u05D9\u05E0\u05E7\u05E1 \u05E6\u05D5 \u05D0\u05D5\u05D9\u05E1\u05E2\u05E8\u05DC\u05E2\u05DB\u05E2 \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC\u05E2\u05DA \u05D0\u05D5\u05DF \u05E1\u05E2\u05E8\u05D5\u05D5\u05D9\u05E1\u05DF (\u05D0\u05B7\u05D6\u05D5\u05D9 \u05D5\u05D5\u05D9 WhatsApp \u05D0\u05D5\u05DF \u05E1\u05D0\u05B8\u05E6\u05D9\u05D0\u05B7\u05DC\u05E2 \u05DE\u05E2\u05D3\u05D9\u05E2) \u05D6\u05E2\u05E0\u05E2\u05DF \u05D0\u05D5\u05E0\u05D8\u05E2\u05E8\u05D8\u05E2\u05E0\u05D9\u05E7 \u05E6\u05D5 \u05D3\u05D9 \u05D8\u05E2\u05E8\u05DE\u05D9\u05E0\u05E2\u05DF \u05E4\u05BF\u05D5\u05DF \u05D1\u05D0\u05B7\u05E0\u05D9\u05E5 \u05D0\u05D5\u05DF \u05E4\u05BC\u05E8\u05D9\u05D5\u05D5\u05D0\u05B7\u05D8\u05E7\u05D9\u05D9\u05D8\u05BE\u05E4\u05BC\u05D0\u05B8\u05DC\u05D9\u05D8\u05D9\u05E7\u05E1 \u05E4\u05BF\u05D5\u05DF \u05D9\u05E2\u05E0\u05E2 \u05D3\u05E8\u05D9\u05D8\u05E2 \u05E6\u05D3\u05D3\u05D9\u05DD, \u05D0\u05D5\u05DF \u05DE\u05D9\u05E8 \u05D6\u05E2\u05E0\u05E2\u05DF \u05E0\u05D9\u05E9\u05D8 \u05D0\u05B7\u05D7\u05E8\u05D0\u05D9\u05DD \u05E4\u05BF\u05D0\u05B7\u05E8 \u05D6\u05D9\u05D9\u05E2\u05E8 \u05D0\u05D9\u05E0\u05D4\u05D0\u05B7\u05DC\u05D8.",
+  "terms.jurisdiction_title": "\u05D2\u05E2\u05D6\u05E2\u05E5 \u05D0\u05D5\u05DF \u05D9\u05D5\u05E8\u05D9\u05E1\u05D3\u05D9\u05E7\u05E6\u05D9\u05E2",
+  "terms.jurisdiction_body": "\u05D3\u05D9 \u05D8\u05E2\u05E8\u05DE\u05D9\u05E0\u05E2\u05DF \u05D5\u05D5\u05E2\u05E8\u05DF \u05E8\u05E2\u05D2\u05D5\u05DC\u05D9\u05E8\u05D8 \u05DC\u05D5\u05D9\u05D8 \u05D3\u05D9 \u05D2\u05E2\u05D6\u05E2\u05E6\u05DF \u05E4\u05BF\u05D5\u05DF \u05DE\u05D3\u05D9\u05E0\u05EA \u05D9\u05E9\u05E8\u05D0\u05DC, \u05D0\u05D5\u05DF \u05D3\u05D9 \u05D1\u05EA\u05D9-\u05D3\u05D9\u05DF \u05E4\u05BF\u05D5\u05DF \u05EA\u05DC-\u05D0\u05D1\u05D9\u05D1 \u05D3\u05D9\u05E1\u05D8\u05E8\u05D9\u05E7\u05D8 \u05D4\u05D0\u05B8\u05D1\u05DF \u05D1\u05DC\u05D5\u05D9\u05D6 \u05D9\u05D5\u05E8\u05D9\u05E1\u05D3\u05D9\u05E7\u05E6\u05D9\u05E2 \u05D0\u05D9\u05D1\u05E2\u05E8 \u05D9\u05E2\u05D3\u05E2\u05E8 \u05E2\u05E0\u05D9\u05DF \u05D5\u05D5\u05D0\u05B8\u05E1 \u05D1\u05D0\u05B7\u05D8\u05E8\u05E2\u05E4\u05BF\u05D8 \u05D6\u05D9\u05D9.",
+  "terms.changes_title": "\u05E2\u05E0\u05D3\u05E2\u05E8\u05D5\u05E0\u05D2\u05E2\u05DF \u05D0\u05D9\u05DF \u05D3\u05D9 \u05D8\u05E2\u05E8\u05DE\u05D9\u05E0\u05E2\u05DF",
+  "terms.changes_body": "\u05DE\u05D9\u05E8 \u05E7\u05E2\u05E0\u05E2\u05DF \u05D0\u05B7\u05E7\u05D8\u05D5\u05D0\u05B7\u05DC\u05D9\u05D6\u05D9\u05E8\u05DF \u05D3\u05D9 \u05D8\u05E2\u05E8\u05DE\u05D9\u05E0\u05E2\u05DF \u05E4\u05BF\u05D5\u05DF \u05E6\u05F2\u05B7\u05D8 \u05E6\u05D5 \u05E6\u05F2\u05B7\u05D8. \u05D5\u05D5\u05F2\u05B7\u05D8\u05E2\u05E8\u05D3\u05D9\u05E7\u05E2\u05E8 \u05D1\u05D0\u05B7\u05E0\u05D9\u05E5 \u05E4\u05BF\u05D5\u05DF \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC \u05E0\u05D0\u05B8\u05DA \u05E2\u05E0\u05D3\u05E2\u05E8\u05D5\u05E0\u05D2\u05E2\u05DF \u05D5\u05D5\u05E2\u05E8\u05DF \u05E4\u05BC\u05D5\u05D1\u05DC\u05D9\u05E7\u05D9\u05E8\u05D8 \u05D0\u05D9\u05D6 \u05D0\u05B7 \u05D4\u05E1\u05DB\u05DE\u05D4 \u05E6\u05D5 \u05D3\u05D9 \u05D0\u05B7\u05E7\u05D8\u05D5\u05D0\u05B7\u05DC\u05D9\u05D6\u05D9\u05E8\u05D8\u05E2 \u05D8\u05E2\u05E8\u05DE\u05D9\u05E0\u05E2\u05DF.",
+  "terms.contact_title": "\u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8",
+  "terms.updated_date": "\u05D3\u05D9 \u05D8\u05E2\u05E8\u05DE\u05D9\u05E0\u05E2\u05DF \u05D6\u05E2\u05E0\u05E2\u05DF \u05DC\u05E2\u05E6\u05D8\u05E0\u05E1 \u05D0\u05B7\u05E7\u05D8\u05D5\u05D0\u05B7\u05DC\u05D9\u05D6\u05D9\u05E8\u05D8 \u05D2\u05E2\u05D5\u05D5\u05D0\u05B8\u05E8\u05DF: 15\u05D8\u05DF \u05D9\u05D5\u05DC\u05D9 2026.",
+  "privacy.title": "\u05E4\u05BC\u05E8\u05D9\u05D5\u05D5\u05D0\u05B7\u05D8\u05E7\u05D9\u05D9\u05D8\u05BE\u05E4\u05BC\u05D0\u05B8\u05DC\u05D9\u05D8\u05D9\u05E7",
+  "privacy.intro": '\u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 ("\u05DE\u05D9\u05E8", "\u05D3\u05D9 \u05E7\u05DC\u05D9\u05E0\u05D9\u05E7") \u05E8\u05E2\u05E1\u05E4\u05BC\u05E2\u05E7\u05D8\u05D9\u05E8\u05D8 \u05D0\u05F2\u05B7\u05E2\u05E8 \u05E4\u05BC\u05E8\u05D9\u05D5\u05D5\u05D0\u05B7\u05D8\u05E7\u05D9\u05D9\u05D8. \u05D3\u05D9 \u05E4\u05BC\u05D0\u05B8\u05DC\u05D9\u05D8\u05D9\u05E7 \u05D3\u05E2\u05E8\u05E7\u05DC\u05E2\u05E8\u05D8 \u05D5\u05D5\u05D0\u05B8\u05E1\u05E2\u05E8\u05E2 \u05D3\u05D0\u05B7\u05D8\u05DF \u05DE\u05D9\u05E8 \u05D6\u05D0\u05B7\u05DE\u05DC\u05E2\u05DF \u05D3\u05D5\u05E8\u05DA \u05D3\u05E2\u05DD \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC, \u05E4\u05BF\u05D0\u05B7\u05E8 \u05D5\u05D5\u05D0\u05B8\u05E1 \u05DE\u05D9\u05E8 \u05D1\u05D0\u05B7\u05E0\u05D9\u05E6\u05DF \u05D6\u05D9\u05D9, \u05D0\u05D5\u05DF \u05D5\u05D5\u05D9 \u05E6\u05D5 \u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8\u05D9\u05E8\u05DF \u05D0\u05D5\u05E0\u05D3\u05D6 \u05D5\u05D5\u05E2\u05D2\u05DF \u05D3\u05E2\u05DD. \u05E2\u05E1 \u05E4\u05BF\u05D5\u05E0\u05E7\u05E6\u05D9\u05D0\u05B8\u05E0\u05D9\u05E8\u05D8 \u05DC\u05D5\u05D9\u05D8 \u05D9\u05E9\u05E8\u05D0\u05DC\u05E1 \u05E4\u05BC\u05E8\u05D9\u05D5\u05D5\u05D0\u05B7\u05D8\u05E7\u05D9\u05D9\u05D8\u05BE\u05E9\u05D5\u05E5 \u05D2\u05E2\u05D6\u05E2\u05E5 \u05E4\u05BF\u05D5\u05DF 1981 \u05D0\u05D5\u05DF \u05D3\u05D9 \u05E4\u05BC\u05E8\u05D9\u05D5\u05D5\u05D0\u05B7\u05D8\u05E7\u05D9\u05D9\u05D8\u05BE\u05E9\u05D5\u05E5 (\u05D3\u05D0\u05B7\u05D8\u05DF\u05BE\u05D6\u05D9\u05DB\u05E2\u05E8\u05D4\u05D9\u05D9\u05D8) \u05E8\u05E2\u05D2\u05D5\u05DC\u05D0\u05B7\u05E6\u05D9\u05E2\u05E1 \u05E4\u05BF\u05D5\u05DF 2017.',
+  "privacy.data_collected_title": "\u05D0\u05D9\u05E0\u05E4\u05BF\u05D0\u05B8\u05E8\u05DE\u05D0\u05B7\u05E6\u05D9\u05E2 \u05D5\u05D5\u05D0\u05B8\u05E1 \u05DE\u05D9\u05E8 \u05D6\u05D0\u05B7\u05DE\u05DC\u05E2\u05DF",
+  "privacy.data_collected_1": "\u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8\u05BE\u05E4\u05BC\u05E8\u05D8\u05D9\u05DD: \u05E0\u05D0\u05B8\u05DE\u05E2\u05DF, \u05D0\u05D9\u05DE\u05E2\u05D9\u05DC\u05BE\u05D0\u05B7\u05D3\u05E8\u05E2\u05E1 \u05D0\u05D5\u05DF \u05D8\u05E2\u05DC\u05E2\u05E4\u05BF\u05D0\u05B8\u05DF\u05BE\u05E0\u05D5\u05DE\u05E2\u05E8, \u05D5\u05D5\u05E2\u05DF \u05D0\u05D9\u05E8 \u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8\u05D9\u05E8\u05D8 \u05D0\u05D5\u05E0\u05D3\u05D6, \u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05DC\u05D8 \u05D0\u05B7 \u05D8\u05E2\u05E8\u05DE\u05D9\u05DF, \u05D0\u05B8\u05D3\u05E2\u05E8 \u05D1\u05D0\u05B7\u05E0\u05D9\u05E6\u05D8 \u05D3\u05E2\u05DD \u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8\u05BE\u05E4\u05BF\u05D0\u05B8\u05E8\u05E2\u05DD.",
+  "privacy.data_collected_2": "ADHD \u05E1\u05E7\u05E8\u05D9\u05E0\u05D9\u05E0\u05D2 \u05E4\u05BF\u05E8\u05D0\u05B7\u05D2\u05E2\u05D1\u05D5\u05D9\u05D2\u05DF \u05D3\u05D0\u05B7\u05D8\u05DF: \u05D3\u05E2\u05DD \u05E7\u05D9\u05E0\u05D3\u05E1 \u05E0\u05D0\u05B8\u05DE\u05E2\u05DF, \u05E2\u05DC\u05D8\u05E2\u05E8, \u05DE\u05D9\u05DF \u05D0\u05D5\u05DF \u05E9\u05D9\u05D9\u05DB\u05D5\u05EA \u05E6\u05D5\u05DD \u05E2\u05E0\u05D8\u05E4\u05BF\u05E2\u05E8\u05E2\u05E8, \u05E6\u05D5\u05D6\u05D0\u05B7\u05DE\u05E2\u05DF \u05DE\u05D9\u05D8 \u05D3\u05D9 \u05E2\u05E0\u05D8\u05E4\u05BF\u05E2\u05E8\u05E1 \u05E4\u05BF\u05D5\u05DF \u05D3\u05E2\u05DD \u05E4\u05BF\u05E8\u05D0\u05B7\u05D2\u05E2\u05D1\u05D5\u05D9\u05D2\u05DF. \u05D3\u05D0\u05B8\u05E1 \u05D0\u05D9\u05D6 \u05E1\u05E2\u05E0\u05E1\u05D9\u05D8\u05D9\u05D5\u05D5\u05E2 \u05D0\u05D9\u05E0\u05E4\u05BF\u05D0\u05B8\u05E8\u05DE\u05D0\u05B7\u05E6\u05D9\u05E2 \u05D5\u05D5\u05D0\u05B8\u05E1 \u05D1\u05D0\u05B7\u05D8\u05E8\u05E2\u05E4\u05BF\u05D8 \u05D0\u05B7\u05DF \u05E2\u05E8\u05E9\u05D8\u05D9\u05E7\u05E2 \u05E7\u05DC\u05D9\u05E0\u05D9\u05E9 \u05D0\u05B8\u05E4\u05BC\u05E9\u05D0\u05B7\u05E6\u05D5\u05E0\u05D2, \u05D0\u05D5\u05DF \u05DE\u05D9\u05E8 \u05D4\u05D0\u05B7\u05E0\u05D3\u05DC\u05E2\u05DF \u05DE\u05D9\u05D8 \u05D3\u05E2\u05DD \u05DE\u05D9\u05D8 \u05E6\u05D5\u05D2\u05E2\u05D2\u05E2\u05D1\u05E2\u05E0\u05E2\u05E8 \u05D0\u05B8\u05E4\u05BC\u05D4\u05D9\u05D8\u05D5\u05E0\u05D2.",
+  "privacy.data_collected_3": "\u05E0\u05D9\u05D9\u05D8\u05D9\u05E7\u05E2, \u05E1\u05D8\u05D0\u05B7\u05D8\u05D9\u05E1\u05D8\u05D9\u05E9\u05E2 \u05D0\u05D5\u05DF \u05E4\u05BC\u05E8\u05E2\u05E4\u05BF\u05E2\u05E8\u05E2\u05E0\u05E5 \u05E7\u05D5\u05E7\u05D9\u05E1, \u05D5\u05D5\u05D9 \u05D3\u05E2\u05D8\u05D0\u05B7\u05DC\u05D9\u05E8\u05D8 \u05D0\u05D9\u05DF \u05D3\u05E2\u05DD \u05E7\u05D5\u05E7\u05D9\u05BE\u05D1\u05D0\u05B7\u05E0\u05E2\u05E8 \u05E4\u05BF\u05D5\u05DF \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC.",
+  "privacy.data_collected_4": "\u05D9\u05E1\u05D5\u05D3\u05D5\u05EA\u05D3\u05D9\u05E7\u05E2 \u05D8\u05E2\u05DB\u05E0\u05D9\u05E9\u05E2 \u05D1\u05D0\u05B7\u05E0\u05D9\u05E5\u05BE\u05D3\u05D0\u05B7\u05D8\u05DF (\u05D0\u05B7\u05D6\u05D5\u05D9 \u05D5\u05D5\u05D9 \u05D1\u05E8\u05D0\u05B7\u05D5\u05D6\u05E2\u05E8 \u05D0\u05D5\u05DF \u05D3\u05E2\u05D5\u05D5\u05F2\u05B7\u05E1\u05BE\u05D8\u05D9\u05E4\u05BC) \u05D5\u05D5\u05D0\u05B8\u05E1 \u05D5\u05D5\u05E2\u05E8\u05DF \u05D0\u05D5\u05D9\u05D8\u05D0\u05B8\u05DE\u05D0\u05B7\u05D8\u05D9\u05E9 \u05D2\u05E2\u05D6\u05D0\u05B7\u05DE\u05DC\u05D8 \u05E6\u05D5 \u05E4\u05BF\u05D9\u05E8\u05DF \u05D3\u05E2\u05DD \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC.",
+  "privacy.purposes_title": "\u05E6\u05D5\u05D5\u05E2\u05E7\u05DF \u05E4\u05BF\u05D5\u05DF \u05D1\u05D0\u05B7\u05E0\u05D9\u05E5",
+  "privacy.purpose_1": "\u05E4\u05BC\u05DC\u05D0\u05B7\u05E0\u05D9\u05E8\u05DF \u05D0\u05D5\u05DF \u05E4\u05BF\u05D9\u05E8\u05DF \u05D8\u05E2\u05E8\u05DE\u05D9\u05E0\u05E2\u05DF.",
+  "privacy.purpose_2": "\u05E4\u05BC\u05E8\u05D0\u05B8\u05E6\u05E2\u05E1\u05D9\u05E8\u05DF \u05E1\u05E7\u05E8\u05D9\u05E0\u05D9\u05E0\u05D2 \u05E4\u05BF\u05E8\u05D0\u05B7\u05D2\u05E2\u05D1\u05D5\u05D9\u05D2\u05E0\u05E1 \u05E4\u05BF\u05D0\u05B7\u05E8 \u05D0\u05B7\u05DF \u05E2\u05E8\u05E9\u05D8\u05D9\u05E7\u05E2\u05E8 \u05E7\u05DC\u05D9\u05E0\u05D9\u05E9 \u05D0\u05B8\u05E4\u05BC\u05E9\u05D0\u05B7\u05E6\u05D5\u05E0\u05D2 \u05D3\u05D5\u05E8\u05DA \u05D0\u05D5\u05E0\u05D3\u05D6\u05E2\u05E8 \u05E7\u05DC\u05D9\u05E0\u05D9\u05E9 \u05E4\u05BC\u05E2\u05E8\u05E1\u05D0\u05B8\u05E0\u05D0\u05B7\u05DC.",
+  "privacy.purpose_3": "\u05E2\u05E0\u05D8\u05E4\u05BF\u05E2\u05E8\u05DF \u05D0\u05D5\u05D9\u05E3 \u05E4\u05BF\u05E8\u05D0\u05B7\u05D2\u05E2\u05E1 \u05D0\u05D5\u05DF \u05D0\u05D9\u05E0\u05E4\u05BF\u05D0\u05B8\u05E8\u05DE\u05D0\u05B7\u05E6\u05D9\u05E2\u05BE\u05D1\u05E7\u05E9\u05D5\u05EA.",
+  "privacy.purpose_4": "\u05E4\u05BF\u05D0\u05B7\u05E8\u05D1\u05E2\u05E1\u05E2\u05E8\u05DF \u05D3\u05D9 \u05E1\u05E2\u05E8\u05D5\u05D5\u05D9\u05E1 \u05D0\u05D5\u05DF \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC, \u05D0\u05D5\u05DF \u05D0\u05B7\u05DC\u05D2\u05E2\u05DE\u05D9\u05D9\u05E0\u05E2 \u05E1\u05D8\u05D0\u05B7\u05D8\u05D9\u05E1\u05D8\u05D9\u05E9\u05E2 \u05D1\u05D0\u05B7\u05E0\u05D9\u05E5\u05BE\u05D0\u05B7\u05E0\u05D0\u05B7\u05DC\u05D9\u05D6.",
+  "privacy.purpose_5": "\u05D3\u05E2\u05E8\u05E4\u05BF\u05D9\u05DC\u05DF \u05DC\u05E2\u05D2\u05D0\u05B7\u05DC\u05E2 \u05D0\u05D5\u05DF \u05E8\u05E2\u05D2\u05D5\u05DC\u05D0\u05B7\u05D8\u05D0\u05B8\u05E8\u05D9\u05E9\u05E2 \u05E4\u05BF\u05D0\u05B7\u05E8\u05E4\u05BF\u05DC\u05D9\u05DB\u05D8\u05D5\u05E0\u05D2\u05E2\u05DF \u05D5\u05D5\u05D0\u05B8\u05E1 \u05D1\u05D0\u05B7\u05D8\u05E8\u05E2\u05E4\u05BF\u05DF \u05D0\u05D5\u05E0\u05D3\u05D6.",
+  "privacy.sharing_title": "\u05D8\u05D9\u05D9\u05DC\u05DF \u05D0\u05D9\u05E0\u05E4\u05BF\u05D0\u05B8\u05E8\u05DE\u05D0\u05B7\u05E6\u05D9\u05E2",
+  "privacy.sharing_body": "\u05DE\u05D9\u05E8 \u05E4\u05BF\u05D0\u05B7\u05E8\u05E7\u05D5\u05D9\u05E4\u05BF\u05DF \u05E0\u05D9\u05E9\u05D8 \u05D0\u05F2\u05B7\u05E2\u05E8 \u05E4\u05BC\u05E2\u05E8\u05D6\u05E2\u05E0\u05DC\u05E2\u05DB\u05E2 \u05D0\u05D9\u05E0\u05E4\u05BF\u05D0\u05B8\u05E8\u05DE\u05D0\u05B7\u05E6\u05D9\u05E2. \u05D3\u05D0\u05B7\u05D8\u05DF \u05D6\u05E2\u05E0\u05E2\u05DF \u05E6\u05D5\u05D8\u05E8\u05D9\u05D8\u05DC\u05E2\u05DA \u05E4\u05BF\u05D0\u05B7\u05E8 \u05E7\u05DC\u05D9\u05E0\u05D9\u05E7\u05BE\u05E4\u05BC\u05E2\u05E8\u05E1\u05D0\u05B8\u05E0\u05D0\u05B7\u05DC \u05D1\u05DC\u05D5\u05D9\u05D6 \u05E4\u05BF\u05D0\u05B7\u05E8 \u05E6\u05D5\u05E9\u05D8\u05E2\u05DC\u05DF \u05E7\u05E2\u05D9\u05E8, \u05D0\u05D5\u05DF \u05E7\u05E2\u05E0\u05E2\u05DF \u05D6\u05F2\u05B7\u05DF \u05D0\u05B7\u05E0\u05D8\u05E4\u05BC\u05DC\u05E2\u05E7\u05D8 \u05D0\u05D5\u05D9\u05D1 \u05E4\u05BF\u05D0\u05B7\u05E8\u05DC\u05D0\u05B7\u05E0\u05D2\u05D8 \u05D3\u05D5\u05E8\u05DA \u05D2\u05E2\u05D6\u05E2\u05E5 \u05D0\u05B8\u05D3\u05E2\u05E8 \u05D0\u05B7 \u05E7\u05D0\u05B8\u05DE\u05E4\u05BC\u05E2\u05D8\u05E2\u05E0\u05D8\u05E2\u05E8 \u05D0\u05D5\u05D9\u05D8\u05D0\u05B8\u05E8\u05D9\u05D8\u05E2\u05D8. \u05D3\u05E2\u05E8 WhatsApp \u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8\u05BE\u05DC\u05D9\u05E0\u05E7 \u05E2\u05E4\u05BF\u05E0\u05D8 \u05D3\u05D9 \u05D0\u05D5\u05D9\u05E1\u05E2\u05E8\u05DC\u05E2\u05DB\u05E2 WhatsApp \u05D0\u05B7\u05E4\u05BC\u05DC\u05D9\u05E7\u05D0\u05B7\u05E6\u05D9\u05E2, \u05D5\u05D5\u05D0\u05B8\u05E1 \u05D5\u05D5\u05E2\u05E8\u05D8 \u05E8\u05E2\u05D2\u05D5\u05DC\u05D9\u05E8\u05D8 \u05D3\u05D5\u05E8\u05DA \u05D0\u05D9\u05E8 \u05D0\u05D9\u05D9\u05D2\u05E2\u05E0\u05E2\u05E8 \u05E4\u05BC\u05E8\u05D9\u05D5\u05D5\u05D0\u05B7\u05D8\u05E7\u05D9\u05D9\u05D8\u05BE\u05E4\u05BC\u05D0\u05B8\u05DC\u05D9\u05D8\u05D9\u05E7.",
+  "privacy.security_title": "\u05D3\u05D0\u05B7\u05D8\u05DF\u05BE\u05D6\u05D9\u05DB\u05E2\u05E8\u05D4\u05D9\u05D9\u05D8 \u05D0\u05D5\u05DF \u05D0\u05B8\u05E4\u05BC\u05D4\u05D9\u05D8\u05D5\u05E0\u05D2",
+  "privacy.security_body": "\u05DE\u05D9\u05E8 \u05E0\u05E2\u05DE\u05E2\u05DF \u05E4\u05BF\u05D0\u05B7\u05E8\u05E0\u05D5\u05E0\u05E4\u05BF\u05D8\u05D9\u05E7\u05E2 \u05D8\u05E2\u05DB\u05E0\u05D9\u05E9\u05E2 \u05D0\u05D5\u05DF \u05D0\u05B8\u05E8\u05D2\u05D0\u05B7\u05E0\u05D9\u05D6\u05D0\u05B7\u05E6\u05D9\u05D0\u05B8\u05E0\u05E2\u05DC\u05E2 \u05DE\u05D9\u05D8\u05DC\u05E2\u05DF \u05E6\u05D5 \u05D1\u05D0\u05B7\u05E9\u05D9\u05E6\u05DF \u05D3\u05D9 \u05D0\u05D9\u05E0\u05E4\u05BF\u05D0\u05B8\u05E8\u05DE\u05D0\u05B7\u05E6\u05D9\u05E2 \u05D5\u05D5\u05D0\u05B8\u05E1 \u05DE\u05D9\u05E8 \u05D6\u05D0\u05B7\u05DE\u05DC\u05E2\u05DF. \u05D0\u05D9\u05E0\u05E4\u05BF\u05D0\u05B8\u05E8\u05DE\u05D0\u05B7\u05E6\u05D9\u05E2 \u05D5\u05D5\u05E2\u05E8\u05D8 \u05D0\u05B8\u05E4\u05BC\u05D2\u05E2\u05D4\u05D9\u05D8 \u05D0\u05B7\u05D6\u05D5\u05D9 \u05DC\u05D0\u05B7\u05E0\u05D2 \u05D5\u05D5\u05D9 \u05E0\u05D9\u05D9\u05D8\u05D9\u05E7 \u05E6\u05D5 \u05E6\u05D5\u05E9\u05D8\u05E2\u05DC\u05DF \u05D3\u05D9 \u05E1\u05E2\u05E8\u05D5\u05D5\u05D9\u05E1 \u05D0\u05D5\u05DF \u05D3\u05E2\u05E8\u05E4\u05BF\u05D9\u05DC\u05DF \u05D0\u05B7\u05E4\u05BC\u05DC\u05D9\u05E7\u05D9\u05E8\u05D8\u05E2 \u05DE\u05E2\u05D3\u05D9\u05E6\u05D9\u05E0\u05D9\u05E9\u05E2/\u05D2\u05E2\u05E9\u05E2\u05E4\u05BF\u05D8\u05DC\u05E2\u05DB\u05E2 \u05E8\u05E2\u05E7\u05D0\u05B8\u05E8\u05D3\u05BE\u05D0\u05B8\u05E4\u05BC\u05D4\u05D9\u05D8\u05D5\u05E0\u05D2 \u05E4\u05BF\u05D0\u05B7\u05E8\u05E4\u05BF\u05DC\u05D9\u05DB\u05D8\u05D5\u05E0\u05D2\u05E2\u05DF, \u05D0\u05D5\u05DF \u05D3\u05E2\u05E8\u05E0\u05D0\u05B8\u05DA \u05D5\u05D5\u05E2\u05E8\u05D8 \u05E2\u05E1 \u05D0\u05D5\u05D9\u05E1\u05D2\u05E2\u05DE\u05E2\u05E7\u05D8 \u05D0\u05B8\u05D3\u05E2\u05E8 \u05D0\u05B7\u05E0\u05D0\u05B8\u05E0\u05D9\u05DD \u05D2\u05E2\u05DE\u05D0\u05B7\u05DB\u05D8.",
+  "privacy.rights_title": "\u05D0\u05F2\u05B7\u05E2\u05E8\u05E2 \u05E8\u05E2\u05DB\u05D8",
+  "privacy.rights_body": "\u05DC\u05D5\u05D9\u05D8 \u05D3\u05E2\u05DD \u05E4\u05BC\u05E8\u05D9\u05D5\u05D5\u05D0\u05B7\u05D8\u05E7\u05D9\u05D9\u05D8\u05BE\u05E9\u05D5\u05E5 \u05D2\u05E2\u05D6\u05E2\u05E5, \u05D4\u05D0\u05B8\u05D8 \u05D0\u05D9\u05E8 \u05D3\u05D0\u05B8\u05E1 \u05E8\u05E2\u05DB\u05D8 \u05E6\u05D5 \u05D6\u05E2\u05DF \u05D3\u05D9 \u05D0\u05D9\u05E0\u05E4\u05BF\u05D0\u05B8\u05E8\u05DE\u05D0\u05B7\u05E6\u05D9\u05E2 \u05D5\u05D5\u05D0\u05B8\u05E1 \u05D5\u05D5\u05E2\u05E8\u05D8 \u05D2\u05E2\u05D4\u05D0\u05B7\u05DC\u05D8\u05DF \u05D5\u05D5\u05E2\u05D2\u05DF \u05D0\u05F2\u05B7\u05DA, \u05E4\u05BF\u05D0\u05B7\u05E8\u05DC\u05D0\u05B7\u05E0\u05D2\u05E2\u05DF \u05D0\u05D9\u05E8 \u05E7\u05D0\u05B8\u05E8\u05E2\u05E7\u05D8\u05D5\u05E8, \u05D0\u05D5\u05DF \u05D0\u05D9\u05DF \u05D2\u05E2\u05D5\u05D5\u05D9\u05E1\u05E2 \u05E4\u05BF\u05D0\u05B7\u05DC\u05DF \u05E4\u05BF\u05D0\u05B7\u05E8\u05DC\u05D0\u05B7\u05E0\u05D2\u05E2\u05DF \u05D0\u05D9\u05E8 \u05D0\u05D5\u05D9\u05E1\u05DE\u05E2\u05E7\u05D5\u05E0\u05D2. \u05E6\u05D5 \u05E0\u05D5\u05E6\u05DF \u05D3\u05D9 \u05E8\u05E2\u05DB\u05D8, \u05D1\u05D9\u05D8\u05E2 \u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8\u05D9\u05E8\u05D8 \u05D0\u05D5\u05E0\u05D3\u05D6 \u05DE\u05D9\u05D8 \u05D3\u05D9 \u05E4\u05BC\u05E8\u05D8\u05D9\u05DD \u05D0\u05D5\u05E0\u05D8\u05DF.",
+  "privacy.contact_title": "\u05E4\u05BC\u05E8\u05D9\u05D5\u05D5\u05D0\u05B7\u05D8\u05E7\u05D9\u05D9\u05D8 \u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8",
+  "privacy.updated_date": "\u05D3\u05D9 \u05E4\u05BC\u05D0\u05B8\u05DC\u05D9\u05D8\u05D9\u05E7 \u05D0\u05D9\u05D6 \u05DC\u05E2\u05E6\u05D8\u05E0\u05E1 \u05D0\u05B7\u05E7\u05D8\u05D5\u05D0\u05B7\u05DC\u05D9\u05D6\u05D9\u05E8\u05D8 \u05D2\u05E2\u05D5\u05D5\u05D0\u05B8\u05E8\u05DF: 15\u05D8\u05DF \u05D9\u05D5\u05DC\u05D9 2026.",
+  "a11y_statement.title": "\u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05E7\u05D9\u05D9\u05D8 \u05D3\u05E2\u05E8\u05E7\u05DC\u05E2\u05E8\u05D5\u05E0\u05D2",
+  "a11y_statement.intro": "\u05E7\u05E9\u05D1 \u05E4\u05DC\u05D5\u05E1 \u05D0\u05B7\u05E8\u05D1\u05E2\u05D8 \u05E6\u05D5 \u05DE\u05D0\u05B7\u05DB\u05DF \u05D6\u05F2\u05B7\u05E0\u05E2 \u05D3\u05D9\u05D2\u05D9\u05D8\u05D0\u05B7\u05DC\u05E2 \u05E1\u05E2\u05E8\u05D5\u05D5\u05D9\u05E1\u05DF \u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DA \u05E4\u05BF\u05D0\u05B7\u05E8\u05DF \u05D1\u05E8\u05D9\u05D9\u05D8\u05DF \u05E6\u05D9\u05D1\u05D5\u05E8, \u05D0\u05F2\u05B7\u05E0\u05E9\u05DC\u05D9\u05E1\u05E0\u05D3\u05D9\u05E7 \u05DE\u05E2\u05E0\u05D8\u05E9\u05DF \u05DE\u05D9\u05D8 \u05DE\u05D5\u05D2\u05D1\u05DC\u05D5\u05D9\u05D5\u05EA, \u05E4\u05BF\u05D5\u05DF \u05D0\u05B7 \u05D2\u05DC\u05D5\u05D9\u05D1\u05DF \u05D0\u05B7\u05D6 \u05D9\u05E2\u05D3\u05E2\u05E8 \u05E4\u05BF\u05D0\u05B7\u05E8\u05D3\u05D9\u05E0\u05D8 \u05D0\u05B7 \u05D2\u05DC\u05F2\u05B7\u05DB\u05DF \u05D0\u05D5\u05DF \u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05DF \u05E1\u05E2\u05E8\u05D5\u05D5\u05D9\u05E1. \u05D3\u05D9 \u05D0\u05B7\u05E8\u05D1\u05E2\u05D8 \u05D5\u05D5\u05E2\u05E8\u05D8 \u05D2\u05E2\u05D8\u05D0\u05B8\u05DF \u05DC\u05D5\u05D9\u05D8 \u05D9\u05E9\u05E8\u05D0\u05DC\u05E1 \u05D2\u05E2\u05D6\u05E2\u05E5 \u05E4\u05BF\u05D5\u05DF \u05D2\u05DC\u05F2\u05B7\u05DB\u05E2 \u05E8\u05E2\u05DB\u05D8 \u05E4\u05BF\u05D0\u05B7\u05E8 \u05DE\u05E2\u05E0\u05D8\u05E9\u05DF \u05DE\u05D9\u05D8 \u05DE\u05D5\u05D2\u05D1\u05DC\u05D5\u05D9\u05D5\u05EA \u05E4\u05BF\u05D5\u05DF 1998, \u05D3\u05D9 \u05E8\u05E2\u05D2\u05D5\u05DC\u05D0\u05B7\u05E6\u05D9\u05E2\u05E1 \u05E4\u05BF\u05D5\u05DF \u05D2\u05DC\u05F2\u05B7\u05DB\u05E2 \u05E8\u05E2\u05DB\u05D8 (\u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05E7\u05D9\u05D9\u05D8 \u05D0\u05B8\u05E0\u05E4\u05BC\u05D0\u05B7\u05E1\u05D5\u05E0\u05D2\u05E2\u05DF) \u05E4\u05BF\u05D5\u05DF 2013, \u05D0\u05D5\u05DF \u05DC\u05D5\u05D9\u05D8 \u05D9\u05E9\u05E8\u05D0\u05DC\u05D3\u05D9\u05E7\u05DF \u05E1\u05D8\u05D0\u05B7\u05E0\u05D3\u05D0\u05B7\u05E8\u05D3 5568 \u05D0\u05D5\u05DF \u05D3\u05D9 \u05D0\u05D9\u05E0\u05D8\u05E2\u05E8\u05E0\u05D0\u05B7\u05E6\u05D9\u05D0\u05B8\u05E0\u05D0\u05B7\u05DC\u05E2 WCAG 2.0 \u05E8\u05D9\u05DB\u05D8\u05DC\u05D9\u05E0\u05D9\u05E2\u05E1 \u05D0\u05D5\u05D9\u05E3 \u05DE\u05D3\u05E8\u05D2\u05D4 AA.",
+  "a11y_statement.accommodations_title": "\u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05E7\u05D9\u05D9\u05D8 \u05D0\u05B8\u05E0\u05E4\u05BC\u05D0\u05B7\u05E1\u05D5\u05E0\u05D2\u05E2\u05DF \u05D0\u05D5\u05D9\u05E3 \u05D3\u05E2\u05DD \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC",
+  "a11y_statement.accommodation_1": "\u05D0\u05B7 \u05E1\u05E4\u05BC\u05E2\u05E6\u05D9\u05E2\u05DC \u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05E7\u05D9\u05D9\u05D8 \u05DE\u05E2\u05E0\u05D9\u05D5 (\u05E8\u05E2\u05D3\u05DC-\u05D1\u05E2\u05E0\u05E7\u05DC \u05D0\u05D9\u05D9\u05E7\u05D0\u05B8\u05DF \u05D0\u05D9\u05DF \u05D3\u05E2\u05DD \u05D5\u05D5\u05D9\u05E0\u05E7\u05DC \u05E4\u05BF\u05D5\u05DF \u05E2\u05E7\u05E8\u05D0\u05B7\u05DF) \u05D5\u05D5\u05D0\u05B8\u05E1 \u05DC\u05D0\u05B8\u05D6\u05D8 \u05D9\u05E2\u05D3\u05DF \u05D1\u05D0\u05B7\u05D6\u05D5\u05DB\u05E2\u05E8 \u05D0\u05B8\u05E0\u05E4\u05BC\u05D0\u05B7\u05E1\u05DF \u05D3\u05E2\u05DD \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC \u05E6\u05D5 \u05D6\u05F2\u05B7\u05E0\u05E2 \u05D1\u05D0\u05B7\u05D3\u05E2\u05E8\u05E4\u05BF\u05E2\u05E0\u05D9\u05E9\u05DF.",
+  "a11y_statement.accommodation_2": "\u05E4\u05BF\u05D0\u05B7\u05E8\u05D2\u05E8\u05E2\u05E1\u05E2\u05E8\u05DF \u05D0\u05D5\u05DF \u05E4\u05BF\u05D0\u05B7\u05E8\u05E7\u05DC\u05E2\u05E0\u05E2\u05E8\u05DF \u05D8\u05E2\u05E7\u05E1\u05D8 \u05D2\u05E8\u05D9\u05D9\u05E1.",
+  "a11y_statement.accommodation_3": "\u05D0\u05B8\u05E0\u05E4\u05BC\u05D0\u05B7\u05E1\u05DF \u05E9\u05D5\u05E8\u05D4 \u05D4\u05D9\u05D9\u05DA \u05D0\u05D5\u05DF \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA/\u05D5\u05D5\u05E2\u05E8\u05D8\u05E2\u05E8 \u05E8\u05D0\u05B7\u05DD \u05E4\u05BF\u05D0\u05B7\u05E8 \u05DC\u05D9\u05D9\u05E2\u05E0\u05E2\u05E8 \u05DE\u05D9\u05D8 \u05DC\u05D9\u05D9\u05E2\u05DF-\u05E9\u05D5\u05D5\u05E2\u05E8\u05D9\u05E7\u05D9\u05D9\u05D8\u05DF.",
+  "a11y_statement.accommodation_4": "\u05D4\u05D5\u05D9\u05DB\u05E2 \u05E7\u05D0\u05B8\u05E0\u05D8\u05E8\u05D0\u05B7\u05E1\u05D8 \u05DE\u05D0\u05B8\u05D3\u05D5\u05E1 \u05D0\u05D5\u05DF \u05D2\u05E8\u05D5\u05D9 \u05E1\u05E7\u05D0\u05B7\u05DC\u05E2 \u05DE\u05D0\u05B8\u05D3\u05D5\u05E1.",
+  "a11y_statement.accommodation_5": "\u05D1\u05D0\u05B7\u05D8\u05D0\u05B8\u05E0\u05E2\u05DF \u05DC\u05D9\u05E0\u05E7\u05E1.",
+  "a11y_statement.accommodation_6": "\u05D0\u05D9\u05D1\u05E2\u05E8\u05E9\u05D0\u05B7\u05DC\u05D8\u05DF \u05E6\u05D5 \u05D0\u05B7 \u05D6\u05D9\u05D9\u05E2\u05E8 \u05DC\u05D9\u05D9\u05E2\u05E0\u05E2\u05D5\u05D5\u05D3\u05D9\u05E7\u05DF \u05E4\u05BF\u05D0\u05B8\u05E0\u05D8.",
+  "a11y_statement.accommodation_7": "\u05D0\u05B7 \u05E4\u05BF\u05D0\u05B7\u05E8\u05D2\u05E8\u05E2\u05E1\u05E2\u05E8\u05D8\u05E2\u05E8 \u05DE\u05D5\u05D9\u05D6 \u05E7\u05D5\u05E8\u05E1\u05D0\u05B8\u05E8.",
+  "a11y_statement.accommodation_8": "\u05D0\u05B7 \u05D1\u05D0\u05B7\u05D5\u05D5\u05E2\u05D2\u05DC\u05E2\u05DB\u05E2\u05E8 \u05DC\u05D9\u05D9\u05E2\u05DF \u05E4\u05D9\u05E8\u05E2\u05E8 \u05D5\u05D5\u05D0\u05B8\u05E1 \u05E4\u05BF\u05D0\u05B8\u05DC\u05D2\u05D8 \u05D3\u05E2\u05DD \u05E7\u05D5\u05E8\u05E1\u05D0\u05B8\u05E8.",
+  "a11y_statement.accommodation_9": "\u05D0\u05B8\u05E4\u05BC\u05E9\u05D8\u05E2\u05DC\u05DF \u05D0\u05B7\u05E0\u05D9\u05DE\u05D0\u05B7\u05E6\u05D9\u05E2\u05E1 \u05D0\u05D5\u05DF \u05D0\u05D9\u05D1\u05E2\u05E8\u05D2\u05D0\u05B7\u05E0\u05D2\u05E2\u05DF.",
+  "a11y_statement.accommodation_10": "\u05D8\u05D5\u05E0\u05E7\u05E2\u05DC\u05E2\u05E8 \u05DE\u05D0\u05B8\u05D3\u05D5\u05E1 (Dark Mode).",
+  "a11y_statement.accommodation_11": "\u05D1\u05D0\u05B7\u05E9\u05E8\u05F2\u05B7\u05D1\u05E0\u05D3\u05D9\u05E7\u05E2 \u05D0\u05B7\u05DC\u05D8\u05E2\u05E8\u05E0\u05D0\u05B7\u05D8\u05D9\u05D5\u05D5\u05E2 \u05D8\u05E2\u05E7\u05E1\u05D8\u05DF (alt) \u05E4\u05BF\u05D0\u05B7\u05E8 \u05D1\u05D9\u05DC\u05D3\u05E2\u05E8 \u05D0\u05D5\u05D9\u05E3 \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC.",
+  "a11y_statement.accommodation_12": "\u05D0\u05B7 \u05D3\u05D9\u05E8\u05E2\u05E7\u05D8\u05E2\u05E8 \u05D0\u05B7\u05E8\u05D9\u05D1\u05E2\u05E8\u05E9\u05E4\u05BC\u05E8\u05D9\u05E0\u05D2-\u05DC\u05D9\u05E0\u05E7 \u05E6\u05D5\u05DD \u05D4\u05D5\u05D9\u05E4\u05BC\u05D8 \u05D0\u05D9\u05E0\u05D4\u05D0\u05B7\u05DC\u05D8 \u05E4\u05BF\u05D0\u05B7\u05E8 \u05E7\u05DC\u05D0\u05B7\u05D5\u05D5\u05D9\u05D0\u05B7\u05D8\u05D5\u05E8 \u05D0\u05D5\u05DF \u05E2\u05E7\u05E8\u05D0\u05B7\u05DF-\u05DC\u05D9\u05D9\u05E2\u05E0\u05E2\u05E8 \u05D1\u05D0\u05B7\u05E0\u05D9\u05E6\u05E2\u05E8.",
+  "a11y_statement.accommodation_13": "\u05E9\u05D8\u05D9\u05E6\u05E2 \u05E4\u05BF\u05D0\u05B7\u05E8 \u05E7\u05DC\u05D0\u05B7\u05D5\u05D5\u05D9\u05D0\u05B7\u05D8\u05D5\u05E8 \u05E0\u05D0\u05B7\u05D5\u05D5\u05D9\u05D2\u05D9\u05E8\u05D5\u05E0\u05D2 \u05D0\u05D5\u05DF \u05E7\u05D0\u05B8\u05DE\u05E4\u05BC\u05D0\u05B7\u05D8\u05D9\u05D1\u05D9\u05DC\u05D9\u05D8\u05E2\u05D8 \u05DE\u05D9\u05D8 \u05E4\u05BF\u05D0\u05B7\u05E8\u05E9\u05E4\u05BC\u05E8\u05D9\u05D9\u05D8\u05E2 \u05E2\u05E7\u05E8\u05D0\u05B7\u05DF-\u05DC\u05D9\u05D9\u05E2\u05E0\u05E2\u05E8.",
+  "a11y_statement.accommodation_14": "\u05D0\u05B7 \u05E8\u05E2\u05E1\u05E4\u05BC\u05D0\u05B8\u05E0\u05E1\u05D9\u05D5\u05D5 \u05D3\u05D9\u05D6\u05D9\u05D9\u05DF \u05E4\u05BC\u05D0\u05B7\u05E1\u05D9\u05E7 \u05E4\u05BF\u05D0\u05B7\u05E8 \u05E7\u05D5\u05E7\u05DF \u05D0\u05D5\u05D9\u05E3 \u05DE\u05D0\u05B8\u05D1\u05D9\u05DC, \u05D8\u05D0\u05B7\u05D1\u05DC\u05E2\u05D8 \u05D0\u05D5\u05DF \u05D3\u05E2\u05E1\u05E7\u05D8\u05D0\u05B8\u05E4\u05BC.",
+  "a11y_statement.limitations_title": "\u05D1\u05D0\u05B7\u05E7\u05D0\u05B7\u05E0\u05D8\u05E2 \u05D1\u05D0\u05B7\u05D2\u05E8\u05E2\u05E0\u05E2\u05E6\u05D5\u05E0\u05D2\u05E2\u05DF",
+  "a11y_statement.limitations_body": "\u05DE\u05D9\u05E8 \u05D0\u05B7\u05E8\u05D1\u05E2\u05D8\u05DF \u05E7\u05E2\u05E1\u05D9\u05D9\u05D3\u05E2\u05E8 \u05E6\u05D5 \u05E4\u05BF\u05D0\u05B7\u05E8\u05D1\u05E2\u05E1\u05E2\u05E8\u05DF \u05D3\u05D9 \u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05E7\u05D9\u05D9\u05D8 \u05E4\u05BF\u05D5\u05DF \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC. \u05D8\u05E8\u05D0\u05B8\u05E5 \u05D0\u05D5\u05E0\u05D3\u05D6\u05E2\u05E8\u05E2 \u05D4\u05E9\u05EA\u05D3\u05DC\u05D5\u05EA, \u05E7\u05E2\u05E0\u05E2\u05DF \u05E2\u05D8\u05DC\u05E2\u05DB\u05E2 \u05D8\u05D9\u05D9\u05DC\u05DF \u05E4\u05BF\u05D5\u05DF \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC \u05E0\u05D0\u05B8\u05DA \u05E0\u05D9\u05E9\u05D8 \u05D6\u05F2\u05B7\u05DF \u05E4\u05BF\u05D5\u05DC\u05E7\u05D5\u05DD \u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DA. \u05D0\u05D5\u05D9\u05D1 \u05D0\u05D9\u05E8 \u05D8\u05E8\u05E2\u05E4\u05BF\u05D8 \u05D0\u05D9\u05E0\u05D4\u05D0\u05B7\u05DC\u05D8, \u05D0\u05B7 \u05D1\u05DC\u05D0\u05B7\u05D8 \u05D0\u05B8\u05D3\u05E2\u05E8 \u05D0\u05B7 \u05E7\u05D0\u05B8\u05DE\u05E4\u05BC\u05D0\u05B8\u05E0\u05E2\u05E0\u05D8 \u05D5\u05D5\u05D0\u05B8\u05E1 \u05D0\u05D9\u05D6 \u05E0\u05D9\u05E9\u05D8 \u05E8\u05D9\u05DB\u05D8\u05D9\u05E7 \u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DA, \u05D1\u05D9\u05D8\u05E2 \u05DC\u05D0\u05B8\u05D6\u05D8 \u05D0\u05D5\u05E0\u05D3\u05D6 \u05D5\u05D5\u05D9\u05E1\u05DF \u05DB\u05D3\u05D9 \u05DE\u05D9\u05E8 \u05D6\u05D0\u05B8\u05DC\u05DF \u05E7\u05E2\u05E0\u05E2\u05DF \u05D0\u05B8\u05E0\u05D5\u05D5\u05E2\u05E0\u05D3\u05DF \u05D3\u05D0\u05B8\u05E1 \u05D0\u05B7\u05D6\u05D5\u05D9 \u05D2\u05D9\u05DA \u05D5\u05D5\u05D9 \u05DE\u05E2\u05D2\u05DC\u05E2\u05DA.",
+  "a11y_statement.coordinator_title": "\u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05E7\u05D9\u05D9\u05D8 \u05E7\u05D0\u05B8\u05D0\u05B8\u05E8\u05D3\u05D9\u05E0\u05D0\u05B7\u05D8\u05D0\u05B8\u05E8 \u05D0\u05D5\u05DF \u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8",
+  "a11y_statement.coordinator_intro": "\u05E4\u05BF\u05E8\u05D0\u05B7\u05D2\u05E2\u05E1, \u05D1\u05D0\u05B7\u05DE\u05E2\u05E8\u05E7\u05D5\u05E0\u05D2\u05E2\u05DF \u05D0\u05D5\u05DF \u05E4\u05BF\u05D0\u05B8\u05E8\u05E9\u05DC\u05D0\u05B8\u05D2\u05DF \u05D5\u05D5\u05E2\u05D2\u05DF \u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05E7\u05D9\u05D9\u05D8 \u05E4\u05BF\u05D5\u05DF \u05D5\u05D5\u05E2\u05D1\u05D6\u05D9\u05D9\u05D8\u05DC \u05E7\u05E2\u05E0\u05E2\u05DF \u05D6\u05F2\u05B7\u05DF \u05D2\u05E2\u05E9\u05D9\u05E7\u05D8 \u05D0\u05D5\u05E0\u05D3\u05D6 \u05D3\u05D5\u05E8\u05DA:",
+  "a11y_statement.address": "\u05D9\u05D2\u05D0\u05DC \u05D0\u05DC\u05D5\u05DF 94, \u05EA\u05DC \u05D0\u05D1\u05D9\u05D1",
+  "a11y_statement.response_time": "\u05DE\u05D9\u05E8 \u05E9\u05D8\u05E8\u05E2\u05D1\u05DF \u05E6\u05D5 \u05E2\u05E0\u05D8\u05E4\u05BF\u05E2\u05E8\u05DF \u05D0\u05D5\u05D9\u05E3 \u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05E7\u05D9\u05D9\u05D8 \u05E4\u05BF\u05E8\u05D0\u05B7\u05D2\u05E2\u05E1 \u05D0\u05D9\u05DF \u05D0\u05B7 \u05E4\u05BF\u05D0\u05B7\u05E8\u05E0\u05D5\u05E0\u05E4\u05BF\u05D8\u05D9\u05E7\u05E2\u05E8 \u05E6\u05F2\u05B7\u05D8.",
+  "a11y_statement.further_recourse_title": "\u05D5\u05D5\u05F2\u05B7\u05D8\u05E2\u05E8\u05D3\u05D9\u05E7\u05E2 \u05E6\u05D5\u05E7\u05E2\u05E8\u05D5\u05E0\u05D2",
+  "a11y_statement.further_recourse_body": "\u05D0\u05D5\u05D9\u05D1 \u05D0\u05D9\u05E8 \u05D4\u05D0\u05B8\u05D8 \u05E0\u05D9\u05E9\u05D8 \u05D1\u05D0\u05B7\u05E7\u05D5\u05DE\u05E2\u05DF \u05D0\u05B7 \u05D1\u05D0\u05B7\u05E4\u05BF\u05E8\u05D9\u05D3\u05D9\u05E7\u05E0\u05D3\u05DF \u05E2\u05E0\u05D8\u05E4\u05BF\u05E2\u05E8 \u05E4\u05BF\u05D5\u05DF \u05D0\u05D5\u05E0\u05D3\u05D6, \u05E7\u05E2\u05E0\u05D8 \u05D0\u05D9\u05E8 \u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8\u05D9\u05E8\u05DF \u05D3\u05D9 \u05E7\u05D0\u05B8\u05DE\u05D9\u05E1\u05D9\u05E2 \u05E4\u05BF\u05D0\u05B7\u05E8 \u05D2\u05DC\u05F2\u05B7\u05DB\u05E2 \u05E8\u05E2\u05DB\u05D8 \u05E4\u05BF\u05D0\u05B7\u05E8 \u05DE\u05E2\u05E0\u05D8\u05E9\u05DF \u05DE\u05D9\u05D8 \u05DE\u05D5\u05D2\u05D1\u05DC\u05D5\u05D9\u05D5\u05EA \u05D0\u05D9\u05DF \u05D3\u05E2\u05DD \u05DE\u05D9\u05E0\u05D9\u05E1\u05D8\u05E2\u05E8\u05D9\u05D5\u05DD \u05E4\u05BF\u05D5\u05DF \u05D9\u05D5\u05E1\u05D8\u05D9\u05E5, \u05D5\u05D5\u05D0\u05B8\u05E1 \u05D0\u05D9\u05D6 \u05D0\u05B7\u05D7\u05E8\u05D0\u05D9\u05EA \u05E4\u05BF\u05D0\u05B7\u05E8 \u05D3\u05D5\u05E8\u05DB\u05E4\u05BF\u05D9\u05E8\u05DF \u05D3\u05E2\u05DD \u05D2\u05E2\u05D6\u05E2\u05E5 \u05E4\u05BF\u05D5\u05DF \u05D2\u05DC\u05F2\u05B7\u05DB\u05E2 \u05E8\u05E2\u05DB\u05D8 \u05E4\u05BF\u05D0\u05B7\u05E8 \u05DE\u05E2\u05E0\u05D8\u05E9\u05DF \u05DE\u05D9\u05D8 \u05DE\u05D5\u05D2\u05D1\u05DC\u05D5\u05D9\u05D5\u05EA.",
+  "a11y_statement.updated_date": "\u05D3\u05D9 \u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05E7\u05D9\u05D9\u05D8 \u05D3\u05E2\u05E8\u05E7\u05DC\u05E2\u05E8\u05D5\u05E0\u05D2 \u05D0\u05D9\u05D6 \u05DC\u05E2\u05E6\u05D8\u05E0\u05E1 \u05D0\u05B7\u05E7\u05D8\u05D5\u05D0\u05B7\u05DC\u05D9\u05D6\u05D9\u05E8\u05D8 \u05D2\u05E2\u05D5\u05D5\u05D0\u05B8\u05E8\u05DF: 15\u05D8\u05DF \u05D9\u05D5\u05DC\u05D9 2026.",
+  "booking.title": "\u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05DC\u05DF \u05D0\u05B7 \u05D8\u05E2\u05E8\u05DE\u05D9\u05DF",
+  "booking.modal_intro": "\u05E4\u05BF\u05D9\u05DC\u05D8 \u05D0\u05D5\u05D9\u05E1 \u05D0\u05F2\u05B7\u05E2\u05E8\u05E2 \u05E4\u05BC\u05E8\u05D8\u05D9\u05DD \u05D0\u05D5\u05DF \u05DE\u05D9\u05E8 \u05D5\u05D5\u05E2\u05DC\u05DF \u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05D8\u05D9\u05E7\u05DF \u05D0\u05F2\u05B7\u05E2\u05E8 \u05D8\u05E2\u05E8\u05DE\u05D9\u05DF. \u05E4\u05BF\u05E2\u05DC\u05D3\u05E2\u05E8 \u05DE\u05D9\u05D8 * \u05D6\u05E2\u05E0\u05E2\u05DF \u05E4\u05BF\u05D0\u05B7\u05E8\u05DC\u05D0\u05B7\u05E0\u05D2\u05D8.",
+  "booking.page_subtitle": "\u05E4\u05BF\u05D9\u05DC\u05D8 \u05D0\u05D5\u05D9\u05E1 \u05D0\u05F2\u05B7\u05E2\u05E8\u05E2 \u05E4\u05BC\u05E8\u05D8\u05D9\u05DD \u05D0\u05D5\u05DF \u05DE\u05D9\u05E8 \u05D5\u05D5\u05E2\u05DC\u05DF \u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05D8\u05D9\u05E7\u05DF \u05D0\u05F2\u05B7\u05E2\u05E8 \u05D8\u05E2\u05E8\u05DE\u05D9\u05DF",
+  "booking.details_title": "\u05D8\u05E2\u05E8\u05DE\u05D9\u05DF \u05E4\u05BC\u05E8\u05D8\u05D9\u05DD",
+  "booking.fields_required_note": "\u05E4\u05BF\u05E2\u05DC\u05D3\u05E2\u05E8 \u05DE\u05D9\u05D8 * \u05D6\u05E2\u05E0\u05E2\u05DF \u05E4\u05BF\u05D0\u05B7\u05E8\u05DC\u05D0\u05B7\u05E0\u05D2\u05D8",
+  "booking.full_name": "\u05E4\u05BF\u05D5\u05DC\u05E2\u05E8 \u05E0\u05D0\u05B8\u05DE\u05E2\u05DF",
+  "booking.full_name_placeholder": "\u05D2\u05D9\u05D8 \u05D0\u05B7\u05E8\u05F2\u05B7\u05DF \u05D0\u05F2\u05B7\u05E2\u05E8 \u05E0\u05D0\u05B8\u05DE\u05E2\u05DF",
+  "booking.phone": "\u05D8\u05E2\u05DC\u05E2\u05E4\u05BF\u05D0\u05B8\u05DF",
+  "booking.phone_placeholder": "\u05D0\u05F2\u05B7\u05E2\u05E8 \u05D8\u05E2\u05DC\u05E2\u05E4\u05BF\u05D0\u05B8\u05DF \u05E0\u05D5\u05DE\u05E2\u05E8",
+  "booking.email": "\u05D0\u05D9\u05DE\u05E2\u05D9\u05DC",
+  "booking.email_placeholder": "\u05D0\u05F2\u05B7\u05E2\u05E8 \u05D0\u05D9\u05DE\u05E2\u05D9\u05DC \u05D0\u05B7\u05D3\u05E8\u05E2\u05E1",
+  "booking.appointment_type": "\u05D8\u05E2\u05E8\u05DE\u05D9\u05DF \u05D8\u05D9\u05E4\u05BC",
+  "booking.date": "\u05D3\u05D0\u05B7\u05D8\u05E2",
+  "booking.time": "\u05E6\u05F2\u05B7\u05D8",
+  "booking.checking_availability": "\u05E7\u05D0\u05B8\u05E0\u05D8\u05E8\u05D0\u05B8\u05DC\u05D9\u05E8\u05D8 \u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05E7\u05D9\u05D9\u05D8...",
+  "booking.select_time": "\u05E7\u05DC\u05F2\u05B7\u05D1\u05D8 \u05D0\u05B7 \u05E6\u05F2\u05B7\u05D8",
+  "booking.no_times_available": "\u05E7\u05D9\u05D9\u05DF \u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05E2 \u05E6\u05F2\u05B7\u05D8\u05DF \u05D0\u05D5\u05D9\u05E3 \u05D3\u05E2\u05E8 \u05D3\u05D0\u05B7\u05D8\u05E2.",
+  "booking.notes": "\u05D1\u05D0\u05B7\u05DE\u05E2\u05E8\u05E7\u05D5\u05E0\u05D2\u05E2\u05DF (\u05D0\u05B8\u05E4\u05BC\u05E6\u05D9\u05D0\u05B8\u05E0\u05E2\u05DC)",
+  "booking.notes_placeholder": "\u05D5\u05D5\u05F2\u05B7\u05D8\u05E2\u05E8\u05D3\u05D9\u05E7\u05E2 \u05D0\u05D9\u05E0\u05E4\u05BF\u05D0\u05B8\u05E8\u05DE\u05D0\u05B7\u05E6\u05D9\u05E2...",
+  "booking.submitting": "\u05E9\u05D9\u05E7\u05D8...",
+  "booking.submit": "\u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05DC\u05DF \u05D8\u05E2\u05E8\u05DE\u05D9\u05DF",
+  "booking.close": "\u05E4\u05BF\u05D0\u05B7\u05E8\u05DE\u05D0\u05B7\u05DB\u05DF",
+  "booking.success_title": "\u05D8\u05E2\u05E8\u05DE\u05D9\u05DF \u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05DC\u05D8 \u05DE\u05D9\u05D8 \u05D4\u05E6\u05DC\u05D7\u05D4!",
+  "booking.success_description": "\u05DE\u05D9\u05E8 \u05D5\u05D5\u05E2\u05DC\u05DF \u05D6\u05D9\u05DA \u05E6\u05D5\u05E8\u05D9\u05E7\u05E7\u05E2\u05E8\u05DF \u05E6\u05D5 \u05D0\u05F2\u05B7\u05DA \u05D1\u05D0\u05B7\u05DC\u05D3 \u05E6\u05D5 \u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05D8\u05D9\u05E7\u05DF \u05D0\u05F2\u05B7\u05E2\u05E8 \u05D8\u05E2\u05E8\u05DE\u05D9\u05DF. \u05D0\u05B7 \u05D3\u05D0\u05B7\u05E0\u05E7!",
+  "booking.back_to_home": "\u05E6\u05D5\u05E8\u05D9\u05E7 \u05E6\u05D5\u05DD \u05D4\u05D5\u05D9\u05E4\u05BC\u05D8 \u05D1\u05DC\u05D0\u05B7\u05D8",
+  "booking.date_unavailable_title": "\u05D3\u05D0\u05B7\u05D8\u05E2 \u05E0\u05D9\u05E9\u05D8 \u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DA",
+  "booking.date_unavailable_description": "\u05DE\u05D9\u05E8 \u05D4\u05D0\u05B8\u05D1\u05DF \u05D0\u05D5\u05D9\u05E1\u05D2\u05E2\u05E7\u05DC\u05D9\u05D1\u05DF \u05E4\u05BF\u05D0\u05B7\u05E8 \u05D0\u05F2\u05B7\u05DA \u05D3\u05D9 \u05E0\u05D0\u05B8\u05E2\u05E0\u05D8\u05E1\u05D8\u05E2 \u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05E2 \u05D3\u05D0\u05B7\u05D8\u05E2.",
+  "booking.time_unavailable_title": "\u05E6\u05F2\u05B7\u05D8 \u05E0\u05D9\u05E9\u05D8 \u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DA \u05E4\u05BF\u05D0\u05B7\u05E8 \u05D3\u05E2\u05DD \u05D8\u05D9\u05E4\u05BC",
+  "booking.time_unavailable_description": "\u05D1\u05D9\u05D8\u05E2 \u05E7\u05DC\u05F2\u05B7\u05D1\u05D8 \u05D0\u05B7\u05DF \u05D0\u05B7\u05E0\u05D3\u05E2\u05E8 \u05E6\u05F2\u05B7\u05D8 \u05E4\u05BF\u05D5\u05DF \u05D3\u05E2\u05E8 \u05D0\u05B7\u05E7\u05D8\u05D5\u05D0\u05B7\u05DC\u05D9\u05D6\u05D9\u05E8\u05D8\u05E2\u05E8 \u05E8\u05E9\u05D9\u05DE\u05D4.",
+  "booking.error_title": "\u05D8\u05E2\u05D5\u05EA",
+  "booking.availability_check_failed": "\u05DE\u05D9\u05E8 \u05D4\u05D0\u05B8\u05D1\u05DF \u05E0\u05D9\u05E9\u05D8 \u05D2\u05E2\u05E7\u05E2\u05E0\u05D8 \u05E7\u05D0\u05B8\u05E0\u05D8\u05E8\u05D0\u05B8\u05DC\u05D9\u05E8\u05DF \u05E6\u05D5\u05D2\u05E2\u05E0\u05D2\u05DC\u05E2\u05DB\u05E7\u05D9\u05D9\u05D8. \u05D1\u05D9\u05D8\u05E2 \u05E4\u05BC\u05E8\u05D5\u05BC\u05D5\u05D5\u05D8 \u05D5\u05D5\u05D9\u05D3\u05E2\u05E8.",
+  "booking.fill_required_fields": "\u05D1\u05D9\u05D8\u05E2 \u05E4\u05BF\u05D9\u05DC\u05D8 \u05D0\u05D5\u05D9\u05E1 \u05D0\u05B7\u05DC\u05E2 \u05E4\u05BF\u05D0\u05B7\u05E8\u05DC\u05D0\u05B7\u05E0\u05D2\u05D8\u05E2 \u05E4\u05BF\u05E2\u05DC\u05D3\u05E2\u05E8",
+  "booking.booked_toast_title": "\u05D8\u05E2\u05E8\u05DE\u05D9\u05DF \u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05DC\u05D8!",
+  "booking.booked_toast_description": "\u05DE\u05D9\u05E8 \u05D5\u05D5\u05E2\u05DC\u05DF \u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05D8\u05D9\u05E7\u05DF \u05D0\u05F2\u05B7\u05E2\u05E8 \u05D8\u05E2\u05E8\u05DE\u05D9\u05DF \u05D1\u05D0\u05B7\u05DC\u05D3",
+  "booking.submit_failed": "\u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05DC\u05DF \u05D8\u05E2\u05E8\u05DE\u05D9\u05DF \u05D0\u05D9\u05D6 \u05E0\u05D9\u05E9\u05D8 \u05D2\u05E2\u05DC\u05D5\u05E0\u05D2\u05E2\u05DF. \u05D1\u05D9\u05D8\u05E2 \u05E4\u05BC\u05E8\u05D5\u05BC\u05D5\u05D5\u05D8 \u05D5\u05D5\u05D9\u05D3\u05E2\u05E8.",
+  "questionnaire_modal.invalid_type": "\u05D0\u05D5\u05DE\u05D2\u05D9\u05DC\u05D8\u05D9\u05E7\u05E2\u05E8 \u05E4\u05BF\u05E8\u05D0\u05B7\u05D2\u05E2\u05D1\u05D5\u05D9\u05D2\u05DF \u05D8\u05D9\u05E4\u05BC",
+  "questionnaire_modal.close": "\u05E4\u05BF\u05D0\u05B7\u05E8\u05DE\u05D0\u05B7\u05DB\u05DF"
 };
 var yi_default = yi;
 
@@ -2077,6 +4498,8 @@ var it = {
   "nav.faq": "Domande Frequenti",
   "nav.questionnaires": "Questionari",
   "nav.contact": "Contattaci",
+  "nav.book": "Prenota",
+  "nav.book_now": "Prenota ora",
   "hero.title": "Benvenuti alla",
   "hero.clinic": 'Clinica "Keshev Plus"',
   "hero.subtitle": "Bambini \u2022 Adolescenti \u2022 Adulti",
@@ -2112,6 +4535,36 @@ var it = {
   "nav.open_menu": "Apri menu",
   "contact.subtitle": "Lascia i tuoi dati e ti ricontatteremo il prima possibile",
   "contact.leave_details": "Lascia i Tuoi Dati",
+  "contact.email_placeholder": "Email",
+  "contact.phone_placeholder": "Numero di telefono",
+  "contact.topic_label": "Oggetto",
+  "contact.topic_option1": "Diagnosi ADHD",
+  "contact.topic_option2": "Test MOXO",
+  "contact.topic_option3": "Altro",
+  "contact.address_label": "Indirizzo:",
+  "contact.email_label": "Email:",
+  "contact.details_title": "Dettagli di contatto",
+  "contact.directions_title": "Indicazioni e parcheggio",
+  "contact.clear_form": "Cancella modulo",
+  "services.subtitle": "Offriamo una vasta gamma di servizi professionali nella diagnosi e nel trattamento dell'ADHD",
+  "contact.aria_open_form": "Clicca per aprire il modulo di contatto",
+  "contact.click_to_open_form": "Clicca per aprire il modulo",
+  "contact.navigate_waze": "Naviga con Waze",
+  "contact.navigate_google_maps": "Naviga con Google Maps",
+  "chat.open": "Apri chat",
+  "chat.how_can_help": "Come posso aiutarti?",
+  "chat.close": "Chiudi",
+  "chat.assistant_name": "Assistente KeshevPlus",
+  "chat.not_you": "Non sei {name}?",
+  "chat.before_start": "Prima di iniziare, inserisci i tuoi dati:",
+  "chat.full_name_placeholder": "Nome completo *",
+  "chat.email_placeholder": "Email *",
+  "chat.phone_placeholder": "Telefono (facoltativo)",
+  "chat.starting": "Avvio in corso...",
+  "chat.start_chat": "Avvia chat",
+  "chat.welcome_message": "Ciao {name}! Sono l'assistente virtuale di KeshevPlus. Come posso aiutarti?",
+  "chat.type_message": "Scrivi un messaggio...",
+  "chat.assistant_typing": "L'assistente sta scrivendo",
   "contact.full_name": "Nome Completo",
   "contact.phone_label": "Telefono",
   "contact.email_optional": "Email (opzionale)",
@@ -2145,6 +4598,7 @@ var it = {
   "footer.contact_info": "Informazioni di Contatto",
   "footer.follow_us": "Seguici",
   "footer.privacy_policy": "Informativa sulla Privacy",
+  "footer.accessibility_statement": "Dichiarazione di accessibilit\xE0",
   "footer.terms_of_use": "Termini di Utilizzo",
   "footer.address": "Via Yigal Alon 94, Tel Aviv",
   "footer.hours": "Dom-Gio 09:00-19:00",
@@ -2235,6 +4689,27 @@ var it = {
   "faq.a6": "ADD \xE8 il vecchio termine per il deficit di attenzione senza iperattivit\xE0. Oggi si usa il termine ADHD con tre sottotipi: prevalentemente disattento, prevalentemente iperattivo-impulsivo o combinato.",
   "services.process_steps": "Fasi del processo diagnostico",
   "footer.rights": "\xA9 2025 Tutti i diritti riservati a Keshev Plus",
+  "footer.moxo_certified": "Certificato Moxo",
+  "footer.moxo_certified_desc": "Valutazione computerizzata dell'ADHD",
+  "cookies.notice": "Questo sito utilizza i cookie per migliorare la tua esperienza di navigazione e per scopi statistici. Continuando a navigare nel sito, accetti l'uso dei cookie in conformit\xE0 con la nostra informativa sulla privacy.",
+  "cookies.used_include": "I cookie utilizzati su questo sito includono:",
+  "cookies.essential": "Cookie essenziali - per il corretto funzionamento del sito",
+  "cookies.statistical": "Cookie statistici - per l'analisi dell'utilizzo e il miglioramento del servizio",
+  "cookies.preference": "Cookie di preferenza - per salvare le preferenze dell'utente",
+  "cookies.privacy_note": "In conformit\xE0 con la legge sulla protezione della privacy, ti informiamo sull'uso dei cookie e richiediamo il tuo consenso.",
+  "cookies.hide_details": "Nascondi dettagli",
+  "cookies.more_info": "Maggiori informazioni",
+  "cookies.accept": "Accetto",
+  "appt_date.select_date": "Seleziona data",
+  "appt_date.clinic_closed": "La clinica \xE8 chiusa in questo giorno",
+  "appt_date.gray_unavailable": "I giorni in grigio non sono disponibili per gli appuntamenti.",
+  "appt_for.who": "Per chi \xE8 l'appuntamento?",
+  "appt_for.me": "Per me",
+  "appt_for.child": "Per il bambino/a",
+  "appt_for.child_name": "Nome del bambino/a",
+  "appt_for.child_age": "Et\xE0 del bambino/a",
+  "appt_for.child_age_placeholder": "(minimo 6)",
+  "appt_for.min_age_error": "L'et\xE0 minima \xE8 6",
   "admin.dashboard": "Pannello di Amministrazione",
   "admin.welcome": "Bentornato",
   "admin.signout": "Esci",
@@ -2246,11 +4721,146 @@ var it = {
   "admin.multilingual": "Multilingue (Tutte le lingue)",
   "admin.default_language": "Lingua Predefinita",
   "admin.settings_saved": "Impostazioni salvate con successo",
-  "admin.settings_error": "Impossibile salvare le impostazioni"
+  "admin.settings_error": "Impossibile salvare le impostazioni",
+  "a11y.accessibility_settings": "Impostazioni di accessibilit\xE0",
+  "a11y.text_size": "Dimensione del testo",
+  "a11y.decrease_text": "Riduci testo",
+  "a11y.increase_text": "Ingrandisci testo",
+  "a11y.line_height": "Altezza riga",
+  "a11y.decrease_line_height": "Riduci altezza riga",
+  "a11y.increase_line_height": "Aumenta altezza riga",
+  "a11y.letter_spacing": "Spaziatura lettere",
+  "a11y.decrease_letter_spacing": "Riduci spaziatura lettere",
+  "a11y.increase_letter_spacing": "Aumenta spaziatura lettere",
+  "a11y.reading_guide": "Guida alla lettura",
+  "a11y.high_contrast": "Alto contrasto",
+  "a11y.highlight_links": "Evidenzia link",
+  "a11y.grayscale": "Scala di grigi",
+  "a11y.readable_font": "Carattere leggibile",
+  "a11y.large_cursor": "Cursore grande",
+  "a11y.stop_animations": "Ferma animazioni",
+  "a11y.reset": "Ripristina",
+  "a11y.close": "Chiudi",
+  "a11y.accessibility_menu": "Menu accessibilit\xE0",
+  "a11y.dark_mode": "Modalit\xE0 scura",
+  "a11y.light_mode": "Modalit\xE0 chiara",
+  "a11y.accessibility_statement": "Dichiarazione di accessibilit\xE0",
+  "a11y.accessibility_statement_text": "Questo sito \xE8 impegnato per l'accessibilit\xE0 digitale in conformit\xE0 con la legge israeliana.",
+  "terms.title": "Termini di utilizzo",
+  "terms.intro": `L'uso del sito web Keshev Plus ("il Sito") \xE8 soggetto ai termini riportati di seguito. La navigazione sul Sito e/o l'uso dei suoi servizi costituisce accettazione di questi termini.`,
+  "terms.service_nature_title": "Natura del servizio",
+  "terms.service_nature_p1": "Il Sito fornisce informazioni generali sulla diagnosi e il trattamento dell'ADHD, oltre a strumenti online per la programmazione di appuntamenti e la compilazione di questionari di screening iniziali.",
+  "terms.service_nature_p2": "I questionari di screening online non costituiscono una diagnosi medica e non sostituiscono la consulenza, la diagnosi o il trattamento da parte di un professionista qualificato. I risultati del questionario sono destinati esclusivamente ad assistere il nostro personale clinico in una valutazione iniziale; la diagnosi finale viene fornita solo tramite una valutazione clinica.",
+  "terms.fair_use_title": "Uso corretto del sito",
+  "terms.fair_use_body": "Il Sito non pu\xF2 essere utilizzato per scopi illegali, e non si pu\xF2 tentare di interferire con il suo corretto funzionamento, inclusi tentativi di hacking, accesso non autorizzato ai dati o scraping automatizzato senza previo consenso.",
+  "terms.ip_title": "Propriet\xE0 intellettuale",
+  "terms.ip_body": "Tutti i diritti sui contenuti del Sito, inclusi testi, design, logo e immagini, appartengono a Keshev Plus o a terze parti che ne hanno concesso in licenza l'uso, e non possono essere copiati o utilizzati senza autorizzazione scritta.",
+  "terms.liability_title": "Limitazione di responsabilit\xE0",
+  "terms.liability_body": "Le informazioni sul Sito sono fornite esclusivamente a scopo informativo generale e non costituiscono consulenza medica. Keshev Plus non \xE8 responsabile per eventuali danni derivanti dall'affidamento sui contenuti del Sito senza un'adeguata consulenza professionale. I link a siti e servizi esterni (come WhatsApp e i social media) sono soggetti ai termini di utilizzo e alle politiche sulla privacy di tali terze parti, e non siamo responsabili dei loro contenuti.",
+  "terms.jurisdiction_title": "Legge applicabile e giurisdizione",
+  "terms.jurisdiction_body": "Questi termini sono regolati dalle leggi dello Stato di Israele, e i tribunali del distretto di Tel Aviv hanno giurisdizione esclusiva su qualsiasi questione ad essi relativa.",
+  "terms.changes_title": "Modifiche a questi termini",
+  "terms.changes_body": "Potremmo aggiornare questi termini di tanto in tanto. La continuazione dell'uso del Sito dopo la pubblicazione di modifiche costituisce accettazione dei termini aggiornati.",
+  "terms.contact_title": "Contatto",
+  "terms.updated_date": "Questi termini sono stati aggiornati l'ultima volta il: 15 luglio 2026.",
+  "privacy.title": "Informativa sulla privacy",
+  "privacy.intro": 'Keshev Plus ("noi", "la clinica") rispetta la tua privacy. Questa informativa spiega quali dati raccogliamo tramite il sito, a cosa li utilizziamo e come contattarci al riguardo. Opera in conformit\xE0 con la Legge israeliana sulla protezione della privacy del 1981 e il Regolamento sulla protezione della privacy (sicurezza dei dati) del 2017.',
+  "privacy.data_collected_title": "Le informazioni che raccogliamo",
+  "privacy.data_collected_1": "Dati di contatto: nome, indirizzo e-mail e numero di telefono, quando ci contatti, prenoti un appuntamento o utilizzi il modulo di contatto.",
+  "privacy.data_collected_2": "Dati del questionario di screening ADHD: nome del bambino/a, et\xE0, genere e relazione con il rispondente, insieme alle risposte al questionario. Si tratta di informazioni sensibili relative a una valutazione clinica iniziale, che trattiamo con particolare attenzione.",
+  "privacy.data_collected_3": "Cookie essenziali, statistici e di preferenza, come dettagliato nel banner dei cookie del sito.",
+  "privacy.data_collected_4": "Dati tecnici di utilizzo di base (come il tipo di browser e dispositivo) raccolti automaticamente per far funzionare il sito.",
+  "privacy.purposes_title": "Finalit\xE0 dell'uso",
+  "privacy.purpose_1": "Programmazione e gestione degli appuntamenti.",
+  "privacy.purpose_2": "Elaborazione dei questionari di screening per una valutazione clinica iniziale da parte del nostro personale clinico.",
+  "privacy.purpose_3": "Risposta a richieste di informazioni.",
+  "privacy.purpose_4": "Miglioramento del servizio e del sito, e analisi statistica generale dell'utilizzo.",
+  "privacy.purpose_5": "Adempimento degli obblighi legali e normativi a noi applicabili.",
+  "privacy.sharing_title": "Condivisione delle informazioni",
+  "privacy.sharing_body": "Non vendiamo i tuoi dati personali. I dati sono accessibili al personale della clinica esclusivamente per fornire assistenza, e potrebbero essere divulgati se richiesto dalla legge o da un'autorit\xE0 competente. Il link di contatto WhatsApp apre l'applicazione esterna WhatsApp, regolata dalla propria informativa sulla privacy.",
+  "privacy.security_title": "Sicurezza e conservazione dei dati",
+  "privacy.security_body": "Adottiamo ragionevoli misure tecniche e organizzative per proteggere le informazioni che raccogliamo. Le informazioni vengono conservate per il tempo necessario a fornire il servizio e a rispettare gli obblighi applicabili di conservazione dei registri medici/aziendali, dopodich\xE9 vengono eliminate o rese anonime.",
+  "privacy.rights_title": "I tuoi diritti",
+  "privacy.rights_body": "In conformit\xE0 con la Legge sulla protezione della privacy, hai il diritto di consultare le informazioni conservate su di te, richiederne la correzione e, in determinate circostanze, richiederne la cancellazione. Per esercitare questi diritti, contattaci utilizzando i dettagli sottostanti.",
+  "privacy.contact_title": "Contatto privacy",
+  "privacy.updated_date": "Questa informativa \xE8 stata aggiornata l'ultima volta il: 15 luglio 2026.",
+  "a11y_statement.title": "Dichiarazione di accessibilit\xE0",
+  "a11y_statement.intro": "Keshev Plus si impegna a rendere i propri servizi digitali accessibili al pubblico in generale, incluse le persone con disabilit\xE0, nella convinzione che tutti meritino un servizio equo e accessibile. Questo lavoro viene svolto in conformit\xE0 con la Legge israeliana sulla parit\xE0 di diritti delle persone con disabilit\xE0 del 1998, il Regolamento sulla parit\xE0 di diritti delle persone con disabilit\xE0 (adeguamenti di accessibilit\xE0 del servizio) del 2013, e in linea con lo standard israeliano 5568 e le linee guida internazionali WCAG 2.0 livello AA.",
+  "a11y_statement.accommodations_title": "Adeguamenti di accessibilit\xE0 su questo sito",
+  "a11y_statement.accommodation_1": "Un menu di accessibilit\xE0 dedicato (icona a forma di sedia a rotelle nell'angolo dello schermo) che consente a ogni visitatore di adattare il sito alle proprie esigenze.",
+  "a11y_statement.accommodation_2": "Aumento e riduzione della dimensione del testo.",
+  "a11y_statement.accommodation_3": "Regolazione dell'altezza della riga e della spaziatura tra lettere/parole per lettori con difficolt\xE0 di lettura.",
+  "a11y_statement.accommodation_4": "Modalit\xE0 alto contrasto e modalit\xE0 scala di grigi.",
+  "a11y_statement.accommodation_5": "Evidenziazione dei link.",
+  "a11y_statement.accommodation_6": "Passaggio a un carattere altamente leggibile.",
+  "a11y_statement.accommodation_7": "Cursore del mouse ingrandito.",
+  "a11y_statement.accommodation_8": "Una guida di lettura mobile che segue il cursore.",
+  "a11y_statement.accommodation_9": "Arresto di animazioni e transizioni.",
+  "a11y_statement.accommodation_10": "Modalit\xE0 scura (Dark Mode).",
+  "a11y_statement.accommodation_11": "Testi alternativi descrittivi (alt) per le immagini del sito.",
+  "a11y_statement.accommodation_12": "Un link diretto per saltare al contenuto principale, per utenti di tastiera e screen reader.",
+  "a11y_statement.accommodation_13": "Supporto alla navigazione da tastiera e compatibilit\xE0 con i comuni screen reader.",
+  "a11y_statement.accommodation_14": "Un design responsivo adatto alla visualizzazione su cellulare, tablet e desktop.",
+  "a11y_statement.limitations_title": "Limitazioni note",
+  "a11y_statement.limitations_body": "Lavoriamo continuamente per migliorare l'accessibilit\xE0 del sito. Nonostante i nostri sforzi, alcune parti del sito potrebbero non essere ancora completamente accessibili. Se riscontri contenuti, una pagina o un componente non correttamente accessibili, ti saremmo grati se ce lo facessi sapere in modo da poter intervenire il prima possibile.",
+  "a11y_statement.coordinator_title": "Coordinatore per l'accessibilit\xE0 e contatti",
+  "a11y_statement.coordinator_intro": "Domande, commenti e suggerimenti sull'accessibilit\xE0 del sito possono essere inviati tramite:",
+  "a11y_statement.address": "Via Yigal Alon 94, Tel Aviv",
+  "a11y_statement.response_time": "Ci impegniamo a rispondere alle richieste relative all'accessibilit\xE0 entro un tempo ragionevole.",
+  "a11y_statement.further_recourse_title": "Ulteriori ricorsi",
+  "a11y_statement.further_recourse_body": "Se non hai ricevuto una risposta soddisfacente da parte nostra, puoi contattare la Commissione per la parit\xE0 di diritti delle persone con disabilit\xE0 presso il Ministero della Giustizia, responsabile dell'applicazione della Legge sulla parit\xE0 di diritti delle persone con disabilit\xE0.",
+  "a11y_statement.updated_date": "Questa dichiarazione di accessibilit\xE0 \xE8 stata aggiornata l'ultima volta il: 15 luglio 2026.",
+  "booking.title": "Prenota un appuntamento",
+  "booking.modal_intro": "Compila i tuoi dati e confermeremo il tuo appuntamento. I campi contrassegnati con * sono obbligatori.",
+  "booking.page_subtitle": "Compila i tuoi dati e confermeremo il tuo appuntamento",
+  "booking.details_title": "Dettagli dell'appuntamento",
+  "booking.fields_required_note": "I campi contrassegnati con * sono obbligatori",
+  "booking.full_name": "Nome completo",
+  "booking.full_name_placeholder": "Inserisci il tuo nome",
+  "booking.phone": "Telefono",
+  "booking.phone_placeholder": "Il tuo numero di telefono",
+  "booking.email": "E-mail",
+  "booking.email_placeholder": "Il tuo indirizzo e-mail",
+  "booking.appointment_type": "Tipo di appuntamento",
+  "booking.date": "Data",
+  "booking.time": "Ora",
+  "booking.checking_availability": "Verifica disponibilit\xE0...",
+  "booking.select_time": "Seleziona l'ora",
+  "booking.no_times_available": "Nessun orario disponibile in questa data.",
+  "booking.notes": "Note (facoltativo)",
+  "booking.notes_placeholder": "Qualsiasi informazione aggiuntiva...",
+  "booking.submitting": "Invio in corso...",
+  "booking.submit": "Prenota appuntamento",
+  "booking.close": "Chiudi",
+  "booking.success_title": "Appuntamento prenotato con successo!",
+  "booking.success_description": "Ti ricontatteremo a breve per confermare il tuo appuntamento. Grazie!",
+  "booking.back_to_home": "Torna alla home",
+  "booking.date_unavailable_title": "Data non disponibile",
+  "booking.date_unavailable_description": "Abbiamo selezionato la data disponibile pi\xF9 vicina.",
+  "booking.time_unavailable_title": "Orario non disponibile per questo tipo",
+  "booking.time_unavailable_description": "Scegli un altro orario dall'elenco aggiornato.",
+  "booking.error_title": "Errore",
+  "booking.availability_check_failed": "Impossibile verificare la disponibilit\xE0. Riprova.",
+  "booking.fill_required_fields": "Compila tutti i campi obbligatori",
+  "booking.booked_toast_title": "Appuntamento prenotato!",
+  "booking.booked_toast_description": "Confermeremo il tuo appuntamento a breve",
+  "booking.submit_failed": "Impossibile prenotare l'appuntamento. Riprova.",
+  "questionnaire_modal.invalid_type": "Tipo di questionario non valido",
+  "questionnaire_modal.close": "Chiudi"
 };
 var it_default = it;
 
 // server/routes.ts
+function getAppointmentTypeLabelHe(type) {
+  return APPOINTMENT_TYPES.find((t) => t.value === type)?.he ?? type;
+}
+var CANCEL_CONTACT_METHOD_LABELS_HE = {
+  phone: "\u05E9\u05D9\u05D7\u05EA \u05D8\u05DC\u05E4\u05D5\u05DF",
+  whatsapp: "\u05D4\u05D5\u05D3\u05E2\u05EA WhatsApp",
+  email: "\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC",
+  in_person: "\u05D4\u05D2\u05E2\u05D4 \u05D0\u05D9\u05E9\u05D9\u05EA",
+  other: "\u05D0\u05D7\u05E8"
+};
 var ACTIVE_APPOINTMENT_STATUSES = /* @__PURE__ */ new Set(["pending", "confirmed"]);
 var CONTACT_PHONE = "055-27-399-27";
 var CONTACT_EMAIL = "office@keshevplus.co.il";
@@ -2281,14 +4891,15 @@ function sameAppointmentRequester(appointment, incoming) {
   const incomingEmail = normalizeEmail(incoming.clientEmail);
   return !!incomingEmail && normalizeEmail(appointment.clientEmail) === incomingEmail || !!incomingName && normalizeName(appointment.clientName) === incomingName || phonesMatch(appointment.clientPhone, incoming.clientPhone);
 }
-function getAvailableTimesForDate(allAppointments, date) {
+function getAvailableTimesForDate(allAppointments, date, type, hoursConfig = {}) {
   if (!isAppointmentDateStringWorkingDay(date)) return [];
   const bookedTimes = new Set(
     allAppointments.filter((appointment) => isActiveAppointmentStatus(appointment.status) && appointment.date === date).map((appointment) => appointment.time)
   );
   const now = /* @__PURE__ */ new Date();
   const today = now.toISOString().split("T")[0];
-  return APPOINTMENT_TIME_SLOTS.filter((time) => {
+  const slots = type ? getTimeSlotsForType(type, hoursConfig) : APPOINTMENT_TIME_SLOTS;
+  return slots.filter((time) => {
     if (bookedTimes.has(time)) return false;
     if (date !== today) return true;
     const [hours, minutes] = time.split(":").map(Number);
@@ -2308,12 +4919,12 @@ async function getAppointmentAvailabilityRows() {
     time: row.time
   }));
 }
-function findNextAvailableAppointmentDate(allAppointments, fromDate = /* @__PURE__ */ new Date()) {
+function findNextAvailableAppointmentDate(allAppointments, fromDate = /* @__PURE__ */ new Date(), type, hoursConfig = {}) {
   const cursor = new Date(fromDate);
   cursor.setHours(0, 0, 0, 0);
   for (let i = 0; i < 180; i += 1) {
     const date = cursor.toISOString().split("T")[0];
-    if (getAvailableTimesForDate(allAppointments, date).length > 0) return date;
+    if (getAvailableTimesForDate(allAppointments, date, type, hoursConfig).length > 0) return date;
     cursor.setDate(cursor.getDate() + 1);
   }
   return null;
@@ -2821,7 +5432,11 @@ async function sendNotificationEmail(subject, body) {
 }
 function hasAdminAccess(user) {
   if (!user) return false;
-  return user.role === "admin" || user.role === "owner" || user.role === "superadmin" || user.email === "admin@keshevplus.co.il" || user.email === "dr@keshevplus.co.il";
+  return user.role === "admin" || user.role === "owner" || user.role === "manager" || user.role === "superadmin" || user.email === "admin@keshevplus.co.il" || user.email === "dr@keshevplus.co.il";
+}
+function isOwner(user) {
+  if (!user) return false;
+  return user.role === "owner" || user.email === "dr@keshevplus.co.il";
 }
 async function registerRoutes(app2) {
   app2.post("/api/contact", async (req, res) => {
@@ -2890,6 +5505,125 @@ async function registerRoutes(app2) {
     if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
     const settings = await storage.updateWidgetSettings(req.body);
     res.json(settings);
+  });
+  app2.get("/api/admin/dashboard-layout", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+    try {
+      const layout = await storage.getDashboardLayout();
+      return res.json(layout);
+    } catch (error) {
+      console.error("Error fetching dashboard layout:", error);
+      return res.status(500).json({ error: "Failed to fetch dashboard layout" });
+    }
+  });
+  app2.put("/api/admin/dashboard-layout", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+    const result = dashboardLayoutSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: "Invalid dashboard layout" });
+    const layout = await storage.updateDashboardLayout(result.data);
+    res.json(layout);
+  });
+  app2.get("/api/images/:slot", async (req, res) => {
+    try {
+      const image = await storage.getImage(req.params.slot);
+      if (!image) return res.status(404).end();
+      res.set("Content-Type", image.mimeType);
+      res.set("Cache-Control", "public, max-age=300");
+      res.set("ETag", `"${image.id}-${image.updatedAt.getTime()}"`);
+      return res.send(Buffer.from(image.data, "base64"));
+    } catch (error) {
+      console.error("Error serving image:", error);
+      return res.status(500).end();
+    }
+  });
+  app2.get("/api/admin/images", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+    try {
+      const list = await storage.listImages();
+      return res.json(list);
+    } catch (error) {
+      console.error("Error listing images:", error);
+      return res.status(500).json({ error: "Failed to list images" });
+    }
+  });
+  app2.put("/api/admin/images/:slot", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+    try {
+      const { mimeType, filename, dataBase64 } = req.body;
+      if (typeof mimeType !== "string" || typeof dataBase64 !== "string" || !dataBase64) {
+        return res.status(400).json({ error: "mimeType and dataBase64 are required" });
+      }
+      if (!mimeType.startsWith("image/")) {
+        return res.status(400).json({ error: "Only image uploads are allowed" });
+      }
+      const image = await storage.upsertImage(req.params.slot, mimeType, filename || null, dataBase64);
+      return res.json({ slot: image.slot, mimeType: image.mimeType, filename: image.filename, updatedAt: image.updatedAt });
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      return res.status(500).json({ error: "Failed to upload image" });
+    }
+  });
+  app2.delete("/api/admin/images/:slot", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+    try {
+      const deleted = await storage.deleteImage(req.params.slot);
+      return res.json({ deleted });
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      return res.status(500).json({ error: "Failed to delete image" });
+    }
+  });
+  app2.get("/api/home-sections", async (_req, res) => {
+    try {
+      const sections = await storage.getHomeSections();
+      return res.json(sections.filter((s) => s.enabled));
+    } catch (error) {
+      console.error("Error fetching home sections:", error);
+      return res.status(500).json({ error: "Failed to fetch home sections" });
+    }
+  });
+  app2.get("/api/admin/home-sections", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+    try {
+      const sections = await storage.getHomeSections();
+      return res.json(sections);
+    } catch (error) {
+      console.error("Error fetching home sections:", error);
+      return res.status(500).json({ error: "Failed to fetch home sections" });
+    }
+  });
+  app2.put("/api/admin/home-sections", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+    const result = homeSectionsSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.message });
+    try {
+      const sections = await storage.updateHomeSections(result.data);
+      return res.json(sections);
+    } catch (error) {
+      console.error("Error updating home sections:", error);
+      return res.status(500).json({ error: "Failed to update home sections" });
+    }
   });
   app2.get("/api/contacts", async (req, res) => {
     try {
@@ -2975,7 +5709,8 @@ async function registerRoutes(app2) {
       if (!Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ error: "IDs array is required" });
       }
-      const count = await storage.bulkDeleteContacts(ids.map(Number));
+      const numericIds = ids.map(Number);
+      const count = isOwner(user) ? await storage.bulkDeleteContacts(numericIds) : await storage.bulkArchiveContacts(numericIds);
       return res.json({ success: true, deleted: count });
     } catch (error) {
       return res.status(500).json({ error: "Failed to bulk delete contacts" });
@@ -2990,13 +5725,30 @@ async function registerRoutes(app2) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteContact(id);
+      const deleted = isOwner(user) ? await storage.deleteContact(id) : await storage.archiveContact(id);
       if (!deleted) {
         return res.status(404).json({ error: "Contact not found" });
       }
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete contact" });
+    }
+  });
+  app2.patch("/api/contacts/:id/mark-test", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const isTest = req.body?.isTest !== false;
+      const updated = await storage.setContactTest(id, isTest);
+      if (!updated) return res.status(404).json({ error: "Contact not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update contact" });
     }
   });
   app2.get("/api/settings/language", async (_req, res) => {
@@ -3141,7 +5893,7 @@ async function registerRoutes(app2) {
       const userId = req.session?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+      if (!isOwner(user)) return res.status(403).json({ error: "Owner access required" });
       const allUsers = await db.select({
         id: users.id,
         email: users.email,
@@ -3154,13 +5906,49 @@ async function registerRoutes(app2) {
       return res.status(500).json({ error: "Failed to fetch users" });
     }
   });
+  app2.post("/api/admin/users", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!isOwner(user)) return res.status(403).json({ error: "Owner access required" });
+      const createUserSchema = z2.object({
+        email: z2.string().trim().email(),
+        password: z2.string().min(6),
+        role: z2.enum(["admin", "manager", "user"])
+      });
+      const result = createUserSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.message });
+      }
+      const existing = await storage.getUserByEmail(result.data.email);
+      if (existing) {
+        return res.status(409).json({ error: "A user with this email already exists" });
+      }
+      const bcrypt = await import("bcryptjs");
+      const hash = bcrypt.default?.hash || bcrypt.hash;
+      const hashedPassword = await hash(result.data.password, 10);
+      const created = await storage.createUser({
+        email: result.data.email,
+        password: hashedPassword,
+        role: result.data.role,
+        mustChangePassword: true
+      });
+      return res.json({ id: created.id, email: created.email, role: created.role, mustChangePassword: created.mustChangePassword });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to create user" });
+    }
+  });
   app2.delete("/api/admin/users/:id", async (req, res) => {
     try {
       const userId = req.session?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+      if (!isOwner(user)) return res.status(403).json({ error: "Owner access required" });
       const targetId = parseInt(req.params.id);
+      if (targetId === userId) {
+        return res.status(403).json({ error: "Cannot delete your own account" });
+      }
       const targetUser = await storage.getUser(targetId);
       if (targetUser?.email === "drkeshevplus@gmail.com") {
         return res.status(403).json({ error: "Cannot delete superadmin" });
@@ -3169,6 +5957,48 @@ async function registerRoutes(app2) {
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Delete failed" });
+    }
+  });
+  app2.get("/api/admin/bin", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+      const items = await storage.getBinItems();
+      return res.json(items);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch bin items" });
+    }
+  });
+  app2.post("/api/admin/bin/:type/:id/restore", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+      const { type } = req.params;
+      const id = parseInt(req.params.id);
+      const restored = await storage.restoreBinItem(type, id);
+      if (!restored) return res.status(404).json({ error: "Item not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to restore item" });
+    }
+  });
+  app2.delete("/api/admin/bin/:type/:id", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+      const { type } = req.params;
+      const id = parseInt(req.params.id);
+      const deleted = await storage.permanentlyDeleteBinItem(type, id);
+      if (!deleted) return res.status(404).json({ error: "Item not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to permanently delete item" });
     }
   });
   app2.post("/api/auth/logout", (req, res) => {
@@ -3512,13 +6342,30 @@ ${resetUrl}
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteQuestionnaire(id);
+      const deleted = isOwner(user) ? await storage.deleteQuestionnaire(id) : await storage.archiveQuestionnaire(id);
       if (!deleted) {
         return res.status(404).json({ error: "Questionnaire not found" });
       }
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete questionnaire" });
+    }
+  });
+  app2.patch("/api/questionnaires/:id/mark-test", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const isTest = req.body?.isTest !== false;
+      const updated = await storage.setQuestionnaireTest(id, isTest);
+      if (!updated) return res.status(404).json({ error: "Questionnaire not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update questionnaire" });
     }
   });
   app2.delete("/api/appointments/:id", async (req, res) => {
@@ -3530,13 +6377,30 @@ ${resetUrl}
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteAppointment(id);
+      const deleted = isOwner(user) ? await storage.deleteAppointment(id) : await storage.archiveAppointment(id);
       if (!deleted) {
         return res.status(404).json({ error: "Appointment not found" });
       }
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete appointment" });
+    }
+  });
+  app2.patch("/api/appointments/:id/mark-test", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const isTest = req.body?.isTest !== false;
+      const updated = await storage.setAppointmentTest(id, isTest);
+      if (!updated) return res.status(404).json({ error: "Appointment not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update appointment" });
     }
   });
   app2.get("/api/questionnaires/stats", async (req, res) => {
@@ -3607,20 +6471,44 @@ ${resetUrl}
   app2.get("/api/appointments/availability", async (req, res) => {
     try {
       const requestedDate = typeof req.query.date === "string" ? req.query.date : void 0;
+      const requestedType = typeof req.query.type === "string" ? req.query.type : void 0;
+      const hoursConfig = await storage.getAppointmentTypeHours();
       const allAppointments = await getAppointmentAvailabilityRows();
-      const nextAvailableDate = findNextAvailableAppointmentDate(allAppointments);
+      const nextAvailableDate = findNextAvailableAppointmentDate(allAppointments, /* @__PURE__ */ new Date(), requestedType, hoursConfig);
       const date = requestedDate || nextAvailableDate || (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
       const bookedTimes = allAppointments.filter((appointment) => isActiveAppointmentStatus(appointment.status) && appointment.date === date).map((appointment) => appointment.time);
       return res.json({
         date,
-        availableTimes: getAvailableTimesForDate(allAppointments, date),
+        availableTimes: getAvailableTimesForDate(allAppointments, date, requestedType, hoursConfig),
         bookedTimes,
         nextAvailableDate,
-        timeSlots: APPOINTMENT_TIME_SLOTS
+        timeSlots: requestedType ? getTimeSlotsForType(requestedType, hoursConfig) : APPOINTMENT_TIME_SLOTS
       });
     } catch (error) {
       console.error("Appointment availability error:", error);
       return res.status(500).json({ error: "Failed to fetch appointment availability" });
+    }
+  });
+  app2.get("/api/appointment-type-hours", async (req, res) => {
+    try {
+      const config = await storage.getAppointmentTypeHours();
+      return res.json(config);
+    } catch (error) {
+      console.error("Error fetching appointment type hours:", error);
+      return res.json({});
+    }
+  });
+  app2.put("/api/appointment-type-hours", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+    try {
+      const config = await storage.updateAppointmentTypeHours(req.body);
+      return res.json(config);
+    } catch (error) {
+      console.error("Error updating appointment type hours:", error);
+      return res.status(500).json({ error: "Failed to update appointment type hours" });
     }
   });
   app2.post("/api/appointments", async (req, res) => {
@@ -3648,7 +6536,8 @@ ${resetUrl}
           error: "\u05D9\u05E9 \u05DC\u05DE\u05DC\u05D0 \u05E9\u05DD \u05D9\u05DC\u05D3/\u05D4 \u05D5\u05D2\u05D9\u05DC \u05E2\u05D1\u05D5\u05E8 \u05E4\u05D2\u05D9\u05E9\u05D4 \u05DC\u05D9\u05DC\u05D3/\u05D4."
         });
       }
-      if (!isAppointmentDateStringWorkingDay(result.data.date) || !isAppointmentTimeSlot(result.data.time)) {
+      const typeHoursConfig = await storage.getAppointmentTypeHours();
+      if (!isAppointmentDateStringWorkingDay(result.data.date) || !isAppointmentTimeSlotForType(result.data.type, result.data.time, typeHoursConfig)) {
         return res.status(400).json({ success: false, ...closedAppointmentDateMessage() });
       }
       const allAppointments = await storage.getAppointments();
@@ -3671,12 +6560,18 @@ ${resetUrl}
         }
       }
       try {
-        await storage.upsertClientByEmail({
+        const client = await storage.upsertClientByEmail({
           name: result.data.clientName,
           email: result.data.clientEmail,
           phone: result.data.clientPhone,
           source: "appointment",
           childName: childName || void 0
+        });
+        await storage.createClientActivity({
+          clientId: client.id,
+          type: "appointment",
+          description: `\u05E0\u05E7\u05D1\u05E2\u05D4 \u05E4\u05D2\u05D9\u05E9\u05D4 \u05DE\u05E1\u05D5\u05D2 ${getAppointmentTypeLabelHe(result.data.type)} \u05DC\u05EA\u05D0\u05E8\u05D9\u05DA ${result.data.date} \u05D1\u05E9\u05E2\u05D4 ${result.data.time}`,
+          metadata: { source: "appointment_booked" }
         });
       } catch (e) {
         console.error("Auto-register client error:", e);
@@ -3709,6 +6604,94 @@ ${resetUrl}
       return res.status(500).json({ success: false, error: "Failed to create appointment" });
     }
   });
+  app2.post("/api/appointments/manual", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const { clientId, name, email, phone, notes: leadNotes, date, time, type, appointmentFor, childName: rawChildName, childAge, notes } = req.body;
+      let client;
+      if (clientId) {
+        client = await storage.getClient(Number(clientId));
+        if (!client) return res.status(404).json({ error: "Client not found" });
+        const patch = {};
+        if (email && !client.email) patch.email = String(email).trim();
+        if (phone && !client.phone) patch.phone = String(phone).trim();
+        if (Object.keys(patch).length > 0) {
+          client = await storage.updateClient(client.id, patch) || client;
+        }
+      } else {
+        if (!name || !String(name).trim() || !email || !String(email).trim()) {
+          return res.status(400).json({ error: "Name and email are required for a new lead" });
+        }
+        client = await storage.createClient({
+          name: String(name).trim(),
+          email: String(email).trim(),
+          phone: phone ? String(phone).trim() : null,
+          notes: leadNotes ? String(leadNotes).trim() : null,
+          status: "lead",
+          source: "manual"
+        });
+      }
+      if (!client.email) {
+        return res.status(400).json({ error: "Client must have an email to book an appointment" });
+      }
+      const clientPhone = phone && String(phone).trim() || client.phone || "";
+      if (!clientPhone) {
+        return res.status(400).json({ error: "Client must have a phone number to book an appointment" });
+      }
+      const appointmentForValue = appointmentFor === "child" ? "child" : "self";
+      const childName = appointmentForValue === "child" ? String(rawChildName || "").trim() : "";
+      const childAgeNum = appointmentForValue === "child" ? Number(childAge) : null;
+      if (appointmentForValue === "child" && (!childName || !childAgeNum)) {
+        return res.status(400).json({ error: "\u05D9\u05E9 \u05DC\u05DE\u05DC\u05D0 \u05E9\u05DD \u05D9\u05DC\u05D3/\u05D4 \u05D5\u05D2\u05D9\u05DC \u05E2\u05D1\u05D5\u05E8 \u05E4\u05D2\u05D9\u05E9\u05D4 \u05DC\u05D9\u05DC\u05D3/\u05D4." });
+      }
+      const result = insertAppointmentSchema.safeParse({
+        clientName: client.name,
+        clientEmail: client.email,
+        clientPhone,
+        appointmentFor: appointmentForValue,
+        childName: childName || null,
+        childAge: childAgeNum,
+        date,
+        time,
+        type: type || "consultation",
+        notes: notes ? String(notes).trim() : null,
+        status: "confirmed"
+      });
+      if (!result.success) {
+        const childAgeIssue = result.error.issues.find((issue) => issue.path.includes("childAge"));
+        if (childAgeIssue) {
+          return res.status(400).json({ error: "Minimum age is 6.", errorHe: "\u05D4\u05D2\u05D9\u05DC \u05D4\u05DE\u05D9\u05E0\u05D9\u05DE\u05DC\u05D9 \u05D4\u05D5\u05D0 6." });
+        }
+        return res.status(400).json({ error: result.error.message });
+      }
+      const typeHoursConfig = await storage.getAppointmentTypeHours();
+      if (!isAppointmentDateStringWorkingDay(result.data.date) || !isAppointmentTimeSlotForType(result.data.type, result.data.time, typeHoursConfig)) {
+        return res.status(400).json(closedAppointmentDateMessage());
+      }
+      const allAppointments = await storage.getAppointments();
+      const activeAppointments = allAppointments.filter((a) => isActiveAppointmentStatus(a.status));
+      const slotAlreadyBooked = activeAppointments.some((a) => a.date === result.data.date && a.time === result.data.time);
+      if (slotAlreadyBooked) {
+        return res.status(400).json(unavailableSlotMessage());
+      }
+      const appointment = await storage.createAppointment(result.data);
+      await storage.createClientActivity({
+        clientId: client.id,
+        type: "appointment",
+        description: `\u05E0\u05E7\u05D1\u05E2\u05D4 \u05E4\u05D2\u05D9\u05E9\u05D4 \u05DE\u05E1\u05D5\u05D2 ${getAppointmentTypeLabelHe(result.data.type)} \u05DC\u05EA\u05D0\u05E8\u05D9\u05DA ${result.data.date} \u05D1\u05E9\u05E2\u05D4 ${result.data.time} (\u05E0\u05D5\u05E1\u05E4\u05D4 \u05D9\u05D3\u05E0\u05D9\u05EA \u05E2"\u05D9 \u05D4\u05E6\u05D5\u05D5\u05EA)`,
+        metadata: { source: "manual_appointment" }
+      });
+      return res.json({ success: true, appointment, client });
+    } catch (error) {
+      console.error("Manual appointment creation error:", error);
+      return res.status(500).json({ error: "Failed to create appointment" });
+    }
+  });
   app2.get("/api/appointments", async (req, res) => {
     try {
       const userId = req.session?.userId;
@@ -3734,15 +6717,90 @@ ${resetUrl}
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const { status } = req.body;
+      const { status, contactMethod } = req.body;
       if (!status || !APPOINTMENT_STATUSES.includes(status)) {
         return res.status(400).json({ error: "Invalid status" });
       }
+      const existing = await storage.getAppointment(id);
       const updated = await storage.updateAppointmentStatus(id, status);
       if (!updated) return res.status(404).json({ error: "Appointment not found" });
+      if (status === "cancelled" && existing && existing.status !== "cancelled") {
+        try {
+          const client = await storage.getClientByEmail(existing.clientEmail);
+          if (client) {
+            const methodLabel = CANCEL_CONTACT_METHOD_LABELS_HE[contactMethod] ?? contactMethod ?? "\u05DC\u05D0 \u05E6\u05D5\u05D9\u05DF";
+            await storage.createClientActivity({
+              clientId: client.id,
+              type: "cancellation",
+              description: `\u05D4\u05E4\u05D2\u05D9\u05E9\u05D4 \u05DE\u05E1\u05D5\u05D2 ${getAppointmentTypeLabelHe(existing.type)} \u05D1\u05EA\u05D0\u05E8\u05D9\u05DA ${existing.date} \u05D1\u05D5\u05D8\u05DC\u05D4. \u05D3\u05E8\u05DA \u05D9\u05E6\u05D9\u05E8\u05EA \u05E7\u05E9\u05E8 \u05DC\u05D1\u05D9\u05D8\u05D5\u05DC: ${methodLabel}`,
+              metadata: { source: "appointment_cancelled", appointmentId: id, contactMethod: contactMethod ?? null }
+            });
+          }
+        } catch (e) {
+          console.error("Cancellation activity log error:", e);
+        }
+      }
       return res.json(updated);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update appointment" });
+    }
+  });
+  app2.patch("/api/appointments/:id/reschedule", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const { date, time } = req.body;
+      if (typeof date !== "string" || typeof time !== "string") {
+        return res.status(400).json({ error: "Date and time are required" });
+      }
+      const existing = await storage.getAppointment(id);
+      if (!existing) return res.status(404).json({ error: "Appointment not found" });
+      const typeHoursConfig = await storage.getAppointmentTypeHours();
+      if (!isAppointmentDateStringWorkingDay(date) || !isAppointmentTimeSlotForType(existing.type, time, typeHoursConfig)) {
+        return res.status(400).json({ error: "Selected time is outside working hours for this appointment type" });
+      }
+      const allAppointments = await storage.getAppointments();
+      const conflict = allAppointments.some((appointment) => appointment.id !== id && isActiveAppointmentStatus(appointment.status) && appointment.date === date && appointment.time === time);
+      if (conflict) {
+        return res.status(400).json({ error: "This time slot is already booked" });
+      }
+      const updated = await storage.updateAppointmentSchedule(id, date, time);
+      return res.json(updated);
+    } catch (error) {
+      console.error("Error rescheduling appointment:", error);
+      return res.status(500).json({ error: "Failed to reschedule appointment" });
+    }
+  });
+  app2.post("/api/appointments/:id/note", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const note = typeof req.body.note === "string" ? req.body.note.trim() : "";
+      if (!note) return res.status(400).json({ error: "Note text is required" });
+      const appointment = await storage.getAppointment(id);
+      if (!appointment) return res.status(404).json({ error: "Appointment not found" });
+      const client = await storage.getClientByEmail(appointment.clientEmail);
+      if (!client) return res.status(404).json({ error: "No lead or client found for this appointment" });
+      const activity = await storage.createClientActivity({
+        clientId: client.id,
+        type: "note",
+        description: note,
+        metadata: { source: "appointment", appointmentId: id }
+      });
+      return res.json(activity);
+    } catch (error) {
+      console.error("Error adding appointment note:", error);
+      return res.status(500).json({ error: "Failed to add note" });
     }
   });
   app2.post("/api/clients", async (req, res) => {
@@ -3776,10 +6834,44 @@ ${resetUrl}
       if (!Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ error: "IDs array is required" });
       }
-      const count = await storage.bulkDeleteClients(ids.map(Number));
+      const numericIds = ids.map(Number);
+      const count = isOwner(user) ? await storage.bulkDeleteClients(numericIds) : await storage.bulkArchiveClients(numericIds);
       return res.json({ success: true, deleted: count });
     } catch (error) {
       return res.status(500).json({ error: "Failed to bulk delete clients" });
+    }
+  });
+  app2.delete("/api/clients/:id", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const deleted = isOwner(user) ? await storage.deleteClient(id) : await storage.archiveClient(id);
+      if (!deleted) return res.status(404).json({ error: "Client not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to delete client" });
+    }
+  });
+  app2.patch("/api/clients/:id/mark-test", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const isTest = req.body?.isTest !== false;
+      const updated = await storage.setClientTest(id, isTest);
+      if (!updated) return res.status(404).json({ error: "Client not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update client" });
     }
   });
   app2.get("/api/clients", async (req, res) => {
@@ -3821,11 +6913,29 @@ ${resetUrl}
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const updated = await storage.updateClient(id, req.body);
+      const result = insertClientSchema.partial().extend({
+        status: z2.enum(["lead", "client"]).optional()
+      }).safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.message });
+      }
+      const updated = await storage.updateClient(id, result.data);
       if (!updated) return res.status(404).json({ error: "Client not found" });
       return res.json(updated);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update client" });
+    }
+  });
+  app2.patch("/api/clients/:id/seen", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+      await storage.markClientSeen(parseInt(req.params.id));
+      return res.json({ ok: true });
+    } catch {
+      return res.status(500).json({ error: "Failed to mark client seen" });
     }
   });
   app2.get("/api/clients/:id/interactions", async (req, res) => {
@@ -3838,6 +6948,25 @@ ${resetUrl}
       }
       const id = parseInt(req.params.id);
       const interactions = await storage.getClientInteractions(id);
+      return res.json(interactions);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch interactions" });
+    }
+  });
+  app2.post("/api/clients/interactions/bulk", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: "IDs array is required" });
+      }
+      const numericIds = ids.map(Number);
+      const interactions = await storage.getClientInteractionsBulk(numericIds);
       return res.json(interactions);
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch interactions" });
@@ -3875,6 +7004,155 @@ ${resetUrl}
       return res.json(activities);
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch activities" });
+    }
+  });
+  app2.post("/api/clients/:id/payments", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const clientId = parseInt(req.params.id);
+      const result = insertClientPaymentSchema.safeParse({ ...req.body, clientId });
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.message });
+      }
+      const payment = await storage.createClientPayment(result.data);
+      return res.json(payment);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to create payment" });
+    }
+  });
+  app2.get("/api/clients/:id/payments", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const clientId = parseInt(req.params.id);
+      const payments = await storage.getClientPayments(clientId);
+      return res.json(payments);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch payments" });
+    }
+  });
+  app2.delete("/api/clients/payments/:id", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteClientPayment(id);
+      if (!deleted) return res.status(404).json({ error: "Payment not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to delete payment" });
+    }
+  });
+  app2.post("/api/clients/:id/files", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const clientId = parseInt(req.params.id);
+      const client = await storage.getClient(clientId);
+      if (!client) return res.status(404).json({ error: "Client not found" });
+      const { fileName, fileType, dataBase64 } = req.body;
+      if (typeof fileName !== "string" || !fileName.trim() || typeof fileType !== "string" || typeof dataBase64 !== "string") {
+        return res.status(400).json({ error: "fileName, fileType, and dataBase64 are required" });
+      }
+      if (!CLIENT_FILE_ALLOWED_TYPES.includes(fileType)) {
+        return res.status(400).json({ error: "File type not allowed" });
+      }
+      const buffer = Buffer.from(dataBase64, "base64");
+      if (buffer.length === 0 || buffer.length > CLIENT_FILE_MAX_SIZE_BYTES) {
+        return res.status(400).json({ error: "File is empty or exceeds the 8MB limit" });
+      }
+      const safeName = fileName.trim().replace(/[^a-zA-Z0-9.\-_ ]/g, "_").slice(0, 200);
+      const blob = await put(`client-files/${clientId}/${Date.now()}-${safeName}`, buffer, {
+        access: "private",
+        contentType: fileType,
+        token: process.env.BLOB_READ_WRITE_TOKEN
+      });
+      const result = insertClientFileSchema.safeParse({
+        clientId,
+        fileName: safeName,
+        fileType,
+        fileSize: buffer.length,
+        blobUrl: blob.url,
+        uploadedBy: userId
+      });
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.message });
+      }
+      const created = await storage.createClientFile(result.data);
+      const { blobUrl, ...fileMeta } = created;
+      return res.json(fileMeta);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to upload file" });
+    }
+  });
+  app2.get("/api/clients/:id/files", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const clientId = parseInt(req.params.id);
+      const files = await storage.getClientFiles(clientId);
+      return res.json(files.map(({ blobUrl, ...rest }) => rest));
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch files" });
+    }
+  });
+  app2.get("/api/clients/files/:id/download", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const file = await storage.getClientFile(id);
+      if (!file) return res.status(404).json({ error: "File not found" });
+      const blobRes = await getBlob(file.blobUrl, { access: "private", token: process.env.BLOB_READ_WRITE_TOKEN });
+      if (!blobRes) {
+        return res.status(502).json({ error: "Failed to fetch file" });
+      }
+      res.setHeader("Content-Type", file.fileType);
+      res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(file.fileName)}"`);
+      return Readable.fromWeb(blobRes.stream).pipe(res);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to download file" });
+    }
+  });
+  app2.delete("/api/clients/files/:id", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteClientFile(id);
+      if (!deleted) return res.status(404).json({ error: "File not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to delete file" });
     }
   });
   app2.post("/api/chat", async (req, res) => {
@@ -4133,7 +7411,8 @@ RESPONSE BEHAVIOR:
       if (!Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ error: "IDs array is required" });
       }
-      const count = await storage.bulkDeleteConversations(ids.map(Number));
+      const numericIds = ids.map(Number);
+      const count = isOwner(user) ? await storage.bulkDeleteConversations(numericIds) : await storage.bulkArchiveConversations(numericIds);
       return res.json({ success: true, deleted: count });
     } catch (error) {
       return res.status(500).json({ error: "Failed to bulk delete conversations" });
@@ -4148,13 +7427,30 @@ RESPONSE BEHAVIOR:
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = await storage.deleteConversation(id);
+      const deleted = isOwner(user) ? await storage.deleteConversation(id) : await storage.archiveConversation(id);
       if (!deleted) {
         return res.status(404).json({ error: "Conversation not found" });
       }
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete conversation" });
+    }
+  });
+  app2.patch("/api/conversations/:id/mark-test", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const isTest = req.body?.isTest !== false;
+      const updated = await storage.setConversationTest(id, isTest);
+      if (!updated) return res.status(404).json({ error: "Conversation not found" });
+      return res.json({ success: true });
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update conversation" });
     }
   });
   app2.get("/api/webhook/whatsapp", (req, res) => {
@@ -4276,7 +7572,7 @@ RESPONSE BEHAVIOR:
         console.error("WhatsApp send error:", waData);
         return res.status(500).json({ error: "Failed to send WhatsApp message", details: waData });
       }
-      const waMessageId = waData.messages?.[0]?.id;
+      const waMessageId = waData?.messages?.[0]?.id;
       let clientId = null;
       try {
         const existingClients = await storage.getClients();
@@ -4327,12 +7623,200 @@ RESPONSE BEHAVIOR:
   return httpServer;
 }
 
+// server/migrate.ts
+async function ensureSchema() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS images (
+      id serial PRIMARY KEY,
+      slot text NOT NULL UNIQUE,
+      mime_type text NOT NULL,
+      filename text,
+      data text NOT NULL,
+      updated_at timestamp NOT NULL DEFAULT now()
+    )
+  `);
+}
+
+// server/seed-load-test.ts
+var SEED_SOURCE = "seed_loadtest";
+var ACTIVITY_TYPES = ["call", "email", "note", "meeting"];
+var SIX_MONTHS_MS = 1e3 * 60 * 60 * 24 * 180;
+var MAX_COUNT_PER_CALL = 5e3;
+var FIRST_NAMES = [
+  "Noa",
+  "Itai",
+  "Maya",
+  "Omer",
+  "Shira",
+  "Yonatan",
+  "Tamar",
+  "Daniel",
+  "Michal",
+  "Roi",
+  "Adi",
+  "Guy",
+  "Liat",
+  "Nadav",
+  "Yael",
+  "Tom",
+  "Avigail",
+  "Eitan",
+  "Gal",
+  "Hila"
+];
+var LAST_NAMES = [
+  "Cohen",
+  "Levi",
+  "Mizrahi",
+  "Peretz",
+  "Biton",
+  "Dahan",
+  "Azoulay",
+  "Katz",
+  "Friedman",
+  "Avraham",
+  "Malka",
+  "Shapira",
+  "Amar",
+  "Ben-David",
+  "Sasson"
+];
+function randomFrom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+function activityDescription(type) {
+  switch (type) {
+    case "call":
+      return "Simulated call activity (load test data)";
+    case "email":
+      return "Simulated email activity (load test data)";
+    case "meeting":
+      return "Simulated meeting activity (load test data)";
+    default:
+      return "Simulated note activity (load test data)";
+  }
+}
+async function hasAdminAccess2(req) {
+  const userId = req.session?.userId;
+  if (!userId) return false;
+  const user = await storage.getUser(userId);
+  if (!user) return false;
+  return user.role === "admin" || user.role === "owner" || user.role === "manager" || user.role === "superadmin" || user.email === "admin@keshevplus.co.il" || user.email === "dr@keshevplus.co.il";
+}
+async function seedBatch(count) {
+  const { rows: maxRows } = await pool.query(
+    `SELECT COALESCE(MAX(lead_number), 0) AS max FROM clients`
+  );
+  let nextLeadNumber = Number(maxRows[0].max) + 1;
+  const now = Date.now();
+  const clientValues = [];
+  const clientParams = [];
+  let p = 1;
+  const plannedCreatedAt = [];
+  for (let i = 0; i < count; i++) {
+    const leadNumber = nextLeadNumber++;
+    const createdAt = new Date(now - Math.random() * SIX_MONTHS_MS);
+    plannedCreatedAt.push(createdAt);
+    clientValues.push(
+      `($${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++}, $${p++})`
+    );
+    clientParams.push(
+      leadNumber,
+      `${randomFrom(FIRST_NAMES)} ${randomFrom(LAST_NAMES)}`,
+      `loadtest.lead.${leadNumber}@example.test`,
+      `05${Math.floor(1e7 + Math.random() * 89999999)}`,
+      randomFrom(["lead", "in_progress", "closed"]),
+      SEED_SOURCE,
+      true,
+      createdAt
+    );
+  }
+  const { rows: insertedClients } = await pool.query(
+    `INSERT INTO clients (lead_number, name, email, phone, status, source, is_test, created_at)
+     VALUES ${clientValues.join(",")}
+     RETURNING id, created_at`,
+    clientParams
+  );
+  const activityValues = [];
+  const activityParams = [];
+  let ap = 1;
+  let activitiesPlanned = 0;
+  for (const row of insertedClients) {
+    const activityCount = 2 + Math.floor(Math.random() * 3);
+    let cursor = new Date(row.created_at).getTime();
+    for (let i = 0; i < activityCount; i++) {
+      const type = ACTIVITY_TYPES[i % ACTIVITY_TYPES.length];
+      cursor += Math.random() * (SIX_MONTHS_MS / (activityCount + 1));
+      const activityAt = new Date(Math.min(cursor, now));
+      activityValues.push(`($${ap++}, $${ap++}, $${ap++}, $${ap++})`);
+      activityParams.push(row.id, type, activityDescription(type), activityAt);
+      activitiesPlanned++;
+    }
+  }
+  if (activityValues.length) {
+    await pool.query(
+      `INSERT INTO client_activities (client_id, type, description, created_at)
+       VALUES ${activityValues.join(",")}`,
+      activityParams
+    );
+  }
+  return { clientsInserted: insertedClients.length, activitiesInserted: activitiesPlanned };
+}
+function registerLoadTestSeedRoutes(app2) {
+  app2.post("/api/admin/seed-load-test-leads", async (req, res) => {
+    if (!await hasAdminAccess2(req)) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    const count = Number(req.body?.count);
+    if (!Number.isInteger(count) || count < 1 || count > MAX_COUNT_PER_CALL) {
+      return res.status(400).json({ error: `count must be an integer between 1 and ${MAX_COUNT_PER_CALL}` });
+    }
+    try {
+      const result = await seedBatch(count);
+      const { rows } = await pool.query(
+        `SELECT COUNT(*)::int AS total FROM clients WHERE source = $1`,
+        [SEED_SOURCE]
+      );
+      return res.json({ ...result, totalSeeded: rows[0].total });
+    } catch (error) {
+      console.error("Error seeding load test leads:", error);
+      return res.status(500).json({ error: "Failed to seed load test leads" });
+    }
+  });
+  app2.get("/api/admin/seed-load-test-leads/count", async (req, res) => {
+    if (!await hasAdminAccess2(req)) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    const { rows } = await pool.query(
+      `SELECT COUNT(*)::int AS total FROM clients WHERE source = $1`,
+      [SEED_SOURCE]
+    );
+    return res.json({ totalSeeded: rows[0].total });
+  });
+  app2.delete("/api/admin/seed-load-test-leads", async (req, res) => {
+    if (!await hasAdminAccess2(req)) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    try {
+      await pool.query(
+        `DELETE FROM client_activities WHERE client_id IN (SELECT id FROM clients WHERE source = $1)`,
+        [SEED_SOURCE]
+      );
+      const { rowCount } = await pool.query(`DELETE FROM clients WHERE source = $1`, [SEED_SOURCE]);
+      return res.json({ deleted: rowCount });
+    } catch (error) {
+      console.error("Error deleting load test leads:", error);
+      return res.status(500).json({ error: "Failed to delete load test leads" });
+    }
+  });
+}
+
 // server/app.ts
 var PgSession = connectPgSimple(session);
 async function createApp() {
   const app2 = express();
   app2.set("trust proxy", 1);
-  app2.use(express.json());
+  app2.use(express.json({ limit: "12mb" }));
   app2.use(express.urlencoded({ extended: false }));
   const isProduction = process.env.NODE_ENV === "production";
   app2.use(
@@ -4383,7 +7867,9 @@ async function createApp() {
     });
     next();
   });
+  await ensureSchema();
   await registerRoutes(app2);
+  registerLoadTestSeedRoutes(app2);
   app2.use((err, _req, res, _next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

@@ -341,7 +341,7 @@ export default function VisualEditor() {
         value: edit.newValue,
       }))
 
-      await apiRequest('PUT', '/api/translations/bulk', { items })
+      await apiRequest('PUT', '/api/translations/bulk', items)
       invalidateTranslationCache(editLang)
 
       toast({
