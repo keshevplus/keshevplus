@@ -31,11 +31,14 @@ function PageFallback() {
   );
 }
 
+const isAdminHost =
+  typeof window !== "undefined" && window.location.hostname.startsWith("admin.");
+
 function Router() {
   return (
     <Suspense fallback={<PageFallback />}>
       <Switch>
-        <Route path="/" component={Index} />
+        <Route path="/" component={isAdminHost ? AdminPage : Index} />
         <Route path="/demo" component={DemoIndex} />
         <Route path="/questionnaire/:type" component={QuestionnairePage} />
         <Route path="/accessibility" component={AccessibilityStatementPage} />
