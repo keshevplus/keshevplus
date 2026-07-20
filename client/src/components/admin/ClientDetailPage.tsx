@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "../auth/AuthProvider";
 import { useLanguage } from "@/hooks/useLanguage";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
@@ -115,6 +116,8 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
   const { language, isRTL } = useLanguage();
   const isHe = language === "he";
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isBillingOnly = user?.role === "billing";
 
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
@@ -315,10 +318,12 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
     setActivityLogExpanded(false);
     setActivityFilter("all");
     fetchClient();
-    fetchActivities();
-    fetchInteractions();
     fetchPayments();
-    fetchFiles();
+    if (!isBillingOnly) {
+      fetchActivities();
+      fetchInteractions();
+      fetchFiles();
+    }
     window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
@@ -568,6 +573,7 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
             </CardContent>
           </Card>
 
+          {!isBillingOnly && (
           <Card>
             <CardContent className="pt-6 space-y-2">
               <button
@@ -631,7 +637,9 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
               )}
             </CardContent>
           </Card>
+          )}
 
+          {!isBillingOnly && (
           <Card>
             <CardContent className="pt-6 flex items-center gap-3 flex-wrap">
               <span className="text-sm font-medium">{isHe ? "סטטוס:" : "Status:"}</span>
@@ -658,7 +666,9 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
               </Button>
             </CardContent>
           </Card>
+          )}
 
+          {!isBillingOnly && (
           <Card>
             <CardContent className="pt-6 space-y-2">
               <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -719,6 +729,7 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
               )}
             </CardContent>
           </Card>
+          )}
 
           {interactions && (
             <Card>
@@ -847,6 +858,7 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
             </CardContent>
           </Card>
 
+          {!isBillingOnly && (
           <Card>
             <CardContent className="pt-6 space-y-3">
               <h4 className="text-sm font-semibold flex items-center gap-2">
@@ -923,7 +935,9 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
               </div>
             </CardContent>
           </Card>
+          )}
 
+          {!isBillingOnly && (
           <Card>
             <CardContent className="pt-6 space-y-2">
               <Label>{isHe ? "הערות" : "Notes"}</Label>
@@ -934,7 +948,9 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
               </Button>
             </CardContent>
           </Card>
+          )}
 
+          {!isBillingOnly && (
           <Card>
             <CardContent className="pt-6 space-y-2">
               <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -970,6 +986,7 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
               </div>
             </CardContent>
           </Card>
+          )}
         </>
       )}
     </div>
