@@ -1,4 +1,4 @@
-import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, clientPayments, clientFiles, conversations, messages, whatsappMessages, images, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type ClientPayment, type InsertClientPayment, type ClientFile, type InsertClientFile, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type DashboardLayout, type WhatsAppMessage, type InsertWhatsAppMessage, type ImageAsset, type ImageAssetMeta, type HomeSection, DEFAULT_HOME_SECTIONS } from "@shared/schema";
+import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, clientPayments, clientFiles, conversations, messages, whatsappMessages, images, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type ClientPayment, type InsertClientPayment, type ClientFile, type InsertClientFile, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type ContactFormSettings, type DashboardLayout, type WhatsAppMessage, type InsertWhatsAppMessage, type ImageAsset, type ImageAssetMeta, type HomeSection, DEFAULT_HOME_SECTIONS } from "@shared/schema";
 import type { AppointmentTypeHoursConfig } from "@shared/appointmentSchedule";
 import { db } from "./db";
 import { eq, desc, and, sql, lt, inArray } from "drizzle-orm";
@@ -57,6 +57,8 @@ export interface IStorage {
   getAdminBadgeCounts(): Promise<{ unreadContacts: number; pendingAppointments: number; unreviewedQuestionnaires: number; unreviewedConversations: number; newLeads: number; newLeadItems: Array<{ id: number; name: string; email: string | null; phone: string | null; leadNumber: number | null }> }>;
   getWidgetSettings(): Promise<WidgetSettings>;
   updateWidgetSettings(settings: WidgetSettings): Promise<WidgetSettings>;
+  getContactFormSettings(): Promise<ContactFormSettings>;
+  updateContactFormSettings(settings: ContactFormSettings): Promise<ContactFormSettings>;
   getDashboardLayout(): Promise<DashboardLayout | null>;
   updateDashboardLayout(layout: DashboardLayout): Promise<DashboardLayout>;
   getImage(slot: string): Promise<ImageAsset | undefined>;
@@ -736,6 +738,17 @@ export class DatabaseStorage implements IStorage {
   async updateWidgetSettings(settings: WidgetSettings): Promise<WidgetSettings> {
     const updated = await this.upsertSetting("widget_settings", settings);
     return updated.value as WidgetSettings;
+  }
+
+  async getContactFormSettings(): Promise<ContactFormSettings> {
+    const setting = await this.getSetting("contact_form_settings");
+    if (setting) return setting.value as ContactFormSettings;
+    return { requireMessage: true };
+  }
+
+  async updateContactFormSettings(settings: ContactFormSettings): Promise<ContactFormSettings> {
+    const updated = await this.upsertSetting("contact_form_settings", settings);
+    return updated.value as ContactFormSettings;
   }
 
   async getDashboardLayout(): Promise<DashboardLayout | null> {

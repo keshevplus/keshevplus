@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Phone, Mail, Send, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
@@ -19,15 +19,17 @@ import { contentApi } from '@/lib/content';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 
-const contactSchema = z.object({
+const getContactSchema = (requireMessage: boolean) => z.object({
   name: z.string().trim().min(2, { message: 'Name must be at least 2 characters' }).max(100),
   phone: z.string().trim().min(9, { message: 'Please enter a valid phone number' }).max(20),
   email: z.string().trim().email({ message: 'Please enter a valid email' }).optional().or(z.literal('')),
   topic: z.string().optional(),
-  message: z.string().trim().min(10, { message: 'Message must be at least 10 characters' }).max(1000),
+  message: requireMessage
+    ? z.string().trim().min(10, { message: 'Message must be at least 10 characters' }).max(1000)
+    : z.string().trim().max(1000),
 });
 
-type ContactFormData = z.infer<typeof contactSchema>;
+type ContactFormData = z.infer<ReturnType<typeof getContactSchema>>;
 
 interface ContactModalProps {
   open: boolean;
@@ -39,6 +41,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [requireMessage, setRequireMessage] = useState(true);
   const [formData, setFormData] = useState<ContactFormData>({
     name: '',
     phone: '',
@@ -47,6 +50,15 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
     message: '',
   });
   const [errors, setErrors] = useState<Partial<Record<keyof ContactFormData, string>>>({});
+
+  useEffect(() => {
+    fetch('/api/settings/contact-form')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && typeof data.requireMessage === 'boolean') setRequireMessage(data.requireMessage);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -64,7 +76,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = contactSchema.safeParse(formData);
+    const result = getContactSchema(requireMessage).safeParse(formData);
     if (!result.success) {
       const fieldErrors: Partial<Record<keyof ContactFormData, string>> = {};
       result.error.errors.forEach(err => {
@@ -209,7 +221,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
 
             <div>
               <Label htmlFor="modal-message" className="text-sm font-medium text-foreground">
-                {t('contact.message')} *
+                {t('contact.message')}{requireMessage ? ' *' : ''}
               </Label>
               <Textarea
                 id="modal-message"

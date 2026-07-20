@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, insertClientPaymentSchema, insertClientFileSchema, CLIENT_FILE_ALLOWED_TYPES, CLIENT_FILE_MAX_SIZE_BYTES, APPOINTMENT_STATUSES, insertWhatsAppMessageSchema, dashboardLayoutSchema, homeSectionsSchema, type Client } from "@shared/schema";
+import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, insertClientPaymentSchema, insertClientFileSchema, CLIENT_FILE_ALLOWED_TYPES, CLIENT_FILE_MAX_SIZE_BYTES, APPOINTMENT_STATUSES, insertWhatsAppMessageSchema, dashboardLayoutSchema, contactFormSettingsSchema, homeSectionsSchema, type Client } from "@shared/schema";
 import { put, get as getBlob } from "@vercel/blob";
 import { Readable } from "node:stream";
 import {
@@ -620,7 +620,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ success: false, message: result.error.message });
       }
-      
+
+      const contactFormSettings = await storage.getContactFormSettings();
+      if (contactFormSettings.requireMessage && result.data.message.trim().length < 10) {
+        return res.status(400).json({ success: false, message: "Message must be at least 10 characters" });
+      }
+
       await storage.createContact(result.data);
 
       if (result.data.email) {
@@ -682,6 +687,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
 
     const settings = await storage.updateWidgetSettings(req.body);
+    res.json(settings);
+  });
+
+  app.get("/api/settings/contact-form", async (req, res) => {
+    try {
+      const settings = await storage.getContactFormSettings();
+      return res.json(settings);
+    } catch (error) {
+      console.error("Error fetching contact form settings:", error);
+      return res.json({ requireMessage: true });
+    }
+  });
+
+  app.put("/api/settings/contact-form", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+
+    const result = contactFormSettingsSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.message });
+
+    const settings = await storage.updateContactFormSettings(result.data);
     res.json(settings);
   });
 

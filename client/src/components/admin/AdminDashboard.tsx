@@ -38,6 +38,7 @@ import ClientDetailPage from './ClientDetailPage'
 import ContactsManager from './ContactsManager'
 import ConversationsManager from './ConversationsManager'
 import EmailNotificationSettings from './EmailNotificationSettings'
+import ContactFormSettings from './ContactFormSettings'
 import AppointmentHoursSettings from './AppointmentHoursSettings'
 import LeadSearchBar from './LeadSearchBar'
 import ChangePasswordSettings from './ChangePasswordSettings'
@@ -653,6 +654,8 @@ const AdminDashboard = () => {
               </Card>
 
               <EmailNotificationSettings />
+
+              <ContactFormSettings />
 
               <AppointmentHoursSettings />
 
