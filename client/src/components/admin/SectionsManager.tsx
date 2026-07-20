@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Trash2, ChevronUp, ChevronDown, Save, LayoutGrid, Eye, EyeOff, Monitor } from 'lucide-react'
+import { Plus, Trash2, ChevronUp, ChevronDown, Save, LayoutGrid, Eye, EyeOff, Monitor, Pencil, Bold, Italic, Underline, Type } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { apiRequest, queryClient } from '@/lib/queryClient'
@@ -18,6 +19,7 @@ import { GENERIC_SECTION_TYPES, CARD_ICON_OPTIONS, sectionTypeLabel, createDefau
 import { LEGACY_SECTION_CONFIG } from '@/lib/legacySectionFields'
 import { ImageSlotUploader } from './ImageSlotUploader'
 import { ViewportSwitcher, DeviceFrame, type PreviewViewport } from './DevicePreviewFrame'
+import { useInlineTextEditor } from '@/hooks/useInlineTextEditor'
 
 const isLegacyType = (type: HomeSectionType) => (LEGACY_SECTION_TYPES as readonly HomeSectionType[]).includes(type)
 
@@ -345,6 +347,18 @@ const SectionsManager = () => {
   const sectionsRef = useRef<HomeSection[]>([])
   const clickListenerRef = useRef<{ doc: Document; handler: (e: MouseEvent) => void } | null>(null)
 
+  const {
+    editMode: textEditMode,
+    setEditMode: setTextEditMode,
+    pendingEdits: pendingTextEdits,
+    saving: savingTextEdits,
+    highlightedCount: editableTextCount,
+    onIframeLoad: onTextEditorIframeLoad,
+    handleSaveAll: saveTextEdits,
+    handleDiscardAll: discardTextEdits,
+    execCommand,
+  } = useInlineTextEditor(iframeRef, editLang, isHe)
+
   useEffect(() => {
     sectionsRef.current = sections
   }, [sections])
@@ -452,7 +466,9 @@ const SectionsManager = () => {
 
     doc.addEventListener('click', clickHandler, true)
     clickListenerRef.current = { doc, handler: clickHandler }
-  }, [])
+
+    onTextEditorIframeLoad()
+  }, [onTextEditorIframeLoad])
 
   useEffect(() => {
     return () => {
@@ -531,11 +547,43 @@ const SectionsManager = () => {
           <div className="border rounded-md overflow-hidden">
             <div className="flex items-center justify-between gap-2 flex-wrap bg-muted/50 px-3 py-2 border-b">
               <p className="text-xs text-muted-foreground">
-                {isHe
-                  ? 'לחצו על מקטע בתצוגה כדי לפתוח את עורך התוכן שלו.'
-                  : 'Click a section in the preview to open its content editor.'}
+                {textEditMode
+                  ? (isHe ? 'לחצו על טקסט מודגש בירוק כדי לערוך אותו ישירות.' : 'Click green-highlighted text to edit it directly.')
+                  : (isHe ? 'לחצו על מקטע בתצוגה כדי לפתוח את עורך התוכן שלו.' : 'Click a section in the preview to open its content editor.')}
               </p>
-              <ViewportSwitcher viewport={previewViewport} onChange={setPreviewViewport} isHe={isHe} />
+              <div className="flex items-center gap-2 flex-wrap">
+                {textEditMode && (
+                  <div className="flex items-center gap-1 border-l pl-2">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => execCommand('bold')} data-testid="button-preview-format-bold">
+                      <Bold className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => execCommand('italic')} data-testid="button-preview-format-italic">
+                      <Italic className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => execCommand('underline')} data-testid="button-preview-format-underline">
+                      <Underline className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
+                {textEditMode && editableTextCount > 0 && (
+                  <Badge variant="secondary">
+                    <Type className="h-3 w-3 mr-1" />
+                    {editableTextCount} {isHe ? 'שדות ניתנים לעריכה' : 'editable fields'}
+                  </Badge>
+                )}
+                <Button
+                  size="sm"
+                  variant={textEditMode ? 'default' : 'outline'}
+                  onClick={() => setTextEditMode((v) => !v)}
+                  data-testid="button-toggle-text-edit-mode"
+                >
+                  <Pencil className="h-4 w-4 mr-1.5" />
+                  {textEditMode
+                    ? (isHe ? 'מצב עריכה פעיל' : 'Editing Active')
+                    : (isHe ? 'הפעל עריכה ויזואלית' : 'Enable Visual Editing')}
+                </Button>
+                <ViewportSwitcher viewport={previewViewport} onChange={setPreviewViewport} isHe={isHe} />
+              </div>
             </div>
             <DeviceFrame
               viewport={previewViewport}
@@ -544,6 +592,22 @@ const SectionsManager = () => {
               onLoad={handleIframeLoad}
               title={isHe ? 'תצוגה מקדימה של האתר' : 'Site preview'}
             />
+            {pendingTextEdits.length > 0 && (
+              <div className="flex items-center justify-between gap-2 flex-wrap bg-muted/50 px-3 py-2 border-t">
+                <span className="text-xs text-muted-foreground">
+                  {isHe ? `${pendingTextEdits.length} שינויי טקסט ממתינים` : `${pendingTextEdits.length} pending text changes`}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={discardTextEdits} data-testid="button-discard-preview-text-edits">
+                    {isHe ? 'בטל הכל' : 'Discard All'}
+                  </Button>
+                  <Button size="sm" onClick={saveTextEdits} disabled={savingTextEdits} data-testid="button-save-preview-text-edits">
+                    <Save className="h-3.5 w-3.5 mr-1.5" />
+                    {savingTextEdits ? (isHe ? 'שומר...' : 'Saving...') : (isHe ? 'שמירת שינויי טקסט' : 'Save Text Edits')}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
