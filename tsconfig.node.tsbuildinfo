@@ -1,0 +1,1 @@
+{"root":["./client/vite.config.ts","./server/app.ts","./server/database-url.ts","./server/db.ts","./server/index.ts","./server/migrate.ts","./server/routes.ts","./server/seed-load-test.ts","./server/storage.ts","./server/vercel-handler.ts","./server/vite.ts","./shared/appointmentschedule.ts","./shared/schema.ts","./shared/models/chat.ts"],"version":"5.9.3"}
