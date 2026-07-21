@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Leaf } from "lucide-react";
 import doctorHero from "@/assets/doctor-hero.png";
+import logo from "@/assets/logo.png";
 import { useLanguage } from "@/hooks/useLanguage";
 import MobileNavigation from "./MobileNavigation";
 import { SiteImage } from "./SiteImage";
@@ -28,7 +29,7 @@ const MedicalHero: React.FC = () => {
           dir={isRTL ? "rtl" : "ltr"}
           aria-label={t("hero.welcome_line1") + " " + t("hero.welcome_line2")}
         >
-          <div className="container mx-auto px-4 sm:px-6 flex flex-col sm:flex-row gap-8 sm:gap-10 items-center justify-between pt-24 sm:pt-28 pb-10 sm:pb-14">
+          <div className="container mx-auto px-4 sm:px-6 flex flex-col sm:flex-row gap-8 sm:gap-10 items-center justify-between pb-10 sm:pb-14">
 
             {/* ── Text column — bottom half in DOM order, right-aligned in RTL ── */}
             <motion.div
@@ -37,6 +38,15 @@ const MedicalHero: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
             >
+              <SiteImage
+                slot="logo"
+                fallback={logo}
+                alt={isRTL ? "קשב פלוס" : "Keshev Plus"}
+                className="h-14 sm:h-16 md:h-20 w-auto mx-auto sm:ms-auto sm:me-0 mb-4"
+                loading="eager"
+                fetchPriority="high"
+              />
+
               <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-3">
                 {t("hero.welcome_line1")} {t("hero.welcome_line2")}
               </h1>
