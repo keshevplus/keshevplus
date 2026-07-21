@@ -15,6 +15,7 @@ import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "../auth/AuthProvider";
 import { useLanguage } from "@/hooks/useLanguage";
+import AppointmentPanel from "./AppointmentPanel";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { getLocalDateInputValue } from "@shared/appointmentSchedule";
@@ -116,7 +117,7 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
   const { language, isRTL } = useLanguage();
   const isHe = language === "he";
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const isBillingOnly = user?.role === "billing";
 
   const [client, setClient] = useState<Client | null>(null);
@@ -573,6 +574,9 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
             </CardContent>
           </Card>
 
+          <div className={cn(!isBillingOnly && "grid grid-cols-1 lg:grid-cols-5 gap-4")}>
+          <div className={cn(!isBillingOnly && "lg:col-span-3", "space-y-4")}>
+
           {!isBillingOnly && (
           <Card>
             <CardContent className="pt-6 space-y-2">
@@ -987,6 +991,22 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
             </CardContent>
           </Card>
           )}
+
+          </div>
+
+          {!isBillingOnly && (
+          <div className="lg:col-span-2 space-y-4">
+            <AppointmentPanel
+              client={client}
+              appointments={interactions?.appointments ?? []}
+              canManage={isAdmin}
+              isHe={isHe}
+              onChanged={() => { fetchInteractions(); fetchActivities(); }}
+            />
+          </div>
+          )}
+
+          </div>
         </>
       )}
     </div>
