@@ -38,18 +38,18 @@ const MedicalHero: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
             >
+              <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-3">
+                {t("hero.welcome_line1")} {t("hero.welcome_line2")}
+              </h1>
+
               <SiteImage
                 slot="logo"
                 fallback={logo}
                 alt={isRTL ? "קשב פלוס" : "Keshev Plus"}
-                className="h-14 sm:h-16 md:h-20 w-auto mx-auto sm:ms-auto sm:me-0 mb-4"
+                className="h-14 sm:h-16 md:h-20 w-auto ms-auto me-0 mb-4"
                 loading="eager"
                 fetchPriority="high"
               />
-
-              <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-3">
-                {t("hero.welcome_line1")} {t("hero.welcome_line2")}
-              </h1>
 
               <p className="text-lg mb-2 text-foreground leading-relaxed">
                 {t("hero.clinic_description")}
