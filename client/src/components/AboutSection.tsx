@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useLanguage, useIsDemo } from '@/hooks/useLanguage';
 import { Section, SectionHeader } from '@/components/layout/Section';
 import { SiteImage } from '@/components/SiteImage';
+import { SectionCtaButtons } from '@/components/SectionCtaButtons';
 import heroAbout from '@/assets/hero-about.jpg';
 
 const values = [
@@ -137,6 +138,8 @@ const AboutSection: React.FC = () => {
           </div>
         </>
       )}
+
+      <SectionCtaButtons />
     </Section>
   );
 };

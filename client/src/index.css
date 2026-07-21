@@ -304,6 +304,22 @@
     transition: var(--transition-slow);
   }
 
+  /* Staggered fade-in for the hero's rotating "+" joined list */
+  @keyframes typing-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-typing {
+    animation: typing-fade-in 0.5s ease-out forwards;
+  }
+
   /* Scroll Progress Indicator */
   .scroll-progress {
     position: fixed;

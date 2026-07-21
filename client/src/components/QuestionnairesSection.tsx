@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/hooks/useLanguage';
 import { Section, SectionHeader } from '@/components/layout/Section';
+import { SectionCtaButtons } from '@/components/SectionCtaButtons';
 import QuestionnaireModal from './QuestionnaireModal';
 import type { QuestionnaireType } from '@/lib/questionnaire-data';
 
@@ -137,6 +138,8 @@ const QuestionnairesSection = () => {
       >
         {t('questionnaires.note')}
       </motion.p>
+
+      <SectionCtaButtons />
 
       <QuestionnaireModal
         open={modalOpen}

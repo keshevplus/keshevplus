@@ -43,6 +43,7 @@ const en: Record<string, string> = {
   "nav.call_us": "Call us: 055-27-399-27",
   "nav.close_menu": "Close menu",
   "nav.open_menu": "Open menu",
+  "nav.menu": "Menu",
   "contact.subtitle": "Leave your details and we'll get back to you as soon as possible",
   "contact.leave_details": "Leave Your Details",
   "contact.full_name": "Full Name",

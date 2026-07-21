@@ -4,6 +4,7 @@ import { Brain, Pill, Monitor, ClipboardList, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLanguage, useIsDemo } from '@/hooks/useLanguage';
 import { Section, SectionHeader } from '@/components/layout/Section';
+import { SectionCtaButtons } from '@/components/SectionCtaButtons';
 import { cn } from '@/lib/utils';
 
 const services = [
@@ -184,6 +185,8 @@ const ServicesSection: React.FC = () => {
           </ol>
         </div>
       )}
+
+      <SectionCtaButtons />
     </Section>
   );
 };

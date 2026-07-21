@@ -3,6 +3,7 @@ import { Brain, Target, Zap, Users, Heart, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Section, SectionHeader } from "@/components/layout/Section";
+import { SectionCtaButtons } from "@/components/SectionCtaButtons";
 import {
   Accordion,
   AccordionContent,
@@ -277,6 +278,8 @@ const ADHDInfoSection = () => {
           </a>
         </motion.div>
       </div>
+
+      <SectionCtaButtons />
     </Section>
   );
 };
