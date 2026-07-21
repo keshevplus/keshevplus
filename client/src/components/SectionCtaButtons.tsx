@@ -7,13 +7,17 @@ import { cn } from "@/lib/utils";
 /**
  * Repeated leaf-icon CTA button pair shown at the end of each front-page
  * section, mirroring keshev-web's per-section "contact us" / "read more" row.
+ *
+ * `fullWidth` wraps the same buttons in a full-bleed green band instead of
+ * leaving them centered on the section's own background -- opt-in per call
+ * site so the other sections keep their current look.
  */
-export function SectionCtaButtons({ className }: { className?: string }) {
+export function SectionCtaButtons({ className, fullWidth }: { className?: string; fullWidth?: boolean }) {
   const { t } = useLanguage();
   const { openModal } = useContactModal();
 
-  return (
-    <div className={cn("flex flex-wrap justify-center gap-4 mt-10 sm:mt-12", className)}>
+  const buttons = (
+    <div className={cn("flex flex-wrap justify-center gap-4", !fullWidth && "mt-10 sm:mt-12", className)}>
       <AccessibleButton
         variant="primary"
         className="rounded-full gap-2 shadow-md hover:shadow-lg transition-transform duration-200 hover:-translate-y-0.5"
@@ -33,6 +37,14 @@ export function SectionCtaButtons({ className }: { className?: string }) {
         {t("hero.read_about_us")}
         <Leaf className="h-4 w-4" aria-hidden="true" />
       </AccessibleButton>
+    </div>
+  );
+
+  if (!fullWidth) return buttons;
+
+  return (
+    <div className="w-screen relative left-1/2 right-1/2 -mx-[50vw] green-section-bg py-8 sm:py-10 mt-10 sm:mt-12">
+      {buttons}
     </div>
   );
 }

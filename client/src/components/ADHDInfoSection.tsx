@@ -279,7 +279,7 @@ const ADHDInfoSection = () => {
         </motion.div>
       </div>
 
-      <SectionCtaButtons />
+      <SectionCtaButtons fullWidth />
     </Section>
   );
 };
