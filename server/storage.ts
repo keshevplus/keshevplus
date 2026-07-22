@@ -214,12 +214,24 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  private async getNextCrmNumber(key: string, start: number): Promise<number> {
+  // Self-healing against the counter falling behind the actual column (as
+  // happened when the load-test seeder bulk-inserted using its own
+  // MAX(column)+1 scheme without advancing this counter, which then made
+  // every real insert collide with the unique constraint and fail
+  // silently): the assigned number is never less than
+  // MAX(column)+1, even if the stored counter is stale.
+  private async getNextCrmNumber(key: string, start: number, column: "lead_number" | "client_number"): Promise<number> {
+    const columnIdent = sql.identifier(column);
     const result = await db.execute(sql`
       insert into site_settings (key, value)
       values (${key}, ${JSON.stringify(start + 1)}::jsonb)
       on conflict (key)
-      do update set value = to_jsonb(((site_settings.value #>> '{}')::int + 1))
+      do update set value = to_jsonb(
+        GREATEST(
+          (site_settings.value #>> '{}')::int,
+          (select coalesce(max(${columnIdent}), ${start - 1}) from clients) + 1
+        ) + 1
+      )
       returning ((value #>> '{}')::int - 1) as number
     `);
     const row = (result.rows as Array<{ number: number }>)[0];
@@ -228,11 +240,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   private async getNextLeadNumber() {
-    return this.getNextCrmNumber("crm_next_lead_number", 5000);
+    return this.getNextCrmNumber("crm_next_lead_number", 5000, "lead_number");
   }
 
   private async getNextClientNumber() {
-    return this.getNextCrmNumber("crm_next_client_number", 200);
+    return this.getNextCrmNumber("crm_next_client_number", 200, "client_number");
   }
 
   private async findClientByIdentity(identity: { email?: string | null; phone?: string | null }, excludeId?: number): Promise<Client | undefined> {
