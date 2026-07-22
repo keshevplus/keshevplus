@@ -113,7 +113,7 @@ const MedicalHero: React.FC = () => {
                 slot="hero.image"
                 fallback={doctorHero}
                 alt={t("hero.doctor_alt")}
-                className="w-full h-auto rounded-lg shadow-xl transition-shadow duration-300 hover:shadow-2xl"
+                className="w-full h-auto rounded-lg"
                 loading="eager"
                 fetchPriority="high"
                 width="800"
