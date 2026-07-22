@@ -9,6 +9,7 @@ const es: Record<string, string> = {
   "nav.contact": "Contacto",
   "nav.book": "Reservar",
   "nav.book_now": "Reservar ahora",
+  "nav.menu": "Menú",
   "nav.skip_to_content": "Ir al contenido principal",
   "nav.main_navigation": "Navegación principal",
   "nav.go_home": "Ir a la página de inicio",

@@ -9,6 +9,7 @@ const it: Record<string, string> = {
   "nav.contact": "Contattaci",
   "nav.book": "Prenota",
   "nav.book_now": "Prenota ora",
+  "nav.menu": "Menu",
 
   "hero.title": "Benvenuti alla",
   "hero.clinic": "Clinica \"Keshev Plus\"",

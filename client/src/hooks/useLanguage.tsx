@@ -117,7 +117,10 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
 
   const t = useCallback(
     (key: string): string => {
-      if (dbTranslations[key]) return dbTranslations[key];
+      // An admin-saved empty string is a deliberate "leave this blank", not
+      // "not customized yet" - only fall back to defaults when the key was
+      // never saved for this language at all.
+      if (key in dbTranslations) return dbTranslations[key];
       if (enFallback[key]) {
         const staticVal = getStaticTranslation(language, key);
         if (staticVal !== key) return staticVal;

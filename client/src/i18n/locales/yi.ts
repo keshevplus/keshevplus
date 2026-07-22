@@ -9,6 +9,7 @@ const yi: Record<string, string> = {
   "nav.contact": "קאָנטאַקט",
   "nav.book": "באַשטעלן",
   "nav.book_now": "באַשטעלן איצט",
+  "nav.menu": "מעניו",
   "nav.skip_to_content": "שפּרינג צום הויפּט אינהאַלט",
   "nav.main_navigation": "הויפּט נאַוויגאַציע",
   "nav.go_home": "גיי צום היים בלאַט",

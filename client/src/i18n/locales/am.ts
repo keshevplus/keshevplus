@@ -9,6 +9,7 @@ const am: Record<string, string> = {
   "nav.contact": "እየና ያግኙን",
   "nav.book": "ቀጠሮ ይያዙ",
   "nav.book_now": "አሁን ቀጠሮ ይያዙ",
+  "nav.menu": "ምናሌ",
   "nav.skip_to_content": "ወደ ዋና ይዘት ዝለል",
   "nav.main_navigation": "ዋና ናቪጌሽን",
   "nav.go_home": "ወደ መነሻ ገጽ ሂድ",

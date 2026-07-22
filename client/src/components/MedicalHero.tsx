@@ -4,6 +4,7 @@ import doctorHero from "@/assets/doctor-hero.png";
 import logo from "@/assets/logo.png";
 import { useLanguage } from "@/hooks/useLanguage";
 import MobileNavigation from "./MobileNavigation";
+import RotatingWord from "./RotatingWord";
 import { SiteImage } from "./SiteImage";
 import { AccessibleButton } from "./ui/accessible-button";
 import { useContactModal } from "@/contexts/ContactModalContext";
@@ -52,29 +53,19 @@ const MedicalHero: React.FC = () => {
               />
 
               <p className="text-lg mb-2 text-foreground leading-relaxed">
-                {t("hero.clinic_description")}
+                {t("hero.clinic_description")}{" "}
+                <RotatingWord words={typingItems} className="font-semibold text-primary" />
               </p>
               <p className="text-lg mb-4 text-foreground leading-relaxed">
-                {t("hero.accurate_diagnosis")}
-                <br />
-                {t("hero.personal_plan")}
+                {t("hero.accurate_diagnosis")} {t("hero.personal_plan")}
               </p>
 
-              {/* Rotating "+" joined list, staggered fade-in like keshev-web */}
-              <div className="mb-6 flex flex-wrap justify-center sm:justify-end gap-2">
-                {typingItems.map((item, idx) => (
-                  <span
-                    key={item}
-                    className="opacity-0 animate-typing inline-flex items-center"
-                    style={{ animationDelay: `${idx * 400}ms`, animationFillMode: "forwards" }}
-                  >
-                    <span className="text-lg font-semibold text-foreground">{item}</span>
-                    {idx < typingItems.length - 1 && (
-                      <span className="text-primary font-bold mx-2">+</span>
-                    )}
-                  </span>
-                ))}
-              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
+                {t("hero.first_step")}
+              </h2>
+              <p className="text-base mb-6 text-muted-foreground leading-relaxed">
+                {t("hero.schedule_consultation")}
+              </p>
 
               {/* CTA buttons — pill shape with leaf icon, matching keshev-web */}
               <div className="flex flex-wrap justify-center sm:justify-end gap-4">
@@ -84,7 +75,7 @@ const MedicalHero: React.FC = () => {
                   onClick={openModal}
                   data-testid="button-contact-cta"
                 >
-                  {t("hero.contact_us_now")}
+                  {t("hero.start_now")}
                   <Leaf className="h-4 w-4" aria-hidden="true" />
                 </AccessibleButton>
 

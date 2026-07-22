@@ -31,8 +31,14 @@ function PageFallback() {
   );
 }
 
+// The Sections/Visual Editor preview iframe always loads on the admin.*
+// host (that's where those tabs live) but needs to render the public
+// homepage, not the admin dashboard recursively - so ?visualEditor=true
+// overrides the host-based check.
 const isAdminHost =
-  typeof window !== "undefined" && window.location.hostname.startsWith("admin.");
+  typeof window !== "undefined" &&
+  window.location.hostname.startsWith("admin.") &&
+  !window.location.search.includes("visualEditor=true");
 
 function Router() {
   return (

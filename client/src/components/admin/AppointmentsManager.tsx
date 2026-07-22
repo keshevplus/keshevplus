@@ -453,7 +453,7 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
   };
 
   const appointmentsByDate = useMemo(() => {
-    return allAppointments
+    return appointments
       .filter((appointment) => appointment.status !== 'cancelled')
       .reduce<Record<string, Appointment[]>>((groups, appointment) => {
         const key = appointment.date;
@@ -461,7 +461,7 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
         groups[key].push(appointment);
         return groups;
       }, {});
-  }, [allAppointments]);
+  }, [appointments]);
 
   const periodLabel = useMemo(() => {
     const locale = isHe ? "he-IL" : "en-US";

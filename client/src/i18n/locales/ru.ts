@@ -9,6 +9,7 @@ const ru: Record<string, string> = {
   "nav.contact": "Контакты",
   "nav.book": "Записаться",
   "nav.book_now": "Записаться сейчас",
+  "nav.menu": "Меню",
   "nav.skip_to_content": "Перейти к основному содержанию",
   "nav.main_navigation": "Основная навигация",
   "nav.go_home": "На главную страницу",

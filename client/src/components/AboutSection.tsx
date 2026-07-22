@@ -7,6 +7,7 @@ import { useLanguage, useIsDemo } from '@/hooks/useLanguage';
 import { Section, SectionHeader } from '@/components/layout/Section';
 import { SiteImage } from '@/components/SiteImage';
 import { SectionCtaButtons } from '@/components/SectionCtaButtons';
+import { cn } from '@/lib/utils';
 import heroAbout from '@/assets/hero-about.jpg';
 
 const values = [
@@ -75,22 +76,39 @@ const AboutSection: React.FC = () => {
                 {t('about.doctor_desc')}
               </p>
               
-              {!isDemo && (
-                <ul className="space-y-3">
-                  {credentialKeys.map((key, index) => (
-                    <motion.li
-                      key={key}
-                      initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
-                      animate={inView ? { opacity: 1, x: 0 } : {}}
-                      transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
-                      className="flex items-center gap-3"
-                    >
-                      <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-foreground/80" data-testid={`text-credential-${index}`}>{t(key)}</span>
-                    </motion.li>
-                  ))}
-                </ul>
-              )}
+              {!isDemo && (() => {
+                const credentials = credentialKeys
+                  .map((key, index) => ({ key, index, text: t(key).trim() }))
+                  .filter(({ text }) => text.length > 0);
+
+                if (credentials.length === 0) return null;
+
+                return (
+                  <ul className="space-y-3">
+                    {credentials.map(({ key, index, text }) => (
+                      <motion.li
+                        key={key}
+                        initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
+                        animate={inView ? { opacity: 1, x: 0 } : {}}
+                        transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
+                        className={cn('flex items-center gap-3', isRTL ? 'justify-end' : 'justify-start')}
+                      >
+                        {isRTL ? (
+                          <>
+                            <span className="text-foreground/80 text-right" data-testid={`text-credential-${index}`}>{text}</span>
+                            <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
+                            <span className="text-foreground/80" data-testid={`text-credential-${index}`}>{text}</span>
+                          </>
+                        )}
+                      </motion.li>
+                    ))}
+                  </ul>
+                );
+              })()}
             </CardContent>
           </Card>
         </motion.div>
