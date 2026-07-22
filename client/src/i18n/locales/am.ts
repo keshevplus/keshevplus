@@ -15,6 +15,7 @@ const am: Record<string, string> = {
   "nav.call_us": "ደውሉልን: 055-27-399-27",
   "nav.close_menu": "ምናሌ ዝጋ",
   "nav.open_menu": "ምናሌ ክፈት",
+  "nav.more_options": "ተጨማሪ አማራጮች",
 
   "hero.title": "እንዳምረጠው ወደ ክሊኒክ",
   "hero.clinic": "\"Keshev Plus\"",

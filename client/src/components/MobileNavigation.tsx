@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Phone, Menu, X, CalendarCheck } from "lucide-react";
+import { Phone, Menu, X, CalendarCheck, MoreHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/hooks/useLanguage";
 import { LanguageSelector } from "@/components/LanguageSelector";
@@ -20,6 +20,7 @@ interface NavItem {
 const MobileNavigation: React.FC = () => {
   const { openModal } = useContactModal();
   const [isOpen, setIsOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeSection, setActiveSection] = useState('');
@@ -59,17 +60,18 @@ const MobileNavigation: React.FC = () => {
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        setIsOpen(false);
+      if (e.key === "Escape") {
+        if (isOpen) setIsOpen(false);
+        if (moreOpen) setMoreOpen(false);
       }
     };
 
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen]);
+  }, [isOpen, moreOpen]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen || moreOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -77,7 +79,7 @@ const MobileNavigation: React.FC = () => {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [isOpen]);
+  }, [isOpen, moreOpen]);
 
   const scrollToSection = useCallback(
     (href: string) => {
@@ -205,8 +207,17 @@ const MobileNavigation: React.FC = () => {
                 <span dir="ltr">055-27-399-27</span>
               </a>
 
-              <LanguageSelector />
-              <ThemeToggle />
+              <AccessibleButton
+                variant="ghost"
+                size="icon"
+                onClick={() => setMoreOpen(true)}
+                aria-expanded={moreOpen}
+                aria-controls="more-options-panel"
+                aria-label={t("nav.more_options")}
+                data-testid="button-more-options"
+              >
+                <MoreHorizontal className="w-5 h-5" aria-hidden="true" />
+              </AccessibleButton>
             </div>
 
             {/* Mobile right area */}
@@ -233,6 +244,56 @@ const MobileNavigation: React.FC = () => {
           </div>
         </div>
       </motion.nav>
+
+      {/* Desktop "more" drawer - holds language + theme controls so the main row never wraps */}
+      <AnimatePresence>
+        {moreOpen && (
+          <motion.div
+            className="hidden lg:block fixed inset-0 z-[9995]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setMoreOpen(false)}
+              aria-hidden="true"
+            />
+            <motion.div
+              id="more-options-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-label={t("nav.more_options")}
+              dir={dir}
+              initial={{ x: isRTL ? "-100%" : "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: isRTL ? "-100%" : "100%" }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className={cn(
+                "absolute top-0 h-full w-72 bg-background shadow-xl p-6 flex flex-col gap-6",
+                isRTL ? "left-0" : "right-0",
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-foreground">{t("nav.more_options")}</span>
+                <button
+                  onClick={() => setMoreOpen(false)}
+                  className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  aria-label={t("nav.close_menu")}
+                >
+                  <X className="w-5 h-5" aria-hidden="true" />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-3 items-start">
+                <LanguageSelector />
+                <ThemeToggle />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Full-screen green overlay menu (mobile), mirroring keshev-web's mobile menu */}
       <AnimatePresence>

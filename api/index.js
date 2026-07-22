@@ -36,6 +36,7 @@ __export(schema_exports, {
   clientFiles: () => clientFiles,
   clientPayments: () => clientPayments,
   clients: () => clients,
+  contactFormSettingsSchema: () => contactFormSettingsSchema,
   contacts: () => contacts,
   conversations: () => conversations,
   dashboardLayoutSchema: () => dashboardLayoutSchema,
@@ -117,6 +118,10 @@ var contacts = pgTable2("contacts", {
   phone: text2("phone").notNull(),
   email: text2("email"),
   message: text2("message").notNull(),
+  // Origin the submission came from (e.g. https://keshevplus.co.il,
+  // https://lp.keshevplus.com), captured server-side from the request -
+  // lets admins tell which site/form generated the lead.
+  source: text2("source"),
   createdAt: timestamp2("created_at").defaultNow().notNull(),
   read: boolean2("read").default(false).notNull(),
   status: text2("status").notNull().default("new"),
@@ -280,6 +285,9 @@ var widgetSettingsSchema = z.object({
   showChat: z.boolean().default(true),
   showAccessibility: z.boolean().default(true),
   showWhatsApp: z.boolean().default(true)
+});
+var contactFormSettingsSchema = z.object({
+  requireMessage: z.boolean().default(true)
 });
 var dashboardLayoutSchema = z.object({
   widgets: z.array(z.string())
@@ -725,15 +733,18 @@ var DatabaseStorage = class {
   }
   async getClientInteractions(clientId) {
     const client = await this.getClient(clientId);
-    if (!client || !client.email) {
-      return { contacts: [], appointments: [], questionnaires: [], conversations: [] };
+    if (!client) {
+      return { contacts: [], appointments: [], questionnaires: [], conversations: [], whatsappMessages: [] };
     }
     const email = client.email;
-    const clientContacts = await db.select().from(contacts).where(eq(contacts.email, email)).orderBy(desc(contacts.createdAt));
-    const clientAppointments = await db.select().from(appointments).where(eq(appointments.clientEmail, email)).orderBy(desc(appointments.createdAt));
-    const clientQuestionnaires = await db.select().from(questionnaireSubmissions).where(eq(questionnaireSubmissions.respondentEmail, email)).orderBy(desc(questionnaireSubmissions.createdAt));
-    const clientConversations = await db.select().from(conversations).where(eq(conversations.visitorEmail, email)).orderBy(desc(conversations.createdAt));
-    return { contacts: clientContacts, appointments: clientAppointments, questionnaires: clientQuestionnaires, conversations: clientConversations };
+    const [clientContacts, clientAppointments, clientQuestionnaires, clientConversations, clientWhatsapp] = await Promise.all([
+      email ? db.select().from(contacts).where(eq(contacts.email, email)).orderBy(desc(contacts.createdAt)) : Promise.resolve([]),
+      email ? db.select().from(appointments).where(eq(appointments.clientEmail, email)).orderBy(desc(appointments.createdAt)) : Promise.resolve([]),
+      email ? db.select().from(questionnaireSubmissions).where(eq(questionnaireSubmissions.respondentEmail, email)).orderBy(desc(questionnaireSubmissions.createdAt)) : Promise.resolve([]),
+      email ? db.select().from(conversations).where(eq(conversations.visitorEmail, email)).orderBy(desc(conversations.createdAt)) : Promise.resolve([]),
+      db.select().from(whatsappMessages).where(eq(whatsappMessages.clientId, clientId)).orderBy(desc(whatsappMessages.createdAt))
+    ]);
+    return { contacts: clientContacts, appointments: clientAppointments, questionnaires: clientQuestionnaires, conversations: clientConversations, whatsappMessages: clientWhatsapp };
   }
   async getClientInteractionsBulk(clientIds) {
     const result = {};
@@ -741,19 +752,19 @@ var DatabaseStorage = class {
     const clientRows = await db.select().from(clients).where(inArray(clients.id, clientIds));
     const emailToClientIds = /* @__PURE__ */ new Map();
     for (const client of clientRows) {
-      result[client.id] = { contacts: [], appointments: [], questionnaires: [], conversations: [] };
+      result[client.id] = { contacts: [], appointments: [], questionnaires: [], conversations: [], whatsappMessages: [] };
       if (!client.email) continue;
       const ids = emailToClientIds.get(client.email) ?? [];
       ids.push(client.id);
       emailToClientIds.set(client.email, ids);
     }
     const emails = [...emailToClientIds.keys()];
-    if (emails.length === 0) return result;
-    const [allContacts, allAppointments, allQuestionnaires, allConversations] = await Promise.all([
-      db.select().from(contacts).where(inArray(contacts.email, emails)).orderBy(desc(contacts.createdAt)),
-      db.select().from(appointments).where(inArray(appointments.clientEmail, emails)).orderBy(desc(appointments.createdAt)),
-      db.select().from(questionnaireSubmissions).where(inArray(questionnaireSubmissions.respondentEmail, emails)).orderBy(desc(questionnaireSubmissions.createdAt)),
-      db.select().from(conversations).where(inArray(conversations.visitorEmail, emails)).orderBy(desc(conversations.createdAt))
+    const [allContacts, allAppointments, allQuestionnaires, allConversations, allWhatsapp] = await Promise.all([
+      emails.length ? db.select().from(contacts).where(inArray(contacts.email, emails)).orderBy(desc(contacts.createdAt)) : Promise.resolve([]),
+      emails.length ? db.select().from(appointments).where(inArray(appointments.clientEmail, emails)).orderBy(desc(appointments.createdAt)) : Promise.resolve([]),
+      emails.length ? db.select().from(questionnaireSubmissions).where(inArray(questionnaireSubmissions.respondentEmail, emails)).orderBy(desc(questionnaireSubmissions.createdAt)) : Promise.resolve([]),
+      emails.length ? db.select().from(conversations).where(inArray(conversations.visitorEmail, emails)).orderBy(desc(conversations.createdAt)) : Promise.resolve([]),
+      db.select().from(whatsappMessages).where(inArray(whatsappMessages.clientId, clientIds)).orderBy(desc(whatsappMessages.createdAt))
     ]);
     for (const row of allContacts) {
       for (const id of emailToClientIds.get(row.email) ?? []) result[id].contacts.push(row);
@@ -766,6 +777,9 @@ var DatabaseStorage = class {
     }
     for (const row of allConversations) {
       for (const id of emailToClientIds.get(row.visitorEmail) ?? []) result[id].conversations.push(row);
+    }
+    for (const row of allWhatsapp) {
+      if (row.clientId != null && result[row.clientId]) result[row.clientId].whatsappMessages.push(row);
     }
     return result;
   }
@@ -780,6 +794,7 @@ var DatabaseStorage = class {
     const [appointmentsPending] = await db.select({ count: sql2`count(*)` }).from(appointments).where(and(eq(appointments.status, "pending"), eq(appointments.archived, false), eq(appointments.isTest, false)));
     const [conversationsNew] = await db.select({ count: sql2`count(*)` }).from(conversations).where(and(eq(conversations.reviewed, false), eq(conversations.archived, false), eq(conversations.isTest, false)));
     const [questionnairesNew] = await db.select({ count: sql2`count(*)` }).from(questionnaireSubmissions).where(and(eq(questionnaireSubmissions.status, "new"), eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false)));
+    const [whatsappUnread] = await db.select({ count: sql2`count(*)` }).from(whatsappMessages).where(and(eq(whatsappMessages.direction, "inbound"), sql2`${whatsappMessages.status} != 'read'`));
     const [newLeadsCount] = await db.select({ count: sql2`count(*)` }).from(clients).where(and(eq(clients.status, "lead"), eq(clients.adminSeen, false), eq(clients.archived, false), eq(clients.isTest, false)));
     const newLeadRows = await db.select({
       id: clients.id,
@@ -793,6 +808,7 @@ var DatabaseStorage = class {
       pendingAppointments: Number(appointmentsPending?.count ?? 0),
       unreviewedConversations: Number(conversationsNew?.count ?? 0),
       unreviewedQuestionnaires: Number(questionnairesNew?.count ?? 0),
+      unreadWhatsapp: Number(whatsappUnread?.count ?? 0),
       newLeads: Number(newLeadsCount?.count ?? 0),
       newLeadItems: newLeadRows
     };
@@ -804,6 +820,15 @@ var DatabaseStorage = class {
   }
   async updateWidgetSettings(settings) {
     const updated = await this.upsertSetting("widget_settings", settings);
+    return updated.value;
+  }
+  async getContactFormSettings() {
+    const setting = await this.getSetting("contact_form_settings");
+    if (setting) return setting.value;
+    return { requireMessage: true };
+  }
+  async updateContactFormSettings(settings) {
+    const updated = await this.upsertSetting("contact_form_settings", settings);
     return updated.value;
   }
   async getDashboardLayout() {
@@ -1226,6 +1251,8 @@ var en = {
   "nav.call_us": "Call us: 055-27-399-27",
   "nav.close_menu": "Close menu",
   "nav.open_menu": "Open menu",
+  "nav.menu": "Menu",
+  "nav.more_options": "More options",
   "contact.subtitle": "Leave your details and we'll get back to you as soon as possible",
   "contact.leave_details": "Leave Your Details",
   "contact.full_name": "Full Name",
@@ -1588,6 +1615,8 @@ var he = {
   "nav.call_us": "\u05D4\u05EA\u05E7\u05E9\u05E8\u05D5 \u05D0\u05DC\u05D9\u05E0\u05D5: 055-27-399-27",
   "nav.close_menu": "\u05E1\u05D2\u05D5\u05E8 \u05EA\u05E4\u05E8\u05D9\u05D8",
   "nav.open_menu": "\u05E4\u05EA\u05D7 \u05EA\u05E4\u05E8\u05D9\u05D8",
+  "nav.menu": "\u05EA\u05E4\u05E8\u05D9\u05D8",
+  "nav.more_options": "\u05D0\u05E4\u05E9\u05E8\u05D5\u05D9\u05D5\u05EA \u05E0\u05D5\u05E1\u05E4\u05D5\u05EA",
   "contact.subtitle": "\u05D4\u05E9\u05D0\u05D9\u05E8\u05D5 \u05E4\u05E8\u05D8\u05D9\u05DD \u05D5\u05E0\u05D7\u05D6\u05D5\u05E8 \u05D0\u05DC\u05D9\u05DB\u05DD \u05D1\u05D4\u05E7\u05D3\u05DD \u05D4\u05D0\u05E4\u05E9\u05E8\u05D9",
   "contact.leave_details": "\u05D4\u05E9\u05D0\u05D9\u05E8\u05D5 \u05E4\u05E8\u05D8\u05D9\u05DD",
   "contact.full_name": "\u05E9\u05DD \u05DE\u05DC\u05D0",
@@ -1923,6 +1952,7 @@ var fr = {
   "nav.call_us": "Appelez-nous : 055-27-399-27",
   "nav.close_menu": "Fermer le menu",
   "nav.open_menu": "Ouvrir le menu",
+  "nav.more_options": "Plus d'options",
   "hero.title": "Bienvenue \xE0 la clinique",
   "hero.clinic": '"Keshev Plus"',
   "hero.subtitle": "Enfants \u2022 Adolescents \u2022 Adultes",
@@ -2292,6 +2322,7 @@ var es = {
   "nav.call_us": "Ll\xE1menos: 055-27-399-27",
   "nav.close_menu": "Cerrar men\xFA",
   "nav.open_menu": "Abrir men\xFA",
+  "nav.more_options": "M\xE1s opciones",
   "hero.title": "Bienvenido a la cl\xEDnica",
   "hero.clinic": '"Keshev Plus"',
   "hero.subtitle": "Ni\xF1os \u2022 Adolescentes \u2022 Adultos",
@@ -2661,6 +2692,7 @@ var de = {
   "nav.call_us": "Rufen Sie uns an: 055-27-399-27",
   "nav.close_menu": "Men\xFC schlie\xDFen",
   "nav.open_menu": "Men\xFC \xF6ffnen",
+  "nav.more_options": "Weitere Optionen",
   "hero.title": "Willkommen in der Klinik",
   "hero.clinic": '"Keshev Plus"',
   "hero.subtitle": "Kinder \u2022 Jugendliche \u2022 Erwachsene",
@@ -3030,6 +3062,7 @@ var ru = {
   "nav.call_us": "\u041F\u043E\u0437\u0432\u043E\u043D\u0438\u0442\u0435 \u043D\u0430\u043C: 055-27-399-27",
   "nav.close_menu": "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043C\u0435\u043D\u044E",
   "nav.open_menu": "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043C\u0435\u043D\u044E",
+  "nav.more_options": "\u0414\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0435 \u043F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B",
   "hero.title": "\u0414\u043E\u0431\u0440\u043E \u043F\u043E\u0436\u0430\u043B\u043E\u0432\u0430\u0442\u044C \u0432 \u043A\u043B\u0438\u043D\u0438\u043A\u0443",
   "hero.clinic": '"Keshev Plus"',
   "hero.subtitle": "\u0414\u0435\u0442\u0438 \u2022 \u041F\u043E\u0434\u0440\u043E\u0441\u0442\u043A\u0438 \u2022 \u0412\u0437\u0440\u043E\u0441\u043B\u044B\u0435",
@@ -3399,6 +3432,7 @@ var am = {
   "nav.call_us": "\u12F0\u12CD\u1209\u120D\u1295: 055-27-399-27",
   "nav.close_menu": "\u121D\u1293\u120C \u12DD\u130B",
   "nav.open_menu": "\u121D\u1293\u120C \u12AD\u1348\u1275",
+  "nav.more_options": "\u1270\u1328\u121B\u122A \u12A0\u121B\u122B\u132E\u127D",
   "hero.title": "\u12A5\u1295\u12F3\u121D\u1228\u1320\u12CD \u12C8\u12F0 \u12AD\u120A\u1292\u12AD",
   "hero.clinic": '"Keshev Plus"',
   "hero.subtitle": "\u1215\u133B\u1293\u1275 \u2022 \u12A0\u12E9\u1218\u122B\u12CE\u127D \u2022 \u12A0\u12CB\u1242\u12CE\u127D",
@@ -3768,6 +3802,7 @@ var ar = {
   "nav.call_us": "\u0627\u062A\u0635\u0644 \u0628\u0646\u0627: 055-27-399-27",
   "nav.close_menu": "\u0625\u063A\u0644\u0627\u0642 \u0627\u0644\u0642\u0627\u0626\u0645\u0629",
   "nav.open_menu": "\u0641\u062A\u062D \u0627\u0644\u0642\u0627\u0626\u0645\u0629",
+  "nav.more_options": "\u062E\u064A\u0627\u0631\u0627\u062A \u0625\u0636\u0627\u0641\u064A\u0629",
   "hero.title": "\u0645\u0631\u062D\u0628\u0627\u064B \u0628\u0643\u0645 \u0641\u064A \u0639\u064A\u0627\u062F\u0629",
   "hero.clinic": '"Keshev Plus"',
   "hero.subtitle": "\u0623\u0637\u0641\u0627\u0644 \u2022 \u0645\u0631\u0627\u0647\u0642\u0648\u0646 \u2022 \u0628\u0627\u0644\u063A\u0648\u0646",
@@ -4137,6 +4172,7 @@ var yi = {
   "nav.call_us": "\u05E8\u05D5\u05E4\u05D8 \u05D0\u05D5\u05E0\u05D3\u05D6: 055-27-399-27",
   "nav.close_menu": "\u05E4\u05D0\u05B7\u05E8\u05DE\u05D0\u05B7\u05DB\u05DF \u05DE\u05E2\u05E0\u05D9\u05D5",
   "nav.open_menu": "\u05E2\u05E4\u05E2\u05E0\u05E2\u05DF \u05DE\u05E2\u05E0\u05D9\u05D5",
+  "nav.more_options": "\u05DE\u05E2\u05E8 \u05D0\u05B8\u05E4\u05BC\u05E6\u05D9\u05E2\u05E1",
   "hero.title": "\u05D1\u05E8\u05D5\u05DB\u05D9\u05DD \u05D4\u05D1\u05D0\u05D9\u05DD \u05D0\u05D9\u05DF \u05D3\u05E2\u05E8 \u05E7\u05DC\u05D9\u05E0\u05D9\u05E7",
   "hero.clinic": '"Keshev Plus"',
   "hero.subtitle": "\u05E7\u05D9\u05E0\u05D3\u05E2\u05E8 \u2022 \u05D9\u05D5\u05D2\u05E0\u05D8\u05DC\u05E2\u05DB\u05E2 \u2022 \u05D3\u05E2\u05E8\u05D5\u05D5\u05D0\u05B7\u05E7\u05E1\u05E2\u05E0\u05E2",
@@ -4533,6 +4569,7 @@ var it = {
   "nav.call_us": "Chiamaci: 055-27-399-27",
   "nav.close_menu": "Chiudi menu",
   "nav.open_menu": "Apri menu",
+  "nav.more_options": "Altre opzioni",
   "contact.subtitle": "Lascia i tuoi dati e ti ricontatteremo il prima possibile",
   "contact.leave_details": "Lascia i Tuoi Dati",
   "contact.email_placeholder": "Email",
@@ -5438,6 +5475,35 @@ function isOwner(user) {
   if (!user) return false;
   return user.role === "owner" || user.email === "dr@keshevplus.co.il";
 }
+function hasBillingAccess(user) {
+  if (!user) return false;
+  return hasAdminAccess(user) || user.role === "billing";
+}
+function toBillingClientView(client) {
+  return {
+    id: client.id,
+    leadNumber: client.leadNumber,
+    clientNumber: client.clientNumber,
+    name: client.name,
+    email: client.email,
+    phone: client.phone,
+    status: client.status,
+    createdAt: client.createdAt
+  };
+}
+function resolveContactSource(req) {
+  const origin = req.headers.origin;
+  if (origin) return origin;
+  const referer = req.headers.referer;
+  if (typeof referer === "string" && referer) {
+    try {
+      return new URL(referer).origin;
+    } catch {
+      return referer;
+    }
+  }
+  return null;
+}
 async function registerRoutes(app2) {
   app2.post("/api/contact", async (req, res) => {
     try {
@@ -5445,7 +5511,11 @@ async function registerRoutes(app2) {
       if (!result.success) {
         return res.status(400).json({ success: false, message: result.error.message });
       }
-      await storage.createContact(result.data);
+      const contactFormSettings = await storage.getContactFormSettings();
+      if (contactFormSettings.requireMessage && result.data.message.trim().length < 10) {
+        return res.status(400).json({ success: false, message: "Message must be at least 10 characters" });
+      }
+      await storage.createContact({ ...result.data, source: resolveContactSource(req) });
       if (result.data.email) {
         try {
           await storage.upsertClientByEmail({
@@ -5504,6 +5574,25 @@ async function registerRoutes(app2) {
     const user = await storage.getUser(userId);
     if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
     const settings = await storage.updateWidgetSettings(req.body);
+    res.json(settings);
+  });
+  app2.get("/api/settings/contact-form", async (req, res) => {
+    try {
+      const settings = await storage.getContactFormSettings();
+      return res.json(settings);
+    } catch (error) {
+      console.error("Error fetching contact form settings:", error);
+      return res.json({ requireMessage: true });
+    }
+  });
+  app2.put("/api/settings/contact-form", async (req, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+    const result = contactFormSettingsSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.message });
+    const settings = await storage.updateContactFormSettings(result.data);
     res.json(settings);
   });
   app2.get("/api/admin/dashboard-layout", async (req, res) => {
@@ -5915,7 +6004,7 @@ async function registerRoutes(app2) {
       const createUserSchema = z2.object({
         email: z2.string().trim().email(),
         password: z2.string().min(6),
-        role: z2.enum(["admin", "manager", "user"])
+        role: z2.enum(["admin", "manager", "user", "billing"])
       });
       const result = createUserSchema.safeParse(req.body);
       if (!result.success) {
@@ -6879,11 +6968,11 @@ ${resetUrl}
       const userId = req.session?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!hasAdminAccess(user)) {
+      if (!hasBillingAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const list = await storage.getClients();
-      return res.json(list);
+      return res.json(hasAdminAccess(user) ? list : list.map(toBillingClientView));
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch clients" });
     }
@@ -6893,13 +6982,13 @@ ${resetUrl}
       const userId = req.session?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!hasAdminAccess(user)) {
+      if (!hasBillingAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
       const client = await storage.getClient(id);
       if (!client) return res.status(404).json({ error: "Client not found" });
-      return res.json(client);
+      return res.json(hasAdminAccess(user) ? client : toBillingClientView(client));
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch client" });
     }
@@ -7011,7 +7100,7 @@ ${resetUrl}
       const userId = req.session?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!hasAdminAccess(user)) {
+      if (!hasBillingAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const clientId = parseInt(req.params.id);
@@ -7030,7 +7119,7 @@ ${resetUrl}
       const userId = req.session?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!hasAdminAccess(user)) {
+      if (!hasBillingAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const clientId = parseInt(req.params.id);
@@ -7045,7 +7134,7 @@ ${resetUrl}
       const userId = req.session?.userId;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       const user = await storage.getUser(userId);
-      if (!hasAdminAccess(user)) {
+      if (!hasBillingAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
@@ -7816,6 +7905,20 @@ var PgSession = connectPgSimple(session);
 async function createApp() {
   const app2 = express();
   app2.set("trust proxy", 1);
+  const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || "https://keshevplus.co.il,https://www.keshevplus.co.il,https://dev.keshevplus.co.il,https://admin.keshevplus.com,https://lp.keshevplus.co.il,https://lp.keshevplus.com,https://keshevplus.com,https://www.keshevplus.com").split(",").map((origin) => origin.trim()).filter(Boolean);
+  app2.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+      res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,x-auth-token");
+    }
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(204);
+    }
+    next();
+  });
   app2.use(express.json({ limit: "12mb" }));
   app2.use(express.urlencoded({ extended: false }));
   const isProduction = process.env.NODE_ENV === "production";

@@ -20,7 +20,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { getLocalDateInputValue } from "@shared/appointmentSchedule";
 import { CLIENT_FILE_ALLOWED_TYPES, CLIENT_FILE_MAX_SIZE_BYTES } from "@shared/schema";
-import type { Client, ClientActivity, ClientPayment, ClientFile, Contact, Appointment, QuestionnaireSubmission, Conversation } from "@shared/schema";
+import type { Client, ClientActivity, ClientPayment, ClientFile, Contact, Appointment, QuestionnaireSubmission, Conversation, WhatsAppMessage } from "@shared/schema";
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -65,12 +65,13 @@ interface ClientInteractions {
   appointments: Appointment[];
   questionnaires: QuestionnaireSubmission[];
   conversations: Conversation[];
+  whatsappMessages: WhatsAppMessage[];
 }
 
 interface GroupedInteraction {
-  type: 'contact' | 'appointment' | 'questionnaire' | 'conversation';
+  type: 'contact' | 'appointment' | 'questionnaire' | 'conversation' | 'whatsapp';
   date: Date;
-  item: Contact | Appointment | QuestionnaireSubmission | Conversation;
+  item: Contact | Appointment | QuestionnaireSubmission | Conversation | WhatsAppMessage;
 }
 
 const ACTIVITY_TYPES: Record<string, { he: string; en: string; color: string; icon: typeof StickyNote }> = {
@@ -96,6 +97,7 @@ const INTERACTION_CONFIG = {
   appointment: { he: "תור", en: "Appointment", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300", icon: Calendar },
   questionnaire: { he: "שאלון", en: "Questionnaire", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300", icon: ClipboardList },
   conversation: { he: "צ'אט", en: "Chat", color: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300", icon: MessageCircle },
+  whatsapp: { he: "וואטסאפ", en: "WhatsApp", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300", icon: Phone },
 };
 
 function groupInteractions(inter: ClientInteractions): GroupedInteraction[] {
@@ -104,6 +106,7 @@ function groupInteractions(inter: ClientInteractions): GroupedInteraction[] {
   inter.appointments.forEach(a => items.push({ type: 'appointment', date: new Date(a.createdAt), item: a }));
   inter.questionnaires.forEach(q => items.push({ type: 'questionnaire', date: new Date(q.createdAt), item: q }));
   inter.conversations.forEach(cv => items.push({ type: 'conversation', date: new Date(cv.createdAt), item: cv }));
+  inter.whatsappMessages.forEach(wm => items.push({ type: 'whatsapp', date: new Date(wm.createdAt), item: wm }));
   items.sort((a, b) => b.date.getTime() - a.date.getTime());
   return items;
 }
@@ -509,6 +512,26 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
             <p className="truncate">{conv.title}</p>
           </div>
           <span className="text-xs text-muted-foreground shrink-0">{formatDate(conv.createdAt)}</span>
+        </div>
+      );
+    }
+
+    if (gi.type === 'whatsapp') {
+      const wm = gi.item as WhatsAppMessage;
+      return (
+        <div key={`wa-${wm.id}`} className="flex items-start gap-2 text-sm bg-background rounded-md p-2 border">
+          <Badge variant="secondary" className={`no-default-hover-elevate no-default-active-elevate shrink-0 text-xs ${config.color}`}>
+            <SiWhatsapp className="w-3 h-3 mr-1" />
+            {isHe ? 'וואטסאפ' : 'WhatsApp'}
+          </Badge>
+          <div className="flex-1 min-w-0 space-y-0.5">
+            <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{wm.phone}</span>
+              <span>{wm.direction === 'inbound' ? (isHe ? 'נכנסת' : 'Inbound') : (isHe ? 'יוצאת' : 'Outbound')}</span>
+            </div>
+            <p className="truncate">{wm.content}</p>
+          </div>
+          <span className="text-xs text-muted-foreground shrink-0">{formatDate(wm.createdAt)}</span>
         </div>
       );
     }

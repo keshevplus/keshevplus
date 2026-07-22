@@ -44,6 +44,7 @@ const en: Record<string, string> = {
   "nav.close_menu": "Close menu",
   "nav.open_menu": "Open menu",
   "nav.menu": "Menu",
+  "nav.more_options": "More options",
   "contact.subtitle": "Leave your details and we'll get back to you as soon as possible",
   "contact.leave_details": "Leave Your Details",
   "contact.full_name": "Full Name",

@@ -15,6 +15,7 @@ const yi: Record<string, string> = {
   "nav.call_us": "רופט אונדז: 055-27-399-27",
   "nav.close_menu": "פאַרמאַכן מעניו",
   "nav.open_menu": "עפענען מעניו",
+  "nav.more_options": "מער אָפּציעס",
 
   "hero.title": "ברוכים הבאים אין דער קליניק",
   "hero.clinic": "\"Keshev Plus\"",

@@ -51,10 +51,10 @@ export interface IStorage {
   deleteClientFile(id: number): Promise<boolean>;
   upsertClientByEmail(data: { name: string; email: string; phone?: string; source: string; childName?: string }): Promise<Client>;
   getClientByEmail(email: string): Promise<Client | undefined>;
-  getClientInteractions(clientId: number): Promise<{ contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[] }>;
-  getClientInteractionsBulk(clientIds: number[]): Promise<Record<number, { contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[] }>>;
+  getClientInteractions(clientId: number): Promise<{ contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }>;
+  getClientInteractionsBulk(clientIds: number[]): Promise<Record<number, { contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }>>;
   getActiveAppointmentForChild(email: string, childName: string): Promise<Appointment | undefined>;
-  getAdminBadgeCounts(): Promise<{ unreadContacts: number; pendingAppointments: number; unreviewedQuestionnaires: number; unreviewedConversations: number; newLeads: number; newLeadItems: Array<{ id: number; name: string; email: string | null; phone: string | null; leadNumber: number | null }> }>;
+  getAdminBadgeCounts(): Promise<{ unreadContacts: number; pendingAppointments: number; unreviewedQuestionnaires: number; unreviewedConversations: number; unreadWhatsapp: number; newLeads: number; newLeadItems: Array<{ id: number; name: string; email: string | null; phone: string | null; leadNumber: number | null }> }>;
   getWidgetSettings(): Promise<WidgetSettings>;
   updateWidgetSettings(settings: WidgetSettings): Promise<WidgetSettings>;
   getContactFormSettings(): Promise<ContactFormSettings>;
@@ -618,40 +618,43 @@ export class DatabaseStorage implements IStorage {
     return c || undefined;
   }
 
-  async getClientInteractions(clientId: number): Promise<{ contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[] }> {
+  async getClientInteractions(clientId: number): Promise<{ contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }> {
     const client = await this.getClient(clientId);
-    if (!client || !client.email) {
-      return { contacts: [], appointments: [], questionnaires: [], conversations: [] };
+    if (!client) {
+      return { contacts: [], appointments: [], questionnaires: [], conversations: [], whatsappMessages: [] };
     }
     const email = client.email;
-    const clientContacts = await db.select().from(contacts).where(eq(contacts.email, email)).orderBy(desc(contacts.createdAt));
-    const clientAppointments = await db.select().from(appointments).where(eq(appointments.clientEmail, email)).orderBy(desc(appointments.createdAt));
-    const clientQuestionnaires = await db.select().from(questionnaireSubmissions).where(eq(questionnaireSubmissions.respondentEmail, email)).orderBy(desc(questionnaireSubmissions.createdAt));
-    const clientConversations = await db.select().from(conversations).where(eq(conversations.visitorEmail, email)).orderBy(desc(conversations.createdAt));
-    return { contacts: clientContacts, appointments: clientAppointments, questionnaires: clientQuestionnaires, conversations: clientConversations };
+    const [clientContacts, clientAppointments, clientQuestionnaires, clientConversations, clientWhatsapp] = await Promise.all([
+      email ? db.select().from(contacts).where(eq(contacts.email, email)).orderBy(desc(contacts.createdAt)) : Promise.resolve([]),
+      email ? db.select().from(appointments).where(eq(appointments.clientEmail, email)).orderBy(desc(appointments.createdAt)) : Promise.resolve([]),
+      email ? db.select().from(questionnaireSubmissions).where(eq(questionnaireSubmissions.respondentEmail, email)).orderBy(desc(questionnaireSubmissions.createdAt)) : Promise.resolve([]),
+      email ? db.select().from(conversations).where(eq(conversations.visitorEmail, email)).orderBy(desc(conversations.createdAt)) : Promise.resolve([]),
+      db.select().from(whatsappMessages).where(eq(whatsappMessages.clientId, clientId)).orderBy(desc(whatsappMessages.createdAt)),
+    ]);
+    return { contacts: clientContacts, appointments: clientAppointments, questionnaires: clientQuestionnaires, conversations: clientConversations, whatsappMessages: clientWhatsapp };
   }
 
-  async getClientInteractionsBulk(clientIds: number[]): Promise<Record<number, { contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[] }>> {
-    const result: Record<number, { contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[] }> = {};
+  async getClientInteractionsBulk(clientIds: number[]): Promise<Record<number, { contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }>> {
+    const result: Record<number, { contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }> = {};
     if (clientIds.length === 0) return result;
 
     const clientRows = await db.select().from(clients).where(inArray(clients.id, clientIds));
     const emailToClientIds = new Map<string, number[]>();
     for (const client of clientRows) {
-      result[client.id] = { contacts: [], appointments: [], questionnaires: [], conversations: [] };
+      result[client.id] = { contacts: [], appointments: [], questionnaires: [], conversations: [], whatsappMessages: [] };
       if (!client.email) continue;
       const ids = emailToClientIds.get(client.email) ?? [];
       ids.push(client.id);
       emailToClientIds.set(client.email, ids);
     }
     const emails = [...emailToClientIds.keys()];
-    if (emails.length === 0) return result;
 
-    const [allContacts, allAppointments, allQuestionnaires, allConversations] = await Promise.all([
-      db.select().from(contacts).where(inArray(contacts.email, emails)).orderBy(desc(contacts.createdAt)),
-      db.select().from(appointments).where(inArray(appointments.clientEmail, emails)).orderBy(desc(appointments.createdAt)),
-      db.select().from(questionnaireSubmissions).where(inArray(questionnaireSubmissions.respondentEmail, emails)).orderBy(desc(questionnaireSubmissions.createdAt)),
-      db.select().from(conversations).where(inArray(conversations.visitorEmail, emails)).orderBy(desc(conversations.createdAt)),
+    const [allContacts, allAppointments, allQuestionnaires, allConversations, allWhatsapp] = await Promise.all([
+      emails.length ? db.select().from(contacts).where(inArray(contacts.email, emails)).orderBy(desc(contacts.createdAt)) : Promise.resolve([]),
+      emails.length ? db.select().from(appointments).where(inArray(appointments.clientEmail, emails)).orderBy(desc(appointments.createdAt)) : Promise.resolve([]),
+      emails.length ? db.select().from(questionnaireSubmissions).where(inArray(questionnaireSubmissions.respondentEmail, emails)).orderBy(desc(questionnaireSubmissions.createdAt)) : Promise.resolve([]),
+      emails.length ? db.select().from(conversations).where(inArray(conversations.visitorEmail, emails)).orderBy(desc(conversations.createdAt)) : Promise.resolve([]),
+      db.select().from(whatsappMessages).where(inArray(whatsappMessages.clientId, clientIds)).orderBy(desc(whatsappMessages.createdAt)),
     ]);
 
     for (const row of allContacts) {
@@ -665,6 +668,9 @@ export class DatabaseStorage implements IStorage {
     }
     for (const row of allConversations) {
       for (const id of emailToClientIds.get(row.visitorEmail) ?? []) result[id].conversations.push(row);
+    }
+    for (const row of allWhatsapp) {
+      if (row.clientId != null && result[row.clientId]) result[row.clientId].whatsappMessages.push(row);
     }
 
     return result;
@@ -680,7 +686,7 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
-  async getAdminBadgeCounts(): Promise<{ unreadContacts: number; pendingAppointments: number; unreviewedQuestionnaires: number; unreviewedConversations: number; newLeads: number; newLeadItems: Array<{ id: number; name: string; email: string | null; phone: string | null; leadNumber: number | null }> }> {
+  async getAdminBadgeCounts(): Promise<{ unreadContacts: number; pendingAppointments: number; unreviewedQuestionnaires: number; unreviewedConversations: number; unreadWhatsapp: number; newLeads: number; newLeadItems: Array<{ id: number; name: string; email: string | null; phone: string | null; leadNumber: number | null }> }> {
     const [contactsNew] = await db
       .select({ count: sql<number>`count(*)` })
       .from(contacts)
@@ -700,6 +706,11 @@ export class DatabaseStorage implements IStorage {
       .select({ count: sql<number>`count(*)` })
       .from(questionnaireSubmissions)
       .where(and(eq(questionnaireSubmissions.status, "new"), eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false)));
+
+    const [whatsappUnread] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(whatsappMessages)
+      .where(and(eq(whatsappMessages.direction, "inbound"), sql`${whatsappMessages.status} != 'read'`));
 
     const [newLeadsCount] = await db
       .select({ count: sql<number>`count(*)` })
@@ -724,6 +735,7 @@ export class DatabaseStorage implements IStorage {
       pendingAppointments: Number(appointmentsPending?.count ?? 0),
       unreviewedConversations: Number(conversationsNew?.count ?? 0),
       unreviewedQuestionnaires: Number(questionnairesNew?.count ?? 0),
+      unreadWhatsapp: Number(whatsappUnread?.count ?? 0),
       newLeads: Number(newLeadsCount?.count ?? 0),
       newLeadItems: newLeadRows,
     };

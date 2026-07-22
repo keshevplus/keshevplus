@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Mail, Phone, User, Clock, Eye, EyeOff, ChevronDown, ChevronUp, Inbox, Trash2, Filter } from 'lucide-react'
+import { Mail, Phone, User, Clock, Eye, EyeOff, ChevronDown, ChevronUp, Inbox, Trash2, Filter, Globe } from 'lucide-react'
 import { SiWhatsapp } from 'react-icons/si'
 import { apiRequest, queryClient } from '@/lib/queryClient'
 import { cn } from '@/lib/utils'
@@ -18,6 +18,30 @@ const STATUS_CONFIG: Record<string, { he: string; en: string; color: string }> =
   follow_up: { he: "מעקב", en: "Follow Up", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" },
   closed: { he: "סגור", en: "Closed", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300" },
 };
+
+// Maps the raw origin captured server-side (see resolveContactSource in
+// server/routes.ts) to a short label for admins, so it's obvious at a
+// glance whether a lead came from the main site, the landing page, etc.
+// Falls back to the raw hostname for any origin not explicitly listed here.
+function formatContactSource(source: string | null | undefined, isHe: boolean): string | null {
+  if (!source) return null;
+  let host: string;
+  try {
+    host = new URL(source).hostname;
+  } catch {
+    host = source;
+  }
+  if (host === 'keshevplus.co.il' || host === 'www.keshevplus.co.il' || host === 'keshevplus.com' || host === 'www.keshevplus.com') {
+    return isHe ? 'אתר ראשי' : 'Main site';
+  }
+  if (host.startsWith('lp.')) {
+    return isHe ? 'דף נחיתה' : 'Landing page';
+  }
+  if (host.startsWith('dev.')) {
+    return isHe ? 'סביבת פיתוח' : 'Dev environment';
+  }
+  return host;
+}
 
 function formatWhatsAppUrl(phone: string, message?: string) {
   const cleaned = phone.replace(/[^0-9+]/g, '').replace(/^0/, '972')
@@ -303,6 +327,12 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
                                 {isHe ? 'חדש' : 'New'}
                               </Badge>
                             )}
+                            {formatContactSource(contact.source, isHe) && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 leading-none gap-1">
+                                <Globe className="h-2.5 w-2.5" aria-hidden="true" />
+                                {formatContactSource(contact.source, isHe)}
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-xs text-muted-foreground truncate">
                             {contact.message.substring(0, 80)}{contact.message.length > 80 ? '...' : ''}
@@ -364,6 +394,14 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
                           <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
                           <span className="text-sm text-muted-foreground">{formatDate(contact.createdAt)}</span>
                         </div>
+                        {contact.source && (
+                          <div className="flex items-center gap-2">
+                            <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <span className="text-sm text-muted-foreground" title={contact.source}>
+                              {formatContactSource(contact.source, isHe)}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="rounded-md bg-muted/50 p-3">

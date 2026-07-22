@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, insertClientPaymentSchema, insertClientFileSchema, CLIENT_FILE_ALLOWED_TYPES, CLIENT_FILE_MAX_SIZE_BYTES, APPOINTMENT_STATUSES, insertWhatsAppMessageSchema, dashboardLayoutSchema, contactFormSettingsSchema, homeSectionsSchema, type Client } from "@shared/schema";
@@ -613,6 +613,26 @@ function toBillingClientView(client: any) {
   };
 }
 
+// Which site/form a lead came in through, derived server-side from the
+// request rather than trusted from the client body - the Origin header
+// (or Referer as a fallback for requests that omit it) reflects the real
+// calling site, e.g. https://keshevplus.co.il vs https://lp.keshevplus.com.
+function resolveContactSource(req: Request): string | null {
+  const origin = req.headers.origin;
+  if (origin) return origin;
+
+  const referer = req.headers.referer;
+  if (typeof referer === "string" && referer) {
+    try {
+      return new URL(referer).origin;
+    } catch {
+      return referer;
+    }
+  }
+
+  return null;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/contact", async (req, res) => {
     try {
@@ -626,7 +646,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, message: "Message must be at least 10 characters" });
       }
 
-      await storage.createContact(result.data);
+      await storage.createContact({ ...result.data, source: resolveContactSource(req) });
 
       if (result.data.email) {
         try {

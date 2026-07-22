@@ -15,6 +15,7 @@ const ru: Record<string, string> = {
   "nav.call_us": "Позвоните нам: 055-27-399-27",
   "nav.close_menu": "Закрыть меню",
   "nav.open_menu": "Открыть меню",
+  "nav.more_options": "Дополнительные параметры",
 
   "hero.title": "Добро пожаловать в клинику",
   "hero.clinic": "\"Keshev Plus\"",

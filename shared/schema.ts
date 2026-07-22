@@ -20,6 +20,10 @@ export const contacts = pgTable("contacts", {
   phone: text("phone").notNull(),
   email: text("email"),
   message: text("message").notNull(),
+  // Origin the submission came from (e.g. https://keshevplus.co.il,
+  // https://lp.keshevplus.com), captured server-side from the request -
+  // lets admins tell which site/form generated the lead.
+  source: text("source"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   read: boolean("read").default(false).notNull(),
   status: text("status").notNull().default("new"),

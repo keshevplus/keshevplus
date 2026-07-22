@@ -23,7 +23,7 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
-import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye, Phone, UserCog, Archive, LayoutGrid, Image } from 'lucide-react'
+import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye, UserCog, Archive, LayoutGrid, Image } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useQuery } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/queryClient'
@@ -36,7 +36,7 @@ import AppointmentsManager from './AppointmentsManager'
 import ClientsManager from './ClientsManager'
 import ClientDetailPage from './ClientDetailPage'
 import ContactsManager from './ContactsManager'
-import ConversationsManager from './ConversationsManager'
+import ChatHistoryManager from './ChatHistoryManager'
 import EmailNotificationSettings from './EmailNotificationSettings'
 import ContactFormSettings from './ContactFormSettings'
 import AppointmentHoursSettings from './AppointmentHoursSettings'
@@ -46,7 +46,6 @@ import LoadTestDataSettings from './LoadTestDataSettings'
 import UsersManager from './UsersManager'
 import BinManager from './BinManager'
 import VisualEditor from './VisualEditor'
-import WhatsAppManager from './WhatsAppManager'
 import OverviewWidgetGrid from './OverviewWidgetGrid'
 import SectionsManager from './SectionsManager'
 import ImagesManager from './ImagesManager'
@@ -106,6 +105,7 @@ const AdminDashboard = () => {
     pendingAppointments: number
     unreviewedQuestionnaires: number
     unreviewedConversations: number
+    unreadWhatsapp: number
     newLeads: number
     newLeadItems: Array<{
       id: number
@@ -140,13 +140,14 @@ const AdminDashboard = () => {
     contacts: badgeCounts?.unreadContacts ?? 0,
     appointments: badgeCounts?.pendingAppointments ?? 0,
     clients: leadBadgeCount,
-    conversations: badgeCounts?.unreviewedConversations ?? 0,
+    conversations: (badgeCounts?.unreviewedConversations ?? 0) + (badgeCounts?.unreadWhatsapp ?? 0),
     questionnaires: badgeCounts?.unreviewedQuestionnaires ?? 0,
   }
 
   const totalBadges = (badgeCounts?.unreadContacts ?? 0)
     + (badgeCounts?.pendingAppointments ?? 0)
     + (badgeCounts?.unreviewedConversations ?? 0)
+    + (badgeCounts?.unreadWhatsapp ?? 0)
     + (badgeCounts?.unreviewedQuestionnaires ?? 0)
     + (badgeCounts?.newLeads ?? 0)
 
@@ -257,8 +258,7 @@ const AdminDashboard = () => {
     { value: 'contacts', icon: Inbox, he: 'פניות באתר', en: 'Contacts', heDesc: 'צפייה בפניות מהאתר', enDesc: 'View contact submissions' },
     { value: 'appointments', icon: Calendar, he: 'פגישות', en: 'Appointments', heDesc: 'צפייה וניהול פגישות', enDesc: 'View & manage appointments' },
     { value: 'clients', icon: Users, he: 'לידים ולקוחות', en: 'Leads & Clients', heDesc: 'ניהול לידים ולקוחות', enDesc: 'Manage leads & clients' },
-    { value: 'conversations', icon: MessageCircle, he: 'שיחות צ׳אט', en: 'Conversations', heDesc: 'צפייה בשיחות צ׳אט', enDesc: 'View chat conversations' },
-    { value: 'whatsapp', icon: Phone, he: 'וואטסאפ', en: 'WhatsApp', heDesc: 'צפייה בשיחות וואטסאפ', enDesc: 'View WhatsApp conversations' },
+    { value: 'conversations', icon: MessageCircle, he: 'היסטוריית צ׳אט', en: 'Chat History', heDesc: 'צפייה בשיחות מהאתר ומוואטסאפ', enDesc: 'View website and WhatsApp conversations' },
     { value: 'questionnaires', icon: ClipboardList, he: 'שאלונים', en: 'Questionnaires', heDesc: 'צפייה בהגשות שאלונים', enDesc: 'View questionnaire submissions' },
     { value: 'sections', icon: LayoutGrid, he: 'מקטעי דף הבית', en: 'Sections', heDesc: 'הוספה וסידור מקטעים בדף הבית', enDesc: 'Add & reorder home page sections' },
     { value: 'images', icon: Image, he: 'תמונות', en: 'Images', heDesc: 'ניהול תמונות האתר', enDesc: 'Manage site images' },
@@ -415,10 +415,12 @@ const AdminDashboard = () => {
                       <button
                         type="button"
                         onClick={() => openFromNotification('conversations')}
-                        disabled={(badgeCounts?.unreviewedConversations ?? 0) === 0}
+                        disabled={(badgeCounts?.unreviewedConversations ?? 0) + (badgeCounts?.unreadWhatsapp ?? 0) === 0}
                         className="w-full rounded-md border p-2 text-start transition hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {isHe ? `שיחות חדשות: ${badgeCounts?.unreviewedConversations ?? 0}` : `New conversations: ${badgeCounts?.unreviewedConversations ?? 0}`}
+                        {isHe
+                          ? `שיחות חדשות: ${(badgeCounts?.unreviewedConversations ?? 0) + (badgeCounts?.unreadWhatsapp ?? 0)}`
+                          : `New conversations: ${(badgeCounts?.unreviewedConversations ?? 0) + (badgeCounts?.unreadWhatsapp ?? 0)}`}
                       </button>
                     </li>
                     <li>
@@ -522,11 +524,7 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="conversations" className="mt-0">
-            <ConversationsManager initialFilter={tabInitialFilters.conversations ?? 'all'} />
-          </TabsContent>
-
-          <TabsContent value="whatsapp" className="mt-0">
-            <WhatsAppManager />
+            <ChatHistoryManager initialFilter={tabInitialFilters.conversations ?? 'all'} />
           </TabsContent>
 
           <TabsContent value="questionnaires" className="mt-0">

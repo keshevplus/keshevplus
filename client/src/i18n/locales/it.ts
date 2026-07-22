@@ -43,6 +43,7 @@ const it: Record<string, string> = {
   "nav.call_us": "Chiamaci: 055-27-399-27",
   "nav.close_menu": "Chiudi menu",
   "nav.open_menu": "Apri menu",
+  "nav.more_options": "Altre opzioni",
   "contact.subtitle": "Lascia i tuoi dati e ti ricontatteremo il prima possibile",
   "contact.leave_details": "Lascia i Tuoi Dati",
   "contact.email_placeholder": "Email",

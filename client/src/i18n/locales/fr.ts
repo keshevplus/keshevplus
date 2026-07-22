@@ -15,6 +15,7 @@ const fr: Record<string, string> = {
   "nav.call_us": "Appelez-nous : 055-27-399-27",
   "nav.close_menu": "Fermer le menu",
   "nav.open_menu": "Ouvrir le menu",
+  "nav.more_options": "Plus d'options",
 
   "hero.title": "Bienvenue à la clinique",
   "hero.clinic": "\"Keshev Plus\"",
