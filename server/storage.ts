@@ -49,7 +49,7 @@ export interface IStorage {
   getClientFiles(clientId: number): Promise<ClientFile[]>;
   getClientFile(id: number): Promise<ClientFile | undefined>;
   deleteClientFile(id: number): Promise<boolean>;
-  upsertClientByEmail(data: { name: string; email: string; phone?: string; source: string; childName?: string }): Promise<Client>;
+  upsertClientByEmail(data: { name: string; email?: string | null; phone?: string | null; source: string; childName?: string }): Promise<Client>;
   getClientByEmail(email: string): Promise<Client | undefined>;
   getClientInteractions(clientId: number): Promise<{ contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }>;
   getClientInteractionsBulk(clientIds: number[]): Promise<Record<number, { contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }>>;
@@ -588,7 +588,7 @@ export class DatabaseStorage implements IStorage {
     return deleted.length > 0;
   }
 
-  async upsertClientByEmail(data: { name: string; email: string; phone?: string; source: string; childName?: string }): Promise<Client> {
+  async upsertClientByEmail(data: { name: string; email?: string | null; phone?: string | null; source: string; childName?: string }): Promise<Client> {
     const existing = await this.findClientByIdentity({ email: data.email, phone: data.phone });
     if (existing) {
       const updates: Record<string, any> = {};
@@ -604,7 +604,7 @@ export class DatabaseStorage implements IStorage {
     const [created] = await db.insert(clients).values({
       leadNumber: await this.getNextLeadNumber(),
       name: data.name,
-      email: data.email,
+      email: data.email || null,
       phone: data.phone || null,
       status: 'lead',
       source: data.source,

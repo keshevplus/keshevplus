@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ArrowLeft, ArrowRight, Mail, Phone, StickyNote, PhoneCall, Calendar, DollarSign, MailOpen,
   MessageCircle, FileText, ClipboardList, UserCheck, ArrowRightLeft, Save, Plus, ChevronDown, ChevronUp,
-  XCircle, Filter, Receipt, Trash2, Paperclip, Upload, Download,
+  XCircle, Filter, Receipt, Trash2, Paperclip, Upload, Download, Eye,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
@@ -155,6 +156,7 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
   const [files, setFiles] = useState<ClientFile[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [previewFile, setPreviewFile] = useState<ClientFile | null>(null);
 
   const fetchClient = async () => {
     try {
@@ -919,6 +921,15 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
                           size="icon"
                           variant="ghost"
                           className="h-7 w-7"
+                          onClick={() => setPreviewFile(file)}
+                          data-testid={`button-view-file-${file.id}`}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
                           onClick={() => window.open(`/api/clients/files/${file.id}/download`, "_blank")}
                           data-testid={`button-download-file-${file.id}`}
                         >
@@ -1030,6 +1041,46 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
           )}
 
           </div>
+
+          <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
+            <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle className="truncate pe-6">{previewFile?.fileName}</DialogTitle>
+              </DialogHeader>
+              <div className="flex-1 min-h-0 overflow-auto flex items-center justify-center bg-muted/30 rounded-md">
+                {previewFile && previewFile.fileType.startsWith("image/") ? (
+                  <img
+                    src={`/api/clients/files/${previewFile.id}/download`}
+                    alt={previewFile.fileName}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                ) : previewFile?.fileType === "application/pdf" ? (
+                  <iframe
+                    src={`/api/clients/files/${previewFile.id}/download`}
+                    title={previewFile.fileName}
+                    className="w-full h-full border-0"
+                  />
+                ) : (
+                  <div className="text-center p-8 space-y-3">
+                    <FileText className="w-10 h-10 mx-auto text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      {isHe ? "אין תצוגה מקדימה זמינה לסוג קובץ זה" : "No preview available for this file type"}
+                    </p>
+                    {previewFile && (
+                      <Button
+                        size="sm"
+                        onClick={() => window.open(`/api/clients/files/${previewFile.id}/download`, "_blank")}
+                        data-testid="button-download-file-preview-fallback"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span className="ml-1">{isHe ? "הורד קובץ" : "Download file"}</span>
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         </>
       )}
     </div>

@@ -648,7 +648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.createContact({ ...result.data, source: resolveContactSource(req) });
 
-      if (result.data.email) {
+      if (result.data.email || result.data.phone) {
         try {
           await storage.upsertClientByEmail({
             name: result.data.name,
