@@ -126,7 +126,7 @@ const MobileNavigation: React.FC = () => {
         role="navigation"
         aria-label={t("nav.main_navigation")}
         className={cn(
-          "fixed top-0 left-0 right-0 z-[9990] transition-shadow duration-300",
+          "sticky top-0 z-[9990] transition-shadow duration-300",
           isScrolled
             ? "shadow-md bg-white/95 backdrop-blur-lg dark:bg-background/95"
             : "bg-white/70 backdrop-blur-sm dark:bg-background/70",
