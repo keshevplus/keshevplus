@@ -19,6 +19,29 @@ export interface LegacySectionConfig {
   images?: LegacyImageSlot[];
 }
 
+// The hero isn't a HomeSection - it's rendered unconditionally above the
+// sections.map() loop on both keshevplus.com and keshev-web, so it can't be
+// hidden, reordered, or removed like the entries below. Kept as its own
+// standalone field list (same shared hero.* keys both sites read) rather
+// than forcing it into the HomeSectionType/LEGACY_SECTION_TYPES union.
+export const HERO_SECTION_CONFIG: LegacySectionConfig = {
+  domId: "home",
+  images: [{ slot: "hero.image", labelHe: "תמונת הרופאה", labelEn: "Doctor photo" }],
+  fields: [
+    { key: "hero.welcome_line1", labelHe: "שורת פתיחה 1", labelEn: "Welcome line 1" },
+    { key: "hero.welcome_line2", labelHe: "שורת פתיחה 2", labelEn: "Welcome line 2" },
+    { key: "hero.clinic_description", labelHe: "תיאור המרפאה", labelEn: "Clinic description", multiline: true },
+    { key: "hero.accurate_diagnosis", labelHe: "שורת אבחון מדויק", labelEn: "Accurate diagnosis line" },
+    { key: "hero.personal_plan", labelHe: "שורת תוכנית טיפול", labelEn: "Personal plan line" },
+    { key: "hero.typing_children", labelHe: "קהל יעד 1 (ילדים)", labelEn: "Audience 1 (children)" },
+    { key: "hero.typing_teens", labelHe: "קהל יעד 2 (נוער)", labelEn: "Audience 2 (teens)" },
+    { key: "hero.typing_adults", labelHe: "קהל יעד 3 (מבוגרים)", labelEn: "Audience 3 (adults)" },
+    { key: "hero.contact_us_now", labelHe: "טקסט כפתור ראשי", labelEn: "Primary button text" },
+    { key: "hero.read_about_us", labelHe: "טקסט כפתור משני", labelEn: "Secondary button text" },
+    { key: "hero.doctor_alt", labelHe: "טקסט חלופי לתמונת הרופאה", labelEn: "Doctor photo alt text" },
+  ],
+};
+
 // Declarative maps of every editable visible string (and image) each
 // built-in/legacy homepage section actually renders, so the admin Sections
 // tab can offer direct inline editing instead of pointing to the

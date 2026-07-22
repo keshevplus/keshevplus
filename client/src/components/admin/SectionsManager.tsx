@@ -16,7 +16,7 @@ import { invalidateTranslationCache, useLanguage } from '@/hooks/useLanguage'
 import { ALL_LANGUAGES, type SupportedLanguage } from '@/i18n/config'
 import { LEGACY_SECTION_TYPES, type HomeSection, type HomeSectionType } from '@shared/schema'
 import { GENERIC_SECTION_TYPES, CARD_ICON_OPTIONS, sectionTypeLabel, createDefaultSection, createDefaultItem } from '@/lib/sectionRegistry'
-import { LEGACY_SECTION_CONFIG } from '@/lib/legacySectionFields'
+import { LEGACY_SECTION_CONFIG, HERO_SECTION_CONFIG } from '@/lib/legacySectionFields'
 import { ImageSlotUploader } from './ImageSlotUploader'
 import { ViewportSwitcher, DeviceFrame, type PreviewViewport } from './DevicePreviewFrame'
 import { useInlineTextEditor } from '@/hooks/useInlineTextEditor'
@@ -340,6 +340,7 @@ const SectionsManager = () => {
   const [texts, setTexts] = useState<Record<string, string>>({})
   const [addingType, setAddingType] = useState<string>('')
   const [savingContent, setSavingContent] = useState(false)
+  const [savingHero, setSavingHero] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop')
   const [previewSrc] = useState(() => `/?visualEditor=true&_t=${Date.now()}`)
@@ -383,8 +384,10 @@ const SectionsManager = () => {
   }, [])
 
   useEffect(() => {
-    if (selectedId) fetchTexts(editLang)
-  }, [selectedId, editLang, fetchTexts])
+    // Also feeds the always-visible hero editor above the section list, not
+    // just the selected section's panel, so it can't stay gated on selectedId.
+    fetchTexts(editLang)
+  }, [editLang, fetchTexts])
 
   const updateSections = (next: HomeSection[]) => {
     setSections(next)
@@ -481,6 +484,20 @@ const SectionsManager = () => {
 
   const setText = (key: string, value: string) => {
     setTexts((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const saveHeroContent = async () => {
+    setSavingHero(true)
+    try {
+      const items = HERO_SECTION_CONFIG.fields.map((f) => ({ key: f.key, language: editLang, value: texts[f.key] ?? '' }))
+      await apiRequest('PUT', '/api/translations/bulk', items)
+      invalidateTranslationCache(editLang)
+      toast({ title: isHe ? 'התוכן נשמר' : 'Content saved' })
+    } catch {
+      toast({ title: isHe ? 'שגיאה' : 'Error', description: isHe ? 'שמירת התוכן נכשלה' : 'Failed to save content', variant: 'destructive' })
+    } finally {
+      setSavingHero(false)
+    }
   }
 
   const saveContent = async (section: HomeSection) => {
@@ -610,6 +627,51 @@ const SectionsManager = () => {
             )}
           </div>
         )}
+
+        <Card>
+          <CardContent className="p-4 space-y-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div>
+                <p className="font-medium text-sm">{isHe ? 'הירו (מקטע פתיחה)' : 'Hero (opening section)'}</p>
+                <p className="text-xs text-muted-foreground">
+                  {isHe ? 'מוצג תמיד ראשון בעמוד - לא ניתן להסתיר, להזיז או למחוק' : 'Always shown first on the page - can’t be hidden, reordered, or removed'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Select value={editLang} onValueChange={(v) => setEditLang(v as SupportedLanguage)}>
+                  <SelectTrigger className="w-[160px]" data-testid="select-hero-edit-language">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ALL_LANGUAGES.map((l) => (
+                      <SelectItem key={l.code} value={l.code}>{l.flag} {l.nativeName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" onClick={saveHeroContent} disabled={savingHero} data-testid="button-save-content-hero">
+                  <Save className="h-3.5 w-3.5 mr-1.5" />
+                  {savingHero ? (isHe ? 'שומר...' : 'Saving...') : (isHe ? 'שמירת תוכן' : 'Save Content')}
+                </Button>
+              </div>
+            </div>
+            <Separator />
+            <div className="space-y-3">
+              {HERO_SECTION_CONFIG.images?.map((img) => (
+                <ImageSlotUploader key={img.slot} slot={img.slot} label={isHe ? img.labelHe : img.labelEn} />
+              ))}
+              <Separator />
+              {HERO_SECTION_CONFIG.fields.map((f) => (
+                <Field
+                  key={f.key}
+                  label={isHe ? f.labelHe : f.labelEn}
+                  multiline={f.multiline}
+                  value={texts[f.key] ?? ''}
+                  onChange={(v) => setText(f.key, v)}
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {loading ? (
           <div className="flex items-center justify-center p-8">
