@@ -9,11 +9,11 @@ export const APPOINTMENT_WORKING_HOURS_HE = "א'-ה' 09:00-19:00";
 export const APPOINTMENT_WORKING_HOURS_EN = "Sun-Thu 09:00-19:00";
 
 export const APPOINTMENT_TYPES = [
-  { value: "consultation", he: "ייעוץ ראשוני", en: "Initial Consultation" },
-  { value: "diagnosis", he: "אבחון", en: "Diagnosis" },
-  { value: "followup", he: "מעקב", en: "Follow-up" },
-  { value: "treatment", he: "טיפול", en: "Treatment" },
-  { value: "moxo", he: "בדיקת MOXO", en: "MOXO Test" },
+  { value: "consultation", translationKey: "booking.type_consultation", he: "ייעוץ ראשוני", en: "Initial Consultation" },
+  { value: "diagnosis", translationKey: "booking.type_diagnosis", he: "הערכה", en: "Assessment" },
+  { value: "followup", translationKey: "booking.type_followup", he: "מעקב", en: "Follow-up" },
+  { value: "treatment", translationKey: "booking.type_treatment", he: "טיפול", en: "Treatment" },
+  { value: "moxo", translationKey: "booking.type_moxo", he: "בדיקת MOXO", en: "MOXO Test" },
 ] as const;
 
 export interface AppointmentTypeHours {

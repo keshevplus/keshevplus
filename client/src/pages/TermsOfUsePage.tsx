@@ -80,9 +80,9 @@ const TermsOfUsePage = () => {
             <Phone className="w-4 h-4 shrink-0" />
             <span dir="ltr">055-27-399-27</span>
           </a>
-          <a href="mailto:dr@keshevplus.co.il" className="flex items-center gap-2 hover:text-primary transition-colors" data-testid="link-terms-email">
+          <a href="mailto:office@keshevplus.co.il" className="flex items-center gap-2 hover:text-primary transition-colors" data-testid="link-terms-email">
             <Mail className="w-4 h-4 shrink-0" />
-            <span>dr@keshevplus.co.il</span>
+            <span>office@keshevplus.co.il</span>
           </a>
         </Section>
 

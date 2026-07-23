@@ -99,7 +99,7 @@ const ContactSection: React.FC = () => {
 
               <div className="flex flex-col items-center gap-1">
                 <p className="font-bold text-xl text-foreground">{t('contact.email_label')}</p>
-                <a href="mailto:dr@keshevplus.co.il" className="text-[#25D366] font-bold text-lg hover:underline dark:text-green-400">dr@keshevplus.co.il</a>
+                <a href="mailto:office@keshevplus.co.il" className="text-[#25D366] font-bold text-lg hover:underline dark:text-green-400">office@keshevplus.co.il</a>
               </div>
 
               <div className="flex flex-col items-center gap-1">

@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { pool } from "./db";
 import { storage } from "./storage";
+import { hasPrivilegedAdminRole, isSuperadminEmail } from "@shared/adminAccess";
 
 // One-off admin tool for populating the dev database with synthetic leads
 // and activity history, so the admin dashboard's list views, search, and
@@ -44,14 +45,7 @@ async function hasAdminAccess(req: Request): Promise<boolean> {
   if (!userId) return false;
   const user = await storage.getUser(userId);
   if (!user) return false;
-  return (
-    user.role === "admin" ||
-    user.role === "owner" ||
-    user.role === "manager" ||
-    user.role === "superadmin" ||
-    user.email === "admin@keshevplus.co.il" ||
-    user.email === "dr@keshevplus.co.il"
-  );
+  return hasPrivilegedAdminRole(user.role) || user.email === "admin@keshevplus.co.il" || isSuperadminEmail(user.email);
 }
 
 async function seedBatch(count: number) {

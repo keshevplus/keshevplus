@@ -79,12 +79,12 @@ const mockServices: Service[] = [
     id: '1',
     icon: 'Brain',
     title: { 
-      he: 'אבחון מקיף', 
-      en: 'Comprehensive Diagnosis' 
+      he: 'הערכה מקיפה', 
+      en: 'Comprehensive Assessment' 
     },
     description: { 
-      he: 'אבחון מותאם אישית באמצעות כלים מתקדמים, ראיונות קליניים ומבחנים ממוחשבים', 
-      en: 'Personalized diagnosis using advanced tools, clinical interviews, and computerized tests' 
+      he: 'הערכה מותאמת אישית באמצעות כלים מתקדמים, ראיונות קליניים ומבחנים ממוחשבים', 
+      en: 'Personalized assessment using advanced tools, clinical interviews, and computerized tests' 
     },
     color: 'from-emerald-500 to-teal-600'
   },
@@ -158,7 +158,7 @@ const mockProcessSteps: ProcessStep[] = [
   { 
     id: '3', 
     step: 3, 
-    title: { he: 'אבחון מקיף', en: 'Comprehensive Assessment' }, 
+    title: { he: 'הערכה מקיפה', en: 'Comprehensive Assessment' }, 
     description: { he: 'ביצוע מבחנים ממוחשבים והערכה קלינית מעמיקה', en: 'Computerized testing and in-depth clinical evaluation' } 
   },
   { 
@@ -179,7 +179,7 @@ const mockContactInfo: ContactInfo[] = [
   { 
     id: '2', 
     type: 'email', 
-    value: 'dr@keshevplus.co.il', 
+    value: 'office@keshevplus.co.il', 
     label: { he: 'דוא"ל', en: 'Email' } 
   },
   { 
@@ -208,19 +208,19 @@ const mockFAQs: FAQItem[] = [
   },
   {
     id: '2',
-    question: { he: 'כמה זמן לוקח תהליך האבחון?', en: 'How long does the diagnosis process take?' },
+    question: { he: 'כמה זמן לוקח תהליך ההערכה?', en: 'How long does the assessment process take?' },
     answer: { 
-      he: 'תהליך האבחון המלא כולל מספר פגישות ואורך בממוצע 2-4 שבועות. התהליך כולל ריאיון קליני מעמיק, מבחנים ממוחשבים (MOXO), שאלונים ובדיקת מסמכים רפואיים רלוונטיים.', 
-      en: 'The full diagnosis process includes several sessions and takes an average of 2-4 weeks. It includes an in-depth clinical interview, computerized tests (MOXO), questionnaires, and review of relevant medical documents.' 
+      he: 'תהליך ההערכה המלא כולל מספר פגישות ואורך בממוצע 2-4 שבועות. התהליך כולל ריאיון קליני מעמיק, מבחנים ממוחשבים (MOXO), שאלונים ובדיקת מסמכים רפואיים רלוונטיים.', 
+      en: 'The full assessment process includes several sessions and takes an average of 2-4 weeks. It includes an in-depth clinical interview, computerized tests (MOXO), questionnaires, and review of relevant medical documents.' 
     },
     category: 'process'
   },
   {
     id: '3',
-    question: { he: 'האם האבחון מתאים לכל הגילאים?', en: 'Is the diagnosis suitable for all ages?' },
+    question: { he: 'האם ההערכה מתאימה לכל הגילאים?', en: 'Is the assessment suitable for all ages?' },
     answer: { 
-      he: 'כן, אנו מספקים אבחון מקצועי לילדים מגיל 6, בני נוער ומבוגרים. לכל קבוצת גיל יש פרוטוקול אבחון מותאם המתחשב במאפיינים הייחודיים של אותו גיל.', 
-      en: 'Yes, we provide professional diagnosis for children from age 6, teenagers, and adults. Each age group has a tailored assessment protocol that considers the unique characteristics of that age.' 
+      he: 'כן, אנו מספקים הערכה מקצועית לילדים מגיל 6, בני נוער ומבוגרים. לכל קבוצת גיל יש פרוטוקול הערכה מותאם המתחשב במאפיינים הייחודיים של אותו גיל.', 
+      en: 'Yes, we provide professional assessment for children from age 6, teenagers, and adults. Each age group has a tailored assessment protocol that considers the unique characteristics of that age.' 
     },
     category: 'general'
   },
@@ -237,8 +237,8 @@ const mockFAQs: FAQItem[] = [
     id: '5',
     question: { he: 'האם יש צורך בהפניה מרופא?', en: 'Is a doctor\'s referral required?' },
     answer: { 
-      he: 'לא, אין צורך בהפניה. ניתן לפנות ישירות למרפאה לקביעת תור לאבחון. עם זאת, אם יש מסמכים רפואיים קודמים, מומלץ להביא אותם לפגישה הראשונה.', 
-      en: 'No, a referral is not required. You can contact the clinic directly to schedule a diagnosis appointment. However, if you have previous medical documents, it is recommended to bring them to the first meeting.' 
+      he: 'לא, אין צורך בהפניה. ניתן לפנות ישירות למרפאה לקביעת תור להערכה. עם זאת, אם יש מסמכים רפואיים קודמים, מומלץ להביא אותם לפגישה הראשונה.', 
+      en: 'No, a referral is not required. You can contact the clinic directly to schedule an assessment appointment. However, if you have previous medical documents, it is recommended to bring them to the first meeting.' 
     },
     category: 'process'
   },
@@ -255,14 +255,14 @@ const mockFAQs: FAQItem[] = [
 
 const mockAboutContent: AboutContent = {
   title: { he: 'אודותינו', en: 'About Us' },
-  subtitle: { he: 'מומחים באבחון וטיפול בהפרעות קשב וריכוז', en: 'Specialists in ADHD Diagnosis and Treatment' },
+  subtitle: { he: 'מומחים בהערכה וטיפול בהפרעות קשב וריכוז', en: 'Specialists in ADHD Assessment and Treatment' },
   description: { 
-    he: 'מרפאת "קשב פלוס" מתמחה באבחון וטיפול בהפרעות קשב וריכוז (ADHD) בכל הגילאים. אנו מאמינים בגישה מקצועית, אישית ומכבדת לכל מטופל.', 
-    en: 'Keshev Plus clinic specializes in diagnosis and treatment of ADHD at all ages. We believe in a professional, personalized, and respectful approach for every patient.' 
+    he: 'מרפאת "קשב פלוס" מתמחה בהערכה וטיפול בהפרעות קשב וריכוז (ADHD) בכל הגילאים. אנו מאמינים בגישה מקצועית, אישית ומכבדת לכל מטופל.', 
+    en: 'Keshev Plus clinic specializes in assessment and treatment of ADHD at all ages. We believe in a professional, personalized, and respectful approach for every patient.' 
   },
   mission: {
-    he: 'המשימה שלנו היא לספק אבחון מדויק ותוכניות טיפול מותאמות אישית, המאפשרים למטופלים שלנו להגיע למיצוי הפוטנציאל האישי שלהם.',
-    en: 'Our mission is to provide accurate diagnosis and personalized treatment plans, enabling our patients to reach their full personal potential.'
+    he: 'המשימה שלנו היא לספק הערכה מדויקת ותוכניות טיפול מותאמות אישית, המאפשרים למטופלים שלנו להגיע למיצוי הפוטנציאל האישי שלהם.',
+    en: 'Our mission is to provide accurate assessment and personalized treatment plans, enabling our patients to reach their full personal potential.'
   },
   values: [
     {
@@ -286,12 +286,12 @@ const mockAboutContent: AboutContent = {
     name: { he: 'ד"ר איירין כוכב-רייפמן', en: 'Dr. Irine Kochav-Raifman' },
     title: { he: 'רופאה מומחית', en: 'Specialist Physician' },
     description: { 
-      he: 'בעלת ניסיון עשיר באבחון של ילדים, מתבגרים ובוגרים. ליוותה מטופלים רבים במסע להגשמה אישית ותפקוד מיטבי.', 
-      en: 'Extensive experience in diagnosing children, adolescents, and adults. Has accompanied many patients on their journey to personal fulfillment and optimal functioning.' 
+      he: 'בעלת ניסיון עשיר בהערכה של ילדים, מתבגרים ובוגרים. ליוותה מטופלים רבים במסע להגשמה אישית ותפקוד מיטבי.', 
+      en: 'Extensive experience in assessing children, adolescents, and adults. Has accompanied many patients on their journey to personal fulfillment and optimal functioning.' 
     },
     image: '/src/assets/hero-about.jpg',
     credentials: [
-      { he: 'מומחית באבחון וטיפול ב-ADHD', en: 'ADHD Diagnosis and Treatment Specialist' },
+      { he: 'מומחית בהערכה וטיפול ב-ADHD', en: 'ADHD Assessment and Treatment Specialist' },
       { he: 'ניסיון של למעלה מ-15 שנה', en: 'Over 15 years of experience' },
       { he: 'התמחות בילדים, נוער ומבוגרים', en: 'Specialization in children, teens, and adults' }
     ]

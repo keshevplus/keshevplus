@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { UserCog, UserPlus, Trash2, Mail } from 'lucide-react'
+import { isOfficeProtectedUserEmail, normalizeAdminEmail } from '@shared/adminAccess'
+import { useAuth } from '../auth/AuthProvider'
 
 interface AdminUser {
   id: number
@@ -36,6 +38,7 @@ const ROLE_LABEL: Record<string, { he: string; en: string }> = {
 
 export default function UsersManager() {
   const { language } = useLanguage()
+  const { user } = useAuth()
   const isHe = language === 'he'
   const { toast } = useToast()
 
@@ -93,6 +96,16 @@ export default function UsersManager() {
       return
     }
     createMutation.mutate()
+  }
+
+  const canDeleteUser = (target: AdminUser) => {
+    if (!user) return false
+    const currentEmail = normalizeAdminEmail(user.email)
+    const targetEmail = normalizeAdminEmail(target.email)
+    if (target.id === user.id || currentEmail === targetEmail) return false
+    if (targetEmail === 'dr@keshevplus.co.il') return false
+    if (currentEmail === 'office@keshevplus.co.il' && isOfficeProtectedUserEmail(targetEmail)) return false
+    return target.role !== 'owner'
   }
 
   return (
@@ -179,7 +192,7 @@ export default function UsersManager() {
                   <Badge className={ROLE_BADGE[u.role] || ROLE_BADGE.user}>
                     {isHe ? (ROLE_LABEL[u.role]?.he || u.role) : (ROLE_LABEL[u.role]?.en || u.role)}
                   </Badge>
-                  {u.role !== 'owner' && (
+                  {canDeleteUser(u) && (
                     <Button
                       size="sm"
                       variant="ghost"

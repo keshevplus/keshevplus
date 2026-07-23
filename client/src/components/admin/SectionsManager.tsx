@@ -23,6 +23,21 @@ import { useInlineTextEditor } from '@/hooks/useInlineTextEditor'
 
 const isLegacyType = (type: HomeSectionType) => (LEGACY_SECTION_TYPES as readonly HomeSectionType[]).includes(type)
 
+interface HeroLayoutSettings {
+  logoHeightMobile: number
+  logoHeightDesktop: number
+}
+
+const DEFAULT_HERO_LAYOUT: HeroLayoutSettings = {
+  logoHeightMobile: 96,
+  logoHeightDesktop: 112,
+}
+
+function clampImageSize(value: number, min: number, max: number) {
+  if (!Number.isFinite(value)) return min
+  return Math.min(max, Math.max(min, Math.round(value)))
+}
+
 // The rendered <section id="..."> in the live preview doesn't always match
 // the HomeSection.id 1:1 (legacy ADHD info section renders id="adhd" while
 // its HomeSection.id is "adhd-info") — this resolves that one exception.
@@ -341,6 +356,7 @@ const SectionsManager = () => {
   const [addingType, setAddingType] = useState<string>('')
   const [savingContent, setSavingContent] = useState(false)
   const [savingHero, setSavingHero] = useState(false)
+  const [heroLayout, setHeroLayout] = useState<HeroLayoutSettings>(DEFAULT_HERO_LAYOUT)
   const [showPreview, setShowPreview] = useState(false)
   const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop')
   const [previewSrc] = useState(() => `/?visualEditor=true&_t=${Date.now()}`)
@@ -388,6 +404,16 @@ const SectionsManager = () => {
     // just the selected section's panel, so it can't stay gated on selectedId.
     fetchTexts(editLang)
   }, [editLang, fetchTexts])
+
+  useEffect(() => {
+    const fetchHeroLayout = async () => {
+      try {
+        const res = await fetch('/api/settings/hero-layout', { credentials: 'include' })
+        if (res.ok) setHeroLayout(await res.json())
+      } catch { /* keep defaults */ }
+    }
+    fetchHeroLayout()
+  }, [])
 
   const updateSections = (next: HomeSection[]) => {
     setSections(next)
@@ -491,7 +517,9 @@ const SectionsManager = () => {
     try {
       const items = HERO_SECTION_CONFIG.fields.map((f) => ({ key: f.key, language: editLang, value: texts[f.key] ?? '' }))
       await apiRequest('PUT', '/api/translations/bulk', items)
+      await apiRequest('PUT', '/api/settings/hero-layout', heroLayout)
       invalidateTranslationCache(editLang)
+      queryClient.invalidateQueries({ queryKey: ['/api/settings/hero-layout'] })
       toast({ title: isHe ? 'התוכן נשמר' : 'Content saved' })
     } catch {
       toast({ title: isHe ? 'שגיאה' : 'Error', description: isHe ? 'שמירת התוכן נכשלה' : 'Failed to save content', variant: 'destructive' })
@@ -659,6 +687,80 @@ const SectionsManager = () => {
               {HERO_SECTION_CONFIG.images?.map((img) => (
                 <ImageSlotUploader key={img.slot} slot={img.slot} label={isHe ? img.labelHe : img.labelEn} />
               ))}
+              <div className="rounded-md border p-3 space-y-4">
+                <div>
+                  <p className="text-sm font-medium">{isHe ? 'גודל לוגו הירו' : 'Hero Logo Size'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {isHe ? 'שולט בגובה הלוגו בפיקסלים. הרוחב נשמר אוטומטית לפי יחס התמונה.' : 'Controls the logo height in pixels. Width keeps the image ratio automatically.'}
+                  </p>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs" htmlFor="hero-logo-height-mobile">
+                      {isHe ? 'גובה במובייל' : 'Mobile height'}
+                    </Label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        id="hero-logo-height-mobile"
+                        type="range"
+                        min={48}
+                        max={240}
+                        value={heroLayout.logoHeightMobile}
+                        onChange={(e) => setHeroLayout((prev) => ({
+                          ...prev,
+                          logoHeightMobile: clampImageSize(Number(e.target.value), 48, 240),
+                        }))}
+                        className="w-full"
+                        data-testid="slider-hero-logo-mobile"
+                      />
+                      <Input
+                        type="number"
+                        min={48}
+                        max={240}
+                        value={heroLayout.logoHeightMobile}
+                        onChange={(e) => setHeroLayout((prev) => ({
+                          ...prev,
+                          logoHeightMobile: clampImageSize(Number(e.target.value), 48, 240),
+                        }))}
+                        className="w-24"
+                        data-testid="input-hero-logo-mobile"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs" htmlFor="hero-logo-height-desktop">
+                      {isHe ? 'גובה בדסקטופ' : 'Desktop height'}
+                    </Label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        id="hero-logo-height-desktop"
+                        type="range"
+                        min={64}
+                        max={320}
+                        value={heroLayout.logoHeightDesktop}
+                        onChange={(e) => setHeroLayout((prev) => ({
+                          ...prev,
+                          logoHeightDesktop: clampImageSize(Number(e.target.value), 64, 320),
+                        }))}
+                        className="w-full"
+                        data-testid="slider-hero-logo-desktop"
+                      />
+                      <Input
+                        type="number"
+                        min={64}
+                        max={320}
+                        value={heroLayout.logoHeightDesktop}
+                        onChange={(e) => setHeroLayout((prev) => ({
+                          ...prev,
+                          logoHeightDesktop: clampImageSize(Number(e.target.value), 64, 320),
+                        }))}
+                        className="w-24"
+                        data-testid="input-hero-logo-desktop"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
               <Separator />
               {HERO_SECTION_CONFIG.fields.map((f) => (
                 <Field

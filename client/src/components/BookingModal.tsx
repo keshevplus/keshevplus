@@ -295,7 +295,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ open, onOpenChange }) => {
                   <SelectContent dir={isRTL ? 'rtl' : 'ltr'} className={isRTL ? 'text-right' : 'text-left'}>
                     {APPOINTMENT_TYPES.map(apptType => (
                       <SelectItem key={apptType.value} value={apptType.value} className={isRTL ? 'pr-8 pl-2 text-right' : 'text-left'}>
-                        {isHe ? apptType.he : apptType.en}
+                        {t(apptType.translationKey)}
                       </SelectItem>
                     ))}
                   </SelectContent>

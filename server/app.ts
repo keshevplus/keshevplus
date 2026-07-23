@@ -15,7 +15,7 @@ export async function createApp(): Promise<Express> {
 
   const allowedOrigins = (
     process.env.CORS_ALLOWED_ORIGINS ||
-    "https://keshevplus.co.il,https://www.keshevplus.co.il,https://dev.keshevplus.co.il,https://admin.keshevplus.com,https://lp.keshevplus.co.il,https://lp.keshevplus.com,https://keshevplus.com,https://www.keshevplus.com"
+    "https://keshevplus.co.il,https://www.keshevplus.co.il,https://dev.keshevplus.co.il,https://admin.keshevplus.co.il,https://www.admin.keshevplus.co.il,https://admin.keshevplus.com,https://lp.keshevplus.co.il,https://lp.keshevplus.com,https://keshevplus.com,https://www.keshevplus.com"
   )
     .split(",")
     .map((origin) => origin.trim())

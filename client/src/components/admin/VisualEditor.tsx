@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useLanguage } from '@/hooks/useLanguage'
 import { ALL_LANGUAGES, type SupportedLanguage } from '@/i18n/config'
 import { cn } from '@/lib/utils'
+import { apiRequest, queryClient } from '@/lib/queryClient'
 import {
   Eye,
   Pencil,
@@ -28,6 +29,21 @@ import { useInlineTextEditor } from '@/hooks/useInlineTextEditor'
 const languageCodeClass = "inline-flex w-6 shrink-0 justify-center font-sans text-sm font-semibold leading-none text-muted-foreground"
 const languageNameClass = "font-sans text-sm leading-none"
 
+interface HeroLayoutSettings {
+  logoHeightMobile: number
+  logoHeightDesktop: number
+}
+
+const DEFAULT_HERO_LAYOUT: HeroLayoutSettings = {
+  logoHeightMobile: 96,
+  logoHeightDesktop: 112,
+}
+
+function clampImageSize(value: number, min: number, max: number) {
+  if (!Number.isFinite(value)) return min
+  return Math.min(max, Math.max(min, Math.round(value)))
+}
+
 export default function VisualEditor() {
   const { language } = useLanguage()
   const isHe = language === 'he'
@@ -35,6 +51,8 @@ export default function VisualEditor() {
   const [editLang, setEditLang] = useState<SupportedLanguage>(language)
   const [viewport, setViewport] = useState<PreviewViewport>('desktop')
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [heroLayout, setHeroLayout] = useState<HeroLayoutSettings>(DEFAULT_HERO_LAYOUT)
+  const [savingHeroLayout, setSavingHeroLayout] = useState(false)
 
   const {
     editMode,
@@ -60,6 +78,27 @@ export default function VisualEditor() {
     window.addEventListener('keydown', handleEsc)
     return () => window.removeEventListener('keydown', handleEsc)
   }, [isFullscreen])
+
+  useEffect(() => {
+    const fetchHeroLayout = async () => {
+      try {
+        const res = await fetch('/api/settings/hero-layout', { credentials: 'include' })
+        if (res.ok) setHeroLayout(await res.json())
+      } catch { /* keep defaults */ }
+    }
+    fetchHeroLayout()
+  }, [])
+
+  const saveHeroLayout = async () => {
+    setSavingHeroLayout(true)
+    try {
+      await apiRequest('PUT', '/api/settings/hero-layout', heroLayout)
+      queryClient.invalidateQueries({ queryKey: ['/api/settings/hero-layout'] })
+      if (iframeRef.current) iframeRef.current.src = `/?visualEditor=true&_t=${Date.now()}`
+    } finally {
+      setSavingHeroLayout(false)
+    }
+  }
 
   const handleIframeLoad = () => {
     onIframeLoad()
@@ -209,6 +248,87 @@ export default function VisualEditor() {
               </span>
             </div>
           )}
+
+          <div className="rounded-md border p-3 space-y-3 shrink-0">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div>
+                <p className="text-sm font-medium">{isHe ? 'גודל לוגו הירו' : 'Hero Logo Size'}</p>
+                <p className="text-xs text-muted-foreground">
+                  {isHe ? 'כוונו ידנית את גובה הלוגו במקטע הפתיחה.' : 'Manually adjust the opening hero logo height.'}
+                </p>
+              </div>
+              <Button size="sm" onClick={saveHeroLayout} disabled={savingHeroLayout} data-testid="button-save-hero-logo-size">
+                <Save className="h-3.5 w-3.5 mr-1.5" />
+                {savingHeroLayout ? (isHe ? 'שומר...' : 'Saving...') : (isHe ? 'שמירת גודל' : 'Save Size')}
+              </Button>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-medium" htmlFor="visual-hero-logo-mobile">
+                  {isHe ? 'מובייל' : 'Mobile'}
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    id="visual-hero-logo-mobile"
+                    type="range"
+                    min={48}
+                    max={240}
+                    value={heroLayout.logoHeightMobile}
+                    onChange={(e) => setHeroLayout((prev) => ({
+                      ...prev,
+                      logoHeightMobile: clampImageSize(Number(e.target.value), 48, 240),
+                    }))}
+                    className="w-full"
+                    data-testid="slider-visual-hero-logo-mobile"
+                  />
+                  <input
+                    type="number"
+                    min={48}
+                    max={240}
+                    value={heroLayout.logoHeightMobile}
+                    onChange={(e) => setHeroLayout((prev) => ({
+                      ...prev,
+                      logoHeightMobile: clampImageSize(Number(e.target.value), 48, 240),
+                    }))}
+                    className="h-9 w-20 rounded-md border bg-background px-2 text-sm"
+                    data-testid="input-visual-hero-logo-mobile"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-medium" htmlFor="visual-hero-logo-desktop">
+                  {isHe ? 'דסקטופ' : 'Desktop'}
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    id="visual-hero-logo-desktop"
+                    type="range"
+                    min={64}
+                    max={320}
+                    value={heroLayout.logoHeightDesktop}
+                    onChange={(e) => setHeroLayout((prev) => ({
+                      ...prev,
+                      logoHeightDesktop: clampImageSize(Number(e.target.value), 64, 320),
+                    }))}
+                    className="w-full"
+                    data-testid="slider-visual-hero-logo-desktop"
+                  />
+                  <input
+                    type="number"
+                    min={64}
+                    max={320}
+                    value={heroLayout.logoHeightDesktop}
+                    onChange={(e) => setHeroLayout((prev) => ({
+                      ...prev,
+                      logoHeightDesktop: clampImageSize(Number(e.target.value), 64, 320),
+                    }))}
+                    className="h-9 w-20 rounded-md border bg-background px-2 text-sm"
+                    data-testid="input-visual-hero-logo-desktop"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div className={cn("rounded-md overflow-hidden", isFullscreen && "flex-1")}>
             <DeviceFrame

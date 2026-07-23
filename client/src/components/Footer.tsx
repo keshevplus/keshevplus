@@ -18,7 +18,7 @@ const Footer: React.FC = () => {
 
   const contactInfo = {
     phone: '055-27-399-27',
-    email: 'dr@keshevplus.co.il',
+    email: 'office@keshevplus.co.il',
   };
 
   const socialLinks = [

@@ -304,6 +304,26 @@
     transition: var(--transition-slow);
   }
 
+  .hero-logo-image {
+    width: clamp(180px, 68vw, var(--hero-logo-max-width-mobile));
+    max-height: min(22vh, var(--hero-logo-max-height-mobile));
+    height: auto;
+    object-fit: contain;
+  }
+
+  @media (min-width: 640px) {
+    .hero-logo-image {
+      width: clamp(220px, 28vw, var(--hero-logo-max-width-desktop));
+      max-height: min(16vh, var(--hero-logo-max-height-desktop));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .hero-logo-image {
+      width: clamp(240px, 24vw, var(--hero-logo-max-width-desktop));
+    }
+  }
+
   /* Staggered fade-in for the hero's rotating "+" joined list */
   @keyframes typing-fade-in {
     from {

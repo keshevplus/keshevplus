@@ -1,17 +1,35 @@
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import type { CSSProperties } from "react";
 import { Leaf } from "lucide-react";
-import doctorHero from "@/assets/doctor-hero.png";
-import logo from "@/assets/logo.png";
 import { useLanguage } from "@/hooks/useLanguage";
 import MobileNavigation from "./MobileNavigation";
 import RotatingWord from "./RotatingWord";
-import { SiteImage } from "./SiteImage";
 import { AccessibleButton } from "./ui/accessible-button";
 import { useContactModal } from "@/contexts/ContactModalContext";
+
+const doctorHero = "/images/doctor-hero.png";
+const logo = "/images/logo.png";
+
+interface HeroLayoutSettings {
+  logoHeightMobile: number;
+  logoHeightDesktop: number;
+}
+
+const DEFAULT_HERO_LAYOUT: HeroLayoutSettings = {
+  logoHeightMobile: 96,
+  logoHeightDesktop: 112,
+};
 
 const MedicalHero: React.FC = () => {
   const { t, isRTL } = useLanguage();
   const { openModal } = useContactModal();
+  const { data: heroLayout = DEFAULT_HERO_LAYOUT } = useQuery<HeroLayoutSettings>({
+    queryKey: ["/api/settings/hero-layout"],
+    placeholderData: DEFAULT_HERO_LAYOUT,
+  });
+  const logoWidthMobile = Math.max(180, Math.round(heroLayout.logoHeightMobile * 2.55));
+  const logoWidthDesktop = Math.max(240, Math.round(heroLayout.logoHeightDesktop * 2.55));
 
   const typingItems = [
     t("hero.typing_children"),
@@ -32,9 +50,9 @@ const MedicalHero: React.FC = () => {
         >
           <div className="container mx-auto px-4 sm:px-6 flex flex-col sm:flex-row gap-8 sm:gap-10 items-center justify-between pb-10 sm:pb-14">
 
-            {/* ── Text column — bottom half in DOM order, right-aligned in RTL ── */}
+            {/* ── Text column — bottom half in DOM order ── */}
             <motion.div
-              className="flex flex-col w-full sm:w-[55%] order-2 sm:order-1 text-center sm:text-right"
+              className="flex flex-col w-full sm:w-[55%] order-2 sm:order-1 text-center"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
@@ -43,13 +61,19 @@ const MedicalHero: React.FC = () => {
                 {t("hero.welcome_line1")} {t("hero.welcome_line2")}
               </h1>
 
-              <SiteImage
-                slot="logo"
-                fallback={logo}
+              <img
+                src={logo}
                 alt={isRTL ? "קשב פלוס" : "Keshev Plus"}
-                className="h-20 sm:h-24 md:h-28 w-auto ms-0 me-auto mb-4"
+                className="hero-logo-image mx-auto mb-4"
+                style={{
+                  "--hero-logo-max-height-mobile": `${heroLayout.logoHeightMobile}px`,
+                  "--hero-logo-max-height-desktop": `${heroLayout.logoHeightDesktop}px`,
+                  "--hero-logo-max-width-mobile": `${logoWidthMobile}px`,
+                  "--hero-logo-max-width-desktop": `${logoWidthDesktop}px`,
+                } as CSSProperties}
                 loading="eager"
                 fetchPriority="high"
+                decoding="async"
               />
 
               <p className="text-lg mb-2 text-foreground leading-relaxed">
@@ -68,7 +92,7 @@ const MedicalHero: React.FC = () => {
               </p>
 
               {/* CTA buttons — pill shape with leaf icon, matching keshev-web */}
-              <div className="flex flex-wrap justify-center sm:justify-end gap-4">
+              <div className="flex flex-wrap justify-center gap-4">
                 <AccessibleButton
                   variant="primary"
                   className="rounded-full gap-2 shadow-md hover:shadow-lg transition-transform duration-200 hover:-translate-y-0.5"
@@ -100,13 +124,13 @@ const MedicalHero: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
             >
-              <SiteImage
-                slot="hero.image"
-                fallback={doctorHero}
+              <img
+                src={doctorHero}
                 alt={t("hero.doctor_alt")}
                 className="w-full h-auto rounded-lg"
                 loading="eager"
                 fetchPriority="high"
+                decoding="async"
                 width="800"
                 height="1000"
               />

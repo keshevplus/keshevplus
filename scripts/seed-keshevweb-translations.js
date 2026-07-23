@@ -34,7 +34,7 @@ const rows = [
   // shared contact info (canonical values, replaces 3 inconsistent hardcoded copies)
   ['keshevweb.contactInfo.address', 'יגאל אלון 94, מגדלי אלון 1, קומה 12, משרד 1202, תל אביב - יפו', '94 Yigal Alon St., Alon Towers 1, Floor 12, Suite 1202, Tel Aviv-Yafo'],
   ['keshevweb.contactInfo.phone', '055-27-399-27', '055-27-399-27'],
-  ['keshevweb.contactInfo.email', 'dr@keshevplus.co.il', 'dr@keshevplus.co.il'],
+  ['keshevweb.contactInfo.email', 'office@keshevplus.co.il', 'office@keshevplus.co.il'],
   ['keshevweb.contactInfo.whatsapp', '972552739927', '972552739927'],
 
   // home

@@ -1,4 +1,4 @@
-import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, clientPayments, clientFiles, conversations, messages, whatsappMessages, images, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type ClientPayment, type InsertClientPayment, type ClientFile, type InsertClientFile, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type ContactFormSettings, type DashboardLayout, type WhatsAppMessage, type InsertWhatsAppMessage, type ImageAsset, type ImageAssetMeta, type HomeSection, DEFAULT_HOME_SECTIONS } from "@shared/schema";
+import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, clientPayments, clientFiles, conversations, messages, whatsappMessages, images, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type ClientPayment, type InsertClientPayment, type ClientFile, type InsertClientFile, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type ContactFormSettings, type HeroLayoutSettings, type DashboardLayout, type WhatsAppMessage, type InsertWhatsAppMessage, type ImageAsset, type ImageAssetMeta, type HomeSection, DEFAULT_HOME_SECTIONS } from "@shared/schema";
 import type { AppointmentTypeHoursConfig } from "@shared/appointmentSchedule";
 import { db } from "./db";
 import { eq, desc, and, sql, lt, inArray } from "drizzle-orm";
@@ -59,6 +59,8 @@ export interface IStorage {
   updateWidgetSettings(settings: WidgetSettings): Promise<WidgetSettings>;
   getContactFormSettings(): Promise<ContactFormSettings>;
   updateContactFormSettings(settings: ContactFormSettings): Promise<ContactFormSettings>;
+  getHeroLayoutSettings(): Promise<HeroLayoutSettings>;
+  updateHeroLayoutSettings(settings: HeroLayoutSettings): Promise<HeroLayoutSettings>;
   getDashboardLayout(): Promise<DashboardLayout | null>;
   updateDashboardLayout(layout: DashboardLayout): Promise<DashboardLayout>;
   getImage(slot: string): Promise<ImageAsset | undefined>;
@@ -773,6 +775,17 @@ export class DatabaseStorage implements IStorage {
   async updateContactFormSettings(settings: ContactFormSettings): Promise<ContactFormSettings> {
     const updated = await this.upsertSetting("contact_form_settings", settings);
     return updated.value as ContactFormSettings;
+  }
+
+  async getHeroLayoutSettings(): Promise<HeroLayoutSettings> {
+    const setting = await this.getSetting("hero_layout_settings");
+    if (setting) return setting.value as HeroLayoutSettings;
+    return { logoHeightMobile: 96, logoHeightDesktop: 112 };
+  }
+
+  async updateHeroLayoutSettings(settings: HeroLayoutSettings): Promise<HeroLayoutSettings> {
+    const updated = await this.upsertSetting("hero_layout_settings", settings);
+    return updated.value as HeroLayoutSettings;
   }
 
   async getDashboardLayout(): Promise<DashboardLayout | null> {

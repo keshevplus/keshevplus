@@ -1,7 +1,7 @@
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, insertClientPaymentSchema, insertClientFileSchema, CLIENT_FILE_ALLOWED_TYPES, CLIENT_FILE_MAX_SIZE_BYTES, APPOINTMENT_STATUSES, insertWhatsAppMessageSchema, dashboardLayoutSchema, contactFormSettingsSchema, homeSectionsSchema, type Client } from "@shared/schema";
+import { insertContactSchema, languageSettingsSchema, upsertTranslationSchema, bulkUpsertTranslationsSchema, SUPPORTED_LANGUAGES, QUESTIONNAIRE_TYPES, insertQuestionnaireSubmissionSchema, insertAppointmentSchema, insertClientSchema, insertClientActivitySchema, insertClientPaymentSchema, insertClientFileSchema, CLIENT_FILE_ALLOWED_TYPES, CLIENT_FILE_MAX_SIZE_BYTES, APPOINTMENT_STATUSES, insertWhatsAppMessageSchema, dashboardLayoutSchema, contactFormSettingsSchema, heroLayoutSettingsSchema, homeSectionsSchema, type Client } from "@shared/schema";
 import { put, get as getBlob } from "@vercel/blob";
 import { Readable } from "node:stream";
 import {
@@ -14,6 +14,7 @@ import {
   getTimeSlotsForType,
   type AppointmentTypeHoursConfig,
 } from "@shared/appointmentSchedule";
+import { hasOwnerLevelAccess, hasPrivilegedAdminRole, isOfficeProtectedUserEmail, isSuperadminEmail, normalizeAdminEmail } from "@shared/adminAccess";
 
 function getAppointmentTypeLabelHe(type: string) {
   return APPOINTMENT_TYPES.find((t) => t.value === type)?.he ?? type;
@@ -265,10 +266,10 @@ function buildClinicFallbackResponse(message: string, language: string, history:
       return "צודק/ת, זה יכול להרגיש מהיר מדי. אני אציג תשובות בצורה מדורגת יותר בצ'אט. מבחינת התוכן עצמו, אם משהו לא ברור לי אשאל שאלה קצרה במקום לשלוח תשובה כללית.";
     }
     if (gibberishLike) {
-      return "לא בטוח שהבנתי את ההודעה. אפשר לכתוב במילים פשוטות מה רציתם לברר: קביעת פגישה, אבחון, שאלון, מחיר, כתובת או זמינות?";
+      return "לא בטוח שהבנתי את ההודעה. אפשר לכתוב במילים פשוטות מה רציתם לברר: קביעת פגישה, הערכה, שאלון, מחיר, כתובת או זמינות?";
     }
     if (asksIfRequired) {
-      return "לא תמיד חייבים. זה תלוי למה התכוונתם: אם מדובר בשאלון, הוא עוזר לצוות להבין את הרקע לפני אבחון או פגישה, אבל אפשר גם ליצור קשר קודם ולקבל הכוונה. אם מדובר בפגישה, בדרך כלל צריך להשאיר פרטים כדי שהמרפאה תוכל לחזור ולאשר מועד.";
+      return "לא תמיד חייבים. זה תלוי למה התכוונתם: אם מדובר בשאלון, הוא עוזר לצוות להבין את הרקע לפני הערכה או פגישה, אבל אפשר גם ליצור קשר קודם ולקבל הכוונה. אם מדובר בפגישה, בדרך כלל צריך להשאיר פרטים כדי שהמרפאה תוכל לחזור ולאשר מועד.";
     }
     if (asksForSmarterAnswer && asksForAvailability) {
       return "צודק/ת. אין לי חיבור ליומן חי של הרופאה, לכן אני לא יכול לאשר בזמן אמת אם היא זמינה ממש עכשיו. הדרך הכי מהירה לבדוק זמינות מיידית היא להתקשר למרפאה ב-055-27-399-27. אם אין מענה, כדאי להשאיר פרטים בטופס קביעת פגישה עם שעה מועדפת, והמרפאה תחזור אליכם לאישור.";
@@ -280,19 +281,19 @@ function buildClinicFallbackResponse(message: string, language: string, history:
       return "אין לי גישה לזמינות בזמן אמת. אם מדובר במשהו דחוף או בשאלה האם אפשר לדבר עכשיו, הכי נכון להתקשר למרפאה: 055-27-399-27. לתיאום רגיל אפשר להשתמש בטופס קביעת פגישה באתר ולציין מועד מועדף.";
     }
     if (asksForSmarterAnswer) {
-      return "מבין/ה. אענה בצורה יותר ממוקדת: אני יכול לעזור בבדיקת אפשרויות לתיאום פגישה, להסביר איזה שאלון אבחון מתאים, לתת כתובת ופרטי קשר, או להסביר מה קורה אחרי מילוי טופס. מה בדיוק תרצו לעשות עכשיו?";
+      return "מבין/ה. אענה בצורה יותר ממוקדת: אני יכול לעזור בבדיקת אפשרויות לתיאום פגישה, להסביר איזה שאלון הערכה מתאים, לתת כתובת ופרטי קשר, או להסביר מה קורה אחרי מילוי טופס. מה בדיוק תרצו לעשות עכשיו?";
     }
     if (asksAboutZoom) {
       return "אין לי מידע ודאי שהרופאה מקיימת פגישות בזום בכל מקרה. כדאי לציין בטופס קביעת הפגישה שאתם מעדיפים פגישת זום/אונליין, או להתקשר ל-055-27-399-27 כדי לבדוק אם זה אפשרי לסוג הפגישה שלכם.";
     }
     if (mentionsAssessment) {
-      return "כדי להתחיל אבחון, בדרך כלל משאירים פרטים וקובעים פגישת ייעוץ/אבחון. בנוסף אפשר למלא באתר שאלון מתאים: הורה, מורה או דיווח עצמי. השאלון לא מחליף אבחון רפואי, אבל הוא נותן לצוות תמונת מצב טובה לפני ההמשך.";
+      return "כדי להתחיל הערכה, בדרך כלל משאירים פרטים וקובעים פגישת ייעוץ/הערכה. בנוסף אפשר למלא באתר שאלון מתאים: הורה, מורה או דיווח עצמי. השאלון לא מחליף הערכה רפואית, אבל הוא נותן לצוות תמונת מצב טובה לפני ההמשך.";
     }
     if (mentionsAppointment) {
       return "אפשר לקבוע פגישה דרך כפתור קביעת הפגישה באתר. מלאו שם, טלפון, אימייל, תאריך ושעה מועדפים, והמרפאה תחזור אליכם לאישור. אפשר גם להתקשר ל-055-27-399-27.";
     }
     if (mentionsPrice) {
-      return "אין לי מחירון מלא ומעודכן בתוך הצ'אט. כדי לקבל עלות מדויקת לפי סוג האבחון או הפגישה, מומלץ להשאיר פרטים בטופס יצירת הקשר או להתקשר ל-055-27-399-27.";
+      return "אין לי מחירון מלא ומעודכן בתוך הצ'אט. כדי לקבל עלות מדויקת לפי סוג ההערכה או הפגישה, מומלץ להשאיר פרטים בטופס יצירת הקשר או להתקשר ל-055-27-399-27.";
     }
     if (mentionsLocation) {
       return "המרפאה נמצאת ברחוב יגאל אלון 94, תל אביב. אפשר להשאיר פרטים באתר או ליצור קשר בטלפון 055-27-399-27 לתיאום הגעה.";
@@ -307,10 +308,10 @@ function buildClinicFallbackResponse(message: string, language: string, history:
     return "You are right, that can feel too fast. I will show answers more gradually in the chat. For the answer itself, if the request is unclear I will ask a short clarifying question instead of repeating a generic reply.";
   }
   if (gibberishLike) {
-    return "I am not sure I understood that message. Please write what you want to check: appointment booking, diagnosis, questionnaire, price, location, or availability.";
+    return "I am not sure I understood that message. Please write what you want to check: appointment booking, assessment, questionnaire, price, location, or availability.";
   }
   if (asksIfRequired) {
-    return "Not always. It depends what you mean: a questionnaire helps the clinic understand the background before diagnosis or consultation, but you can contact the clinic first for guidance. For an appointment request, contact details are needed so the clinic can confirm a time.";
+    return "Not always. It depends what you mean: a questionnaire helps the clinic understand the background before assessment or consultation, but you can contact the clinic first for guidance. For an appointment request, contact details are needed so the clinic can confirm a time.";
   }
   if (asksForSmarterAnswer && asksForAvailability) {
     return "You are right. I do not have live access to the doctor's calendar, so I cannot confirm whether she is available right now. For immediate availability, call the clinic at 055-27-399-27. If there is no answer, submit an appointment request with your preferred time and the clinic will follow up to confirm.";
@@ -328,7 +329,7 @@ function buildClinicFallbackResponse(message: string, language: string, history:
     return "I do not have confirmed information that Zoom appointments are available for every case. In the appointment form, note that you prefer Zoom or an online meeting, or call 055-27-399-27 to check whether it is possible for your appointment type.";
   }
   if (mentionsAssessment) {
-    return "To start a diagnosis process, you can leave your details and request a consultation or diagnostic appointment. You can also fill out the relevant questionnaire on the site: parent, teacher, or self-report. The questionnaire does not replace a medical diagnosis, but it helps the clinic understand the background before follow-up.";
+    return "To start an assessment process, you can leave your details and request a consultation or assessment appointment. You can also fill out the relevant questionnaire on the site: parent, teacher, or self-report. The questionnaire does not replace a medical assessment, but it helps the clinic understand the background before follow-up.";
   }
   if (mentionsAppointment) {
     return "You can book an appointment through the appointment form on the site. Enter your name, phone, email, preferred date and time, and the clinic will contact you to confirm. You can also call 055-27-399-27.";
@@ -364,20 +365,20 @@ const additionalTranslations: Record<string, Record<string, string>> = {
   he: {
     "hero.welcome_line1": "ברוכים הבאים למרפאת",
     "hero.welcome_line2": '"קשב פלוס"',
-    "hero.clinic_description": "מרפאה לאבחון וטיפול של הפרעות קשב וריכוז",
+    "hero.clinic_description": "מרפאה להערכה וטיפול של הפרעות קשב וריכוז",
     "hero.typing_children": "בילדים",
     "hero.typing_teens": "בבני נוער",
     "hero.typing_adults": "במבוגרים",
-    "hero.accurate_diagnosis": 'ב"קשב פלוס" תקבלו אבחון מדויק',
+    "hero.accurate_diagnosis": 'ב"קשב פלוס" תקבלו הערכה מדויקת',
     "hero.personal_plan": "ותוכנית טיפול אישית",
     "hero.first_step": "הצעד הראשון מתחיל כאן",
     "hero.schedule_consultation": "קבעו פגישת ייעוץ - בואו לגלות את הדרך להצלחה",
-    "hero.start_now": "התחל/י את האבחון עכשיו",
+    "hero.start_now": "התחל/י את ההערכה עכשיו",
     "hero.read_about_us": "קראו עוד עלינו",
     "hero.ready_to_start": "מוכנים להתחיל?",
-    "hero.ready_description": "פנה/י אלינו היום כדי לקבוע את האבחון שלך ולקחת את הצעד הראשון לקראת חיים טובים יותר.",
+    "hero.ready_description": "פנה/י אלינו היום כדי לקבוע את ההערכה שלך ולקחת את הצעד הראשון לקראת חיים טובים יותר.",
     "hero.contact_us_now": "צרו קשר עכשיו",
-    "hero.doctor_alt": "רופאה מומחית באבחון ADHD",
+    "hero.doctor_alt": "רופאה מומחית בהערכת ADHD",
     "nav.skip_to_content": "דלג לתוכן הראשי",
     "nav.main_navigation": "ניווט ראשי",
     "nav.go_home": "חזרה לדף הבית",
@@ -404,7 +405,7 @@ const additionalTranslations: Record<string, Record<string, string>> = {
     "contact.privacy_note": "המידע שלכם מאובטח ולא ישותף עם צדדים שלישיים",
     "contact.call_now": "התקשרו עכשיו",
     "contact.whatsapp": "שלחו הודעה בוואטסאפ",
-    "contact.whatsapp_message": "שלום, אשמח לקבל מידע על אבחון ADHD",
+    "contact.whatsapp_message": "שלום, אשמח לקבל מידע על הערכת ADHD",
     "contact.directions": "דרכי הגעה ואפשרויות חניה",
     "contact.directions_desc": "מידע על הגעה למרפאה וחניה באזור",
     "contact.clinic_address": "כתובת המרפאה",
@@ -414,7 +415,7 @@ const additionalTranslations: Record<string, Record<string, string>> = {
     "contact.parking_desc": "ישנה חניה חינמית ברחוב ובסביבה. מומלץ להגיע מספר דקות לפני הפגישה לצורך מציאת חניה.",
     "contact.transport_title": "תחבורה ציבורית",
     "contact.transport_desc": "המרפאה נמצאת במרחק הליכה קצר מתחנת הרכבת באר שבע מרכז. קווי אוטובוס רבים עוברים בסמוך.",
-    "footer.clinic_desc": "מרפאה מובילה לאבחון וטיפול בהפרעות קשב וריכוז בילדים, בני נוער ומבוגרים.",
+    "footer.clinic_desc": "מרפאה מובילה להערכה וטיפול בהפרעות קשב וריכוז בילדים, בני נוער ומבוגרים.",
     "footer.quick_links": "ניווט מהיר",
     "footer.contact_info": "פרטי התקשרות",
     "footer.follow_us": "עקבו אחרינו",
@@ -427,18 +428,18 @@ const additionalTranslations: Record<string, Record<string, string>> = {
   en: {
     "hero.welcome_line1": "Welcome to",
     "hero.welcome_line2": '"Keshev Plus" Clinic',
-    "hero.clinic_description": "Clinic for Diagnosis and Treatment of ADHD",
+    "hero.clinic_description": "Clinic for ADHD Assessment and Treatment",
     "hero.typing_children": "in Children",
     "hero.typing_teens": "in Teens",
     "hero.typing_adults": "in Adults",
-    "hero.accurate_diagnosis": 'At "Keshev Plus" you will receive accurate diagnosis',
+    "hero.accurate_diagnosis": 'At "Keshev Plus" you will receive an accurate assessment',
     "hero.personal_plan": "and a personalized treatment plan",
     "hero.first_step": "The first step starts here",
     "hero.schedule_consultation": "Schedule a consultation - discover the path to success",
-    "hero.start_now": "Start Diagnosis Now",
+    "hero.start_now": "Start Assessment Now",
     "hero.read_about_us": "Read More About Us",
     "hero.ready_to_start": "Ready to Start?",
-    "hero.ready_description": "Contact us today to schedule your diagnosis and take the first step towards a better life.",
+    "hero.ready_description": "Contact us today to schedule your assessment and take the first step towards a better life.",
     "hero.contact_us_now": "Contact Us Now",
     "hero.doctor_alt": "Expert ADHD specialist doctor",
     "nav.skip_to_content": "Skip to main content",
@@ -467,7 +468,7 @@ const additionalTranslations: Record<string, Record<string, string>> = {
     "contact.privacy_note": "Your information is secure and will not be shared with third parties",
     "contact.call_now": "Call Now",
     "contact.whatsapp": "Message on WhatsApp",
-    "contact.whatsapp_message": "Hello, I would like information about ADHD diagnosis",
+    "contact.whatsapp_message": "Hello, I would like information about ADHD assessment",
     "contact.directions": "Directions & Parking",
     "contact.directions_desc": "Information about arriving at the clinic and parking nearby",
     "contact.clinic_address": "Clinic Address",
@@ -477,7 +478,7 @@ const additionalTranslations: Record<string, Record<string, string>> = {
     "contact.parking_desc": "Free street parking is available in the area. We recommend arriving a few minutes early to find parking.",
     "contact.transport_title": "Public Transport",
     "contact.transport_desc": "The clinic is a short walk from Beer Sheva Central train station. Multiple bus lines pass nearby.",
-    "footer.clinic_desc": "Leading clinic for ADHD diagnosis and treatment in children, teens, and adults.",
+    "footer.clinic_desc": "Leading clinic for ADHD assessment and treatment in children, teens, and adults.",
     "footer.quick_links": "Quick Links",
     "footer.contact_info": "Contact Info",
     "footer.follow_us": "Follow Us",
@@ -573,19 +574,11 @@ async function sendNotificationEmail(subject: string, body: string): Promise<voi
 
 function hasAdminAccess(user: { role: string; email: string } | undefined | null): boolean {
   if (!user) return false;
-  return (
-    user.role === "admin" ||
-    user.role === "owner" ||
-    user.role === "manager" ||
-    user.role === "superadmin" ||
-    user.email === "admin@keshevplus.co.il" ||
-    user.email === "dr@keshevplus.co.il"
-  );
+  return hasPrivilegedAdminRole(user.role) || user.email === "admin@keshevplus.co.il" || isSuperadminEmail(user.email);
 }
 
 function isOwner(user: { role: string; email: string } | undefined | null): boolean {
-  if (!user) return false;
-  return user.role === "owner" || user.email === "dr@keshevplus.co.il";
+  return hasOwnerLevelAccess(user);
 }
 
 // Billing is a restricted role, one tier below manager: payment
@@ -730,6 +723,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!result.success) return res.status(400).json({ error: result.error.message });
 
     const settings = await storage.updateContactFormSettings(result.data);
+    res.json(settings);
+  });
+
+  app.get("/api/settings/hero-layout", async (_req, res) => {
+    try {
+      const settings = await storage.getHeroLayoutSettings();
+      return res.json(settings);
+    } catch (error) {
+      console.error("Error fetching hero layout settings:", error);
+      return res.json({ logoHeightMobile: 96, logoHeightDesktop: 112 });
+    }
+  });
+
+  app.put("/api/settings/hero-layout", async (req, res) => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await storage.getUser(userId);
+    if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+
+    const result = heroLayoutSettingsSchema.safeParse(req.body);
+    if (!result.success) return res.status(400).json({ error: result.error.message });
+
+    const settings = await storage.updateHeroLayoutSettings(result.data);
     res.json(settings);
   });
 
@@ -1182,9 +1198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           mustChangePassword: users.mustChangePassword,
         })
         .from(users);
-      // Hide superadmin from everyone
-      const filtered = allUsers.filter(u => u.email !== "drkeshevplus@gmail.com");
-      return res.json(filtered);
+      return res.json(allUsers);
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch users" });
     }
@@ -1242,8 +1256,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const targetUser = await storage.getUser(targetId);
 
-      if (targetUser?.email === "drkeshevplus@gmail.com") {
-        return res.status(403).json({ error: "Cannot delete superadmin" });
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (normalizeAdminEmail(user.email) === "office@keshevplus.co.il" && isOfficeProtectedUserEmail(targetUser.email)) {
+        return res.status(403).json({ error: "office@keshevplus.co.il cannot delete itself or dr@keshevplus.co.il" });
+      }
+
+      if (normalizeAdminEmail(targetUser.email) === "dr@keshevplus.co.il") {
+        return res.status(403).json({ error: "Cannot delete dr@keshevplus.co.il" });
       }
 
       await db.delete(users).where(eq(users.id, targetId));
@@ -2589,12 +2611,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Message is required" });
       }
 
-      const systemPrompt = `You are the virtual assistant for "Keshev Plus" (קשב פלוס) clinic - a leading clinic specializing in ADHD diagnosis and treatment for children, teens, and adults.
+      const systemPrompt = `You are the virtual assistant for "Keshev Plus" (קשב פלוס) clinic - a leading clinic specializing in ADHD assessment and treatment for children, teens, and adults.
 
 CLINIC INFORMATION:
 - Location: 94 Yigal Alon St., Tel Aviv, Israel
 - Phone: 055-27-399-27
-- Services: ADHD diagnosis, behavioral assessment, Vanderbilt questionnaires (Parent, Teacher, Self-Report), personalized treatment plans, consultation appointments
+- Services: ADHD assessment, behavioral assessment, Vanderbilt questionnaires (Parent, Teacher, Self-Report), personalized treatment plans, consultation appointments
 - Website sections: About Us, Services, Questionnaires, Appointment Booking, Contact Form, Blog
 
 LANGUAGE RULES (CRITICAL - follow exactly):

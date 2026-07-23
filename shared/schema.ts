@@ -241,6 +241,11 @@ export const contactFormSettingsSchema = z.object({
   requireMessage: z.boolean().default(true),
 });
 
+export const heroLayoutSettingsSchema = z.object({
+  logoHeightMobile: z.number().int().min(48).max(240).default(96),
+  logoHeightDesktop: z.number().int().min(64).max(320).default(112),
+});
+
 export const dashboardLayoutSchema = z.object({
   widgets: z.array(z.string()),
 });
@@ -248,6 +253,7 @@ export const dashboardLayoutSchema = z.object({
 export type LanguageSettings = z.infer<typeof languageSettingsSchema>;
 export type WidgetSettings = z.infer<typeof widgetSettingsSchema>;
 export type ContactFormSettings = z.infer<typeof contactFormSettingsSchema>;
+export type HeroLayoutSettings = z.infer<typeof heroLayoutSettingsSchema>;
 export type DashboardLayout = z.infer<typeof dashboardLayoutSchema>;
 
 export const upsertTranslationSchema = z.object({

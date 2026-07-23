@@ -30,6 +30,7 @@ import { apiRequest } from '@/lib/queryClient'
 import { ALL_LANGUAGES, type LanguageSettings, type SupportedLanguage, DEFAULT_LANGUAGE_SETTINGS, BILINGUAL_CODES, getEnabledLanguageCodes } from '@/i18n/config'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import type { WidgetSettings } from '@shared/schema'
+import { hasOwnerLevelAccess } from '@shared/adminAccess'
 import TranslationManager from './TranslationManager'
 import QuestionnaireSubmissions from './QuestionnaireSubmissions'
 import AppointmentsManager from './AppointmentsManager'
@@ -72,6 +73,7 @@ const AdminDashboard = () => {
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const isBillingOnly = user?.role === 'billing'
+  const isSuperadmin = hasOwnerLevelAccess(user)
   const [searchParams, setSearchParams] = useSearchParams()
   const activeTab = searchParams.get('tab') ?? (isBillingOnly ? 'clients' : 'overview')
   const clientParam = searchParams.get('client')
@@ -266,7 +268,7 @@ const AdminDashboard = () => {
     { value: 'translations', icon: Languages, he: 'תרגומים', en: 'Translations', heDesc: 'ניהול תרגומים לאתר', enDesc: 'Manage site translations' },
     { value: 'settings', icon: Settings, he: 'הגדרות', en: 'Settings', heDesc: 'שפה והתראות', enDesc: 'Language & notifications' },
     { value: 'bin', icon: Archive, he: 'סל מיחזור', en: 'Recycle Bin', heDesc: 'פריטים שנמחקו', enDesc: 'Deleted items' },
-    ...(user?.email === 'dr@keshevplus.co.il'
+    ...(isSuperadmin
       ? [
           { value: 'users', icon: UserCog, he: 'משתמשים', en: 'Users', heDesc: 'ניהול משתמשי מערכת', enDesc: 'Manage system users' },
         ]
@@ -684,7 +686,7 @@ const AdminDashboard = () => {
 
               <ChangePasswordSettings />
 
-              {user?.email === 'dr@keshevplus.co.il' && <LoadTestDataSettings />}
+              {isSuperadmin && <LoadTestDataSettings />}
             </div>
           </TabsContent>
 
@@ -692,7 +694,7 @@ const AdminDashboard = () => {
             <BinManager />
           </TabsContent>
 
-          {user?.email === 'dr@keshevplus.co.il' && (
+          {isSuperadmin && (
             <TabsContent value="users" className="mt-0">
               <UsersManager />
             </TabsContent>

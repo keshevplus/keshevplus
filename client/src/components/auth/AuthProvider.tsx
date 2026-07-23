@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { hasPrivilegedAdminRole, isSuperadminEmail } from '@shared/adminAccess'
 
 interface AuthUser {
   id: number;
@@ -30,13 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const isAdmin =
-    user?.role === 'admin' ||
-    user?.role === 'owner' ||
-    user?.role === 'manager' ||
-    user?.role === 'superadmin' ||
-    user?.email === 'admin@keshevplus.co.il' ||
-    user?.email === 'dr@keshevplus.co.il'
+  const isAdmin = !!user && (hasPrivilegedAdminRole(user.role) || user.email === 'admin@keshevplus.co.il' || isSuperadminEmail(user.email))
 
   useEffect(() => {
     fetch('/api/auth/me', { credentials: 'include' })

@@ -26,12 +26,15 @@ export interface LegacySectionConfig {
 // than forcing it into the HomeSectionType/LEGACY_SECTION_TYPES union.
 export const HERO_SECTION_CONFIG: LegacySectionConfig = {
   domId: "home",
-  images: [{ slot: "hero.image", labelHe: "תמונת הרופאה", labelEn: "Doctor photo" }],
+  images: [
+    { slot: "logo", labelHe: "לוגו הירו", labelEn: "Hero logo" },
+    { slot: "hero.image", labelHe: "תמונת הרופאה", labelEn: "Doctor photo" },
+  ],
   fields: [
     { key: "hero.welcome_line1", labelHe: "שורת פתיחה 1", labelEn: "Welcome line 1" },
     { key: "hero.welcome_line2", labelHe: "שורת פתיחה 2", labelEn: "Welcome line 2" },
     { key: "hero.clinic_description", labelHe: "תיאור המרפאה", labelEn: "Clinic description", multiline: true },
-    { key: "hero.accurate_diagnosis", labelHe: "שורת אבחון מדויק", labelEn: "Accurate diagnosis line" },
+    { key: "hero.accurate_diagnosis", labelHe: "שורת הערכה מדויקת", labelEn: "Accurate assessment line" },
     { key: "hero.personal_plan", labelHe: "שורת תוכנית טיפול", labelEn: "Personal plan line" },
     { key: "hero.typing_children", labelHe: "קהל יעד 1 (ילדים)", labelEn: "Audience 1 (children)" },
     { key: "hero.typing_teens", labelHe: "קהל יעד 2 (נוער)", labelEn: "Audience 2 (teens)" },
