@@ -440,22 +440,34 @@ var DatabaseStorage = class {
     const [created] = await db.insert(siteSettings).values({ key, value }).returning();
     return created;
   }
-  async getNextCrmNumber(key, start) {
+  // Self-healing against the counter falling behind the actual column (as
+  // happened when the load-test seeder bulk-inserted using its own
+  // MAX(column)+1 scheme without advancing this counter, which then made
+  // every real insert collide with the unique constraint and fail
+  // silently): the assigned number is never less than
+  // MAX(column)+1, even if the stored counter is stale.
+  async getNextCrmNumber(key, start, column) {
+    const columnIdent = sql2.identifier(column);
     const result = await db.execute(sql2`
       insert into site_settings (key, value)
       values (${key}, ${JSON.stringify(start + 1)}::jsonb)
       on conflict (key)
-      do update set value = to_jsonb(((site_settings.value #>> '{}')::int + 1))
+      do update set value = to_jsonb(
+        GREATEST(
+          (site_settings.value #>> '{}')::int,
+          (select coalesce(max(${columnIdent}), ${start - 1}) from clients) + 1
+        ) + 1
+      )
       returning ((value #>> '{}')::int - 1) as number
     `);
     const row = result.rows[0];
     return Number(row?.number || start);
   }
   async getNextLeadNumber() {
-    return this.getNextCrmNumber("crm_next_lead_number", 5e3);
+    return this.getNextCrmNumber("crm_next_lead_number", 5e3, "lead_number");
   }
   async getNextClientNumber() {
-    return this.getNextCrmNumber("crm_next_client_number", 200);
+    return this.getNextCrmNumber("crm_next_client_number", 200, "client_number");
   }
   async findClientByIdentity(identity, excludeId) {
     const email = normalizeCrmEmail(identity.email);
@@ -719,7 +731,7 @@ var DatabaseStorage = class {
     const [created] = await db.insert(clients).values({
       leadNumber: await this.getNextLeadNumber(),
       name: data.name,
-      email: data.email,
+      email: data.email || null,
       phone: data.phone || null,
       status: "lead",
       source: data.source,
@@ -1946,6 +1958,7 @@ var fr = {
   "nav.contact": "Contact",
   "nav.book": "R\xE9server",
   "nav.book_now": "R\xE9server maintenant",
+  "nav.menu": "Menu",
   "nav.skip_to_content": "Aller au contenu principal",
   "nav.main_navigation": "Navigation principale",
   "nav.go_home": "Aller \xE0 la page d'accueil",
@@ -2316,6 +2329,7 @@ var es = {
   "nav.contact": "Contacto",
   "nav.book": "Reservar",
   "nav.book_now": "Reservar ahora",
+  "nav.menu": "Men\xFA",
   "nav.skip_to_content": "Ir al contenido principal",
   "nav.main_navigation": "Navegaci\xF3n principal",
   "nav.go_home": "Ir a la p\xE1gina de inicio",
@@ -2686,6 +2700,7 @@ var de = {
   "nav.contact": "Kontakt",
   "nav.book": "Buchen",
   "nav.book_now": "Jetzt buchen",
+  "nav.menu": "Men\xFC",
   "nav.skip_to_content": "Zum Hauptinhalt springen",
   "nav.main_navigation": "Hauptnavigation",
   "nav.go_home": "Zur Startseite",
@@ -3056,6 +3071,7 @@ var ru = {
   "nav.contact": "\u041A\u043E\u043D\u0442\u0430\u043A\u0442\u044B",
   "nav.book": "\u0417\u0430\u043F\u0438\u0441\u0430\u0442\u044C\u0441\u044F",
   "nav.book_now": "\u0417\u0430\u043F\u0438\u0441\u0430\u0442\u044C\u0441\u044F \u0441\u0435\u0439\u0447\u0430\u0441",
+  "nav.menu": "\u041C\u0435\u043D\u044E",
   "nav.skip_to_content": "\u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u043A \u043E\u0441\u043D\u043E\u0432\u043D\u043E\u043C\u0443 \u0441\u043E\u0434\u0435\u0440\u0436\u0430\u043D\u0438\u044E",
   "nav.main_navigation": "\u041E\u0441\u043D\u043E\u0432\u043D\u0430\u044F \u043D\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u044F",
   "nav.go_home": "\u041D\u0430 \u0433\u043B\u0430\u0432\u043D\u0443\u044E \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443",
@@ -3426,6 +3442,7 @@ var am = {
   "nav.contact": "\u12A5\u12E8\u1293 \u12EB\u130D\u1299\u1295",
   "nav.book": "\u1240\u1320\u122E \u12ED\u12EB\u12D9",
   "nav.book_now": "\u12A0\u1201\u1295 \u1240\u1320\u122E \u12ED\u12EB\u12D9",
+  "nav.menu": "\u121D\u1293\u120C",
   "nav.skip_to_content": "\u12C8\u12F0 \u12CB\u1293 \u12ED\u12D8\u1275 \u12DD\u1208\u120D",
   "nav.main_navigation": "\u12CB\u1293 \u1293\u126A\u130C\u123D\u1295",
   "nav.go_home": "\u12C8\u12F0 \u1218\u1290\u123B \u1308\u133D \u1202\u12F5",
@@ -3796,6 +3813,7 @@ var ar = {
   "nav.contact": "\u0627\u062A\u0651\u0635\u0644 \u0628\u0646\u0627",
   "nav.book": "\u0627\u062D\u062C\u0632",
   "nav.book_now": "\u0627\u062D\u062C\u0632 \u0627\u0644\u0622\u0646",
+  "nav.menu": "\u0627\u0644\u0642\u0627\u0626\u0645\u0629",
   "nav.skip_to_content": "\u0627\u0646\u062A\u0642\u0644 \u0625\u0644\u0649 \u0627\u0644\u0645\u062D\u062A\u0648\u0649 \u0627\u0644\u0631\u0626\u064A\u0633\u064A",
   "nav.main_navigation": "\u0627\u0644\u062A\u0646\u0642\u0644 \u0627\u0644\u0631\u0626\u064A\u0633\u064A",
   "nav.go_home": "\u0627\u0644\u0630\u0647\u0627\u0628 \u0625\u0644\u0649 \u0627\u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629",
@@ -4166,6 +4184,7 @@ var yi = {
   "nav.contact": "\u05E7\u05D0\u05B8\u05E0\u05D8\u05D0\u05B7\u05E7\u05D8",
   "nav.book": "\u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05DC\u05DF",
   "nav.book_now": "\u05D1\u05D0\u05B7\u05E9\u05D8\u05E2\u05DC\u05DF \u05D0\u05D9\u05E6\u05D8",
+  "nav.menu": "\u05DE\u05E2\u05E0\u05D9\u05D5",
   "nav.skip_to_content": "\u05E9\u05E4\u05BC\u05E8\u05D9\u05E0\u05D2 \u05E6\u05D5\u05DD \u05D4\u05D5\u05D9\u05E4\u05BC\u05D8 \u05D0\u05D9\u05E0\u05D4\u05D0\u05B7\u05DC\u05D8",
   "nav.main_navigation": "\u05D4\u05D5\u05D9\u05E4\u05BC\u05D8 \u05E0\u05D0\u05B7\u05D5\u05D5\u05D9\u05D2\u05D0\u05B7\u05E6\u05D9\u05E2",
   "nav.go_home": "\u05D2\u05D9\u05D9 \u05E6\u05D5\u05DD \u05D4\u05D9\u05D9\u05DD \u05D1\u05DC\u05D0\u05B7\u05D8",
@@ -4536,6 +4555,7 @@ var it = {
   "nav.contact": "Contattaci",
   "nav.book": "Prenota",
   "nav.book_now": "Prenota ora",
+  "nav.menu": "Menu",
   "hero.title": "Benvenuti alla",
   "hero.clinic": 'Clinica "Keshev Plus"',
   "hero.subtitle": "Bambini \u2022 Adolescenti \u2022 Adulti",
@@ -5516,7 +5536,7 @@ async function registerRoutes(app2) {
         return res.status(400).json({ success: false, message: "Message must be at least 10 characters" });
       }
       await storage.createContact({ ...result.data, source: resolveContactSource(req) });
-      if (result.data.email) {
+      if (result.data.email || result.data.phone) {
         try {
           await storage.upsertClientByEmail({
             name: result.data.name,
