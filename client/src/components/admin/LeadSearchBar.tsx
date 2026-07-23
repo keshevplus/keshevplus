@@ -25,6 +25,7 @@ export default function LeadSearchBar({ onSelectClient }: LeadSearchBarProps) {
         if (client.name?.toLowerCase().includes(q)) return true;
         if (client.email?.toLowerCase().includes(q)) return true;
         if (qDigits && client.phone?.replace(/\D/g, "").includes(qDigits)) return true;
+        if (qDigits && String(client.id).includes(qDigits)) return true;
         if (client.leadNumber != null && String(client.leadNumber).includes(q)) return true;
         if (client.clientNumber != null && String(client.clientNumber).includes(q)) return true;
         return false;
@@ -43,7 +44,7 @@ export default function LeadSearchBar({ onSelectClient }: LeadSearchBarProps) {
         }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder={isHe ? "חיפוש ליד/לקוח לפי שם, אימייל, טלפון או מספר" : "Search leads/clients by name, email, phone or number"}
+        placeholder={isHe ? "חיפוש ליד/לקוח לפי שם, אימייל, טלפון, ID או מספר" : "Search leads/clients by name, email, phone, ID or number"}
         className="ps-9 h-10"
         data-testid="input-search-overview"
       />
@@ -70,7 +71,7 @@ export default function LeadSearchBar({ onSelectClient }: LeadSearchBarProps) {
                   {client.email && <span className="truncate text-xs text-muted-foreground">{client.email}</span>}
                 </span>
                 <span className="text-xs text-muted-foreground shrink-0">
-                  {client.clientNumber != null ? `#${client.clientNumber}` : client.leadNumber != null ? `#${client.leadNumber}` : ""}
+                  {client.clientNumber != null ? `#${client.clientNumber}` : client.leadNumber != null ? `#${client.leadNumber}` : `ID #${client.id}`}
                 </span>
               </button>
             ))

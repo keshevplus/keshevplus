@@ -491,6 +491,9 @@ export class DatabaseStorage implements IStorage {
       values.clientNumber = await this.getNextClientNumber();
     } else {
       values.leadNumber = await this.getNextLeadNumber();
+      if (values.adminSeen === undefined && (values.source || "manual") === "manual") {
+        values.adminSeen = true;
+      }
     }
 
     const [created] = await db.insert(clients).values(values as any).returning();
@@ -648,6 +651,12 @@ export class DatabaseStorage implements IStorage {
       if (data.email && !existing.email) updates.email = data.email;
       if (data.phone && !existing.phone) updates.phone = data.phone;
       if (data.childName && !existing.childName) updates.childName = data.childName;
+      if (existing.status === "lead" && !existing.leadNumber) updates.leadNumber = await this.getNextLeadNumber();
+      if (existing.status === "client" && !existing.clientNumber) updates.clientNumber = await this.getNextClientNumber();
+      if (existing.status === "lead" && existing.adminSeen && existing.source === "manual" && data.source !== "manual") {
+        updates.adminSeen = false;
+        updates.source = data.source;
+      }
       if (Object.keys(updates).length > 0) {
         const [updated] = await db.update(clients).set(updates).where(eq(clients.id, existing.id)).returning();
         return updated;
@@ -777,7 +786,7 @@ export class DatabaseStorage implements IStorage {
     const [newLeadsCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(clients)
-      .where(and(eq(clients.status, "lead"), eq(clients.adminSeen, false), eq(clients.archived, false), eq(clients.isTest, false)));
+      .where(and(eq(clients.status, "lead"), eq(clients.adminSeen, false), eq(clients.archived, false), eq(clients.isTest, false), sql`${clients.source} <> 'manual'`));
 
     const newLeadRows = await db
       .select({
@@ -788,7 +797,7 @@ export class DatabaseStorage implements IStorage {
         leadNumber: clients.leadNumber,
       })
       .from(clients)
-      .where(and(eq(clients.status, "lead"), eq(clients.adminSeen, false), eq(clients.archived, false), eq(clients.isTest, false)))
+      .where(and(eq(clients.status, "lead"), eq(clients.adminSeen, false), eq(clients.archived, false), eq(clients.isTest, false), sql`${clients.source} <> 'manual'`))
       .orderBy(desc(clients.createdAt))
       .limit(10);
 

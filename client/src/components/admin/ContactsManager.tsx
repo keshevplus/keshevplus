@@ -185,18 +185,20 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
   })
 
   const markTestMutation = useMutation({
-    mutationFn: (id: number) => apiRequest('PATCH', `/api/contacts/${id}/mark-test`, { isTest: true }),
-    onSuccess: (_data, id) => {
+    mutationFn: ({ id, isTest }: { id: number; isTest: boolean }) => apiRequest('PATCH', `/api/contacts/${id}/mark-test`, { isTest }),
+    onSuccess: (_data, { id, isTest }) => {
       invalidateContactsQueries()
       setExpandedId(null)
       showUndo({
-        title: isHe ? 'סומן כבדיקה' : 'Marked as test',
-        description: isHe ? 'אפשר להחזיר לרשימה הרגילה עם Ctrl+Z.' : 'Press Ctrl+Z to return it to normal data.',
+        title: isTest ? (isHe ? 'סומן כבדיקה' : 'Marked as test') : (isHe ? 'סימון הבדיקה בוטל' : 'Test mark removed'),
+        description: isTest
+          ? (isHe ? 'אפשר להחזיר לרשימה הרגילה עם Ctrl+Z.' : 'Press Ctrl+Z to return it to normal data.')
+          : (isHe ? 'אפשר להחזיר לסימון בדיקה עם Ctrl+Z.' : 'Press Ctrl+Z to mark it as test again.'),
         undoLabel: isHe ? 'בטל' : 'Undo',
-        undoSuccessTitle: isHe ? 'סימון הבדיקה בוטל' : 'Test mark removed',
+        undoSuccessTitle: isTest ? (isHe ? 'סימון הבדיקה בוטל' : 'Test mark removed') : (isHe ? 'סומן כבדיקה' : 'Marked as test'),
         undoErrorTitle: isHe ? 'הביטול נכשל' : 'Undo failed',
         onUndo: async () => {
-          await apiRequest('PATCH', `/api/contacts/${id}/mark-test`, { isTest: false })
+          await apiRequest('PATCH', `/api/contacts/${id}/mark-test`, { isTest: !isTest })
           invalidateContactsQueries()
         },
       })
@@ -514,11 +516,13 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => markTestMutation.mutate(contact.id)}
+                          onClick={() => markTestMutation.mutate({ id: contact.id, isTest: !contact.isTest })}
                           disabled={markTestMutation.isPending}
                           data-testid={`button-mark-test-contact-${contact.id}`}
                         >
-                          {isHe ? 'סמן כבדיקה' : 'Mark as test'}
+                          {contact.isTest
+                            ? (isHe ? 'בטל סימון בדיקה' : 'Remove test mark')
+                            : (isHe ? 'סמן כבדיקה' : 'Mark as test')}
                         </Button>
                         <Button
                           size="sm"

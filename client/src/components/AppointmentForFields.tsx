@@ -10,10 +10,12 @@ type AppointmentFor = 'self' | 'child'
 interface AppointmentForFieldsProps {
   isHe: boolean
   appointmentFor: AppointmentFor
-  childName: string
+  childFirstName: string
+  childLastName: string
   childAge: number | ''
   onAppointmentForChange: (value: AppointmentFor) => void
-  onChildNameChange: (value: string) => void
+  onChildFirstNameChange: (value: string) => void
+  onChildLastNameChange: (value: string) => void
   onChildAgeChange: (value: number | '') => void
   inputClassName?: string
 }
@@ -23,10 +25,12 @@ const MIN_CHILD_AGE = 6
 export function AppointmentForFields({
   isHe,
   appointmentFor,
-  childName,
+  childFirstName,
+  childLastName,
   childAge,
   onAppointmentForChange,
-  onChildNameChange,
+  onChildFirstNameChange,
+  onChildLastNameChange,
   onChildAgeChange,
   inputClassName,
 }: AppointmentForFieldsProps) {
@@ -77,17 +81,29 @@ export function AppointmentForFields({
       </div>
 
       {appointmentFor === 'child' && (
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1.5">
-            <Label htmlFor="booking-child">{t('appt_for.child_name')} *</Label>
+            <Label htmlFor="booking-child-first">{isHe ? 'שם פרטי של הילד/ה' : "Child's first name"} *</Label>
             <Input
-              id="booking-child"
-              value={childName}
-              onChange={(e) => onChildNameChange(e.target.value)}
-              placeholder={t('appt_for.child_name')}
+              id="booking-child-first"
+              value={childFirstName}
+              onChange={(e) => onChildFirstNameChange(e.target.value)}
+              placeholder={isHe ? 'שם פרטי' : 'First name'}
               required
               className={cn(inputClassName)}
-              data-testid="input-booking-child-name"
+              data-testid="input-booking-child-first-name"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="booking-child-last">{isHe ? 'שם משפחה של הילד/ה' : "Child's last name"} *</Label>
+            <Input
+              id="booking-child-last"
+              value={childLastName}
+              onChange={(e) => onChildLastNameChange(e.target.value)}
+              placeholder={isHe ? 'שם משפחה' : 'Last name'}
+              required
+              className={cn(inputClassName)}
+              data-testid="input-booking-child-last-name"
             />
           </div>
           <div className="space-y-1.5">

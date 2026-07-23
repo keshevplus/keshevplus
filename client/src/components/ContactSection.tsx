@@ -51,7 +51,8 @@ const ContactSection: React.FC = () => {
 
               {/* Teaser fields — visual only, clicking opens modal */}
               {[
-                t('contact.name_placeholder'),
+                isRTL ? 'שם פרטי' : 'First name',
+                isRTL ? 'שם משפחה' : 'Last name',
                 t('contact.phone_placeholder'),
                 t('contact.email_optional'),
               ].map((placeholder) => (

@@ -470,16 +470,20 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
   };
 
   const handleMarkTest = async () => {
+    if (!client) return;
+    const nextIsTest = !client.isTest;
     try {
-      await apiRequest("PATCH", `/api/clients/${clientId}/mark-test`, { isTest: true });
+      await apiRequest("PATCH", `/api/clients/${clientId}/mark-test`, { isTest: nextIsTest });
       showUndo({
-        title: isHe ? "סומן כבדיקה" : "Marked as test",
-        description: isHe ? "אפשר להחזיר לרשימה הרגילה עם Ctrl+Z." : "Press Ctrl+Z to return it to normal data.",
+        title: nextIsTest ? (isHe ? "סומן כבדיקה" : "Marked as test") : (isHe ? "סימון הבדיקה בוטל" : "Test mark removed"),
+        description: nextIsTest
+          ? (isHe ? "אפשר להחזיר לרשימה הרגילה עם Ctrl+Z." : "Press Ctrl+Z to return it to normal data.")
+          : (isHe ? "אפשר להחזיר לסימון בדיקה עם Ctrl+Z." : "Press Ctrl+Z to mark it as test again."),
         undoLabel: isHe ? "בטל" : "Undo",
-        undoSuccessTitle: isHe ? "סימון הבדיקה בוטל" : "Test mark removed",
+        undoSuccessTitle: nextIsTest ? (isHe ? "סימון הבדיקה בוטל" : "Test mark removed") : (isHe ? "סומן כבדיקה" : "Marked as test"),
         undoErrorTitle: isHe ? "הביטול נכשל" : "Undo failed",
         onUndo: async () => {
-          await apiRequest("PATCH", `/api/clients/${clientId}/mark-test`, { isTest: false });
+          await apiRequest("PATCH", `/api/clients/${clientId}/mark-test`, { isTest: !nextIsTest });
           queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
         },
       });
@@ -754,6 +758,11 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
               >
                 {client.status === 'client' ? (isHe ? "לקוח" : "Client") : (isHe ? "ליד" : "Lead")}
               </Badge>
+              {client.isTest && (
+                <Badge variant="outline" className="no-default-hover-elevate no-default-active-elevate">
+                  QA
+                </Badge>
+              )}
               {(() => {
                 const sourceLabel = SOURCE_LABELS[client.source || 'manual'];
                 return (
@@ -767,7 +776,9 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
                 <span className="ml-1">{client.status === 'client' ? (isHe ? "החזר לליד" : "Revert to Lead") : (isHe ? "המר ללקוח" : "Convert to Client")}</span>
               </Button>
               <Button size="sm" variant="outline" onClick={handleMarkTest} data-testid="button-mark-test-client">
-                {isHe ? "סמן כבדיקה" : "Mark as test"}
+                {client.isTest
+                  ? (isHe ? "בטל סימון בדיקה" : "Remove test mark")
+                  : (isHe ? "סמן כבדיקה" : "Mark as test")}
               </Button>
             </CardContent>
           </Card>

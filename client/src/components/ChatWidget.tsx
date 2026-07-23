@@ -21,7 +21,8 @@ interface ChatMessage {
 }
 
 interface VisitorInfo {
-  name: string
+  firstName: string
+  lastName: string
   email: string
   phone: string
 }
@@ -30,6 +31,26 @@ type BubbleState = 'bar' | 'icon'
 
 const VISITOR_STORAGE_KEY = 'kp_visitor_info'
 const VISITOR_COOKIE_NAME = 'kp_visitor'
+
+const joinName = (firstName: string, lastName: string) => `${firstName.trim()} ${lastName.trim()}`.trim()
+
+function normalizeVisitorInfo(value: Partial<VisitorInfo> & { name?: string }): VisitorInfo {
+  if (value.firstName || value.lastName) {
+    return {
+      firstName: value.firstName || '',
+      lastName: value.lastName || '',
+      email: value.email || '',
+      phone: value.phone || '',
+    }
+  }
+  const [firstName = '', ...lastNameParts] = (value.name || '').trim().split(/\s+/).filter(Boolean)
+  return {
+    firstName,
+    lastName: lastNameParts.join(' '),
+    email: value.email || '',
+    phone: value.phone || '',
+  }
+}
 
 function setVisitorCookie(info: VisitorInfo) {
   try {
@@ -56,7 +77,7 @@ const ChatWidget = () => {
   const [loading, setLoading] = useState(false)
   const [conversationId, setConversationId] = useState<number | null>(null)
   const [visitorInfo, setVisitorInfo] = useState<VisitorInfo | null>(null)
-  const [infoForm, setInfoForm] = useState<VisitorInfo>({ name: '', email: '', phone: '' })
+  const [infoForm, setInfoForm] = useState<VisitorInfo>({ firstName: '', lastName: '', email: '', phone: '' })
   const [submittingInfo, setSubmittingInfo] = useState(false)
   const [restoredVisitor, setRestoredVisitor] = useState(false)
   const [bubbleState, setBubbleState] = useState<BubbleState>(() => {
@@ -112,8 +133,8 @@ const ChatWidget = () => {
     try {
       const stored = localStorage.getItem(VISITOR_STORAGE_KEY)
       if (stored) {
-        const parsed = JSON.parse(stored) as VisitorInfo
-        if (parsed.name && parsed.email) {
+        const parsed = normalizeVisitorInfo(JSON.parse(stored) as Partial<VisitorInfo> & { name?: string })
+        if (parsed.firstName && parsed.lastName && parsed.email) {
           setInfoForm(parsed)
           setRestoredVisitor(true)
           setVisitorInfo(parsed)
@@ -161,20 +182,21 @@ const ChatWidget = () => {
     } catch {}
     setVisitorInfo(null)
     setRestoredVisitor(false)
-    setInfoForm({ name: '', email: '', phone: '' })
+    setInfoForm({ firstName: '', lastName: '', email: '', phone: '' })
     setConversationId(null)
     setMessages([])
   }
 
   const startConversation = async () => {
-    if (!infoForm.name.trim() || !infoForm.email.trim()) return
+    const visitorName = joinName(infoForm.firstName, infoForm.lastName)
+    if (!infoForm.firstName.trim() || !infoForm.lastName.trim() || !infoForm.email.trim()) return
     setSubmittingInfo(true)
     try {
       const res = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          visitorName: infoForm.name.trim(),
+          visitorName,
           visitorEmail: infoForm.email.trim(),
           visitorPhone: infoForm.phone.trim(),
         }),
@@ -213,7 +235,7 @@ const ChatWidget = () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              visitorName: visitorInfo.name.trim(),
+              visitorName: joinName(visitorInfo.firstName, visitorInfo.lastName),
               visitorEmail: visitorInfo.email.trim(),
               visitorPhone: visitorInfo.phone?.trim() || '',
             }),
@@ -488,7 +510,7 @@ const ChatWidget = () => {
                   className="text-xs text-primary-foreground/70 hover:text-primary-foreground underline text-start"
                   data-testid="button-not-you"
                 >
-                  {t('chat.not_you').replace('{name}', visitorInfo.name)}
+                  {t('chat.not_you').replace('{name}', joinName(visitorInfo.firstName, visitorInfo.lastName))}
                 </button>
               )}
             </div>
@@ -512,14 +534,24 @@ const ChatWidget = () => {
                 {t('chat.before_start')}
               </p>
             </div>
-            <Input
-              value={infoForm.name}
-              onChange={(e) => setInfoForm(prev => ({ ...prev, name: e.target.value }))}
-              onKeyDown={handleInfoKeyDown}
-              onFocus={scrollInputIntoView}
-              placeholder={t('chat.full_name_placeholder')}
-              data-testid="input-chat-name"
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Input
+                value={infoForm.firstName}
+                onChange={(e) => setInfoForm(prev => ({ ...prev, firstName: e.target.value }))}
+                onKeyDown={handleInfoKeyDown}
+                onFocus={scrollInputIntoView}
+                placeholder={isHe ? 'שם פרטי *' : 'First name *'}
+                data-testid="input-chat-first-name"
+              />
+              <Input
+                value={infoForm.lastName}
+                onChange={(e) => setInfoForm(prev => ({ ...prev, lastName: e.target.value }))}
+                onKeyDown={handleInfoKeyDown}
+                onFocus={scrollInputIntoView}
+                placeholder={isHe ? 'שם משפחה *' : 'Last name *'}
+                data-testid="input-chat-last-name"
+              />
+            </div>
             <Input
               value={infoForm.email}
               onChange={(e) => setInfoForm(prev => ({ ...prev, email: e.target.value }))}
@@ -540,7 +572,7 @@ const ChatWidget = () => {
             />
             <Button
               onClick={startConversation}
-              disabled={!infoForm.name.trim() || !infoForm.email.trim() || submittingInfo}
+              disabled={!infoForm.firstName.trim() || !infoForm.lastName.trim() || !infoForm.email.trim() || submittingInfo}
               className="w-full"
               data-testid="button-start-chat"
             >
@@ -557,7 +589,7 @@ const ChatWidget = () => {
                 <div className="text-center text-muted-foreground text-sm pt-8 space-y-2">
                   <Bot className="h-12 w-12 mx-auto text-primary/50" />
                   <p>
-                    {t('chat.welcome_message').replace('{name}', visitorInfo.name)}
+                    {t('chat.welcome_message').replace('{name}', joinName(visitorInfo.firstName, visitorInfo.lastName))}
                   </p>
                 </div>
               )}

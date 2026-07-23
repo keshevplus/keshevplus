@@ -40,6 +40,8 @@ function formatWhatsAppUrl(phone: string, message?: string) {
   return `https://wa.me/${cleaned}${params}`
 }
 
+const joinName = (firstName: string, lastName: string) => `${firstName.trim()} ${lastName.trim()}`.trim()
+
 function splitByPeriod<T extends { time: string }>(appointments: T[]) {
   return {
     morning: appointments.filter((a) => a.time < "12:00"),
@@ -149,7 +151,8 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
   const [newApptMode, setNewApptMode] = useState<'existing' | 'new'>('existing')
   const [newApptClientId, setNewApptClientId] = useState<number | null>(null)
   const [newApptSearch, setNewApptSearch] = useState("")
-  const [newApptName, setNewApptName] = useState("")
+  const [newApptFirstName, setNewApptFirstName] = useState("")
+  const [newApptLastName, setNewApptLastName] = useState("")
   const [newApptEmail, setNewApptEmail] = useState("")
   const [newApptPhone, setNewApptPhone] = useState("")
   const [newApptLeadNotes, setNewApptLeadNotes] = useState("")
@@ -158,7 +161,8 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
   const [newApptTime, setNewApptTime] = useState("")
   const [newApptAvailableTimes, setNewApptAvailableTimes] = useState<string[]>([])
   const [newApptFor, setNewApptFor] = useState<AppointmentFor>('self')
-  const [newApptChildName, setNewApptChildName] = useState("")
+  const [newApptChildFirstName, setNewApptChildFirstName] = useState("")
+  const [newApptChildLastName, setNewApptChildLastName] = useState("")
   const [newApptChildAge, setNewApptChildAge] = useState<number | ''>('')
   const [newApptNotes, setNewApptNotes] = useState("")
 
@@ -267,20 +271,22 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
   });
 
   const markTestMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest("PATCH", `/api/appointments/${id}/mark-test`, { isTest: true });
+    mutationFn: async ({ id, isTest }: { id: number; isTest: boolean }) => {
+      await apiRequest("PATCH", `/api/appointments/${id}/mark-test`, { isTest });
     },
-    onSuccess: (_data, id) => {
+    onSuccess: (_data, { id, isTest }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
       queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
       showUndo({
-        title: isHe ? "סומן כבדיקה" : "Marked as test",
-        description: isHe ? "אפשר להחזיר לרשימה הרגילה עם Ctrl+Z." : "Press Ctrl+Z to return it to normal data.",
+        title: isTest ? (isHe ? "סומן כבדיקה" : "Marked as test") : (isHe ? "סימון הבדיקה בוטל" : "Test mark removed"),
+        description: isTest
+          ? (isHe ? "אפשר להחזיר לרשימה הרגילה עם Ctrl+Z." : "Press Ctrl+Z to return it to normal data.")
+          : (isHe ? "אפשר להחזיר לסימון בדיקה עם Ctrl+Z." : "Press Ctrl+Z to mark it as test again."),
         undoLabel: isHe ? "בטל" : "Undo",
-        undoSuccessTitle: isHe ? "סימון הבדיקה בוטל" : "Test mark removed",
+        undoSuccessTitle: isTest ? (isHe ? "סימון הבדיקה בוטל" : "Test mark removed") : (isHe ? "סומן כבדיקה" : "Marked as test"),
         undoErrorTitle: isHe ? "הביטול נכשל" : "Undo failed",
         onUndo: async () => {
-          await apiRequest("PATCH", `/api/appointments/${id}/mark-test`, { isTest: false });
+          await apiRequest("PATCH", `/api/appointments/${id}/mark-test`, { isTest: !isTest });
           queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
           queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
         },
@@ -304,7 +310,8 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
     setNewApptMode('existing')
     setNewApptClientId(null)
     setNewApptSearch("")
-    setNewApptName("")
+    setNewApptFirstName("")
+    setNewApptLastName("")
     setNewApptEmail("")
     setNewApptPhone("")
     setNewApptLeadNotes("")
@@ -313,7 +320,8 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
     setNewApptTime("")
     setNewApptAvailableTimes([])
     setNewApptFor('self')
-    setNewApptChildName("")
+    setNewApptChildFirstName("")
+    setNewApptChildLastName("")
     setNewApptChildAge('')
     setNewApptNotes("")
     setNewApptOpen(true)
@@ -339,6 +347,8 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
 
   const createAppointmentMutation = useMutation({
     mutationFn: async () => {
+      const newApptName = joinName(newApptFirstName, newApptLastName)
+      const newApptChildName = joinName(newApptChildFirstName, newApptChildLastName)
       const payload: Record<string, any> = {
         date: newApptDate,
         time: newApptTime,
@@ -353,7 +363,7 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
         if (newApptEmail.trim()) payload.email = newApptEmail.trim()
         if (newApptPhone.trim()) payload.phone = newApptPhone.trim()
       } else {
-        payload.name = newApptName.trim()
+        payload.name = newApptName
         payload.email = newApptEmail.trim()
         payload.phone = newApptPhone.trim()
         payload.notes = newApptLeadNotes.trim() || undefined
@@ -382,9 +392,9 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
 
   const newApptClientReady = newApptMode === 'existing'
     ? !!selectedNewApptClient && !!(selectedNewApptClient.email || newApptEmail.trim()) && !!(selectedNewApptClient.phone || newApptPhone.trim())
-    : !!newApptName.trim() && !!newApptEmail.trim() && !!newApptPhone.trim()
+    : !!newApptFirstName.trim() && !!newApptLastName.trim() && !!newApptEmail.trim() && !!newApptPhone.trim()
 
-  const newApptForReady = newApptFor === 'self' || (!!newApptChildName.trim() && newApptChildAge !== '' && newApptChildAge >= 6)
+  const newApptForReady = newApptFor === 'self' || (!!newApptChildFirstName.trim() && !!newApptChildLastName.trim() && newApptChildAge !== '' && newApptChildAge >= 6)
 
   const canSubmitNewAppt = newApptClientReady && newApptForReady && !!newApptDate && !!newApptTime
 
@@ -1194,11 +1204,13 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => markTestMutation.mutate(appointment.id)}
+                        onClick={() => markTestMutation.mutate({ id: appointment.id, isTest: !appointment.isTest })}
                         disabled={markTestMutation.isPending}
                         data-testid={`button-mark-test-appt-${appointment.id}`}
                       >
-                        {isHe ? "סמן כבדיקה" : "Mark as test"}
+                        {appointment.isTest
+                          ? (isHe ? "בטל סימון בדיקה" : "Remove test mark")
+                          : (isHe ? "סמן כבדיקה" : "Mark as test")}
                       </Button>
                       <Button
                         size="sm"
@@ -1635,9 +1647,15 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
               </div>
             ) : (
               <div className="space-y-2">
-                <div className="space-y-1">
-                  <Label htmlFor="appt-new-name" className="text-xs">{isHe ? "שם *" : "Name *"}</Label>
-                  <Input id="appt-new-name" value={newApptName} onChange={(e) => setNewApptName(e.target.value)} className="h-8 text-xs" data-testid="input-appt-new-name" />
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="appt-new-first-name" className="text-xs">{isHe ? "שם פרטי *" : "First name *"}</Label>
+                    <Input id="appt-new-first-name" value={newApptFirstName} onChange={(e) => setNewApptFirstName(e.target.value)} className="h-8 text-xs" data-testid="input-appt-new-first-name" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="appt-new-last-name" className="text-xs">{isHe ? "שם משפחה *" : "Last name *"}</Label>
+                    <Input id="appt-new-last-name" value={newApptLastName} onChange={(e) => setNewApptLastName(e.target.value)} className="h-8 text-xs" data-testid="input-appt-new-last-name" />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
@@ -1675,10 +1693,12 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
               <AppointmentForFields
                 isHe={isHe}
                 appointmentFor={newApptFor}
-                childName={newApptChildName}
+                childFirstName={newApptChildFirstName}
+                childLastName={newApptChildLastName}
                 childAge={newApptChildAge}
                 onAppointmentForChange={setNewApptFor}
-                onChildNameChange={setNewApptChildName}
+                onChildFirstNameChange={setNewApptChildFirstName}
+                onChildLastNameChange={setNewApptChildLastName}
                 onChildAgeChange={setNewApptChildAge}
               />
 

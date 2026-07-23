@@ -39,6 +39,13 @@ function formatAppointmentDate(date: string, isHe: boolean) {
   return parsed.toLocaleDateString(isHe ? "he-IL" : "en-US", { weekday: "short", year: "numeric", month: "short", day: "numeric" });
 }
 
+function splitName(name: string | null | undefined) {
+  const [firstName = "", ...lastNameParts] = (name || "").trim().split(/\s+/).filter(Boolean);
+  return { firstName, lastName: lastNameParts.join(" ") };
+}
+
+const joinName = (firstName: string, lastName: string) => `${firstName.trim()} ${lastName.trim()}`.trim();
+
 interface SchedulerFormProps {
   client: Client;
   isHe: boolean;
@@ -52,7 +59,9 @@ function SchedulerForm({ client, isHe, onDone }: SchedulerFormProps) {
   const [time, setTime] = useState("");
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [appointmentFor, setAppointmentFor] = useState<AppointmentFor>(client.childName ? "child" : "self");
-  const [childName, setChildName] = useState(client.childName || "");
+  const initialChildName = splitName(client.childName);
+  const [childFirstName, setChildFirstName] = useState(initialChildName.firstName);
+  const [childLastName, setChildLastName] = useState(initialChildName.lastName);
   const [childAge, setChildAge] = useState<number | "">("");
   const [notes, setNotes] = useState("");
   const [email, setEmail] = useState("");
@@ -78,7 +87,8 @@ function SchedulerForm({ client, isHe, onDone }: SchedulerFormProps) {
     };
   }, [date, type]);
 
-  const forReady = appointmentFor === "self" || (!!childName.trim() && childAge !== "" && childAge >= 6);
+  const childName = joinName(childFirstName, childLastName);
+  const forReady = appointmentFor === "self" || (!!childFirstName.trim() && !!childLastName.trim() && childAge !== "" && childAge >= 6);
   const clientReady = !!(client.email || email.trim()) && !!(client.phone || phone.trim());
   const canSubmit = forReady && clientReady && !!date && !!time && !submitting;
 
@@ -91,7 +101,7 @@ function SchedulerForm({ client, isHe, onDone }: SchedulerFormProps) {
         time,
         type,
         appointmentFor,
-        childName: appointmentFor === "child" ? childName.trim() : undefined,
+        childName: appointmentFor === "child" ? childName : undefined,
         childAge: appointmentFor === "child" ? childAge : undefined,
         notes: notes.trim() || undefined,
       };
@@ -131,10 +141,12 @@ function SchedulerForm({ client, isHe, onDone }: SchedulerFormProps) {
       <AppointmentForFields
         isHe={isHe}
         appointmentFor={appointmentFor}
-        childName={childName}
+        childFirstName={childFirstName}
+        childLastName={childLastName}
         childAge={childAge}
         onAppointmentForChange={setAppointmentFor}
-        onChildNameChange={setChildName}
+        onChildFirstNameChange={setChildFirstName}
+        onChildLastNameChange={setChildLastName}
         onChildAgeChange={setChildAge}
       />
 

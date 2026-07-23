@@ -20,7 +20,8 @@ import { cn } from '@/lib/utils';
 import { z } from 'zod';
 
 const getContactSchema = (requireMessage: boolean) => z.object({
-  name: z.string().trim().min(2, { message: 'Name must be at least 2 characters' }).max(100),
+  firstName: z.string().trim().min(2, { message: 'First name must be at least 2 characters' }).max(50),
+  lastName: z.string().trim().min(2, { message: 'Last name must be at least 2 characters' }).max(50),
   phone: z.string().trim().min(9, { message: 'Please enter a valid phone number' }).max(20),
   email: z.string().trim().email({ message: 'Please enter a valid email' }).optional().or(z.literal('')),
   topic: z.string().optional(),
@@ -31,6 +32,8 @@ const getContactSchema = (requireMessage: boolean) => z.object({
 
 type ContactFormData = z.infer<ReturnType<typeof getContactSchema>>;
 
+const joinName = (firstName: string, lastName: string) => `${firstName.trim()} ${lastName.trim()}`.trim();
+
 interface ContactModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -39,11 +42,14 @@ interface ContactModalProps {
 const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
   const { t, language, isRTL } = useLanguage();
   const { toast } = useToast();
+  const firstNameLabel = language === 'he' ? 'שם פרטי' : 'First name';
+  const lastNameLabel = language === 'he' ? 'שם משפחה' : 'Last name';
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [requireMessage, setRequireMessage] = useState(true);
   const [formData, setFormData] = useState<ContactFormData>({
-    name: '',
+    firstName: '',
+    lastName: '',
     phone: '',
     email: '',
     topic: '',
@@ -88,7 +94,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
     setIsSubmitting(true);
     try {
       const response = await contentApi.submitContactForm({
-        name: result.data.name,
+        name: joinName(result.data.firstName, result.data.lastName),
         phone: result.data.phone,
         email: result.data.email,
         message: result.data.message,
@@ -96,7 +102,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
       if (response.success) {
         setIsSubmitted(true);
         toast({ title: t('contact.success_title'), description: t('contact.success_desc') });
-        setFormData({ name: '', phone: '', email: '', topic: '', message: '' });
+        setFormData({ firstName: '', lastName: '', phone: '', email: '', topic: '', message: '' });
       } else {
         throw new Error(response.message);
       }
@@ -150,21 +156,40 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
           </motion.div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 mt-2" noValidate>
-            <div>
-              <Label htmlFor="modal-name" className="text-sm font-medium text-foreground">
-                {t('contact.full_name')} *
-              </Label>
-              <Input
-                id="modal-name"
-                name="name"
-                type="text"
-                value={formData.name}
-                onChange={handleInputChange}
-                placeholder={t('contact.name_placeholder')}
-                className={cn("mt-1", errors.name && "border-destructive")}
-                data-testid="input-modal-name"
-              />
-              {errors.name && <p className="text-destructive text-xs mt-1">{errors.name}</p>}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="modal-first-name" className="text-sm font-medium text-foreground">
+                  {firstNameLabel} *
+                </Label>
+                <Input
+                  id="modal-first-name"
+                  name="firstName"
+                  type="text"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  placeholder={firstNameLabel}
+                  className={cn("mt-1", errors.firstName && "border-destructive")}
+                  data-testid="input-modal-first-name"
+                />
+                {errors.firstName && <p className="text-destructive text-xs mt-1">{errors.firstName}</p>}
+              </div>
+
+              <div>
+                <Label htmlFor="modal-last-name" className="text-sm font-medium text-foreground">
+                  {lastNameLabel} *
+                </Label>
+                <Input
+                  id="modal-last-name"
+                  name="lastName"
+                  type="text"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  placeholder={lastNameLabel}
+                  className={cn("mt-1", errors.lastName && "border-destructive")}
+                  data-testid="input-modal-last-name"
+                />
+                {errors.lastName && <p className="text-destructive text-xs mt-1">{errors.lastName}</p>}
+              </div>
             </div>
 
             <div>

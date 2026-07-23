@@ -120,21 +120,23 @@ const QuestionnaireSubmissions = ({ initialFilter = 'all' }: QuestionnaireSubmis
   });
 
   const markTestMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest("PATCH", `/api/questionnaires/${id}/mark-test`, { isTest: true });
+    mutationFn: async ({ id, isTest }: { id: number; isTest: boolean }) => {
+      await apiRequest("PATCH", `/api/questionnaires/${id}/mark-test`, { isTest });
     },
-    onSuccess: (_data, id) => {
+    onSuccess: (_data, { id, isTest }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/questionnaires"] });
       queryClient.invalidateQueries({ queryKey: ["/api/questionnaires/stats"] });
       queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
       showUndo({
-        title: isHe ? "סומן כבדיקה" : "Marked as test",
-        description: isHe ? "אפשר להחזיר לרשימה הרגילה עם Ctrl+Z." : "Press Ctrl+Z to return it to normal data.",
+        title: isTest ? (isHe ? "סומן כבדיקה" : "Marked as test") : (isHe ? "סימון הבדיקה בוטל" : "Test mark removed"),
+        description: isTest
+          ? (isHe ? "אפשר להחזיר לרשימה הרגילה עם Ctrl+Z." : "Press Ctrl+Z to return it to normal data.")
+          : (isHe ? "אפשר להחזיר לסימון בדיקה עם Ctrl+Z." : "Press Ctrl+Z to mark it as test again."),
         undoLabel: isHe ? "בטל" : "Undo",
-        undoSuccessTitle: isHe ? "סימון הבדיקה בוטל" : "Test mark removed",
+        undoSuccessTitle: isTest ? (isHe ? "סימון הבדיקה בוטל" : "Test mark removed") : (isHe ? "סומן כבדיקה" : "Marked as test"),
         undoErrorTitle: isHe ? "הביטול נכשל" : "Undo failed",
         onUndo: async () => {
-          await apiRequest("PATCH", `/api/questionnaires/${id}/mark-test`, { isTest: false });
+          await apiRequest("PATCH", `/api/questionnaires/${id}/mark-test`, { isTest: !isTest });
           queryClient.invalidateQueries({ queryKey: ["/api/questionnaires"] });
           queryClient.invalidateQueries({ queryKey: ["/api/questionnaires/stats"] });
           queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
@@ -299,11 +301,11 @@ const QuestionnaireSubmissions = ({ initialFilter = 'all' }: QuestionnaireSubmis
                         size="sm"
                         variant="outline"
                         className="h-8"
-                        onClick={() => markTestMutation.mutate(sub.id)}
+                        onClick={() => markTestMutation.mutate({ id: sub.id, isTest: !sub.isTest })}
                         disabled={markTestMutation.isPending}
                         data-testid={`button-mark-test-questionnaire-${sub.id}`}
                       >
-                        {isHe ? "בדיקה" : "Test"}
+                        {sub.isTest ? (isHe ? "בטל בדיקה" : "Remove test") : (isHe ? "בדיקה" : "Test")}
                       </Button>
                       <Button
                         size="sm"

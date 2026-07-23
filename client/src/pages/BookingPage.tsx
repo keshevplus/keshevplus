@@ -21,6 +21,8 @@ import {
   getLocalDateInputValue,
 } from '@/lib/appointmentAvailability'
 
+const joinName = (firstName: string, lastName: string) => `${firstName.trim()} ${lastName.trim()}`.trim()
+
 const BookingPage = () => {
   const { t, language } = useLanguage()
   const isHe = language === 'he'
@@ -31,11 +33,13 @@ const BookingPage = () => {
   const [availability, setAvailability] = useState<AppointmentAvailability | null>(null)
   const [availabilityLoading, setAvailabilityLoading] = useState(false)
   const [form, setForm] = useState({
-    clientName: '',
+    clientFirstName: '',
+    clientLastName: '',
     clientEmail: '',
     clientPhone: '',
     appointmentFor: 'self' as AppointmentFor,
-    childName: '',
+    childFirstName: '',
+    childLastName: '',
     childAge: '' as number | '',
     date: '',
     time: '',
@@ -120,7 +124,9 @@ const BookingPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.clientName || !form.clientEmail || !form.clientPhone || !form.date || !form.time || (form.appointmentFor === 'child' && (!form.childName.trim() || form.childAge === ''))) {
+    const clientName = joinName(form.clientFirstName, form.clientLastName)
+    const childName = joinName(form.childFirstName, form.childLastName)
+    if (!form.clientFirstName.trim() || !form.clientLastName.trim() || !form.clientEmail || !form.clientPhone || !form.date || !form.time || (form.appointmentFor === 'child' && (!form.childFirstName.trim() || !form.childLastName.trim() || form.childAge === ''))) {
       toast({
         title: t('booking.error_title'),
         description: t('booking.fill_required_fields'),
@@ -130,9 +136,17 @@ const BookingPage = () => {
     }
     setSubmitting(true)
     try {
+      const {
+        clientFirstName: _clientFirstName,
+        clientLastName: _clientLastName,
+        childFirstName: _childFirstName,
+        childLastName: _childLastName,
+        ...appointmentFields
+      } = form
       await apiRequest('POST', '/api/appointments', {
-        ...form,
-        childName: form.appointmentFor === 'child' ? form.childName.trim() : null,
+        ...appointmentFields,
+        clientName,
+        childName: form.appointmentFor === 'child' ? childName : null,
         childAge: form.appointmentFor === 'child' ? form.childAge : null,
       })
       setSubmitted(true)
@@ -207,17 +221,32 @@ const BookingPage = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">{t('booking.full_name')} *</Label>
+                  <Label htmlFor="first-name">{isHe ? 'שם פרטי' : 'First name'} *</Label>
                   <Input
-                    id="name"
-                    value={form.clientName}
-                    onChange={(e) => setForm(f => ({ ...f, clientName: e.target.value }))}
-                    placeholder={t('booking.full_name_placeholder')}
+                    id="first-name"
+                    value={form.clientFirstName}
+                    onChange={(e) => setForm(f => ({ ...f, clientFirstName: e.target.value }))}
+                    placeholder={isHe ? 'שם פרטי' : 'First name'}
                     required
                     className="bg-white dark:bg-white/90"
-                    data-testid="input-booking-name"
+                    data-testid="input-booking-first-name"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="last-name">{isHe ? 'שם משפחה' : 'Last name'} *</Label>
+                  <Input
+                    id="last-name"
+                    value={form.clientLastName}
+                    onChange={(e) => setForm(f => ({ ...f, clientLastName: e.target.value }))}
+                    placeholder={isHe ? 'שם משפחה' : 'Last name'}
+                    required
+                    className="bg-white dark:bg-white/90"
+                    data-testid="input-booking-last-name"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="phone">{t('booking.phone')} *</Label>
                   <Input
@@ -250,16 +279,19 @@ const BookingPage = () => {
               <AppointmentForFields
                 isHe={isHe}
                 appointmentFor={form.appointmentFor}
-                childName={form.childName}
+                childFirstName={form.childFirstName}
+                childLastName={form.childLastName}
                 childAge={form.childAge}
                 inputClassName="bg-white dark:bg-white/90"
                 onAppointmentForChange={(appointmentFor) => setForm(f => ({
                   ...f,
                   appointmentFor,
-                  childName: appointmentFor === 'self' ? '' : f.childName,
+                  childFirstName: appointmentFor === 'self' ? '' : f.childFirstName,
+                  childLastName: appointmentFor === 'self' ? '' : f.childLastName,
                   childAge: appointmentFor === 'self' ? '' : f.childAge,
                 }))}
-                onChildNameChange={(childName) => setForm(f => ({ ...f, childName }))}
+                onChildFirstNameChange={(childFirstName) => setForm(f => ({ ...f, childFirstName }))}
+                onChildLastNameChange={(childLastName) => setForm(f => ({ ...f, childLastName }))}
                 onChildAgeChange={(childAge) => setForm(f => ({ ...f, childAge }))}
               />
 

@@ -234,6 +234,7 @@ const ClientsManager = ({ onOpenClient }: ClientsManagerProps) => {
         if (client.name?.toLowerCase().includes(q)) return true;
         if (client.email?.toLowerCase().includes(q)) return true;
         if (qDigits && client.phone?.replace(/\D/g, '').includes(qDigits)) return true;
+        if (qDigits && String(client.id).includes(qDigits)) return true;
         if (client.leadNumber != null && String(client.leadNumber).includes(q)) return true;
         if (client.clientNumber != null && String(client.clientNumber).includes(q)) return true;
         return false;
@@ -380,6 +381,13 @@ const ClientsManager = ({ onOpenClient }: ClientsManagerProps) => {
                   {client.status === 'client'
                     ? `${isHe ? "לקוח" : "Client"} #${client.clientNumber ?? client.id}`
                     : `${isHe ? "ליד" : "Lead"} #${client.leadNumber ?? client.id}`}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="no-default-hover-elevate no-default-active-elevate text-xs"
+                  data-testid={`badge-record-id-${client.id}`}
+                >
+                  ID #{client.id}
                 </Badge>
                 {showSourceLabel && (
                   <Badge
@@ -542,7 +550,7 @@ const ClientsManager = ({ onOpenClient }: ClientsManagerProps) => {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={isHe ? "חיפוש לפי שם, אימייל, טלפון, מספר ליד או מספר לקוח" : "Search by name, email, phone, lead # or client #"}
+              placeholder={isHe ? "חיפוש לפי שם, אימייל, טלפון, ID, מספר ליד או מספר לקוח" : "Search by name, email, phone, ID, lead # or client #"}
               className="ps-8 h-9"
               data-testid="input-search-clients"
             />

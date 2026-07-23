@@ -16,9 +16,13 @@ import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 type Step = "register" | "form" | "success";
 
 interface RespondentInfo {
+  respondentFirstName: string;
+  respondentLastName: string;
   respondentName: string;
   respondentEmail: string;
   respondentPhone: string;
+  childFirstName: string;
+  childLastName: string;
   childName: string;
   childAge: string;
   childGender: string;
@@ -41,9 +45,13 @@ const QuestionnaireModal: React.FC<QuestionnaireModalProps> = ({ open, onOpenCha
   const [currentSection, setCurrentSection] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [respondent, setRespondent] = useState<RespondentInfo>({
+    respondentFirstName: "",
+    respondentLastName: "",
     respondentName: "",
     respondentEmail: "",
     respondentPhone: "",
+    childFirstName: "",
+    childLastName: "",
     childName: "",
     childAge: "",
     childGender: "",
@@ -95,9 +103,13 @@ const QuestionnaireModal: React.FC<QuestionnaireModalProps> = ({ open, onOpenCha
       setStep("register");
       setCurrentSection(0);
       setRespondent({
+        respondentFirstName: "",
+        respondentLastName: "",
         respondentName: "",
         respondentEmail: "",
         respondentPhone: "",
+        childFirstName: "",
+        childLastName: "",
         childName: "",
         childAge: "",
         childGender: "",
@@ -111,8 +123,11 @@ const QuestionnaireModal: React.FC<QuestionnaireModalProps> = ({ open, onOpenCha
 
   const validateRegistration = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!respondent.respondentName.trim()) {
-      newErrors.respondentName = isHebrew ? "שם מלא הוא שדה חובה" : "Full name is required";
+    if (!respondent.respondentFirstName.trim()) {
+      newErrors.respondentFirstName = isHebrew ? "שם פרטי הוא שדה חובה" : "First name is required";
+    }
+    if (!respondent.respondentLastName.trim()) {
+      newErrors.respondentLastName = isHebrew ? "שם משפחה הוא שדה חובה" : "Last name is required";
     }
     if (!respondent.respondentEmail.trim() || !/\S+@\S+\.\S+/.test(respondent.respondentEmail)) {
       newErrors.respondentEmail = isHebrew ? "כתובת אימייל תקינה נדרשת" : "Valid email is required";
@@ -121,8 +136,11 @@ const QuestionnaireModal: React.FC<QuestionnaireModalProps> = ({ open, onOpenCha
       newErrors.respondentPhone = isHebrew ? "מספר טלפון תקין נדרש" : "Valid phone number is required";
     }
     if (config.requiresChildInfo) {
-      if (!respondent.childName.trim()) {
-        newErrors.childName = isHebrew ? "שם הילד/ה הוא שדה חובה" : "Child's name is required";
+      if (!respondent.childFirstName.trim()) {
+        newErrors.childFirstName = isHebrew ? "שם פרטי של הילד/ה הוא שדה חובה" : "Child's first name is required";
+      }
+      if (!respondent.childLastName.trim()) {
+        newErrors.childLastName = isHebrew ? "שם משפחה של הילד/ה הוא שדה חובה" : "Child's last name is required";
       }
       if (!respondent.childAge.trim() || isNaN(Number(respondent.childAge)) || Number(respondent.childAge) < 1) {
         newErrors.childAge = isHebrew ? "גיל תקין נדרש" : "Valid age is required";
@@ -171,12 +189,14 @@ const QuestionnaireModal: React.FC<QuestionnaireModalProps> = ({ open, onOpenCha
     setSubmitting(true);
     try {
       const scores = calculateScores(type, answers);
+      const respondentName = `${respondent.respondentFirstName.trim()} ${respondent.respondentLastName.trim()}`.trim();
+      const childName = `${respondent.childFirstName.trim()} ${respondent.childLastName.trim()}`.trim();
       const payload = {
         type,
-        respondentName: respondent.respondentName,
+        respondentName,
         respondentEmail: respondent.respondentEmail,
         respondentPhone: respondent.respondentPhone,
-        childName: config.requiresChildInfo ? respondent.childName : null,
+        childName: config.requiresChildInfo ? childName : null,
         childAge: config.requiresChildInfo && respondent.childAge ? parseInt(respondent.childAge) : null,
         childGender: config.requiresChildInfo ? respondent.childGender || null : null,
         relationship: config.requiresChildInfo ? respondent.relationship || null : null,
@@ -255,16 +275,29 @@ const QuestionnaireModal: React.FC<QuestionnaireModalProps> = ({ open, onOpenCha
                 </div>
 
                 <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="qm-respondentName">{isHebrew ? "שם מלא *" : "Full Name *"}</Label>
-                    <Input
-                      id="qm-respondentName"
-                      value={respondent.respondentName}
-                      onChange={(e) => setRespondent((p) => ({ ...p, respondentName: e.target.value }))}
-                      placeholder={isHebrew ? "הכניסו את שמכם המלא" : "Enter your full name"}
-                      data-testid="input-modal-respondent-name"
-                    />
-                    {errors.respondentName && <p className="text-destructive text-xs mt-1">{errors.respondentName}</p>}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="qm-respondentFirstName">{isHebrew ? "שם פרטי *" : "First Name *"}</Label>
+                      <Input
+                        id="qm-respondentFirstName"
+                        value={respondent.respondentFirstName}
+                        onChange={(e) => setRespondent((p) => ({ ...p, respondentFirstName: e.target.value }))}
+                        placeholder={isHebrew ? "שם פרטי" : "First name"}
+                        data-testid="input-modal-respondent-first-name"
+                      />
+                      {errors.respondentFirstName && <p className="text-destructive text-xs mt-1">{errors.respondentFirstName}</p>}
+                    </div>
+                    <div>
+                      <Label htmlFor="qm-respondentLastName">{isHebrew ? "שם משפחה *" : "Last Name *"}</Label>
+                      <Input
+                        id="qm-respondentLastName"
+                        value={respondent.respondentLastName}
+                        onChange={(e) => setRespondent((p) => ({ ...p, respondentLastName: e.target.value }))}
+                        placeholder={isHebrew ? "שם משפחה" : "Last name"}
+                        data-testid="input-modal-respondent-last-name"
+                      />
+                      {errors.respondentLastName && <p className="text-destructive text-xs mt-1">{errors.respondentLastName}</p>}
+                    </div>
                   </div>
 
                   <div>
@@ -302,16 +335,29 @@ const QuestionnaireModal: React.FC<QuestionnaireModalProps> = ({ open, onOpenCha
                       </h3>
                     </div>
                     <div className="space-y-3">
-                      <div>
-                        <Label htmlFor="qm-childName">{isHebrew ? "שם הילד/ה *" : "Child's Name *"}</Label>
-                        <Input
-                          id="qm-childName"
-                          value={respondent.childName}
-                          onChange={(e) => setRespondent((p) => ({ ...p, childName: e.target.value }))}
-                          placeholder={isHebrew ? "שם מלא של הילד/ה" : "Child's full name"}
-                          data-testid="input-modal-child-name"
-                        />
-                        {errors.childName && <p className="text-destructive text-xs mt-1">{errors.childName}</p>}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <Label htmlFor="qm-childFirstName">{isHebrew ? "שם פרטי של הילד/ה *" : "Child's First Name *"}</Label>
+                          <Input
+                            id="qm-childFirstName"
+                            value={respondent.childFirstName}
+                            onChange={(e) => setRespondent((p) => ({ ...p, childFirstName: e.target.value }))}
+                            placeholder={isHebrew ? "שם פרטי" : "First name"}
+                            data-testid="input-modal-child-first-name"
+                          />
+                          {errors.childFirstName && <p className="text-destructive text-xs mt-1">{errors.childFirstName}</p>}
+                        </div>
+                        <div>
+                          <Label htmlFor="qm-childLastName">{isHebrew ? "שם משפחה של הילד/ה *" : "Child's Last Name *"}</Label>
+                          <Input
+                            id="qm-childLastName"
+                            value={respondent.childLastName}
+                            onChange={(e) => setRespondent((p) => ({ ...p, childLastName: e.target.value }))}
+                            placeholder={isHebrew ? "שם משפחה" : "Last name"}
+                            data-testid="input-modal-child-last-name"
+                          />
+                          {errors.childLastName && <p className="text-destructive text-xs mt-1">{errors.childLastName}</p>}
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
@@ -546,7 +592,7 @@ const QuestionnaireModal: React.FC<QuestionnaireModalProps> = ({ open, onOpenCha
                   : "Thank you for completing the questionnaire. Our team will review the results and contact you."}
               </p>
               <p className="text-xs text-muted-foreground mb-5">
-                {respondent.respondentName} - {respondent.respondentEmail}
+                {`${respondent.respondentFirstName.trim()} ${respondent.respondentLastName.trim()}`.trim()} - {respondent.respondentEmail}
               </p>
               <Button onClick={handleClose} data-testid="button-modal-close-success">
                 {isHebrew ? "סגירה" : "Close"}
