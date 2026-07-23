@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClipboardList, Eye, CheckCircle, Clock, User, Mail, Phone, Calendar, ChevronDown, ChevronUp, X, Trash2, Filter } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -10,6 +11,7 @@ import { QUESTIONNAIRES } from "@/lib/questionnaire-data";
 import type { QuestionnaireSubmission } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useAdminUndo } from "@/hooks/useAdminUndo";
 
 const TYPE_LABELS: Record<string, { he: string; en: string; color: string }> = {
   parent: { he: "שאלון להורים", en: "Parent", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
@@ -36,17 +38,20 @@ const QuestionnaireSubmissions = ({ initialFilter = 'all' }: QuestionnaireSubmis
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [filter, setFilter] = useState<ManagerFilter>(initialFilter)
+  const [includeTest, setIncludeTest] = useState(false)
+  const showUndo = useAdminUndo()
 
   useEffect(() => {
     setFilter(initialFilter)
   }, [initialFilter])
 
   const { data: submissions = [], isLoading } = useQuery<QuestionnaireSubmission[]>({
-    queryKey: ["/api/questionnaires", typeFilter, statusFilter],
+    queryKey: ["/api/questionnaires", typeFilter, statusFilter, includeTest],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (typeFilter !== 'all') params.append('type', typeFilter);
       if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (includeTest) params.append('includeTest', 'true');
       const url = `/api/questionnaires?${params.toString()}`;
       const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) throw new Error("Failed to fetch");
@@ -64,13 +69,28 @@ const QuestionnaireSubmissions = ({ initialFilter = 'all' }: QuestionnaireSubmis
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+    mutationFn: async ({ id, status }: { id: number; status: string; previousStatus?: string }) => {
       await apiRequest("PATCH", `/api/questionnaires/${id}/status`, { status });
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/questionnaires"] });
       queryClient.invalidateQueries({ queryKey: ["/api/questionnaires/stats"] });
       queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
+      if (variables.previousStatus && variables.previousStatus !== variables.status) {
+        showUndo({
+          title: isHe ? "הסטטוס עודכן" : "Status updated",
+          description: isHe ? "אפשר לבטל עם Ctrl+Z." : "Press Ctrl+Z to undo.",
+          undoLabel: isHe ? "בטל" : "Undo",
+          undoSuccessTitle: isHe ? "השינוי בוטל" : "Change undone",
+          undoErrorTitle: isHe ? "הביטול נכשל" : "Undo failed",
+          onUndo: async () => {
+            await apiRequest("PATCH", `/api/questionnaires/${variables.id}/status`, { status: variables.previousStatus });
+            queryClient.invalidateQueries({ queryKey: ["/api/questionnaires"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/questionnaires/stats"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
+          },
+        });
+      }
     },
   });
 
@@ -78,11 +98,24 @@ const QuestionnaireSubmissions = ({ initialFilter = 'all' }: QuestionnaireSubmis
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/questionnaires/${id}`);
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ["/api/questionnaires"] });
       queryClient.invalidateQueries({ queryKey: ["/api/questionnaires/stats"] });
       queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
       setExpandedId(null);
+      showUndo({
+        title: isHe ? "השאלון הועבר לסל" : "Assessment moved to bin",
+        description: isHe ? "אפשר לשחזר מיד עם Ctrl+Z." : "Press Ctrl+Z to restore it.",
+        undoLabel: isHe ? "שחזר" : "Restore",
+        undoSuccessTitle: isHe ? "השאלון שוחזר" : "Assessment restored",
+        undoErrorTitle: isHe ? "השחזור נכשל" : "Restore failed",
+        onUndo: async () => {
+          await apiRequest("POST", `/api/admin/bin/questionnaire/${id}/restore`);
+          queryClient.invalidateQueries({ queryKey: ["/api/questionnaires"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/questionnaires/stats"] });
+          queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
+        },
+      });
     },
   });
 
@@ -90,10 +123,23 @@ const QuestionnaireSubmissions = ({ initialFilter = 'all' }: QuestionnaireSubmis
     mutationFn: async (id: number) => {
       await apiRequest("PATCH", `/api/questionnaires/${id}/mark-test`, { isTest: true });
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ["/api/questionnaires"] });
       queryClient.invalidateQueries({ queryKey: ["/api/questionnaires/stats"] });
       queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
+      showUndo({
+        title: isHe ? "סומן כבדיקה" : "Marked as test",
+        description: isHe ? "אפשר להחזיר לרשימה הרגילה עם Ctrl+Z." : "Press Ctrl+Z to return it to normal data.",
+        undoLabel: isHe ? "בטל" : "Undo",
+        undoSuccessTitle: isHe ? "סימון הבדיקה בוטל" : "Test mark removed",
+        undoErrorTitle: isHe ? "הביטול נכשל" : "Undo failed",
+        onUndo: async () => {
+          await apiRequest("PATCH", `/api/questionnaires/${id}/mark-test`, { isTest: false });
+          queryClient.invalidateQueries({ queryKey: ["/api/questionnaires"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/questionnaires/stats"] });
+          queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
+        },
+      });
     },
   });
 
@@ -157,6 +203,14 @@ const QuestionnaireSubmissions = ({ initialFilter = 'all' }: QuestionnaireSubmis
                 ))}
               </SelectContent>
             </Select>
+            <label className="flex h-8 items-center gap-2 rounded-md border px-2 text-xs">
+              <Checkbox
+                checked={includeTest}
+                onCheckedChange={(checked) => setIncludeTest(checked === true)}
+                data-testid="checkbox-include-test-questionnaires"
+              />
+              {isHe ? "כולל QA" : "Include QA"}
+            </label>
           </div>
         </div>
         <CardDescription>{isHe ? "צפייה וניהול תשובות שאלונים מלקוחות" : "View and manage questionnaire responses from clients"}</CardDescription>
@@ -203,6 +257,11 @@ const QuestionnaireSubmissions = ({ initialFilter = 'all' }: QuestionnaireSubmis
                           <Badge variant="secondary" className={cn("text-[10px] px-1.5 py-0 leading-none", statusInfo.color)}>
                             {isHe ? statusInfo.he : statusInfo.en}
                           </Badge>
+                          {sub.isTest && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 leading-none">
+                              QA
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex items-center gap-4 flex-wrap text-sm">
                           <span className="font-medium flex items-center gap-1">
@@ -223,7 +282,7 @@ const QuestionnaireSubmissions = ({ initialFilter = 'all' }: QuestionnaireSubmis
                     <div className="flex items-center gap-2 shrink-0">
                       <Select 
                         value={sub.status} 
-                        onValueChange={(status) => updateStatus.mutate({ id: sub.id, status })}
+                        onValueChange={(status) => updateStatus.mutate({ id: sub.id, status, previousStatus: sub.status })}
                       >
                         <SelectTrigger className="h-8 text-xs w-[110px]">
                           <SelectValue />

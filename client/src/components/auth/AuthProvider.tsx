@@ -5,6 +5,11 @@ interface AuthUser {
   id: number;
   email: string;
   role: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+  profileImageUrl?: string | null;
+  createdAt?: string | null;
   mustChangePassword?: boolean;
 }
 

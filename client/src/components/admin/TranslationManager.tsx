@@ -5,6 +5,19 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { ToastAction } from '@/components/ui/toast'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Database, Search, Save, Trash2, Upload, Languages, ChevronLeft, ChevronRight, Pencil, X, Check } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { apiRequest } from '@/lib/queryClient'
@@ -12,6 +25,13 @@ import { ALL_LANGUAGES, type SupportedLanguage } from '@/i18n/config'
 import { invalidateTranslationCache, useLanguage } from '@/hooks/useLanguage'
 
 const PAGE_SIZE = 20
+const OFFICE_EMAIL_KEY = 'contact.email'
+const OFFICE_EMAIL_VALUE = 'office@keshevplus.co.il'
+const PRIMARY_LANGUAGE_ORDER: SupportedLanguage[] = ['he', 'en']
+const ORDERED_LANGUAGES = [
+  ...PRIMARY_LANGUAGE_ORDER.map(code => ALL_LANGUAGES.find(lang => lang.code === code)),
+  ...ALL_LANGUAGES.filter(lang => !PRIMARY_LANGUAGE_ORDER.includes(lang.code)),
+].filter(Boolean) as typeof ALL_LANGUAGES
 
 interface TranslationRow {
   key: string
@@ -26,12 +46,13 @@ const TranslationManager = () => {
   const [loading, setLoading] = useState(true)
   const [seeding, setSeeding] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterLang, setFilterLang] = useState<string>('all')
+  const [selectedLangs, setSelectedLangs] = useState<SupportedLanguage[]>(() => ORDERED_LANGUAGES.map(lang => lang.code))
   const [filterSection, setFilterSection] = useState<string>('all')
   const [page, setPage] = useState(0)
   const [editingCell, setEditingCell] = useState<{ key: string; lang: string } | null>(null)
   const [editValue, setEditValue] = useState('')
   const [savingCell, setSavingCell] = useState(false)
+  const [restoringOfficeEmail, setRestoringOfficeEmail] = useState(false)
 
   const fetchTranslations = useCallback(async () => {
     try {
@@ -100,22 +121,41 @@ const TranslationManager = () => {
     if (filterSection !== 'all') {
       result = result.filter(r => r.key.startsWith(filterSection + '.'))
     }
-    if (filterLang !== 'all') {
-      result = result.filter(r => r.translations[filterLang])
+    if (selectedLangs.length < ORDERED_LANGUAGES.length) {
+      result = result.filter(r => selectedLangs.some(lang => r.translations[lang]))
     }
     return result
-  }, [rows, searchQuery, filterSection, filterLang])
+  }, [rows, searchQuery, filterSection, selectedLangs])
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE))
   const pageRows = filteredRows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
   useEffect(() => {
     setPage(0)
-  }, [searchQuery, filterSection, filterLang])
+  }, [searchQuery, filterSection, selectedLangs])
 
-  const visibleLangs: SupportedLanguage[] = filterLang === 'all'
-    ? ALL_LANGUAGES.map(l => l.code)
-    : [filterLang as SupportedLanguage]
+  const visibleLangs = ORDERED_LANGUAGES
+    .map(lang => lang.code)
+    .filter((code): code is SupportedLanguage => selectedLangs.includes(code))
+
+  const allLanguagesSelected = selectedLangs.length === ORDERED_LANGUAGES.length
+
+  const toggleLanguage = (lang: SupportedLanguage, checked: boolean) => {
+    setSelectedLangs(prev => {
+      if (checked) {
+        const next = new Set([...prev, lang])
+        return ORDERED_LANGUAGES.map(info => info.code).filter(code => next.has(code))
+      }
+      const next = prev.filter(code => code !== lang)
+      return next.length ? next : prev
+    })
+  }
+
+  const toggleAllLanguages = (checked: boolean) => {
+    if (checked) {
+      setSelectedLangs(ORDERED_LANGUAGES.map(lang => lang.code))
+    }
+  }
 
   const startEdit = (key: string, lang: string, currentValue: string) => {
     setEditingCell({ key, lang })
@@ -157,18 +197,81 @@ const TranslationManager = () => {
     }
   }
 
-  const handleDeleteKey = async (key: string) => {
+  const restoreTranslationKey = async (key: string, translations: Record<string, string>) => {
+    const items = Object.entries(translations)
+      .filter(([, value]) => value !== undefined)
+      .map(([language, value]) => ({ key, language, value }))
+
+    if (items.length === 0) return
+
+    await apiRequest('PUT', '/api/translations/bulk', items)
+    setAllTranslations(prev => ({
+      ...prev,
+      [key]: translations,
+    }))
+    invalidateTranslationCache()
+  }
+
+  const restoreOfficeEmail = async () => {
+    setRestoringOfficeEmail(true)
     try {
-      await apiRequest('DELETE', `/api/translations/${encodeURIComponent(key)}`)
+      const translations = Object.fromEntries(
+        ORDERED_LANGUAGES.map(lang => [lang.code, OFFICE_EMAIL_VALUE])
+      ) as Record<string, string>
+      await restoreTranslationKey(OFFICE_EMAIL_KEY, translations)
+      toast({
+        title: isHe ? 'האימייל שוחזר' : 'Email restored',
+        description: isHe
+          ? `${OFFICE_EMAIL_KEY} הוחזר לכל השפות.`
+          : `${OFFICE_EMAIL_KEY} restored for all languages.`,
+      })
+    } catch {
+      toast({
+        title: isHe ? 'שגיאה' : 'Error',
+        description: isHe ? 'שחזור האימייל נכשל.' : 'Failed to restore the email translation.',
+        variant: 'destructive',
+      })
+    } finally {
+      setRestoringOfficeEmail(false)
+    }
+  }
+
+  const handleDeleteKey = async (row: TranslationRow) => {
+    const deletedTranslations = { ...row.translations }
+    try {
+      await apiRequest('DELETE', `/api/translations/${encodeURIComponent(row.key)}`)
       setAllTranslations(prev => {
         const next = { ...prev }
-        delete next[key]
+        delete next[row.key]
         return next
       })
       invalidateTranslationCache()
       toast({
         title: isHe ? 'נמחק' : 'Deleted',
-        description: isHe ? `מפתח תרגום "${key}" הוסר.` : `Translation key "${key}" removed.`
+        description: isHe ? `מפתח תרגום "${row.key}" הוסר.` : `Translation key "${row.key}" removed.`,
+        action: (
+          <ToastAction
+            altText={isHe ? 'בטל מחיקה' : 'Undo delete'}
+            onClick={() => {
+              restoreTranslationKey(row.key, deletedTranslations)
+                .then(() => {
+                  toast({
+                    title: isHe ? 'שוחזר' : 'Restored',
+                    description: isHe ? `מפתח התרגום "${row.key}" שוחזר.` : `Translation key "${row.key}" was restored.`,
+                  })
+                })
+                .catch(() => {
+                  toast({
+                    title: isHe ? 'שגיאה' : 'Error',
+                    description: isHe ? 'ביטול המחיקה נכשל.' : 'Failed to undo deletion.',
+                    variant: 'destructive',
+                  })
+                })
+            }}
+          >
+            {isHe ? 'בטל' : 'Undo'}
+          </ToastAction>
+        ),
       })
     } catch {
       toast({
@@ -181,6 +284,7 @@ const TranslationManager = () => {
 
   const totalKeys = rows.length
   const isEmpty = totalKeys === 0
+  const officeEmailMissing = !allTranslations[OFFICE_EMAIL_KEY]
 
   return (
     <Card>
@@ -243,19 +347,41 @@ const TranslationManager = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={filterLang} onValueChange={setFilterLang}>
-                <SelectTrigger className="w-full sm:w-40" data-testid="select-filter-lang">
-                  <SelectValue placeholder={isHe ? 'שפה' : 'Language'} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{isHe ? 'כל השפות' : 'All Languages'}</SelectItem>
-                  {ALL_LANGUAGES.map(l => (
-                    <SelectItem key={l.code} value={l.code}>
-                      {l.flag} {l.nativeName}
-                    </SelectItem>
+            </div>
+
+            <div className="rounded-md border bg-muted/20 p-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <Label className="text-xs font-medium text-muted-foreground">
+                  {isHe ? 'שפות להצגה' : 'Languages to show'}
+                </Label>
+                <label className="inline-flex cursor-pointer items-center gap-2 text-xs">
+                  <Checkbox
+                    checked={allLanguagesSelected}
+                    onCheckedChange={(checked) => toggleAllLanguages(checked === true)}
+                    data-testid="checkbox-filter-lang-all"
+                  />
+                  <span>{isHe ? 'כל השפות' : 'All languages'}</span>
+                </label>
+              </div>
+              <div className="overflow-x-auto pb-1" dir="ltr">
+                <div className="flex min-w-max items-center gap-2">
+                  {ORDERED_LANGUAGES.map(lang => (
+                    <label
+                      key={lang.code}
+                      className="inline-flex cursor-pointer items-center gap-2 rounded-md border bg-background px-3 py-2 text-xs"
+                      dir={lang.dir}
+                    >
+                      <Checkbox
+                        checked={selectedLangs.includes(lang.code)}
+                        onCheckedChange={(checked) => toggleLanguage(lang.code, checked === true)}
+                        data-testid={`checkbox-filter-lang-${lang.code}`}
+                      />
+                      <span className="font-sans font-semibold" dir="ltr">{lang.flag}</span>
+                      <span className="whitespace-nowrap">{lang.nativeName}</span>
+                    </label>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -264,23 +390,36 @@ const TranslationManager = () => {
                   ? `מציג ${filteredRows.length} מתוך ${totalKeys} מפתחות`
                   : `Showing ${filteredRows.length} of ${totalKeys} keys`}
               </p>
-              <Button variant="outline" size="sm" onClick={handleSeed} disabled={seeding} data-testid="button-reseed">
-                <Upload className="w-3 h-3 mr-1" />
-                {seeding
-                  ? (isHe ? 'טוען...' : 'Seeding...')
-                  : (isHe ? 'טעינה מחדש מקבצים' : 'Re-seed from Files')}
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant={officeEmailMissing ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={restoreOfficeEmail}
+                  disabled={restoringOfficeEmail}
+                  data-testid="button-restore-office-email"
+                >
+                  {restoringOfficeEmail
+                    ? (isHe ? 'משחזר...' : 'Restoring...')
+                    : (isHe ? 'שחזור אימייל משרד' : 'Restore office email')}
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleSeed} disabled={seeding} data-testid="button-reseed">
+                  <Upload className="w-3 h-3 mr-1" />
+                  {seeding
+                    ? (isHe ? 'טוען...' : 'Seeding...')
+                    : (isHe ? 'טעינה מחדש מקבצים' : 'Re-seed from Files')}
+                </Button>
+              </div>
             </div>
 
-            <div className="overflow-x-auto border rounded-md">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto border rounded-md" dir="ltr">
+              <table className="w-full min-w-max text-sm" dir="ltr">
                 <thead>
                   <tr className="border-b bg-muted/30">
                     <th className="text-left p-2 font-medium min-w-[200px]">{isHe ? 'מפתח' : 'Key'}</th>
                     {visibleLangs.map(lang => {
-                      const info = ALL_LANGUAGES.find(l => l.code === lang)
+                      const info = ORDERED_LANGUAGES.find(l => l.code === lang)
                       return (
-                        <th key={lang} className="text-left p-2 font-medium min-w-[200px]">
+                        <th key={lang} className="text-left p-2 font-medium min-w-[200px]" dir={info?.dir || 'ltr'}>
                           {info?.flag} {info?.nativeName || lang}
                         </th>
                       )
@@ -298,7 +437,7 @@ const TranslationManager = () => {
                         const isEditing = editingCell?.key === row.key && editingCell?.lang === lang
                         const val = row.translations[lang] || ''
                         return (
-                          <td key={lang} className="p-2">
+                          <td key={lang} className="p-2" dir={ORDERED_LANGUAGES.find(l => l.code === lang)?.dir || 'ltr'}>
                             {isEditing ? (
                               <div className="flex flex-col gap-1">
                                 <Textarea
@@ -334,14 +473,50 @@ const TranslationManager = () => {
                         )
                       })}
                       <td className="p-2">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleDeleteKey(row.key)}
-                          data-testid={`button-delete-${row.key}`}
-                        >
-                          <Trash2 className="w-3 h-3 text-muted-foreground" />
-                        </Button>
+                        {row.key === OFFICE_EMAIL_KEY ? (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            disabled
+                            title={isHe ? 'מפתח אימייל המשרד מוגן ממחיקה' : 'Office email key is protected from deletion'}
+                            data-testid={`button-delete-${row.key}`}
+                          >
+                            <Trash2 className="w-3 h-3 text-muted-foreground" />
+                          </Button>
+                        ) : (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              data-testid={`button-delete-${row.key}`}
+                            >
+                              <Trash2 className="w-3 h-3 text-muted-foreground" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                {isHe ? 'למחוק מפתח תרגום?' : 'Delete translation key?'}
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {isHe
+                                  ? `הפעולה תמחק את "${row.key}" בכל השפות. לאחר המחיקה יופיע כפתור ביטול לזמן קצר.`
+                                  : `This deletes "${row.key}" in every language. An undo button will appear for a short time after deletion.`}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>{isHe ? 'ביטול' : 'Cancel'}</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={() => handleDeleteKey(row)}
+                              >
+                                {isHe ? 'כן, למחוק' : 'Yes, delete'}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        )}
                       </td>
                     </tr>
                   ))}

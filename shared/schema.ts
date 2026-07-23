@@ -7,6 +7,12 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   role: text("role").notNull().default("user"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  phone: text("phone"),
+  profileImageUrl: text("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
   mustChangePassword: boolean("must_change_password").notNull().default(false),
   resetToken: text("reset_token"),
 });
@@ -131,6 +137,27 @@ export const clientActivities = pgTable("client_activities", {
   type: text("type").notNull(),
   description: text("description").notNull(),
   metadata: jsonb("metadata"),
+  actorUserId: integer("actor_user_id"),
+  actorEmail: text("actor_email"),
+  actorName: text("actor_name"),
+  actorRole: text("actor_role"),
+  actorProfileImageUrl: text("actor_profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const activityLogs = pgTable("activity_logs", {
+  id: serial("id").primaryKey(),
+  actorUserId: integer("actor_user_id"),
+  actorEmail: text("actor_email"),
+  actorName: text("actor_name"),
+  actorRole: text("actor_role"),
+  actorProfileImageUrl: text("actor_profile_image_url"),
+  action: text("action").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: integer("entity_id"),
+  entityLabel: text("entity_label"),
+  description: text("description").notNull(),
+  metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -170,10 +197,11 @@ export const clientFiles = pgTable("client_files", {
   fileSize: integer("file_size").notNull(),
   blobUrl: text("blob_url").notNull(),
   uploadedBy: integer("uploaded_by"),
+  archived: boolean("archived").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertClientFileSchema = createInsertSchema(clientFiles).omit({ id: true, createdAt: true }).extend({
+export const insertClientFileSchema = createInsertSchema(clientFiles).omit({ id: true, archived: true, createdAt: true }).extend({
   fileType: z.enum(CLIENT_FILE_ALLOWED_TYPES),
   fileSize: z.number().int().positive().max(CLIENT_FILE_MAX_SIZE_BYTES),
 });
@@ -191,6 +219,7 @@ export const insertAppointmentSchema = createInsertSchema(appointments)
   });
 export const insertClientSchema = createInsertSchema(clients).omit({ id: true, leadNumber: true, clientNumber: true, createdAt: true });
 export const insertClientActivitySchema = createInsertSchema(clientActivities).omit({ id: true, createdAt: true });
+export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({ id: true, createdAt: true });
 export const insertClientPaymentSchema = createInsertSchema(clientPayments).omit({ id: true, createdAt: true }).extend({
   amount: z.union([z.string(), z.number()]).transform((v) => String(v)),
   method: z.enum(PAYMENT_METHODS).optional().nullable(),
@@ -214,6 +243,8 @@ export type Client = typeof clients.$inferSelect;
 export type InsertClient = z.infer<typeof insertClientSchema>;
 export type ClientActivity = typeof clientActivities.$inferSelect;
 export type InsertClientActivity = z.infer<typeof insertClientActivitySchema>;
+export type ActivityLog = typeof activityLogs.$inferSelect;
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
 export type ClientPayment = typeof clientPayments.$inferSelect;
 export type InsertClientPayment = z.infer<typeof insertClientPaymentSchema>;
 export type ClientFile = typeof clientFiles.$inferSelect;

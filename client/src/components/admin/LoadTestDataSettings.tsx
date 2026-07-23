@@ -3,30 +3,80 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { FlaskConical, Trash2 } from 'lucide-react'
+import { FlaskConical, RefreshCcw, ShieldAlert, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useLanguage } from '@/hooks/useLanguage'
 import { apiRequest, queryClient } from '@/lib/queryClient'
 
 const BATCH_SIZE = 2000
+const RESET_CONFIRMATION = 'DELETE TEST DATA'
+
+interface LoadTestStats {
+  totalSeeded: number
+  leadCount: number
+  clientCount: number
+  oldestCreatedAt: string | null
+  newestCreatedAt: string | null
+}
+
+interface SyntheticClientSample {
+  id: number
+  leadNumber: number | null
+  clientNumber: number | null
+  name: string
+  email: string | null
+  phone: string | null
+  status: 'lead' | 'client' | string
+  createdAt: string
+}
+
+const emptyStats: LoadTestStats = {
+  totalSeeded: 0,
+  leadCount: 0,
+  clientCount: 0,
+  oldestCreatedAt: null,
+  newestCreatedAt: null,
+}
 
 export default function LoadTestDataSettings() {
   const { language } = useLanguage()
   const isHe = language === 'he'
   const { toast } = useToast()
-  const [count, setCount] = useState(0)
+  const [stats, setStats] = useState<LoadTestStats>(emptyStats)
+  const [sample, setSample] = useState<SyntheticClientSample[]>([])
   const [target, setTarget] = useState(10000)
   const [progress, setProgress] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
+  const count = stats.totalSeeded
 
-  const fetchCount = async () => {
+  const formatDate = (value: string | null) => {
+    if (!value) return isHe ? 'אין נתונים' : 'No data'
+    return new Intl.DateTimeFormat(isHe ? 'he-IL' : 'en-US', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    }).format(new Date(value))
+  }
+
+  const fetchStats = async () => {
     try {
       const res = await fetch('/api/admin/seed-load-test-leads/count', { credentials: 'include' })
-      if (res.ok) setCount((await res.json()).totalSeeded)
+      if (res.ok) setStats({ ...emptyStats, ...(await res.json()) })
     } catch { /* ignore */ }
   }
 
-  useEffect(() => { fetchCount() }, [])
+  const fetchSample = async () => {
+    try {
+      const res = await fetch('/api/admin/seed-load-test-leads/sample?limit=8', { credentials: 'include' })
+      if (res.ok) setSample(await res.json())
+    } catch { /* ignore */ }
+  }
+
+  const refreshLoadTestData = () => {
+    fetchStats()
+    fetchSample()
+  }
+
+  useEffect(() => { refreshLoadTestData() }, [])
 
   const refreshClientLists = () => {
     queryClient.invalidateQueries({ queryKey: ['/api/clients'] })
@@ -45,17 +95,24 @@ export default function LoadTestDataSettings() {
         const data = await res.json()
         total = data.totalSeeded
         setProgress(total)
-        setCount(total)
+        setStats({
+          totalSeeded: data.totalSeeded ?? total,
+          leadCount: data.leadCount ?? 0,
+          clientCount: data.clientCount ?? 0,
+          oldestCreatedAt: data.oldestCreatedAt ?? null,
+          newestCreatedAt: data.newestCreatedAt ?? null,
+        })
       }
+      refreshLoadTestData()
       refreshClientLists()
       toast({
         title: isHe ? 'הושלם' : 'Done',
-        description: isHe ? `${target} לידים לבדיקה נוצרו.` : `${target} test leads generated.`,
+        description: isHe ? `${target} רשומות בדיקה נוצרו.` : `${target} test records generated.`,
       })
     } catch {
       toast({
         title: isHe ? 'שגיאה' : 'Error',
-        description: isHe ? 'יצירת לידים לבדיקה נכשלה.' : 'Failed to generate test leads.',
+        description: isHe ? 'יצירת נתוני הבדיקה נכשלה.' : 'Failed to generate test data.',
         variant: 'destructive',
       })
     } finally {
@@ -65,15 +122,30 @@ export default function LoadTestDataSettings() {
   }
 
   const handleReset = async () => {
+    const confirmation = window.prompt(
+      isHe
+        ? `פעולה זו מוחקת רק נתוני בדיקת עומס שמסומנים כמקור seed_loadtest. כדי לאשר, הקלד: ${RESET_CONFIRMATION}`
+        : `This deletes only load-test records tagged source=seed_loadtest. To confirm, type: ${RESET_CONFIRMATION}`
+    )
+
+    if (confirmation !== RESET_CONFIRMATION) {
+      toast({
+        title: isHe ? 'האיפוס בוטל' : 'Reset cancelled',
+        description: isHe ? 'לא הוקלד אישור מדויק, ולכן לא נמחקו נתונים.' : 'The confirmation text did not match, so no data was deleted.',
+      })
+      return
+    }
+
     setBusy(true)
     try {
       const res = await apiRequest('DELETE', '/api/admin/seed-load-test-leads')
       const data = await res.json()
-      setCount(0)
+      setStats(emptyStats)
+      setSample([])
       refreshClientLists()
       toast({
-        title: isHe ? 'אופס בהצלחה' : 'Reset complete',
-        description: isHe ? `${data.deleted} לידים לבדיקה נמחקו.` : `${data.deleted} test leads removed.`,
+        title: isHe ? 'האיפוס הושלם' : 'Reset complete',
+        description: isHe ? `${data.deleted} רשומות בדיקה נמחקו.` : `${data.deleted} test records removed.`,
       })
     } catch {
       toast({
@@ -95,15 +167,36 @@ export default function LoadTestDataSettings() {
         </div>
         <CardDescription>
           {isHe
-            ? 'יצירה ואיפוס של לידים סינתטיים לבדיקת ביצועים. כל הרשומות מסומנות ואינן משפיעות על נתונים אמיתיים.'
-            : 'Generate and reset synthetic leads for performance testing. All records are tagged and never touch real data.'}
+            ? 'יצירה ואיפוס של לידים ולקוחות סינתטיים לבדיקת ביצועים. הרשומות מופרדות מרשימות העבודה הרגילות ומנוהלות כאן בלבד.'
+            : 'Generate and reset synthetic leads and clients for performance testing. These records are separated from normal work queues and managed here only.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground" data-testid="text-loadtest-count">
-          {isHe ? `לידים סינתטיים כרגע: ${count.toLocaleString()}` : `Current synthetic leads: ${count.toLocaleString()}`}
-          {progress !== null && ` (${progress.toLocaleString()}...)`}
-        </p>
+        <div className="grid gap-3 sm:grid-cols-3" data-testid="text-loadtest-count">
+          <div className="rounded-md border p-3">
+            <p className="text-xs text-muted-foreground">{isHe ? 'סה"כ רשומות בדיקה' : 'Total test records'}</p>
+            <p className="text-2xl font-semibold">{count.toLocaleString()}</p>
+            {progress !== null && <p className="text-xs text-muted-foreground">{progress.toLocaleString()}...</p>}
+          </div>
+          <div className="rounded-md border p-3">
+            <p className="text-xs text-muted-foreground">{isHe ? 'לידים' : 'Leads'}</p>
+            <p className="text-2xl font-semibold">{stats.leadCount.toLocaleString()}</p>
+          </div>
+          <div className="rounded-md border p-3">
+            <p className="text-xs text-muted-foreground">{isHe ? 'לקוחות' : 'Clients'}</p>
+            <p className="text-2xl font-semibold">{stats.clientCount.toLocaleString()}</p>
+          </div>
+        </div>
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <div className="flex items-start gap-2">
+            <ShieldAlert className="mt-0.5 h-4 w-4 flex-shrink-0" />
+            <p>
+              {isHe
+                ? 'נתוני בדיקת עומס לא יופיעו ברשימות הלידים והלקוחות האמיתיות. השתמש בטבלה כאן כדי לוודא שהם נוצרים ונמחקים.'
+                : 'Load-test data will not appear in real lead and client lists. Use the table here to verify that records are being created and removed.'}
+            </p>
+          </div>
+        </div>
         <div className="flex items-end gap-2 flex-wrap">
           <div className="space-y-1.5">
             <Label htmlFor="loadtest-target" className="text-xs">{isHe ? 'כמות להוספה' : 'Amount to add'}</Label>
@@ -121,12 +214,50 @@ export default function LoadTestDataSettings() {
           <Button onClick={handleGenerate} disabled={busy} data-testid="button-generate-loadtest">
             {busy && progress !== null
               ? (isHe ? 'יוצר...' : 'Generating...')
-              : (isHe ? 'יצירת לידים' : 'Generate Leads')}
+              : (isHe ? 'יצירת נתוני בדיקה' : 'Generate Test Data')}
+          </Button>
+          <Button variant="outline" onClick={refreshLoadTestData} disabled={busy} data-testid="button-refresh-loadtest">
+            <RefreshCcw className="h-4 w-4 mr-1.5" />
+            {isHe ? 'רענון' : 'Refresh'}
           </Button>
           <Button variant="destructive" onClick={handleReset} disabled={busy || count === 0} data-testid="button-reset-loadtest">
             <Trash2 className="h-4 w-4 mr-1.5" />
             {isHe ? 'איפוס הכל' : 'Reset All'}
           </Button>
+        </div>
+        <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+          <p>{isHe ? 'רשומה ראשונה:' : 'Oldest record:'} {formatDate(stats.oldestCreatedAt)}</p>
+          <p>{isHe ? 'רשומה אחרונה:' : 'Newest record:'} {formatDate(stats.newestCreatedAt)}</p>
+        </div>
+        <div className="overflow-x-auto rounded-md border">
+          <table className="w-full min-w-[680px] text-sm">
+            <thead className="bg-muted/60 text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 text-start font-medium">{isHe ? 'שם' : 'Name'}</th>
+                <th className="px-3 py-2 text-start font-medium">{isHe ? 'סטטוס' : 'Status'}</th>
+                <th className="px-3 py-2 text-start font-medium">{isHe ? 'מספר ליד' : 'Lead #'}</th>
+                <th className="px-3 py-2 text-start font-medium">{isHe ? 'טלפון' : 'Phone'}</th>
+                <th className="px-3 py-2 text-start font-medium">{isHe ? 'נוצר' : 'Created'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sample.length === 0 ? (
+                <tr>
+                  <td className="px-3 py-4 text-center text-muted-foreground" colSpan={5}>
+                    {isHe ? 'אין נתוני בדיקה להצגה.' : 'No test data to display.'}
+                  </td>
+                </tr>
+              ) : sample.map((item) => (
+                <tr key={item.id} className="border-t">
+                  <td className="px-3 py-2">{item.name}</td>
+                  <td className="px-3 py-2">{item.status === 'client' ? (isHe ? 'לקוח' : 'Client') : (isHe ? 'ליד' : 'Lead')}</td>
+                  <td className="px-3 py-2">{item.leadNumber ?? '-'}</td>
+                  <td className="px-3 py-2">{item.phone ?? '-'}</td>
+                  <td className="px-3 py-2">{formatDate(item.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </CardContent>
     </Card>

@@ -1,4 +1,4 @@
-import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, clientPayments, clientFiles, conversations, messages, whatsappMessages, images, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type ClientPayment, type InsertClientPayment, type ClientFile, type InsertClientFile, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type ContactFormSettings, type HeroLayoutSettings, type DashboardLayout, type WhatsAppMessage, type InsertWhatsAppMessage, type ImageAsset, type ImageAssetMeta, type HomeSection, DEFAULT_HOME_SECTIONS } from "@shared/schema";
+import { users, contacts, siteSettings, translations, questionnaireSubmissions, smsVerifications, appointments, clients, clientActivities, clientPayments, clientFiles, conversations, messages, whatsappMessages, images, activityLogs, type User, type InsertUser, type Contact, type InsertContact, type SiteSetting, type Translation, type InsertTranslation, type QuestionnaireSubmission, type InsertQuestionnaireSubmission, type SmsVerification, type Appointment, type InsertAppointment, type Client, type InsertClient, type ClientActivity, type InsertClientActivity, type ClientPayment, type InsertClientPayment, type ClientFile, type InsertClientFile, type Conversation, type InsertConversation, type Message, type InsertMessage, type WidgetSettings, type ContactFormSettings, type HeroLayoutSettings, type DashboardLayout, type WhatsAppMessage, type InsertWhatsAppMessage, type ImageAsset, type ImageAssetMeta, type HomeSection, DEFAULT_HOME_SECTIONS, type ActivityLog, type InsertActivityLog } from "@shared/schema";
 import type { AppointmentTypeHoursConfig } from "@shared/appointmentSchedule";
 import { db } from "./db";
 import { eq, desc, and, sql, lt, inArray } from "drizzle-orm";
@@ -8,11 +8,12 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserProfile(id: number, data: Partial<Pick<User, "firstName" | "lastName" | "phone" | "profileImageUrl" | "role">>): Promise<User | undefined>;
   updateUserPassword(id: number, hashedPassword: string): Promise<void>;
   setResetToken(id: number, token: string | null): Promise<void>;
   clearResetToken(id: number): Promise<void>;
   createContact(contact: InsertContact): Promise<Contact>;
-  getContacts(): Promise<Contact[]>;
+  getContacts(includeTest?: boolean): Promise<Contact[]>;
   markContactRead(id: number): Promise<Contact | undefined>;
   markContactUnread(id: number): Promise<Contact | undefined>;
   getSetting(key: string): Promise<SiteSetting | undefined>;
@@ -24,7 +25,7 @@ export interface IStorage {
   deleteTranslationKey(key: string): Promise<number>;
   getTranslationKeys(): Promise<string[]>;
   createQuestionnaireSubmission(submission: InsertQuestionnaireSubmission): Promise<QuestionnaireSubmission>;
-  getQuestionnaireSubmissions(type?: string): Promise<QuestionnaireSubmission[]>;
+  getQuestionnaireSubmissions(type?: string, includeTest?: boolean): Promise<QuestionnaireSubmission[]>;
   getQuestionnaireSubmission(id: number): Promise<QuestionnaireSubmission | undefined>;
   markQuestionnaireReviewed(id: number): Promise<QuestionnaireSubmission | undefined>;
   getQuestionnaireStats(): Promise<{ total: number; byType: Record<string, number>; unreviewed: number }>;
@@ -32,16 +33,18 @@ export interface IStorage {
   verifySmsCode(phone: string, code: string): Promise<boolean>;
   cleanupExpiredVerifications(): Promise<void>;
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
-  getAppointments(status?: string): Promise<Appointment[]>;
+  getAppointments(status?: string, includeTest?: boolean): Promise<Appointment[]>;
   getAppointment(id: number): Promise<Appointment | undefined>;
   updateAppointmentStatus(id: number, status: string): Promise<Appointment | undefined>;
   updateAppointmentSchedule(id: number, date: string, time: string): Promise<Appointment | undefined>;
   createClient(client: InsertClient): Promise<Client>;
-  getClients(): Promise<Client[]>;
+  getClients(includeTest?: boolean): Promise<Client[]>;
   getClient(id: number): Promise<Client | undefined>;
   updateClient(id: number, data: Partial<InsertClient>): Promise<Client | undefined>;
   createClientActivity(activity: InsertClientActivity): Promise<ClientActivity>;
   getClientActivities(clientId: number): Promise<ClientActivity[]>;
+  createActivityLog(log: InsertActivityLog): Promise<ActivityLog>;
+  getActivityLogs(limit?: number): Promise<ActivityLog[]>;
   createClientPayment(payment: InsertClientPayment): Promise<ClientPayment>;
   getClientPayments(clientId: number): Promise<ClientPayment[]>;
   deleteClientPayment(id: number): Promise<boolean>;
@@ -49,10 +52,12 @@ export interface IStorage {
   getClientFiles(clientId: number): Promise<ClientFile[]>;
   getClientFile(id: number): Promise<ClientFile | undefined>;
   deleteClientFile(id: number): Promise<boolean>;
+  restoreClientFile(id: number): Promise<boolean>;
+  permanentlyDeleteClientFile(id: number): Promise<boolean>;
   upsertClientByEmail(data: { name: string; email?: string | null; phone?: string | null; source: string; childName?: string }): Promise<Client>;
   getClientByEmail(email: string): Promise<Client | undefined>;
-  getClientInteractions(clientId: number): Promise<{ contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }>;
-  getClientInteractionsBulk(clientIds: number[]): Promise<Record<number, { contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }>>;
+  getClientInteractions(clientId: number, includeTest?: boolean): Promise<{ contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }>;
+  getClientInteractionsBulk(clientIds: number[], includeTest?: boolean): Promise<Record<number, { contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }>>;
   getActiveAppointmentForChild(email: string, childName: string): Promise<Appointment | undefined>;
   getAdminBadgeCounts(): Promise<{ unreadContacts: number; pendingAppointments: number; unreviewedQuestionnaires: number; unreviewedConversations: number; unreadWhatsapp: number; newLeads: number; newLeadItems: Array<{ id: number; name: string; email: string | null; phone: string | null; leadNumber: number | null }> }>;
   getWidgetSettings(): Promise<WidgetSettings>;
@@ -72,7 +77,7 @@ export interface IStorage {
   getAppointmentTypeHours(): Promise<AppointmentTypeHoursConfig>;
   updateAppointmentTypeHours(config: AppointmentTypeHoursConfig): Promise<AppointmentTypeHoursConfig>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
-  getConversations(): Promise<Conversation[]>;
+  getConversations(includeTest?: boolean): Promise<Conversation[]>;
   getConversation(id: number): Promise<Conversation | undefined>;
   markConversationReviewed(id: number): Promise<Conversation | undefined>;
   markConversationUnreviewed(id: number): Promise<Conversation | undefined>;
@@ -141,6 +146,15 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async updateUserProfile(id: number, data: Partial<Pick<User, "firstName" | "lastName" | "phone" | "profileImageUrl" | "role">>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ ...data, updatedAt: new Date() } as any)
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
+  }
+
   async updateUserPassword(id: number, hashedPassword: string): Promise<void> {
     await db
       .update(users)
@@ -170,9 +184,9 @@ export class DatabaseStorage implements IStorage {
     return contact;
   }
 
-  async getContacts(): Promise<Contact[]> {
+  async getContacts(includeTest = false): Promise<Contact[]> {
     return await db.select().from(contacts)
-      .where(and(eq(contacts.archived, false), eq(contacts.isTest, false)))
+      .where(includeTest ? eq(contacts.archived, false) : and(eq(contacts.archived, false), eq(contacts.isTest, false)))
       .orderBy(desc(contacts.createdAt));
   }
 
@@ -332,8 +346,10 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async getQuestionnaireSubmissions(type?: string): Promise<QuestionnaireSubmission[]> {
-    const visible = and(eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false));
+  async getQuestionnaireSubmissions(type?: string, includeTest = false): Promise<QuestionnaireSubmission[]> {
+    const visible = includeTest
+      ? eq(questionnaireSubmissions.archived, false)
+      : and(eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false));
     if (type) {
       return await db.select().from(questionnaireSubmissions)
         .where(and(eq(questionnaireSubmissions.type, type), visible))
@@ -412,8 +428,10 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async getAppointments(status?: string): Promise<Appointment[]> {
-    const visible = and(eq(appointments.archived, false), eq(appointments.isTest, false));
+  async getAppointments(status?: string, includeTest = false): Promise<Appointment[]> {
+    const visible = includeTest
+      ? eq(appointments.archived, false)
+      : and(eq(appointments.archived, false), eq(appointments.isTest, false));
     if (status) {
       return await db.select().from(appointments)
         .where(and(eq(appointments.status, status), visible))
@@ -479,9 +497,9 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async getClients(): Promise<Client[]> {
+  async getClients(includeTest = false): Promise<Client[]> {
     return await db.select().from(clients)
-      .where(and(eq(clients.archived, false), eq(clients.isTest, false)))
+      .where(includeTest ? eq(clients.archived, false) : and(eq(clients.archived, false), eq(clients.isTest, false)))
       .orderBy(desc(clients.createdAt));
   }
 
@@ -560,6 +578,15 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(clientActivities.createdAt));
   }
 
+  async createActivityLog(log: InsertActivityLog): Promise<ActivityLog> {
+    const [created] = await db.insert(activityLogs).values(log as any).returning();
+    return created;
+  }
+
+  async getActivityLogs(limit = 200): Promise<ActivityLog[]> {
+    return await db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(limit);
+  }
+
   async createClientPayment(payment: InsertClientPayment): Promise<ClientPayment> {
     const [created] = await db.insert(clientPayments).values(payment as any).returning();
     return created;
@@ -583,7 +610,7 @@ export class DatabaseStorage implements IStorage {
 
   async getClientFiles(clientId: number): Promise<ClientFile[]> {
     return await db.select().from(clientFiles)
-      .where(eq(clientFiles.clientId, clientId))
+      .where(and(eq(clientFiles.clientId, clientId), eq(clientFiles.archived, false)))
       .orderBy(desc(clientFiles.createdAt));
   }
 
@@ -593,6 +620,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteClientFile(id: number): Promise<boolean> {
+    const file = await this.getClientFile(id);
+    if (!file) return false;
+    const archived = await db.update(clientFiles).set({ archived: true } as any).where(eq(clientFiles.id, id)).returning();
+    return archived.length > 0;
+  }
+
+  async restoreClientFile(id: number): Promise<boolean> {
+    const restored = await db.update(clientFiles).set({ archived: false } as any).where(eq(clientFiles.id, id)).returning();
+    return restored.length > 0;
+  }
+
+  async permanentlyDeleteClientFile(id: number): Promise<boolean> {
     const file = await this.getClientFile(id);
     if (!file) return false;
     try {
@@ -632,23 +671,27 @@ export class DatabaseStorage implements IStorage {
     return c || undefined;
   }
 
-  async getClientInteractions(clientId: number): Promise<{ contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }> {
+  async getClientInteractions(clientId: number, includeTest = false): Promise<{ contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }> {
     const client = await this.getClient(clientId);
     if (!client) {
       return { contacts: [], appointments: [], questionnaires: [], conversations: [], whatsappMessages: [] };
     }
     const email = client.email;
+    const visibleContact = includeTest ? eq(contacts.archived, false) : and(eq(contacts.archived, false), eq(contacts.isTest, false));
+    const visibleAppointment = includeTest ? eq(appointments.archived, false) : and(eq(appointments.archived, false), eq(appointments.isTest, false));
+    const visibleQuestionnaire = includeTest ? eq(questionnaireSubmissions.archived, false) : and(eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false));
+    const visibleConversation = includeTest ? eq(conversations.archived, false) : and(eq(conversations.archived, false), eq(conversations.isTest, false));
     const [clientContacts, clientAppointments, clientQuestionnaires, clientConversations, clientWhatsapp] = await Promise.all([
-      email ? db.select().from(contacts).where(eq(contacts.email, email)).orderBy(desc(contacts.createdAt)) : Promise.resolve([]),
-      email ? db.select().from(appointments).where(eq(appointments.clientEmail, email)).orderBy(desc(appointments.createdAt)) : Promise.resolve([]),
-      email ? db.select().from(questionnaireSubmissions).where(eq(questionnaireSubmissions.respondentEmail, email)).orderBy(desc(questionnaireSubmissions.createdAt)) : Promise.resolve([]),
-      email ? db.select().from(conversations).where(eq(conversations.visitorEmail, email)).orderBy(desc(conversations.createdAt)) : Promise.resolve([]),
+      email ? db.select().from(contacts).where(and(eq(contacts.email, email), visibleContact)).orderBy(desc(contacts.createdAt)) : Promise.resolve([]),
+      email ? db.select().from(appointments).where(and(eq(appointments.clientEmail, email), visibleAppointment)).orderBy(desc(appointments.createdAt)) : Promise.resolve([]),
+      email ? db.select().from(questionnaireSubmissions).where(and(eq(questionnaireSubmissions.respondentEmail, email), visibleQuestionnaire)).orderBy(desc(questionnaireSubmissions.createdAt)) : Promise.resolve([]),
+      email ? db.select().from(conversations).where(and(eq(conversations.visitorEmail, email), visibleConversation)).orderBy(desc(conversations.createdAt)) : Promise.resolve([]),
       db.select().from(whatsappMessages).where(eq(whatsappMessages.clientId, clientId)).orderBy(desc(whatsappMessages.createdAt)),
     ]);
     return { contacts: clientContacts, appointments: clientAppointments, questionnaires: clientQuestionnaires, conversations: clientConversations, whatsappMessages: clientWhatsapp };
   }
 
-  async getClientInteractionsBulk(clientIds: number[]): Promise<Record<number, { contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }>> {
+  async getClientInteractionsBulk(clientIds: number[], includeTest = false): Promise<Record<number, { contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }>> {
     const result: Record<number, { contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }> = {};
     if (clientIds.length === 0) return result;
 
@@ -663,11 +706,16 @@ export class DatabaseStorage implements IStorage {
     }
     const emails = [...emailToClientIds.keys()];
 
+    const visibleContact = includeTest ? eq(contacts.archived, false) : and(eq(contacts.archived, false), eq(contacts.isTest, false));
+    const visibleAppointment = includeTest ? eq(appointments.archived, false) : and(eq(appointments.archived, false), eq(appointments.isTest, false));
+    const visibleQuestionnaire = includeTest ? eq(questionnaireSubmissions.archived, false) : and(eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false));
+    const visibleConversation = includeTest ? eq(conversations.archived, false) : and(eq(conversations.archived, false), eq(conversations.isTest, false));
+
     const [allContacts, allAppointments, allQuestionnaires, allConversations, allWhatsapp] = await Promise.all([
-      emails.length ? db.select().from(contacts).where(inArray(contacts.email, emails)).orderBy(desc(contacts.createdAt)) : Promise.resolve([]),
-      emails.length ? db.select().from(appointments).where(inArray(appointments.clientEmail, emails)).orderBy(desc(appointments.createdAt)) : Promise.resolve([]),
-      emails.length ? db.select().from(questionnaireSubmissions).where(inArray(questionnaireSubmissions.respondentEmail, emails)).orderBy(desc(questionnaireSubmissions.createdAt)) : Promise.resolve([]),
-      emails.length ? db.select().from(conversations).where(inArray(conversations.visitorEmail, emails)).orderBy(desc(conversations.createdAt)) : Promise.resolve([]),
+      emails.length ? db.select().from(contacts).where(and(inArray(contacts.email, emails), visibleContact)).orderBy(desc(contacts.createdAt)) : Promise.resolve([]),
+      emails.length ? db.select().from(appointments).where(and(inArray(appointments.clientEmail, emails), visibleAppointment)).orderBy(desc(appointments.createdAt)) : Promise.resolve([]),
+      emails.length ? db.select().from(questionnaireSubmissions).where(and(inArray(questionnaireSubmissions.respondentEmail, emails), visibleQuestionnaire)).orderBy(desc(questionnaireSubmissions.createdAt)) : Promise.resolve([]),
+      emails.length ? db.select().from(conversations).where(and(inArray(conversations.visitorEmail, emails), visibleConversation)).orderBy(desc(conversations.createdAt)) : Promise.resolve([]),
       db.select().from(whatsappMessages).where(inArray(whatsappMessages.clientId, clientIds)).orderBy(desc(whatsappMessages.createdAt)),
     ]);
 
@@ -856,9 +904,9 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async getConversations(): Promise<Conversation[]> {
+  async getConversations(includeTest = false): Promise<Conversation[]> {
     return await db.select().from(conversations)
-      .where(and(eq(conversations.archived, false), eq(conversations.isTest, false)))
+      .where(includeTest ? eq(conversations.archived, false) : and(eq(conversations.archived, false), eq(conversations.isTest, false)))
       .orderBy(desc(conversations.createdAt));
   }
 
@@ -1059,12 +1107,16 @@ export class DatabaseStorage implements IStorage {
   async getBinItems(): Promise<Array<{ type: string; id: number; label: string; archived: boolean; isTest: boolean; createdAt: Date }>> {
     const hidden = (archived: boolean, isTest: boolean) => archived || isTest;
 
-    const [contactRows, conversationRows, clientRows, appointmentRows, questionnaireRows] = await Promise.all([
+    const [contactRows, conversationRows, clientRows, appointmentRows, questionnaireRows, fileRows] = await Promise.all([
       db.select().from(contacts).where(sql`${contacts.archived} = true OR ${contacts.isTest} = true`),
       db.select().from(conversations).where(sql`${conversations.archived} = true OR ${conversations.isTest} = true`),
-      db.select().from(clients).where(sql`${clients.archived} = true OR ${clients.isTest} = true`),
+      db.select().from(clients).where(sql`
+        (${clients.archived} = true OR ${clients.isTest} = true)
+        AND (${clients.source} IS NULL OR ${clients.source} <> 'seed_loadtest')
+      `),
       db.select().from(appointments).where(sql`${appointments.archived} = true OR ${appointments.isTest} = true`),
       db.select().from(questionnaireSubmissions).where(sql`${questionnaireSubmissions.archived} = true OR ${questionnaireSubmissions.isTest} = true`),
+      db.select().from(clientFiles).where(eq(clientFiles.archived, true)),
     ]);
 
     const items = [
@@ -1073,6 +1125,7 @@ export class DatabaseStorage implements IStorage {
       ...clientRows.map(r => ({ type: "client", id: r.id, label: r.name, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt })),
       ...appointmentRows.map(r => ({ type: "appointment", id: r.id, label: r.clientName, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt })),
       ...questionnaireRows.map(r => ({ type: "questionnaire", id: r.id, label: r.respondentName, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt })),
+      ...fileRows.map(r => ({ type: "client_file", id: r.id, label: r.fileName, archived: r.archived, isTest: false, createdAt: r.createdAt })),
     ].filter(item => hidden(item.archived, item.isTest));
 
     return items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -1085,6 +1138,7 @@ export class DatabaseStorage implements IStorage {
       case "client": return this.deleteClient(id);
       case "appointment": return this.deleteAppointment(id);
       case "questionnaire": return this.deleteQuestionnaire(id);
+      case "client_file": return this.permanentlyDeleteClientFile(id);
       default: throw new Error(`Unknown bin item type: ${type}`);
     }
   }
@@ -1096,6 +1150,7 @@ export class DatabaseStorage implements IStorage {
       case "client": return this.restoreClient(id);
       case "appointment": return this.restoreAppointment(id);
       case "questionnaire": return this.restoreQuestionnaire(id);
+      case "client_file": return this.restoreClientFile(id);
       default: throw new Error(`Unknown bin item type: ${type}`);
     }
   }

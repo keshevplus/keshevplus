@@ -20,6 +20,7 @@ const TYPE_LABEL: Record<string, { he: string; en: string }> = {
   contact: { he: 'פנייה', en: 'Contact' },
   conversation: { he: 'שיחה', en: 'Conversation' },
   client: { he: 'ליד/לקוח', en: 'Lead/Client' },
+  client_file: { he: 'קובץ לקוח', en: 'Client file' },
   appointment: { he: 'פגישה', en: 'Appointment' },
   questionnaire: { he: 'שאלון', en: 'Questionnaire' },
 }
@@ -32,6 +33,9 @@ export default function BinManager() {
   const { data: items = [], isLoading } = useQuery<BinItem[]>({
     queryKey: ['/api/admin/bin'],
   })
+
+  const realDeletionItems = items.filter((item) => item.archived && !item.isTest)
+  const qaTestItems = items.filter((item) => item.isTest)
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['/api/admin/bin'] })
@@ -67,6 +71,67 @@ export default function BinManager() {
     },
   })
 
+  const renderItem = (item: BinItem) => (
+    <div
+      key={`${item.type}-${item.id}`}
+      className="flex items-center justify-between gap-2 rounded-md border p-2 flex-wrap"
+      data-testid={`row-bin-${item.type}-${item.id}`}
+    >
+      <div className="flex items-center gap-2 min-w-0">
+        <Badge variant="outline" className="shrink-0">
+          {isHe ? TYPE_LABEL[item.type]?.he || item.type : TYPE_LABEL[item.type]?.en || item.type}
+        </Badge>
+        <span className="truncate text-sm">{item.label}</span>
+        {item.isTest && (
+          <Badge variant="secondary" className="shrink-0 text-[10px]">
+            QA
+          </Badge>
+        )}
+        {item.archived && (
+          <Badge variant="destructive" className="shrink-0 text-[10px]">
+            {isHe ? 'הועבר לסל' : 'Archived'}
+          </Badge>
+        )}
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => restoreMutation.mutate({ type: item.type, id: item.id })}
+          disabled={restoreMutation.isPending}
+          data-testid={`button-restore-${item.type}-${item.id}`}
+        >
+          <RotateCcw className="h-4 w-4 me-1" />
+          {isHe ? 'שחזר' : 'Restore'}
+        </Button>
+        <Button
+          size="sm"
+          variant="destructive"
+          onClick={() => {
+            const confirmation = window.prompt(
+              isHe
+                ? `מחיקה לצמיתות אינה ניתנת לשחזור. כדי לאשר, הקלד את שם הפריט: ${item.label}`
+                : `Permanent deletion cannot be recovered. To confirm, type the item label: ${item.label}`
+            )
+            if (confirmation === item.label) {
+              permanentDeleteMutation.mutate({ type: item.type, id: item.id })
+            } else if (confirmation !== null) {
+              toast({
+                title: isHe ? 'המחיקה בוטלה' : 'Delete cancelled',
+                description: isHe ? 'שם הפריט לא הוקלד במדויק.' : 'The item label did not match.',
+              })
+            }
+          }}
+          disabled={permanentDeleteMutation.isPending}
+          data-testid={`button-permanent-delete-${item.type}-${item.id}`}
+        >
+          <Trash2 className="h-4 w-4 me-1" />
+          {isHe ? 'מחק לצמיתות' : 'Delete permanently'}
+        </Button>
+      </div>
+    </div>
+  )
+
   return (
     <Card>
       <CardHeader>
@@ -80,65 +145,36 @@ export default function BinManager() {
             : 'Items deleted by admins/managers or marked as test. Restore them or permanently delete.'}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-5">
         {isLoading ? (
           <p className="text-sm text-muted-foreground">{isHe ? 'טוען...' : 'Loading...'}</p>
         ) : items.length === 0 ? (
           <p className="text-sm text-muted-foreground">{isHe ? 'סל המיחזור ריק' : 'The recycle bin is empty'}</p>
         ) : (
-          items.map((item) => (
-            <div
-              key={`${item.type}-${item.id}`}
-              className="flex items-center justify-between gap-2 rounded-md border p-2 flex-wrap"
-              data-testid={`row-bin-${item.type}-${item.id}`}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <Badge variant="outline" className="shrink-0">
-                  {isHe ? TYPE_LABEL[item.type]?.he || item.type : TYPE_LABEL[item.type]?.en || item.type}
-                </Badge>
-                <span className="truncate text-sm">{item.label}</span>
-                {item.isTest && (
-                  <Badge variant="secondary" className="shrink-0 text-[10px]">
-                    {isHe ? 'בדיקה' : 'Test'}
-                  </Badge>
-                )}
-                {item.archived && (
-                  <Badge variant="destructive" className="shrink-0 text-[10px]">
-                    {isHe ? 'הועבר לסל' : 'Archived'}
-                  </Badge>
-                )}
+          <>
+            <section className="space-y-2" data-testid="bin-section-real-deletions">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold">{isHe ? 'מחיקות אמיתיות' : 'Real deletions'}</h3>
+                <Badge variant="outline">{realDeletionItems.length}</Badge>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => restoreMutation.mutate({ type: item.type, id: item.id })}
-                  disabled={restoreMutation.isPending}
-                  data-testid={`button-restore-${item.type}-${item.id}`}
-                >
-                  <RotateCcw className="h-4 w-4 me-1" />
-                  {isHe ? 'שחזר' : 'Restore'}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => {
-                    const msg = isHe
-                      ? 'למחוק לצמיתות? לא ניתן לשחזר פעולה זו.'
-                      : 'Permanently delete? This cannot be undone.'
-                    if (window.confirm(msg)) {
-                      permanentDeleteMutation.mutate({ type: item.type, id: item.id })
-                    }
-                  }}
-                  disabled={permanentDeleteMutation.isPending}
-                  data-testid={`button-permanent-delete-${item.type}-${item.id}`}
-                >
-                  <Trash2 className="h-4 w-4 me-1" />
-                  {isHe ? 'מחק לצמיתות' : 'Delete permanently'}
-                </Button>
+              {realDeletionItems.length === 0 ? (
+                <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                  {isHe ? 'אין מחיקות אמיתיות בסל.' : 'No real deleted items in the bin.'}
+                </p>
+              ) : realDeletionItems.map(renderItem)}
+            </section>
+            <section className="space-y-2" data-testid="bin-section-qa-test">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold">{isHe ? 'נתוני QA / בדיקה' : 'QA / test data'}</h3>
+                <Badge variant="outline">{qaTestItems.length}</Badge>
               </div>
-            </div>
-          ))
+              {qaTestItems.length === 0 ? (
+                <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                  {isHe ? 'אין נתוני בדיקה בסל.' : 'No QA test items in the bin.'}
+                </p>
+              ) : qaTestItems.map(renderItem)}
+            </section>
+          </>
         )}
       </CardContent>
     </Card>

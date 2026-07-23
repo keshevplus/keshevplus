@@ -10,6 +10,7 @@ import { hasPrivilegedAdminRole, isSuperadminEmail } from "@shared/adminAccess";
 // real data (and independently of any other isTest-flagged records).
 const SEED_SOURCE = "seed_loadtest";
 const ACTIVITY_TYPES = ["call", "email", "note", "meeting"] as const;
+const TEST_STATUS_VALUES = ["lead", "client"] as const;
 const SIX_MONTHS_MS = 1000 * 60 * 60 * 24 * 180;
 const MAX_COUNT_PER_CALL = 5000;
 
@@ -72,7 +73,7 @@ async function seedBatch(count: number) {
       `${randomFrom(FIRST_NAMES)} ${randomFrom(LAST_NAMES)}`,
       `loadtest.lead.${leadNumber}@example.test`,
       `05${Math.floor(10000000 + Math.random() * 89999999)}`,
-      randomFrom(["lead", "in_progress", "closed"]),
+      randomFrom(TEST_STATUS_VALUES),
       SEED_SOURCE,
       true,
       createdAt,
@@ -126,11 +127,8 @@ export function registerLoadTestSeedRoutes(app: Express): void {
     }
     try {
       const result = await seedBatch(count);
-      const { rows } = await pool.query(
-        `SELECT COUNT(*)::int AS total FROM clients WHERE source = $1`,
-        [SEED_SOURCE]
-      );
-      return res.json({ ...result, totalSeeded: rows[0].total });
+      const { rows } = await pool.query(loadTestCountSql, [SEED_SOURCE]);
+      return res.json({ ...result, ...rows[0] });
     } catch (error) {
       console.error("Error seeding load test leads:", error);
       return res.status(500).json({ error: "Failed to seed load test leads" });
@@ -141,11 +139,24 @@ export function registerLoadTestSeedRoutes(app: Express): void {
     if (!(await hasAdminAccess(req))) {
       return res.status(403).json({ error: "Admin access required" });
     }
+    const { rows } = await pool.query(loadTestCountSql, [SEED_SOURCE]);
+    return res.json(rows[0]);
+  });
+
+  app.get("/api/admin/seed-load-test-leads/sample", async (req: Request, res: Response) => {
+    if (!(await hasAdminAccess(req))) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
     const { rows } = await pool.query(
-      `SELECT COUNT(*)::int AS total FROM clients WHERE source = $1`,
-      [SEED_SOURCE]
+      `SELECT id, lead_number AS "leadNumber", client_number AS "clientNumber", name, email, phone, status, created_at AS "createdAt"
+       FROM clients
+       WHERE source = $1 AND is_test = true
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [SEED_SOURCE, limit]
     );
-    return res.json({ totalSeeded: rows[0].total });
+    return res.json(rows);
   });
 
   app.delete("/api/admin/seed-load-test-leads", async (req: Request, res: Response) => {
@@ -154,10 +165,10 @@ export function registerLoadTestSeedRoutes(app: Express): void {
     }
     try {
       await pool.query(
-        `DELETE FROM client_activities WHERE client_id IN (SELECT id FROM clients WHERE source = $1)`,
+        `DELETE FROM client_activities WHERE client_id IN (SELECT id FROM clients WHERE source = $1 AND is_test = true)`,
         [SEED_SOURCE]
       );
-      const { rowCount } = await pool.query(`DELETE FROM clients WHERE source = $1`, [SEED_SOURCE]);
+      const { rowCount } = await pool.query(`DELETE FROM clients WHERE source = $1 AND is_test = true`, [SEED_SOURCE]);
       return res.json({ deleted: rowCount });
     } catch (error) {
       console.error("Error deleting load test leads:", error);
@@ -165,3 +176,14 @@ export function registerLoadTestSeedRoutes(app: Express): void {
     }
   });
 }
+
+const loadTestCountSql = `
+  SELECT
+    COUNT(*)::int AS "totalSeeded",
+    COUNT(*) FILTER (WHERE status = 'lead')::int AS "leadCount",
+    COUNT(*) FILTER (WHERE status = 'client')::int AS "clientCount",
+    MIN(created_at) AS "oldestCreatedAt",
+    MAX(created_at) AS "newestCreatedAt"
+  FROM clients
+  WHERE source = $1 AND is_test = true
+`;

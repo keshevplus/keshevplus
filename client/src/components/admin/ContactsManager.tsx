@@ -11,6 +11,7 @@ import { SiWhatsapp } from 'react-icons/si'
 import { apiRequest, queryClient } from '@/lib/queryClient'
 import { cn } from '@/lib/utils'
 import type { Contact } from '@shared/schema'
+import { useAdminUndo } from '@/hooks/useAdminUndo'
 
 const STATUS_CONFIG: Record<string, { he: string; en: string; color: string }> = {
   new: { he: "חדש", en: "New", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
@@ -68,11 +69,17 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [selectMode, setSelectMode] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [includeTest, setIncludeTest] = useState(false)
+  const showUndo = useAdminUndo()
 
   const { data: contacts = [], isLoading } = useQuery<Contact[]>({
-    queryKey: ['/api/contacts', statusFilter],
+    queryKey: ['/api/contacts', statusFilter, includeTest],
     queryFn: async () => {
-      const url = statusFilter === 'all' ? '/api/contacts' : `/api/contacts?status=${statusFilter}`;
+      const params = new URLSearchParams()
+      if (statusFilter !== 'all') params.set('status', statusFilter)
+      if (includeTest) params.set('includeTest', 'true')
+      const query = params.toString()
+      const url = query ? `/api/contacts?${query}` : '/api/contacts'
       const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch');
       return res.json();
@@ -97,10 +104,23 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
   }
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) => 
+    mutationFn: ({ id, status }: { id: number; status: string; previousStatus?: string }) =>
       apiRequest('PATCH', `/api/contacts/${id}/status`, { status }),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       invalidateContactsQueries()
+      if (variables.previousStatus && variables.previousStatus !== variables.status) {
+        showUndo({
+          title: isHe ? 'הסטטוס עודכן' : 'Status updated',
+          description: isHe ? 'אפשר לבטל עם Ctrl+Z.' : 'Press Ctrl+Z to undo.',
+          undoLabel: isHe ? 'בטל' : 'Undo',
+          undoSuccessTitle: isHe ? 'השינוי בוטל' : 'Change undone',
+          undoErrorTitle: isHe ? 'הביטול נכשל' : 'Undo failed',
+          onUndo: async () => {
+            await apiRequest('PATCH', `/api/contacts/${variables.id}/status`, { status: variables.previousStatus })
+            invalidateContactsQueries()
+          },
+        })
+      }
     },
   })
 
@@ -126,27 +146,60 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => apiRequest('DELETE', `/api/contacts/${id}`),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       invalidateContactsQueries()
       setExpandedId(null)
+      showUndo({
+        title: isHe ? 'הפנייה הועברה לסל' : 'Submission moved to bin',
+        description: isHe ? 'אפשר לשחזר מיד עם Ctrl+Z.' : 'Press Ctrl+Z to restore it.',
+        undoLabel: isHe ? 'שחזר' : 'Restore',
+        undoSuccessTitle: isHe ? 'הפנייה שוחזרה' : 'Submission restored',
+        undoErrorTitle: isHe ? 'השחזור נכשל' : 'Restore failed',
+        onUndo: async () => {
+          await apiRequest('POST', `/api/admin/bin/contact/${id}/restore`)
+          invalidateContactsQueries()
+        },
+      })
     },
   })
 
   const bulkDeleteMutation = useMutation({
     mutationFn: (ids: number[]) => apiRequest('POST', '/api/contacts/bulk-delete', { ids }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] })
+    onSuccess: (_data, ids) => {
+      invalidateContactsQueries()
       setSelectedIds(new Set())
       setSelectMode(false)
       setExpandedId(null)
+      showUndo({
+        title: isHe ? 'הפניות הועברו לסל' : 'Submissions moved to bin',
+        description: isHe ? 'אפשר לשחזר את כולן עם Ctrl+Z.' : 'Press Ctrl+Z to restore them.',
+        undoLabel: isHe ? 'שחזר' : 'Restore',
+        undoSuccessTitle: isHe ? 'הפניות שוחזרו' : 'Submissions restored',
+        undoErrorTitle: isHe ? 'השחזור נכשל' : 'Restore failed',
+        onUndo: async () => {
+          await Promise.all(ids.map((id) => apiRequest('POST', `/api/admin/bin/contact/${id}/restore`)))
+          invalidateContactsQueries()
+        },
+      })
     },
   })
 
   const markTestMutation = useMutation({
     mutationFn: (id: number) => apiRequest('PATCH', `/api/contacts/${id}/mark-test`, { isTest: true }),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       invalidateContactsQueries()
       setExpandedId(null)
+      showUndo({
+        title: isHe ? 'סומן כבדיקה' : 'Marked as test',
+        description: isHe ? 'אפשר להחזיר לרשימה הרגילה עם Ctrl+Z.' : 'Press Ctrl+Z to return it to normal data.',
+        undoLabel: isHe ? 'בטל' : 'Undo',
+        undoSuccessTitle: isHe ? 'סימון הבדיקה בוטל' : 'Test mark removed',
+        undoErrorTitle: isHe ? 'הביטול נכשל' : 'Undo failed',
+        onUndo: async () => {
+          await apiRequest('PATCH', `/api/contacts/${id}/mark-test`, { isTest: false })
+          invalidateContactsQueries()
+        },
+      })
     },
   })
 
@@ -219,6 +272,14 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
                 ))}
               </SelectContent>
             </Select>
+            <label className="flex h-8 items-center gap-2 rounded-md border px-2 text-xs">
+              <Checkbox
+                checked={includeTest}
+                onCheckedChange={(checked) => setIncludeTest(checked === true)}
+                data-testid="checkbox-include-test-contacts"
+              />
+              {isHe ? 'כולל QA' : 'Include QA'}
+            </label>
             {contacts.length > 0 && (
               <Button
                 variant="outline"
@@ -327,6 +388,11 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
                                 {isHe ? 'חדש' : 'New'}
                               </Badge>
                             )}
+                            {contact.isTest && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 leading-none">
+                                QA
+                              </Badge>
+                            )}
                             {formatContactSource(contact.source, isHe) && (
                               <Badge variant="outline" className="text-[10px] px-1.5 py-0 leading-none gap-1">
                                 <Globe className="h-2.5 w-2.5" aria-hidden="true" />
@@ -342,7 +408,7 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
                       <div className="flex items-center gap-2 shrink-0">
                         <Select 
                           value={contact.status} 
-                          onValueChange={(status) => updateStatusMutation.mutate({ id: contact.id, status })}
+                          onValueChange={(status) => updateStatusMutation.mutate({ id: contact.id, status, previousStatus: contact.status })}
                         >
                           <SelectTrigger className="h-7 text-[10px] w-[90px]">
                             <SelectValue />

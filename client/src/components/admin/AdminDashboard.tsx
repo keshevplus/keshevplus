@@ -23,7 +23,7 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
-import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye, UserCog, Archive, LayoutGrid, Image } from 'lucide-react'
+import { LogOut, Users, Settings, BarChart3, Globe, Save, Calendar, ClipboardList, Languages, Inbox, Bell, MessageCircle, Eye, UserCog, Archive, LayoutGrid, Image, Activity } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useQuery } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/queryClient'
@@ -50,6 +50,7 @@ import VisualEditor from './VisualEditor'
 import OverviewWidgetGrid from './OverviewWidgetGrid'
 import SectionsManager from './SectionsManager'
 import ImagesManager from './ImagesManager'
+import ActivityLogManager from './ActivityLogManager'
 
 const languageCodeClass = "inline-flex w-6 shrink-0 justify-center font-sans text-sm font-semibold leading-none text-muted-foreground"
 const languageNameClass = "font-sans text-sm leading-none"
@@ -266,6 +267,7 @@ const AdminDashboard = () => {
     { value: 'images', icon: Image, he: 'תמונות', en: 'Images', heDesc: 'ניהול תמונות האתר', enDesc: 'Manage site images' },
     { value: 'visual-editor', icon: Eye, he: 'עורך ויזואלי', en: 'Visual Editor', heDesc: 'עריכת תוכן העמודים באתר', enDesc: 'Edit site page content visually' },
     { value: 'translations', icon: Languages, he: 'תרגומים', en: 'Translations', heDesc: 'ניהול תרגומים לאתר', enDesc: 'Manage site translations' },
+    { value: 'activity', icon: Activity, he: 'יומן פעילות', en: 'Activity Log', heDesc: 'מעקב פעולות צוות', enDesc: 'Track staff actions' },
     { value: 'settings', icon: Settings, he: 'הגדרות', en: 'Settings', heDesc: 'שפה והתראות', enDesc: 'Language & notifications' },
     { value: 'bin', icon: Archive, he: 'סל מיחזור', en: 'Recycle Bin', heDesc: 'פריטים שנמחקו', enDesc: 'Deleted items' },
     ...(isSuperadmin
@@ -547,6 +549,10 @@ const AdminDashboard = () => {
 
           <TabsContent value="translations" className="mt-0">
             <TranslationManager />
+          </TabsContent>
+
+          <TabsContent value="activity" className="mt-0">
+            <ActivityLogManager />
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6 mt-0">

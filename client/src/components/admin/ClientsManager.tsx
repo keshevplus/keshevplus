@@ -15,6 +15,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import type { Client, Contact, Appointment, QuestionnaireSubmission, Conversation } from "@shared/schema";
+import { useAdminUndo } from "@/hooks/useAdminUndo";
 
 function formatWhatsAppUrl(phone: string, message?: string) {
   const cleaned = phone.replace(/[^0-9+]/g, '').replace(/^0/, '972')
@@ -59,6 +60,7 @@ const ClientsManager = ({ onOpenClient }: ClientsManagerProps) => {
   const { language, isRTL } = useLanguage();
   const isHe = language === "he";
   const { toast } = useToast();
+  const showUndo = useAdminUndo();
 
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +73,7 @@ const ClientsManager = ({ onOpenClient }: ClientsManagerProps) => {
   const [personFilter, setPersonFilter] = useState<PersonFilter>('both');
   const [personLayout, setPersonLayout] = useState<PersonLayout>('columns');
   const [groupOrder, setGroupOrder] = useState<GroupOrder>('leads-first');
+  const [includeTest, setIncludeTest] = useState(false);
 
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -79,7 +82,7 @@ const ClientsManager = ({ onOpenClient }: ClientsManagerProps) => {
 
   const fetchClients = async () => {
     try {
-      const res = await fetch("/api/clients", { credentials: "include" });
+      const res = await fetch(includeTest ? "/api/clients?includeTest=true" : "/api/clients", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch clients");
       const data = await res.json();
       setClients(data);
@@ -92,7 +95,7 @@ const ClientsManager = ({ onOpenClient }: ClientsManagerProps) => {
 
   useEffect(() => {
     fetchClients();
-  }, []);
+  }, [includeTest]);
 
   const handleAddClient = async () => {
     if (!newName.trim()) {
@@ -127,8 +130,21 @@ const ClientsManager = ({ onOpenClient }: ClientsManagerProps) => {
       : `Delete ${selectedIds.size} leads/clients?`;
     if (!window.confirm(msg)) return;
     try {
-      await apiRequest("POST", "/api/clients/bulk-delete", { ids: Array.from(selectedIds) });
-      toast({ title: isHe ? "נמחקו" : "Deleted", description: isHe ? `${selectedIds.size} רשומות נמחקו` : `${selectedIds.size} records deleted` });
+      const ids = Array.from(selectedIds);
+      await apiRequest("POST", "/api/clients/bulk-delete", { ids });
+      showUndo({
+        title: isHe ? "הרשומות הועברו לסל" : "Records moved to bin",
+        description: isHe ? "אפשר לשחזר את כולן עם Ctrl+Z." : "Press Ctrl+Z to restore them.",
+        undoLabel: isHe ? "שחזר" : "Restore",
+        undoSuccessTitle: isHe ? "הרשומות שוחזרו" : "Records restored",
+        undoErrorTitle: isHe ? "השחזור נכשל" : "Restore failed",
+        onUndo: async () => {
+          await Promise.all(ids.map((id) => apiRequest("POST", `/api/admin/bin/client/${id}/restore`)));
+          fetchClients();
+          queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+          queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
+        },
+      });
       setSelectedIds(new Set());
       setSelectMode(false);
       fetchClients();
@@ -374,6 +390,11 @@ const ClientsManager = ({ onOpenClient }: ClientsManagerProps) => {
                     {isHe ? sourceLabel?.he : sourceLabel?.en}
                   </Badge>
                 )}
+                {client.isTest && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 leading-none">
+                    QA
+                  </Badge>
+                )}
                 {statusBadges.map((badge, i) => {
                   const Icon = badge.icon;
                   return (
@@ -441,6 +462,14 @@ const ClientsManager = ({ onOpenClient }: ClientsManagerProps) => {
                     <SelectItem value="clientsince-asc">{isHe ? "הפיכה ללקוח (ישן תחילה)" : "Became client (oldest)"}</SelectItem>
                   </SelectContent>
                 </Select>
+                <label className="flex h-8 items-center gap-2 rounded-md border px-2 text-xs">
+                  <Checkbox
+                    checked={includeTest}
+                    onCheckedChange={(checked) => setIncludeTest(checked === true)}
+                    data-testid="checkbox-include-test-clients"
+                  />
+                  {isHe ? "כולל QA" : "Include QA"}
+                </label>
               </>
             )}
             {clients.length > 0 && (

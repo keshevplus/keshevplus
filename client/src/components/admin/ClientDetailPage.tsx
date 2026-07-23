@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   ArrowLeft, ArrowRight, Mail, Phone, StickyNote, PhoneCall, Calendar, DollarSign, MailOpen,
   MessageCircle, FileText, ClipboardList, UserCheck, ArrowRightLeft, Save, Plus, ChevronDown, ChevronUp,
@@ -22,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { getLocalDateInputValue } from "@shared/appointmentSchedule";
 import { CLIENT_FILE_ALLOWED_TYPES, CLIENT_FILE_MAX_SIZE_BYTES } from "@shared/schema";
 import type { Client, ClientActivity, ClientPayment, ClientFile, Contact, Appointment, QuestionnaireSubmission, Conversation, WhatsAppMessage } from "@shared/schema";
+import { useAdminUndo } from "@/hooks/useAdminUndo";
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -59,6 +62,22 @@ function formatWhatsAppUrl(phone: string, message?: string) {
   const cleaned = phone.replace(/[^0-9+]/g, '').replace(/^0/, '972')
   const params = message ? `?text=${encodeURIComponent(message)}` : ''
   return `https://wa.me/${cleaned}${params}`
+}
+
+function activityActorName(activity: ClientActivity) {
+  return (activity as any).actorName || (activity as any).actorEmail || null;
+}
+
+function activityActorInitials(activity: ClientActivity) {
+  const actor = activityActorName(activity);
+  if (!actor) return "KP";
+  return actor
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 }
 
 interface ClientInteractions {
@@ -121,6 +140,7 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
   const { language, isRTL } = useLanguage();
   const isHe = language === "he";
   const { toast } = useToast();
+  const showUndo = useAdminUndo();
   const { user, isAdmin } = useAuth();
   const isBillingOnly = user?.role === "billing";
 
@@ -142,6 +162,7 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
   const [editIsDiagnosed, setEditIsDiagnosed] = useState("");
   const [activityLogExpanded, setActivityLogExpanded] = useState(false);
   const [activityFilter, setActivityFilter] = useState<string>("all");
+  const [includeTestInteractions, setIncludeTestInteractions] = useState(false);
 
   const [payments, setPayments] = useState<ClientPayment[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
@@ -199,7 +220,10 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
 
   const fetchInteractions = async () => {
     try {
-      const res = await fetch(`/api/clients/${clientId}/interactions`, { credentials: "include" });
+      const url = includeTestInteractions
+        ? `/api/clients/${clientId}/interactions?includeTest=true`
+        : `/api/clients/${clientId}/interactions`;
+      const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch interactions");
       const data = await res.json();
       setInteractions(data);
@@ -253,10 +277,28 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
     }
   };
 
-  const handleDeletePayment = async (paymentId: number) => {
+  const handleDeletePayment = async (payment: ClientPayment) => {
     try {
-      await apiRequest("DELETE", `/api/clients/payments/${paymentId}`);
-      setPayments((prev) => prev.filter((p) => p.id !== paymentId));
+      await apiRequest("DELETE", `/api/clients/payments/${payment.id}`);
+      setPayments((prev) => prev.filter((p) => p.id !== payment.id));
+      showUndo({
+        title: isHe ? "רישום התשלום נמחק" : "Payment record deleted",
+        description: isHe ? "אפשר לשחזר עם Ctrl+Z." : "Press Ctrl+Z to restore it.",
+        undoLabel: isHe ? "בטל" : "Undo",
+        undoSuccessTitle: isHe ? "רישום התשלום שוחזר" : "Payment record restored",
+        undoErrorTitle: isHe ? "שחזור הרישום נכשל" : "Failed to restore payment",
+        onUndo: async () => {
+          await apiRequest("POST", `/api/clients/${clientId}/payments`, {
+            date: payment.date,
+            amount: payment.amount,
+            description: payment.description ?? null,
+            method: payment.method ?? null,
+            status: payment.status,
+            invoiceNumber: payment.invoiceNumber ?? null,
+          });
+          fetchPayments();
+        },
+      });
     } catch {
       toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "מחיקת הרישום נכשלה" : "Failed to delete the record", variant: "destructive" });
     }
@@ -309,10 +351,21 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
     }
   };
 
-  const handleDeleteFile = async (fileId: number) => {
+  const handleDeleteFile = async (file: ClientFile) => {
     try {
-      await apiRequest("DELETE", `/api/clients/files/${fileId}`);
-      setFiles((prev) => prev.filter((f) => f.id !== fileId));
+      await apiRequest("DELETE", `/api/clients/files/${file.id}`);
+      setFiles((prev) => prev.filter((f) => f.id !== file.id));
+      showUndo({
+        title: isHe ? "הקובץ הועבר לסל" : "File moved to bin",
+        description: isHe ? "אפשר לשחזר עם Ctrl+Z." : "Press Ctrl+Z to restore it.",
+        undoLabel: isHe ? "בטל" : "Undo",
+        undoSuccessTitle: isHe ? "הקובץ שוחזר" : "File restored",
+        undoErrorTitle: isHe ? "שחזור הקובץ נכשל" : "Failed to restore file",
+        onUndo: async () => {
+          await apiRequest("POST", `/api/admin/bin/client_file/${file.id}/restore`);
+          fetchFiles();
+        },
+      });
     } catch {
       toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "מחיקת הקובץ נכשלה" : "Failed to delete the file", variant: "destructive" });
     }
@@ -333,6 +386,11 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
     window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
+
+  useEffect(() => {
+    if (!isBillingOnly) fetchInteractions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [includeTestInteractions]);
 
   const refreshAll = () => {
     fetchClient();
@@ -367,14 +425,22 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
 
   const handleToggleStatus = async () => {
     if (!client) return;
+    const previousStatus = client.status;
     const newStatus = client.status === 'client' ? 'lead' : 'client';
     try {
       await apiRequest("PATCH", `/api/clients/${client.id}`, { status: newStatus });
-      toast({
+      showUndo({
         title: isHe ? "סטטוס עודכן" : "Status Updated",
         description: newStatus === 'client'
-          ? (isHe ? "הליד הומר ללקוח בהצלחה" : "Lead converted to client successfully")
-          : (isHe ? "הלקוח הוחזר לסטטוס ליד" : "Client reverted to lead status"),
+          ? (isHe ? "הליד הומר ללקוח. אפשר לבטל עם Ctrl+Z." : "Lead converted to client. Press Ctrl+Z to undo.")
+          : (isHe ? "הלקוח הוחזר לליד. אפשר לבטל עם Ctrl+Z." : "Client reverted to lead. Press Ctrl+Z to undo."),
+        undoLabel: isHe ? "בטל" : "Undo",
+        undoSuccessTitle: isHe ? "השינוי בוטל" : "Change undone",
+        undoErrorTitle: isHe ? "הביטול נכשל" : "Undo failed",
+        onUndo: async () => {
+          await apiRequest("PATCH", `/api/clients/${client.id}`, { status: previousStatus });
+          refreshAll();
+        },
       });
       refreshAll();
     } catch {
@@ -406,7 +472,17 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
   const handleMarkTest = async () => {
     try {
       await apiRequest("PATCH", `/api/clients/${clientId}/mark-test`, { isTest: true });
-      toast({ title: isHe ? "סומן כבדיקה" : "Marked as test", description: isHe ? "הפריט הוסתר מהרשימה הרגילה." : "The item has been hidden from the normal list." });
+      showUndo({
+        title: isHe ? "סומן כבדיקה" : "Marked as test",
+        description: isHe ? "אפשר להחזיר לרשימה הרגילה עם Ctrl+Z." : "Press Ctrl+Z to return it to normal data.",
+        undoLabel: isHe ? "בטל" : "Undo",
+        undoSuccessTitle: isHe ? "סימון הבדיקה בוטל" : "Test mark removed",
+        undoErrorTitle: isHe ? "הביטול נכשל" : "Undo failed",
+        onUndo: async () => {
+          await apiRequest("PATCH", `/api/clients/${clientId}/mark-test`, { isTest: false });
+          queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+        },
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
       onBack();
     } catch {
@@ -741,9 +817,19 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
                             <TypeIcon className="w-3 h-3 mr-1" />
                             {isHe ? typeInfo.he : typeInfo.en}
                           </Badge>
+                          {activityActorName(activity) && (
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={(activity as any).actorProfileImageUrl || undefined} alt={activityActorName(activity) || ""} />
+                              <AvatarFallback className="text-[10px] font-semibold">{activityActorInitials(activity)}</AvatarFallback>
+                            </Avatar>
+                          )}
                           <div className="flex-1 min-w-0">
                             <div className="text-sm leading-snug text-foreground">{activity.description}</div>
-                            <div className="mt-1 text-[11px] text-muted-foreground">{formatDateTime(activity.createdAt)}</div>
+                            <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                              {activityActorName(activity) && <span>{activityActorName(activity)}</span>}
+                              {(activity as any).actorRole && <span>· {(activity as any).actorRole}</span>}
+                              <span>· {formatDateTime(activity.createdAt)}</span>
+                            </div>
                           </div>
                         </div>
                       );
@@ -767,6 +853,14 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
                   <FileText className="w-4 h-4" />
                   {isHe ? "היסטוריית אינטראקציות" : "Interaction History"}
                 </h4>
+                <label className="flex w-fit items-center gap-2 rounded-md border px-2 py-1 text-xs">
+                  <Checkbox
+                    checked={includeTestInteractions}
+                    onCheckedChange={(checked) => setIncludeTestInteractions(checked === true)}
+                    data-testid="checkbox-include-test-client-interactions"
+                  />
+                  {isHe ? "כולל QA" : "Include QA"}
+                </label>
                 {(() => {
                   const grouped = groupInteractions(interactions);
                   if (grouped.length === 0) {
@@ -823,7 +917,7 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
                             size="icon"
                             variant="ghost"
                             className="h-7 w-7 shrink-0 text-destructive"
-                            onClick={() => handleDeletePayment(payment.id)}
+                            onClick={() => handleDeletePayment(payment)}
                             data-testid={`button-delete-payment-${payment.id}`}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -939,7 +1033,7 @@ const ClientDetailPage = ({ clientId, onBack }: ClientDetailPageProps) => {
                           size="icon"
                           variant="ghost"
                           className="h-7 w-7 text-destructive"
-                          onClick={() => handleDeleteFile(file.id)}
+                          onClick={() => handleDeleteFile(file)}
                           data-testid={`button-delete-file-${file.id}`}
                         >
                           <Trash2 className="h-3.5 w-3.5" />

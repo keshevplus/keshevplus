@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useLanguage } from '@/hooks/useLanguage'
 import { apiRequest, queryClient } from '@/lib/queryClient'
 import type { Conversation, Message } from '@shared/schema'
+import { useAdminUndo } from '@/hooks/useAdminUndo'
 
 function formatWhatsAppUrl(phone: string, message?: string) {
   const cleaned = phone.replace(/[^0-9+]/g, '').replace(/^0/, '972')
@@ -217,17 +218,24 @@ const ChatHistoryManager = ({ initialFilter = 'all' }: ChatHistoryManagerProps) 
   const { language } = useLanguage()
   const isHe = language === 'he'
   const { toast } = useToast()
+  const showUndo = useAdminUndo()
   const [expandedKey, setExpandedKey] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [selectMode, setSelectMode] = useState(false)
   const [filter, setFilter] = useState<ChatFilter>(initialFilter)
+  const [includeTest, setIncludeTest] = useState(false)
 
   useEffect(() => {
     setFilter(initialFilter)
   }, [initialFilter])
 
   const { data: conversations = [], isLoading: loadingConversations } = useQuery<Conversation[]>({
-    queryKey: ['/api/conversations'],
+    queryKey: ['/api/conversations', includeTest],
+    queryFn: async () => {
+      const res = await fetch(includeTest ? '/api/conversations?includeTest=true' : '/api/conversations', { credentials: 'include' })
+      if (!res.ok) throw new Error('Failed to fetch conversations')
+      return res.json()
+    },
   })
 
   const { data: waConversations = [], isLoading: loadingWhatsapp } = useQuery<WhatsAppConversation[]>({
@@ -275,18 +283,42 @@ const ChatHistoryManager = ({ initialFilter = 'all' }: ChatHistoryManagerProps) 
 
   const markReviewed = useMutation({
     mutationFn: (id: number) => apiRequest('PATCH', `/api/conversations/${id}/reviewed`),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
       queryClient.invalidateQueries({ queryKey: ['admin-badges'] })
+      showUndo({
+        title: isHe ? 'השיחה סומנה כטופלה' : 'Conversation marked reviewed',
+        description: isHe ? 'אפשר לבטל עם Ctrl+Z.' : 'Press Ctrl+Z to undo.',
+        undoLabel: isHe ? 'בטל' : 'Undo',
+        undoSuccessTitle: isHe ? 'השינוי בוטל' : 'Change undone',
+        undoErrorTitle: isHe ? 'הביטול נכשל' : 'Undo failed',
+        onUndo: async () => {
+          await apiRequest('PATCH', `/api/conversations/${id}/unreviewed`)
+          queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
+          queryClient.invalidateQueries({ queryKey: ['admin-badges'] })
+        },
+      })
     },
   })
 
   const markUnreviewed = useMutation({
     mutationFn: (id: number) => apiRequest('PATCH', `/api/conversations/${id}/unreviewed`),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
       queryClient.invalidateQueries({ queryKey: ['admin-badges'] })
       setSelectedIds(new Set())
+      showUndo({
+        title: isHe ? 'השיחה סומנה כחדשה' : 'Conversation marked unreviewed',
+        description: isHe ? 'אפשר לבטל עם Ctrl+Z.' : 'Press Ctrl+Z to undo.',
+        undoLabel: isHe ? 'בטל' : 'Undo',
+        undoSuccessTitle: isHe ? 'השינוי בוטל' : 'Change undone',
+        undoErrorTitle: isHe ? 'הביטול נכשל' : 'Undo failed',
+        onUndo: async () => {
+          await apiRequest('PATCH', `/api/conversations/${id}/reviewed`)
+          queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
+          queryClient.invalidateQueries({ queryKey: ['admin-badges'] })
+        },
+      })
     },
   })
 
@@ -294,12 +326,20 @@ const ChatHistoryManager = ({ initialFilter = 'all' }: ChatHistoryManagerProps) 
     mutationFn: async (id: number) => {
       await apiRequest('DELETE', `/api/conversations/${id}`)
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
       queryClient.invalidateQueries({ queryKey: ['admin-badges'] })
-      toast({
-        title: isHe ? 'השיחה נמחקה' : 'Conversation deleted',
-        description: isHe ? 'השיחה נמחקה בהצלחה.' : 'Conversation has been deleted successfully.',
+      showUndo({
+        title: isHe ? 'השיחה הועברה לסל' : 'Conversation moved to bin',
+        description: isHe ? 'אפשר לשחזר מיד עם Ctrl+Z.' : 'Press Ctrl+Z to restore it.',
+        undoLabel: isHe ? 'שחזר' : 'Restore',
+        undoSuccessTitle: isHe ? 'השיחה שוחזרה' : 'Conversation restored',
+        undoErrorTitle: isHe ? 'השחזור נכשל' : 'Restore failed',
+        onUndo: async () => {
+          await apiRequest('POST', `/api/admin/bin/conversation/${id}/restore`)
+          queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
+          queryClient.invalidateQueries({ queryKey: ['admin-badges'] })
+        },
       })
     },
   })
@@ -308,25 +348,41 @@ const ChatHistoryManager = ({ initialFilter = 'all' }: ChatHistoryManagerProps) 
     mutationFn: async (ids: number[]) => {
       await apiRequest('POST', '/api/conversations/bulk-delete', { ids })
     },
-    onSuccess: () => {
+    onSuccess: (_data, ids) => {
       queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
       queryClient.invalidateQueries({ queryKey: ['admin-badges'] })
       setSelectedIds(new Set())
-      toast({
-        title: isHe ? 'השיחות נמחקו' : 'Conversations deleted',
-        description: isHe ? 'השיחות שנבחרו נמחקו בהצלחה.' : 'Selected conversations have been deleted successfully.',
+      showUndo({
+        title: isHe ? 'השיחות הועברו לסל' : 'Conversations moved to bin',
+        description: isHe ? 'אפשר לשחזר את כולן עם Ctrl+Z.' : 'Press Ctrl+Z to restore them.',
+        undoLabel: isHe ? 'שחזר' : 'Restore',
+        undoSuccessTitle: isHe ? 'השיחות שוחזרו' : 'Conversations restored',
+        undoErrorTitle: isHe ? 'השחזור נכשל' : 'Restore failed',
+        onUndo: async () => {
+          await Promise.all(ids.map((id) => apiRequest('POST', `/api/admin/bin/conversation/${id}/restore`)))
+          queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
+          queryClient.invalidateQueries({ queryKey: ['admin-badges'] })
+        },
       })
     },
   })
 
   const markTestMutation = useMutation({
     mutationFn: (id: number) => apiRequest('PATCH', `/api/conversations/${id}/mark-test`, { isTest: true }),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
       queryClient.invalidateQueries({ queryKey: ['admin-badges'] })
-      toast({
+      showUndo({
         title: isHe ? 'סומן כבדיקה' : 'Marked as test',
-        description: isHe ? 'הפריט הוסתר מהרשימה הרגילה.' : 'The item has been hidden from the normal list.',
+        description: isHe ? 'אפשר להחזיר לרשימה הרגילה עם Ctrl+Z.' : 'Press Ctrl+Z to return it to normal data.',
+        undoLabel: isHe ? 'בטל' : 'Undo',
+        undoSuccessTitle: isHe ? 'סימון הבדיקה בוטל' : 'Test mark removed',
+        undoErrorTitle: isHe ? 'הביטול נכשל' : 'Undo failed',
+        onUndo: async () => {
+          await apiRequest('PATCH', `/api/conversations/${id}/mark-test`, { isTest: false })
+          queryClient.invalidateQueries({ queryKey: ['/api/conversations'] })
+          queryClient.invalidateQueries({ queryKey: ['admin-badges'] })
+        },
       })
     },
   })
@@ -383,6 +439,14 @@ const ChatHistoryManager = ({ initialFilter = 'all' }: ChatHistoryManagerProps) 
                 <SelectItem value="new">{isHe ? 'חדשות בלבד' : 'New only'}</SelectItem>
               </SelectContent>
             </Select>
+            <label className="flex h-8 items-center gap-2 rounded-md border px-2 text-xs">
+              <Checkbox
+                checked={includeTest}
+                onCheckedChange={(checked) => setIncludeTest(checked === true)}
+                data-testid="checkbox-include-test-conversations"
+              />
+              {isHe ? 'כולל QA' : 'Include QA'}
+            </label>
             {visibleWebsiteIds.length > 0 && (
               <Button
                 variant="outline"
@@ -477,6 +541,11 @@ const ChatHistoryManager = ({ initialFilter = 'all' }: ChatHistoryManagerProps) 
                             >
                               {conv.reviewed ? (isHe ? 'נסקר' : 'Reviewed') : (isHe ? 'חדש' : 'New')}
                             </Badge>
+                            {conv.isTest && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 leading-none">
+                                QA
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center gap-2">
                             <Button

@@ -34,6 +34,7 @@ import nodemailer from "nodemailer";
 const ACTIVE_APPOINTMENT_STATUSES = new Set(["pending", "confirmed"]);
 const CONTACT_PHONE = "055-27-399-27";
 const CONTACT_EMAIL = "office@keshevplus.co.il";
+const PROTECTED_TRANSLATION_KEYS = new Set(["contact.email"]);
 const CONTACT_HOURS_HE = APPOINTMENT_WORKING_HOURS_HE;
 const CONTACT_HOURS_EN = APPOINTMENT_WORKING_HOURS_EN;
 
@@ -581,6 +582,65 @@ function isOwner(user: { role: string; email: string } | undefined | null): bool
   return hasOwnerLevelAccess(user);
 }
 
+function getUserDisplayName(user: {
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+} | undefined | null) {
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
+  return fullName || user?.email || "Unknown user";
+}
+
+function toPublicUser(user: any) {
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    firstName: user.firstName ?? null,
+    lastName: user.lastName ?? null,
+    phone: user.phone ?? null,
+    profileImageUrl: user.profileImageUrl ?? null,
+    createdAt: user.createdAt ?? null,
+    mustChangePassword: user.mustChangePassword,
+  };
+}
+
+function actorSnapshot(user: any) {
+  return {
+    actorUserId: user?.id ?? null,
+    actorEmail: user?.email ?? null,
+    actorName: getUserDisplayName(user),
+    actorRole: user?.role ?? null,
+    actorProfileImageUrl: user?.profileImageUrl ?? null,
+  };
+}
+
+async function logAdminActivity(
+  user: any,
+  input: {
+    action: string;
+    entityType: string;
+    entityId?: number | null;
+    entityLabel?: string | null;
+    description: string;
+    metadata?: Record<string, unknown> | null;
+  },
+) {
+  try {
+    await storage.createActivityLog({
+      ...actorSnapshot(user),
+      action: input.action,
+      entityType: input.entityType,
+      entityId: input.entityId ?? null,
+      entityLabel: input.entityLabel ?? null,
+      description: input.description,
+      metadata: input.metadata ?? null,
+    } as any);
+  } catch (error) {
+    console.error("Failed to write activity log:", error);
+  }
+}
+
 // Billing is a restricted role, one tier below manager: payment
 // record-keeping and a contact-only client lookup, nothing else (no
 // appointments, questionnaires, conversations, WhatsApp, clinical fields,
@@ -724,6 +784,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const settings = await storage.updateContactFormSettings(result.data);
     res.json(settings);
+  });
+
+  app.get("/api/admin/activity-logs", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+
+      const limit = Math.min(Math.max(Number(req.query.limit) || 200, 1), 500);
+      const logs = await storage.getActivityLogs(limit);
+      return res.json(logs);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch activity logs" });
+    }
   });
 
   app.get("/api/settings/hero-layout", async (_req, res) => {
@@ -897,7 +972,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
-      const contacts = await storage.getContacts();
+      const includeTest = req.query.includeTest === "true";
+      const contacts = await storage.getContacts(includeTest);
       const status = req.query.status as string | undefined;
       const filtered = status && status !== "all" 
         ? contacts.filter(c => c.status === status)
@@ -922,6 +998,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!contact) {
         return res.status(404).json({ error: "Contact not found" });
       }
+      await logAdminActivity(user, {
+        action: "contact.read",
+        entityType: "contact",
+        entityId: contact.id,
+        entityLabel: contact.name,
+        description: `${getUserDisplayName(user)} marked contact ${contact.name} as read`,
+      });
       return res.json(contact);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update contact" });
@@ -941,6 +1024,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!contact) {
         return res.status(404).json({ error: "Contact not found" });
       }
+      await logAdminActivity(user, {
+        action: "contact.unread",
+        entityType: "contact",
+        entityId: contact.id,
+        entityLabel: contact.name,
+        description: `${getUserDisplayName(user)} marked contact ${contact.name} as unread`,
+      });
       return res.json(contact);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update contact" });
@@ -961,6 +1051,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!contact) {
         return res.status(404).json({ error: "Contact not found" });
       }
+      await logAdminActivity(user, {
+        action: "contact.status",
+        entityType: "contact",
+        entityId: contact.id,
+        entityLabel: contact.name,
+        description: `${getUserDisplayName(user)} changed contact ${contact.name} status to ${status}`,
+        metadata: { status },
+      });
       return res.json(contact);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update contact status" });
@@ -980,9 +1078,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "IDs array is required" });
       }
       const numericIds = ids.map(Number);
-      const count = isOwner(user)
-        ? await storage.bulkDeleteContacts(numericIds)
-        : await storage.bulkArchiveContacts(numericIds);
+      const count = await storage.bulkArchiveContacts(numericIds);
+      await logAdminActivity(user, {
+        action: "contact.bulk_archive",
+        entityType: "contact",
+        description: `${getUserDisplayName(user)} archived ${count} contacts`,
+        metadata: { ids: numericIds, count },
+      });
       return res.json({ success: true, deleted: count });
     } catch (error) {
       return res.status(500).json({ error: "Failed to bulk delete contacts" });
@@ -998,10 +1100,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = isOwner(user) ? await storage.deleteContact(id) : await storage.archiveContact(id);
+      const deleted = await storage.archiveContact(id);
       if (!deleted) {
         return res.status(404).json({ error: "Contact not found" });
       }
+      await logAdminActivity(user, {
+        action: "contact.archive",
+        entityType: "contact",
+        entityId: id,
+        description: `${getUserDisplayName(user)} archived contact #${id}`,
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete contact" });
@@ -1020,6 +1128,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isTest = req.body?.isTest !== false;
       const updated = await storage.setContactTest(id, isTest);
       if (!updated) return res.status(404).json({ error: "Contact not found" });
+      await logAdminActivity(user, {
+        action: "contact.mark_test",
+        entityType: "contact",
+        entityId: id,
+        description: `${getUserDisplayName(user)} marked contact #${id} as ${isTest ? "test" : "not test"}`,
+        metadata: { isTest },
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to update contact" });
@@ -1176,7 +1291,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       (req.session as any).userId = user.id;
-      return res.json({ id: user.id, email: user.email, role: user.role, mustChangePassword: user.mustChangePassword });
+      await logAdminActivity(user, {
+        action: "auth.login",
+        entityType: "user",
+        entityId: user.id,
+        entityLabel: getUserDisplayName(user),
+        description: `${getUserDisplayName(user)} signed in to the admin dashboard`,
+      });
+      return res.json(toPublicUser(user));
     } catch (error) {
       console.error("Login error:", error);
       return res.status(500).json({ error: "Login failed" });
@@ -1195,6 +1317,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: users.id,
           email: users.email,
           role: users.role,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          phone: users.phone,
+          profileImageUrl: users.profileImageUrl,
+          createdAt: users.createdAt,
           mustChangePassword: users.mustChangePassword,
         })
         .from(users);
@@ -1215,6 +1342,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: z.string().trim().email(),
         password: z.string().min(6),
         role: z.enum(["admin", "manager", "user", "billing"]),
+        firstName: z.string().trim().optional().nullable(),
+        lastName: z.string().trim().optional().nullable(),
+        phone: z.string().trim().optional().nullable(),
+        profileImageUrl: z.string().trim().url().optional().or(z.literal("")).nullable(),
       });
       const result = createUserSchema.safeParse(req.body);
       if (!result.success) {
@@ -1234,12 +1365,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: result.data.email,
         password: hashedPassword,
         role: result.data.role,
+        firstName: result.data.firstName || null,
+        lastName: result.data.lastName || null,
+        phone: result.data.phone || null,
+        profileImageUrl: result.data.profileImageUrl || null,
         mustChangePassword: true,
       } as any);
 
-      return res.json({ id: created.id, email: created.email, role: created.role, mustChangePassword: created.mustChangePassword });
+      await logAdminActivity(user, {
+        action: "user.create",
+        entityType: "user",
+        entityId: created.id,
+        entityLabel: getUserDisplayName(created),
+        description: `${getUserDisplayName(user)} created user ${getUserDisplayName(created)} (${created.email})`,
+        metadata: { role: created.role },
+      });
+
+      return res.json(toPublicUser(created));
     } catch (error) {
       return res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!isOwner(user)) return res.status(403).json({ error: "Owner access required" });
+
+      const targetId = parseInt(req.params.id);
+      const targetUser = await storage.getUser(targetId);
+      if (!targetUser) return res.status(404).json({ error: "User not found" });
+
+      const updateUserSchema = z.object({
+        firstName: z.string().trim().optional().nullable(),
+        lastName: z.string().trim().optional().nullable(),
+        phone: z.string().trim().optional().nullable(),
+        profileImageUrl: z.string().trim().url().optional().or(z.literal("")).nullable(),
+        role: z.enum(["admin", "manager", "user", "billing", "owner", "superadmin"]).optional(),
+      });
+      const result = updateUserSchema.safeParse(req.body);
+      if (!result.success) return res.status(400).json({ error: result.error.message });
+
+      const patch: any = {
+        firstName: result.data.firstName ?? null,
+        lastName: result.data.lastName ?? null,
+        phone: result.data.phone ?? null,
+        profileImageUrl: result.data.profileImageUrl || null,
+      };
+      if (result.data.role && normalizeAdminEmail(targetUser.email) !== "dr@keshevplus.co.il") {
+        patch.role = result.data.role;
+      }
+
+      const updated = await storage.updateUserProfile(targetId, patch);
+      if (!updated) return res.status(404).json({ error: "User not found" });
+
+      await logAdminActivity(user, {
+        action: "user.update",
+        entityType: "user",
+        entityId: updated.id,
+        entityLabel: getUserDisplayName(updated),
+        description: `${getUserDisplayName(user)} updated user ${getUserDisplayName(updated)} (${updated.email})`,
+        metadata: patch,
+      });
+
+      return res.json(toPublicUser(updated));
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update user" });
     }
   });
 
@@ -1269,6 +1462,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await db.delete(users).where(eq(users.id, targetId));
+      await logAdminActivity(user, {
+        action: "user.delete",
+        entityType: "user",
+        entityId: targetUser.id,
+        entityLabel: getUserDisplayName(targetUser),
+        description: `${getUserDisplayName(user)} deleted user ${getUserDisplayName(targetUser)} (${targetUser.email})`,
+        metadata: { targetEmail: targetUser.email, targetRole: targetUser.role },
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Delete failed" });
@@ -1340,7 +1541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!user) {
       return res.status(401).json({ error: "User not found" });
     }
-    return res.json({ id: user.id, email: user.email, role: user.role, mustChangePassword: user.mustChangePassword });
+    return res.json(toPublicUser(user));
   });
 
   app.post("/api/auth/change-password", async (req, res) => {
@@ -1553,6 +1754,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const key = decodeURIComponent(req.params.key);
+      if (PROTECTED_TRANSLATION_KEYS.has(key)) {
+        return res.status(400).json({ error: "This translation key is protected from deletion" });
+      }
       const count = await storage.deleteTranslationKey(key);
       return res.json({ deleted: count });
     } catch (error) {
@@ -1656,7 +1860,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const type = req.query.type as string | undefined;
       const status = req.query.status as string | undefined;
-      let submissions = await storage.getQuestionnaireSubmissions(type && type !== 'all' ? type : undefined);
+      const includeTest = req.query.includeTest === "true";
+      let submissions = await storage.getQuestionnaireSubmissions(type && type !== 'all' ? type : undefined, includeTest);
       if (status && status !== "all") {
         submissions = submissions.filter(s => s.status === status);
       }
@@ -1681,6 +1886,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!submission) {
         return res.status(404).json({ error: "Questionnaire not found" });
       }
+      await logAdminActivity(user, {
+        action: "questionnaire.status",
+        entityType: "questionnaire",
+        entityId: submission.id,
+        entityLabel: submission.respondentName,
+        description: `${getUserDisplayName(user)} changed questionnaire ${submission.respondentName} status to ${status}`,
+        metadata: { status },
+      });
       return res.json(submission);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update questionnaire status" });
@@ -1696,10 +1909,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = isOwner(user) ? await storage.deleteQuestionnaire(id) : await storage.archiveQuestionnaire(id);
+      const deleted = await storage.archiveQuestionnaire(id);
       if (!deleted) {
         return res.status(404).json({ error: "Questionnaire not found" });
       }
+      await logAdminActivity(user, {
+        action: "questionnaire.archive",
+        entityType: "questionnaire",
+        entityId: id,
+        description: `${getUserDisplayName(user)} archived questionnaire #${id}`,
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete questionnaire" });
@@ -1718,6 +1937,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isTest = req.body?.isTest !== false;
       const updated = await storage.setQuestionnaireTest(id, isTest);
       if (!updated) return res.status(404).json({ error: "Questionnaire not found" });
+      await logAdminActivity(user, {
+        action: "questionnaire.mark_test",
+        entityType: "questionnaire",
+        entityId: id,
+        description: `${getUserDisplayName(user)} marked questionnaire #${id} as ${isTest ? "test" : "not test"}`,
+        metadata: { isTest },
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to update questionnaire" });
@@ -1733,10 +1959,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = isOwner(user) ? await storage.deleteAppointment(id) : await storage.archiveAppointment(id);
+      const appointment = await storage.getAppointment(id);
+      const deleted = await storage.archiveAppointment(id);
       if (!deleted) {
         return res.status(404).json({ error: "Appointment not found" });
       }
+      await logAdminActivity(user, {
+        action: "appointment.archive",
+        entityType: "appointment",
+        entityId: id,
+        entityLabel: appointment?.clientName ?? null,
+        description: `${getUserDisplayName(user)} archived appointment for ${appointment?.clientName ?? `#${id}`}`,
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete appointment" });
@@ -1755,6 +1989,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isTest = req.body?.isTest !== false;
       const updated = await storage.setAppointmentTest(id, isTest);
       if (!updated) return res.status(404).json({ error: "Appointment not found" });
+      await logAdminActivity(user, {
+        action: "appointment.mark_test",
+        entityType: "appointment",
+        entityId: id,
+        description: `${getUserDisplayName(user)} marked appointment #${id} as ${isTest ? "test" : "not test"}`,
+        metadata: { isTest },
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to update appointment" });
@@ -1825,6 +2066,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!submission) {
         return res.status(404).json({ error: "Submission not found" });
       }
+      await logAdminActivity(user, {
+        action: "questionnaire.reviewed",
+        entityType: "questionnaire",
+        entityId: submission.id,
+        entityLabel: submission.respondentName,
+        description: `${getUserDisplayName(user)} marked questionnaire ${submission.respondentName} as reviewed`,
+      });
       return res.json(submission);
     } catch (error) {
       console.error("Error updating questionnaire:", error);
@@ -2083,6 +2331,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: "appointment",
         description: `נקבעה פגישה מסוג ${getAppointmentTypeLabelHe(result.data.type)} לתאריך ${result.data.date} בשעה ${result.data.time} (נוספה ידנית ע"י הצוות)`,
         metadata: { source: "manual_appointment" },
+        ...actorSnapshot(user),
+      });
+
+      await logAdminActivity(user, {
+        action: "appointment.manual_create",
+        entityType: "appointment",
+        entityId: appointment.id,
+        entityLabel: appointment.clientName,
+        description: `${getUserDisplayName(user)} manually created appointment for ${appointment.clientName}`,
+        metadata: { clientId: client.id, date: appointment.date, time: appointment.time, type: appointment.type },
       });
 
       return res.json({ success: true, appointment, client });
@@ -2101,7 +2359,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
       const status = req.query.status as string | undefined;
-      const list = await storage.getAppointments(status);
+      const includeTest = req.query.includeTest === "true";
+      const list = await storage.getAppointments(status, includeTest);
       return res.json(list);
     } catch (error) {
       console.error("Error fetching appointments:", error);
@@ -2126,6 +2385,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updated = await storage.updateAppointmentStatus(id, status);
       if (!updated) return res.status(404).json({ error: "Appointment not found" });
 
+      await logAdminActivity(user, {
+        action: "appointment.status",
+        entityType: "appointment",
+        entityId: updated.id,
+        entityLabel: updated.clientName,
+        description: `${getUserDisplayName(user)} changed appointment for ${updated.clientName} from ${existing?.status ?? "unknown"} to ${status}`,
+        metadata: { from: existing?.status ?? null, to: status, contactMethod: contactMethod ?? null },
+      });
+
       if (status === "cancelled" && existing && existing.status !== "cancelled") {
         try {
           const client = await storage.getClientByEmail(existing.clientEmail);
@@ -2136,6 +2404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               type: "cancellation",
               description: `הפגישה מסוג ${getAppointmentTypeLabelHe(existing.type)} בתאריך ${existing.date} בוטלה. דרך יצירת קשר לביטול: ${methodLabel}`,
               metadata: { source: "appointment_cancelled", appointmentId: id, contactMethod: contactMethod ?? null },
+              ...actorSnapshot(user),
             });
           }
         } catch (e) { console.error("Cancellation activity log error:", e); }
@@ -2184,6 +2453,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const updated = await storage.updateAppointmentSchedule(id, date, time);
+      await logAdminActivity(user, {
+        action: "appointment.reschedule",
+        entityType: "appointment",
+        entityId: id,
+        entityLabel: existing.clientName,
+        description: `${getUserDisplayName(user)} rescheduled appointment for ${existing.clientName}`,
+        metadata: { from: { date: existing.date, time: existing.time }, to: { date, time } },
+      });
       return res.json(updated);
     } catch (error) {
       console.error("Error rescheduling appointment:", error);
@@ -2214,6 +2491,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: "note",
         description: note,
         metadata: { source: "appointment", appointmentId: id },
+        ...actorSnapshot(user),
+      });
+      await logAdminActivity(user, {
+        action: "appointment.note",
+        entityType: "appointment",
+        entityId: id,
+        entityLabel: appointment.clientName,
+        description: `${getUserDisplayName(user)} added note to appointment for ${appointment.clientName}`,
+        metadata: { clientId: client.id, activityId: activity.id },
       });
       return res.json(activity);
     } catch (error) {
@@ -2236,6 +2522,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: result.error.message });
       }
       const client = await storage.createClient(result.data);
+      await logAdminActivity(user, {
+        action: "client.create",
+        entityType: client.status === "client" ? "client" : "lead",
+        entityId: client.id,
+        entityLabel: client.name,
+        description: `${getUserDisplayName(user)} created ${client.status === "client" ? "client" : "lead"} ${client.name}`,
+        metadata: { email: client.email, phone: client.phone, status: client.status },
+      });
       return res.json(client);
     } catch (error) {
       console.error("Error creating client:", error);
@@ -2256,9 +2550,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "IDs array is required" });
       }
       const numericIds = ids.map(Number);
-      const count = isOwner(user)
-        ? await storage.bulkDeleteClients(numericIds)
-        : await storage.bulkArchiveClients(numericIds);
+      const count = await storage.bulkArchiveClients(numericIds);
+      await logAdminActivity(user, {
+        action: "client.bulk_archive",
+        entityType: "client",
+        description: `${getUserDisplayName(user)} archived ${count} leads/clients`,
+        metadata: { ids: numericIds, count },
+      });
       return res.json({ success: true, deleted: count });
     } catch (error) {
       return res.status(500).json({ error: "Failed to bulk delete clients" });
@@ -2274,8 +2572,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = isOwner(user) ? await storage.deleteClient(id) : await storage.archiveClient(id);
+      const client = await storage.getClient(id);
+      const deleted = await storage.archiveClient(id);
       if (!deleted) return res.status(404).json({ error: "Client not found" });
+      await logAdminActivity(user, {
+        action: "client.archive",
+        entityType: client?.status === "client" ? "client" : "lead",
+        entityId: id,
+        entityLabel: client?.name ?? null,
+        description: `${getUserDisplayName(user)} archived ${client?.name ?? `client #${id}`}`,
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete client" });
@@ -2294,6 +2600,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isTest = req.body?.isTest !== false;
       const updated = await storage.setClientTest(id, isTest);
       if (!updated) return res.status(404).json({ error: "Client not found" });
+      await logAdminActivity(user, {
+        action: "client.mark_test",
+        entityType: "client",
+        entityId: id,
+        description: `${getUserDisplayName(user)} marked client #${id} as ${isTest ? "test" : "not test"}`,
+        metadata: { isTest },
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to update client" });
@@ -2308,7 +2621,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!hasBillingAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
-      const list = await storage.getClients();
+      const includeTest = hasAdminAccess(user) && req.query.includeTest === "true";
+      const list = await storage.getClients(includeTest);
       return res.json(hasAdminAccess(user) ? list : list.map(toBillingClientView));
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch clients" });
@@ -2350,6 +2664,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const updated = await storage.updateClient(id, result.data);
       if (!updated) return res.status(404).json({ error: "Client not found" });
+      await logAdminActivity(user, {
+        action: "client.update",
+        entityType: updated.status === "client" ? "client" : "lead",
+        entityId: updated.id,
+        entityLabel: updated.name,
+        description: `${getUserDisplayName(user)} updated ${updated.name}`,
+        metadata: result.data,
+      });
       return res.json(updated);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update client" });
@@ -2378,7 +2700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const interactions = await storage.getClientInteractions(id);
+      const interactions = await storage.getClientInteractions(id, req.query.includeTest === "true");
       return res.json(interactions);
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch interactions" });
@@ -2398,7 +2720,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "IDs array is required" });
       }
       const numericIds = ids.map(Number);
-      const interactions = await storage.getClientInteractionsBulk(numericIds);
+      const interactions = await storage.getClientInteractionsBulk(numericIds, req.query.includeTest === "true");
       return res.json(interactions);
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch interactions" });
@@ -2415,11 +2737,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
       const clientId = parseInt(req.params.id);
-      const result = insertClientActivitySchema.safeParse({ ...req.body, clientId });
+      const result = insertClientActivitySchema.safeParse({ ...req.body, clientId, ...actorSnapshot(user) });
       if (!result.success) {
         return res.status(400).json({ error: result.error.message });
       }
       const activity = await storage.createClientActivity(result.data);
+      await logAdminActivity(user, {
+        action: "client_activity.create",
+        entityType: "client",
+        entityId: clientId,
+        description: `${getUserDisplayName(user)} added ${activity.type} activity to client #${clientId}`,
+        metadata: { activityId: activity.id, type: activity.type },
+      });
       return res.json(activity);
     } catch (error) {
       return res.status(500).json({ error: "Failed to create activity" });
@@ -2456,6 +2785,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: result.error.message });
       }
       const payment = await storage.createClientPayment(result.data);
+      const client = await storage.getClient(clientId);
+      await logAdminActivity(user, {
+        action: "payment.create",
+        entityType: "client",
+        entityId: clientId,
+        entityLabel: client?.name ?? null,
+        description: `${getUserDisplayName(user)} added payment record for ${client?.name ?? `client #${clientId}`}`,
+        metadata: { paymentId: payment.id, amount: payment.amount, status: payment.status },
+      });
       return res.json(payment);
     } catch (error) {
       return res.status(500).json({ error: "Failed to create payment" });
@@ -2489,6 +2827,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const deleted = await storage.deleteClientPayment(id);
       if (!deleted) return res.status(404).json({ error: "Payment not found" });
+      await logAdminActivity(user, {
+        action: "payment.delete",
+        entityType: "payment",
+        entityId: id,
+        description: `${getUserDisplayName(user)} deleted payment record #${id}`,
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete payment" });
@@ -2539,6 +2883,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: result.error.message });
       }
       const created = await storage.createClientFile(result.data);
+      await logAdminActivity(user, {
+        action: "client_file.upload",
+        entityType: "client",
+        entityId: clientId,
+        entityLabel: client.name,
+        description: `${getUserDisplayName(user)} uploaded file ${created.fileName} for ${client.name}`,
+        metadata: { fileId: created.id, fileName: created.fileName, fileType: created.fileType, fileSize: created.fileSize },
+      });
       const { blobUrl, ...fileMeta } = created;
       return res.json(fileMeta);
     } catch (error) {
@@ -2595,8 +2947,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
+      const file = await storage.getClientFile(id);
       const deleted = await storage.deleteClientFile(id);
       if (!deleted) return res.status(404).json({ error: "File not found" });
+      await logAdminActivity(user, {
+        action: "client_file.delete",
+        entityType: "client_file",
+        entityId: id,
+        entityLabel: file?.fileName ?? null,
+        description: `${getUserDisplayName(user)} deleted file ${file?.fileName ?? `#${id}`}`,
+        metadata: { clientId: file?.clientId ?? null },
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete file" });
@@ -2802,7 +3163,8 @@ RESPONSE BEHAVIOR:
       if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
-      const list = await storage.getConversations();
+      const includeTest = req.query.includeTest === "true";
+      const list = await storage.getConversations(includeTest);
       return res.json(list);
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch conversations" });
@@ -2836,6 +3198,13 @@ RESPONSE BEHAVIOR:
       const id = parseInt(req.params.id);
       const updated = await storage.markConversationReviewed(id);
       if (!updated) return res.status(404).json({ error: "Conversation not found" });
+      await logAdminActivity(user, {
+        action: "conversation.reviewed",
+        entityType: "conversation",
+        entityId: updated.id,
+        entityLabel: updated.visitorName,
+        description: `${getUserDisplayName(user)} marked conversation with ${updated.visitorName} as reviewed`,
+      });
       return res.json(updated);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update conversation" });
@@ -2853,6 +3222,13 @@ RESPONSE BEHAVIOR:
       const id = parseInt(req.params.id);
       const updated = await storage.markConversationUnreviewed(id);
       if (!updated) return res.status(404).json({ error: "Conversation not found" });
+      await logAdminActivity(user, {
+        action: "conversation.unreviewed",
+        entityType: "conversation",
+        entityId: updated.id,
+        entityLabel: updated.visitorName,
+        description: `${getUserDisplayName(user)} marked conversation with ${updated.visitorName} as unread`,
+      });
       return res.json(updated);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update conversation" });
@@ -2872,9 +3248,13 @@ RESPONSE BEHAVIOR:
         return res.status(400).json({ error: "IDs array is required" });
       }
       const numericIds = ids.map(Number);
-      const count = isOwner(user)
-        ? await storage.bulkDeleteConversations(numericIds)
-        : await storage.bulkArchiveConversations(numericIds);
+      const count = await storage.bulkArchiveConversations(numericIds);
+      await logAdminActivity(user, {
+        action: "conversation.bulk_archive",
+        entityType: "conversation",
+        description: `${getUserDisplayName(user)} archived ${count} conversations`,
+        metadata: { ids: numericIds, count },
+      });
       return res.json({ success: true, deleted: count });
     } catch (error) {
       return res.status(500).json({ error: "Failed to bulk delete conversations" });
@@ -2890,10 +3270,18 @@ RESPONSE BEHAVIOR:
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = isOwner(user) ? await storage.deleteConversation(id) : await storage.archiveConversation(id);
+      const conversation = await storage.getConversation(id);
+      const deleted = await storage.archiveConversation(id);
       if (!deleted) {
         return res.status(404).json({ error: "Conversation not found" });
       }
+      await logAdminActivity(user, {
+        action: "conversation.archive",
+        entityType: "conversation",
+        entityId: id,
+        entityLabel: conversation?.visitorName ?? null,
+        description: `${getUserDisplayName(user)} archived conversation with ${conversation?.visitorName ?? `#${id}`}`,
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete conversation" });
@@ -2912,6 +3300,13 @@ RESPONSE BEHAVIOR:
       const isTest = req.body?.isTest !== false;
       const updated = await storage.setConversationTest(id, isTest);
       if (!updated) return res.status(404).json({ error: "Conversation not found" });
+      await logAdminActivity(user, {
+        action: "conversation.mark_test",
+        entityType: "conversation",
+        entityId: id,
+        description: `${getUserDisplayName(user)} marked conversation #${id} as ${isTest ? "test" : "not test"}`,
+        metadata: { isTest },
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to update conversation" });
@@ -3070,6 +3465,15 @@ RESPONSE BEHAVIOR:
         direction: "outbound",
         content: message,
         status: "sent",
+      });
+
+      await logAdminActivity(user, {
+        action: "whatsapp.send",
+        entityType: clientId ? "client" : "whatsapp",
+        entityId: clientId,
+        entityLabel: phone,
+        description: `${getUserDisplayName(user)} sent WhatsApp message to ${phone}`,
+        metadata: { messageId: saved.id, waMessageId, phone },
       });
 
       return res.json(saved);

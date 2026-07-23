@@ -30,6 +30,7 @@ __export(schema_exports, {
   SUPPORTED_LANGUAGES: () => SUPPORTED_LANGUAGES,
   WA_MESSAGE_DIRECTIONS: () => WA_MESSAGE_DIRECTIONS,
   WA_MESSAGE_STATUSES: () => WA_MESSAGE_STATUSES,
+  activityLogs: () => activityLogs,
   appointments: () => appointments,
   bulkUpsertTranslationsSchema: () => bulkUpsertTranslationsSchema,
   clientActivities: () => clientActivities,
@@ -44,6 +45,7 @@ __export(schema_exports, {
   homeSectionSchema: () => homeSectionSchema,
   homeSectionsSchema: () => homeSectionsSchema,
   images: () => images,
+  insertActivityLogSchema: () => insertActivityLogSchema,
   insertAppointmentSchema: () => insertAppointmentSchema,
   insertClientActivitySchema: () => insertClientActivitySchema,
   insertClientFileSchema: () => insertClientFileSchema,
@@ -109,6 +111,12 @@ var users = pgTable2("users", {
   email: text2("email").notNull().unique(),
   password: text2("password").notNull(),
   role: text2("role").notNull().default("user"),
+  firstName: text2("first_name"),
+  lastName: text2("last_name"),
+  phone: text2("phone"),
+  profileImageUrl: text2("profile_image_url"),
+  createdAt: timestamp2("created_at").defaultNow().notNull(),
+  updatedAt: timestamp2("updated_at").defaultNow().notNull(),
   mustChangePassword: boolean2("must_change_password").notNull().default(false),
   resetToken: text2("reset_token")
 });
@@ -217,6 +225,26 @@ var clientActivities = pgTable2("client_activities", {
   type: text2("type").notNull(),
   description: text2("description").notNull(),
   metadata: jsonb("metadata"),
+  actorUserId: integer2("actor_user_id"),
+  actorEmail: text2("actor_email"),
+  actorName: text2("actor_name"),
+  actorRole: text2("actor_role"),
+  actorProfileImageUrl: text2("actor_profile_image_url"),
+  createdAt: timestamp2("created_at").defaultNow().notNull()
+});
+var activityLogs = pgTable2("activity_logs", {
+  id: serial2("id").primaryKey(),
+  actorUserId: integer2("actor_user_id"),
+  actorEmail: text2("actor_email"),
+  actorName: text2("actor_name"),
+  actorRole: text2("actor_role"),
+  actorProfileImageUrl: text2("actor_profile_image_url"),
+  action: text2("action").notNull(),
+  entityType: text2("entity_type").notNull(),
+  entityId: integer2("entity_id"),
+  entityLabel: text2("entity_label"),
+  description: text2("description").notNull(),
+  metadata: jsonb("metadata"),
   createdAt: timestamp2("created_at").defaultNow().notNull()
 });
 var PAYMENT_METHODS = ["cash", "card", "bank_transfer", "bit", "check", "other"];
@@ -252,9 +280,10 @@ var clientFiles = pgTable2("client_files", {
   fileSize: integer2("file_size").notNull(),
   blobUrl: text2("blob_url").notNull(),
   uploadedBy: integer2("uploaded_by"),
+  archived: boolean2("archived").default(false).notNull(),
   createdAt: timestamp2("created_at").defaultNow().notNull()
 });
-var insertClientFileSchema = createInsertSchema2(clientFiles).omit({ id: true, createdAt: true }).extend({
+var insertClientFileSchema = createInsertSchema2(clientFiles).omit({ id: true, archived: true, createdAt: true }).extend({
   fileType: z.enum(CLIENT_FILE_ALLOWED_TYPES),
   fileSize: z.number().int().positive().max(CLIENT_FILE_MAX_SIZE_BYTES)
 });
@@ -269,6 +298,7 @@ var insertAppointmentSchema = createInsertSchema2(appointments).omit({ id: true,
 });
 var insertClientSchema = createInsertSchema2(clients).omit({ id: true, leadNumber: true, clientNumber: true, createdAt: true });
 var insertClientActivitySchema = createInsertSchema2(clientActivities).omit({ id: true, createdAt: true });
+var insertActivityLogSchema = createInsertSchema2(activityLogs).omit({ id: true, createdAt: true });
 var insertClientPaymentSchema = createInsertSchema2(clientPayments).omit({ id: true, createdAt: true }).extend({
   amount: z.union([z.string(), z.number()]).transform((v) => String(v)),
   method: z.enum(PAYMENT_METHODS).optional().nullable(),
@@ -408,6 +438,10 @@ var DatabaseStorage = class {
     const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
+  async updateUserProfile(id, data) {
+    const [user] = await db.update(users).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(eq(users.id, id)).returning();
+    return user || void 0;
+  }
   async updateUserPassword(id, hashedPassword) {
     await db.update(users).set({ password: hashedPassword, mustChangePassword: false, resetToken: null }).where(eq(users.id, id));
   }
@@ -421,8 +455,8 @@ var DatabaseStorage = class {
     const [contact] = await db.insert(contacts).values(insertContact).returning();
     return contact;
   }
-  async getContacts() {
-    return await db.select().from(contacts).where(and(eq(contacts.archived, false), eq(contacts.isTest, false))).orderBy(desc(contacts.createdAt));
+  async getContacts(includeTest = false) {
+    return await db.select().from(contacts).where(includeTest ? eq(contacts.archived, false) : and(eq(contacts.archived, false), eq(contacts.isTest, false))).orderBy(desc(contacts.createdAt));
   }
   async markContactRead(id) {
     const [contact] = await db.update(contacts).set({ read: true }).where(eq(contacts.id, id)).returning();
@@ -527,8 +561,8 @@ var DatabaseStorage = class {
     const [created] = await db.insert(questionnaireSubmissions).values(submission).returning();
     return created;
   }
-  async getQuestionnaireSubmissions(type) {
-    const visible = and(eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false));
+  async getQuestionnaireSubmissions(type, includeTest = false) {
+    const visible = includeTest ? eq(questionnaireSubmissions.archived, false) : and(eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false));
     if (type) {
       return await db.select().from(questionnaireSubmissions).where(and(eq(questionnaireSubmissions.type, type), visible)).orderBy(desc(questionnaireSubmissions.createdAt));
     }
@@ -577,8 +611,8 @@ var DatabaseStorage = class {
     const [created] = await db.insert(appointments).values(appointment).returning();
     return created;
   }
-  async getAppointments(status) {
-    const visible = and(eq(appointments.archived, false), eq(appointments.isTest, false));
+  async getAppointments(status, includeTest = false) {
+    const visible = includeTest ? eq(appointments.archived, false) : and(eq(appointments.archived, false), eq(appointments.isTest, false));
     if (status) {
       return await db.select().from(appointments).where(and(eq(appointments.status, status), visible)).orderBy(desc(appointments.createdAt));
     }
@@ -627,8 +661,8 @@ var DatabaseStorage = class {
     const [created] = await db.insert(clients).values(values).returning();
     return created;
   }
-  async getClients() {
-    return await db.select().from(clients).where(and(eq(clients.archived, false), eq(clients.isTest, false))).orderBy(desc(clients.createdAt));
+  async getClients(includeTest = false) {
+    return await db.select().from(clients).where(includeTest ? eq(clients.archived, false) : and(eq(clients.archived, false), eq(clients.isTest, false))).orderBy(desc(clients.createdAt));
   }
   async getClient(id) {
     const [c] = await db.select().from(clients).where(eq(clients.id, id));
@@ -688,6 +722,13 @@ var DatabaseStorage = class {
   async getClientActivities(clientId) {
     return await db.select().from(clientActivities).where(eq(clientActivities.clientId, clientId)).orderBy(desc(clientActivities.createdAt));
   }
+  async createActivityLog(log) {
+    const [created] = await db.insert(activityLogs).values(log).returning();
+    return created;
+  }
+  async getActivityLogs(limit = 200) {
+    return await db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(limit);
+  }
   async createClientPayment(payment) {
     const [created] = await db.insert(clientPayments).values(payment).returning();
     return created;
@@ -704,13 +745,23 @@ var DatabaseStorage = class {
     return created;
   }
   async getClientFiles(clientId) {
-    return await db.select().from(clientFiles).where(eq(clientFiles.clientId, clientId)).orderBy(desc(clientFiles.createdAt));
+    return await db.select().from(clientFiles).where(and(eq(clientFiles.clientId, clientId), eq(clientFiles.archived, false))).orderBy(desc(clientFiles.createdAt));
   }
   async getClientFile(id) {
     const [f] = await db.select().from(clientFiles).where(eq(clientFiles.id, id));
     return f || void 0;
   }
   async deleteClientFile(id) {
+    const file = await this.getClientFile(id);
+    if (!file) return false;
+    const archived = await db.update(clientFiles).set({ archived: true }).where(eq(clientFiles.id, id)).returning();
+    return archived.length > 0;
+  }
+  async restoreClientFile(id) {
+    const restored = await db.update(clientFiles).set({ archived: false }).where(eq(clientFiles.id, id)).returning();
+    return restored.length > 0;
+  }
+  async permanentlyDeleteClientFile(id) {
     const file = await this.getClientFile(id);
     if (!file) return false;
     try {
@@ -748,22 +799,26 @@ var DatabaseStorage = class {
     const [c] = await db.select().from(clients).where(eq(clients.email, email));
     return c || void 0;
   }
-  async getClientInteractions(clientId) {
+  async getClientInteractions(clientId, includeTest = false) {
     const client = await this.getClient(clientId);
     if (!client) {
       return { contacts: [], appointments: [], questionnaires: [], conversations: [], whatsappMessages: [] };
     }
     const email = client.email;
+    const visibleContact = includeTest ? eq(contacts.archived, false) : and(eq(contacts.archived, false), eq(contacts.isTest, false));
+    const visibleAppointment = includeTest ? eq(appointments.archived, false) : and(eq(appointments.archived, false), eq(appointments.isTest, false));
+    const visibleQuestionnaire = includeTest ? eq(questionnaireSubmissions.archived, false) : and(eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false));
+    const visibleConversation = includeTest ? eq(conversations.archived, false) : and(eq(conversations.archived, false), eq(conversations.isTest, false));
     const [clientContacts, clientAppointments, clientQuestionnaires, clientConversations, clientWhatsapp] = await Promise.all([
-      email ? db.select().from(contacts).where(eq(contacts.email, email)).orderBy(desc(contacts.createdAt)) : Promise.resolve([]),
-      email ? db.select().from(appointments).where(eq(appointments.clientEmail, email)).orderBy(desc(appointments.createdAt)) : Promise.resolve([]),
-      email ? db.select().from(questionnaireSubmissions).where(eq(questionnaireSubmissions.respondentEmail, email)).orderBy(desc(questionnaireSubmissions.createdAt)) : Promise.resolve([]),
-      email ? db.select().from(conversations).where(eq(conversations.visitorEmail, email)).orderBy(desc(conversations.createdAt)) : Promise.resolve([]),
+      email ? db.select().from(contacts).where(and(eq(contacts.email, email), visibleContact)).orderBy(desc(contacts.createdAt)) : Promise.resolve([]),
+      email ? db.select().from(appointments).where(and(eq(appointments.clientEmail, email), visibleAppointment)).orderBy(desc(appointments.createdAt)) : Promise.resolve([]),
+      email ? db.select().from(questionnaireSubmissions).where(and(eq(questionnaireSubmissions.respondentEmail, email), visibleQuestionnaire)).orderBy(desc(questionnaireSubmissions.createdAt)) : Promise.resolve([]),
+      email ? db.select().from(conversations).where(and(eq(conversations.visitorEmail, email), visibleConversation)).orderBy(desc(conversations.createdAt)) : Promise.resolve([]),
       db.select().from(whatsappMessages).where(eq(whatsappMessages.clientId, clientId)).orderBy(desc(whatsappMessages.createdAt))
     ]);
     return { contacts: clientContacts, appointments: clientAppointments, questionnaires: clientQuestionnaires, conversations: clientConversations, whatsappMessages: clientWhatsapp };
   }
-  async getClientInteractionsBulk(clientIds) {
+  async getClientInteractionsBulk(clientIds, includeTest = false) {
     const result = {};
     if (clientIds.length === 0) return result;
     const clientRows = await db.select().from(clients).where(inArray(clients.id, clientIds));
@@ -776,11 +831,15 @@ var DatabaseStorage = class {
       emailToClientIds.set(client.email, ids);
     }
     const emails = [...emailToClientIds.keys()];
+    const visibleContact = includeTest ? eq(contacts.archived, false) : and(eq(contacts.archived, false), eq(contacts.isTest, false));
+    const visibleAppointment = includeTest ? eq(appointments.archived, false) : and(eq(appointments.archived, false), eq(appointments.isTest, false));
+    const visibleQuestionnaire = includeTest ? eq(questionnaireSubmissions.archived, false) : and(eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false));
+    const visibleConversation = includeTest ? eq(conversations.archived, false) : and(eq(conversations.archived, false), eq(conversations.isTest, false));
     const [allContacts, allAppointments, allQuestionnaires, allConversations, allWhatsapp] = await Promise.all([
-      emails.length ? db.select().from(contacts).where(inArray(contacts.email, emails)).orderBy(desc(contacts.createdAt)) : Promise.resolve([]),
-      emails.length ? db.select().from(appointments).where(inArray(appointments.clientEmail, emails)).orderBy(desc(appointments.createdAt)) : Promise.resolve([]),
-      emails.length ? db.select().from(questionnaireSubmissions).where(inArray(questionnaireSubmissions.respondentEmail, emails)).orderBy(desc(questionnaireSubmissions.createdAt)) : Promise.resolve([]),
-      emails.length ? db.select().from(conversations).where(inArray(conversations.visitorEmail, emails)).orderBy(desc(conversations.createdAt)) : Promise.resolve([]),
+      emails.length ? db.select().from(contacts).where(and(inArray(contacts.email, emails), visibleContact)).orderBy(desc(contacts.createdAt)) : Promise.resolve([]),
+      emails.length ? db.select().from(appointments).where(and(inArray(appointments.clientEmail, emails), visibleAppointment)).orderBy(desc(appointments.createdAt)) : Promise.resolve([]),
+      emails.length ? db.select().from(questionnaireSubmissions).where(and(inArray(questionnaireSubmissions.respondentEmail, emails), visibleQuestionnaire)).orderBy(desc(questionnaireSubmissions.createdAt)) : Promise.resolve([]),
+      emails.length ? db.select().from(conversations).where(and(inArray(conversations.visitorEmail, emails), visibleConversation)).orderBy(desc(conversations.createdAt)) : Promise.resolve([]),
       db.select().from(whatsappMessages).where(inArray(whatsappMessages.clientId, clientIds)).orderBy(desc(whatsappMessages.createdAt))
     ]);
     for (const row of allContacts) {
@@ -908,8 +967,8 @@ var DatabaseStorage = class {
     const [created] = await db.insert(conversations).values(conversation).returning();
     return created;
   }
-  async getConversations() {
-    return await db.select().from(conversations).where(and(eq(conversations.archived, false), eq(conversations.isTest, false))).orderBy(desc(conversations.createdAt));
+  async getConversations(includeTest = false) {
+    return await db.select().from(conversations).where(includeTest ? eq(conversations.archived, false) : and(eq(conversations.archived, false), eq(conversations.isTest, false))).orderBy(desc(conversations.createdAt));
   }
   async getConversation(id) {
     const [c] = await db.select().from(conversations).where(eq(conversations.id, id));
@@ -1076,19 +1135,24 @@ var DatabaseStorage = class {
   }
   async getBinItems() {
     const hidden = (archived, isTest) => archived || isTest;
-    const [contactRows, conversationRows, clientRows, appointmentRows, questionnaireRows] = await Promise.all([
+    const [contactRows, conversationRows, clientRows, appointmentRows, questionnaireRows, fileRows] = await Promise.all([
       db.select().from(contacts).where(sql2`${contacts.archived} = true OR ${contacts.isTest} = true`),
       db.select().from(conversations).where(sql2`${conversations.archived} = true OR ${conversations.isTest} = true`),
-      db.select().from(clients).where(sql2`${clients.archived} = true OR ${clients.isTest} = true`),
+      db.select().from(clients).where(sql2`
+        (${clients.archived} = true OR ${clients.isTest} = true)
+        AND (${clients.source} IS NULL OR ${clients.source} <> 'seed_loadtest')
+      `),
       db.select().from(appointments).where(sql2`${appointments.archived} = true OR ${appointments.isTest} = true`),
-      db.select().from(questionnaireSubmissions).where(sql2`${questionnaireSubmissions.archived} = true OR ${questionnaireSubmissions.isTest} = true`)
+      db.select().from(questionnaireSubmissions).where(sql2`${questionnaireSubmissions.archived} = true OR ${questionnaireSubmissions.isTest} = true`),
+      db.select().from(clientFiles).where(eq(clientFiles.archived, true))
     ]);
     const items = [
       ...contactRows.map((r) => ({ type: "contact", id: r.id, label: r.name, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt })),
       ...conversationRows.map((r) => ({ type: "conversation", id: r.id, label: r.visitorName, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt })),
       ...clientRows.map((r) => ({ type: "client", id: r.id, label: r.name, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt })),
       ...appointmentRows.map((r) => ({ type: "appointment", id: r.id, label: r.clientName, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt })),
-      ...questionnaireRows.map((r) => ({ type: "questionnaire", id: r.id, label: r.respondentName, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt }))
+      ...questionnaireRows.map((r) => ({ type: "questionnaire", id: r.id, label: r.respondentName, archived: r.archived, isTest: r.isTest, createdAt: r.createdAt })),
+      ...fileRows.map((r) => ({ type: "client_file", id: r.id, label: r.fileName, archived: r.archived, isTest: false, createdAt: r.createdAt }))
     ].filter((item) => hidden(item.archived, item.isTest));
     return items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
@@ -1104,6 +1168,8 @@ var DatabaseStorage = class {
         return this.deleteAppointment(id);
       case "questionnaire":
         return this.deleteQuestionnaire(id);
+      case "client_file":
+        return this.permanentlyDeleteClientFile(id);
       default:
         throw new Error(`Unknown bin item type: ${type}`);
     }
@@ -1120,6 +1186,8 @@ var DatabaseStorage = class {
         return this.restoreAppointment(id);
       case "questionnaire":
         return this.restoreQuestionnaire(id);
+      case "client_file":
+        return this.restoreClientFile(id);
       default:
         throw new Error(`Unknown bin item type: ${type}`);
     }
@@ -5012,6 +5080,7 @@ var CANCEL_CONTACT_METHOD_LABELS_HE = {
 var ACTIVE_APPOINTMENT_STATUSES = /* @__PURE__ */ new Set(["pending", "confirmed"]);
 var CONTACT_PHONE = "055-27-399-27";
 var CONTACT_EMAIL = "office@keshevplus.co.il";
+var PROTECTED_TRANSLATION_KEYS = /* @__PURE__ */ new Set(["contact.email"]);
 var CONTACT_HOURS_HE = APPOINTMENT_WORKING_HOURS_HE;
 var CONTACT_HOURS_EN = APPOINTMENT_WORKING_HOURS_EN;
 function normalizeName(value) {
@@ -5585,6 +5654,47 @@ function hasAdminAccess(user) {
 function isOwner(user) {
   return hasOwnerLevelAccess(user);
 }
+function getUserDisplayName(user) {
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
+  return fullName || user?.email || "Unknown user";
+}
+function toPublicUser(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    firstName: user.firstName ?? null,
+    lastName: user.lastName ?? null,
+    phone: user.phone ?? null,
+    profileImageUrl: user.profileImageUrl ?? null,
+    createdAt: user.createdAt ?? null,
+    mustChangePassword: user.mustChangePassword
+  };
+}
+function actorSnapshot(user) {
+  return {
+    actorUserId: user?.id ?? null,
+    actorEmail: user?.email ?? null,
+    actorName: getUserDisplayName(user),
+    actorRole: user?.role ?? null,
+    actorProfileImageUrl: user?.profileImageUrl ?? null
+  };
+}
+async function logAdminActivity(user, input) {
+  try {
+    await storage.createActivityLog({
+      ...actorSnapshot(user),
+      action: input.action,
+      entityType: input.entityType,
+      entityId: input.entityId ?? null,
+      entityLabel: input.entityLabel ?? null,
+      description: input.description,
+      metadata: input.metadata ?? null
+    });
+  } catch (error) {
+    console.error("Failed to write activity log:", error);
+  }
+}
 function hasBillingAccess(user) {
   if (!user) return false;
   return hasAdminAccess(user) || user.role === "billing";
@@ -5704,6 +5814,19 @@ async function registerRoutes(app2) {
     if (!result.success) return res.status(400).json({ error: result.error.message });
     const settings = await storage.updateContactFormSettings(result.data);
     res.json(settings);
+  });
+  app2.get("/api/admin/activity-logs", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) return res.status(403).json({ error: "Admin access required" });
+      const limit = Math.min(Math.max(Number(req.query.limit) || 200, 1), 500);
+      const logs = await storage.getActivityLogs(limit);
+      return res.json(logs);
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to fetch activity logs" });
+    }
   });
   app2.get("/api/settings/hero-layout", async (_req, res) => {
     try {
@@ -5851,7 +5974,8 @@ async function registerRoutes(app2) {
       if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
-      const contacts2 = await storage.getContacts();
+      const includeTest = req.query.includeTest === "true";
+      const contacts2 = await storage.getContacts(includeTest);
       const status = req.query.status;
       const filtered = status && status !== "all" ? contacts2.filter((c) => c.status === status) : contacts2;
       return res.json(filtered);
@@ -5873,6 +5997,13 @@ async function registerRoutes(app2) {
       if (!contact) {
         return res.status(404).json({ error: "Contact not found" });
       }
+      await logAdminActivity(user, {
+        action: "contact.read",
+        entityType: "contact",
+        entityId: contact.id,
+        entityLabel: contact.name,
+        description: `${getUserDisplayName(user)} marked contact ${contact.name} as read`
+      });
       return res.json(contact);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update contact" });
@@ -5891,6 +6022,13 @@ async function registerRoutes(app2) {
       if (!contact) {
         return res.status(404).json({ error: "Contact not found" });
       }
+      await logAdminActivity(user, {
+        action: "contact.unread",
+        entityType: "contact",
+        entityId: contact.id,
+        entityLabel: contact.name,
+        description: `${getUserDisplayName(user)} marked contact ${contact.name} as unread`
+      });
       return res.json(contact);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update contact" });
@@ -5910,6 +6048,14 @@ async function registerRoutes(app2) {
       if (!contact) {
         return res.status(404).json({ error: "Contact not found" });
       }
+      await logAdminActivity(user, {
+        action: "contact.status",
+        entityType: "contact",
+        entityId: contact.id,
+        entityLabel: contact.name,
+        description: `${getUserDisplayName(user)} changed contact ${contact.name} status to ${status}`,
+        metadata: { status }
+      });
       return res.json(contact);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update contact status" });
@@ -5928,7 +6074,13 @@ async function registerRoutes(app2) {
         return res.status(400).json({ error: "IDs array is required" });
       }
       const numericIds = ids.map(Number);
-      const count = isOwner(user) ? await storage.bulkDeleteContacts(numericIds) : await storage.bulkArchiveContacts(numericIds);
+      const count = await storage.bulkArchiveContacts(numericIds);
+      await logAdminActivity(user, {
+        action: "contact.bulk_archive",
+        entityType: "contact",
+        description: `${getUserDisplayName(user)} archived ${count} contacts`,
+        metadata: { ids: numericIds, count }
+      });
       return res.json({ success: true, deleted: count });
     } catch (error) {
       return res.status(500).json({ error: "Failed to bulk delete contacts" });
@@ -5943,10 +6095,16 @@ async function registerRoutes(app2) {
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = isOwner(user) ? await storage.deleteContact(id) : await storage.archiveContact(id);
+      const deleted = await storage.archiveContact(id);
       if (!deleted) {
         return res.status(404).json({ error: "Contact not found" });
       }
+      await logAdminActivity(user, {
+        action: "contact.archive",
+        entityType: "contact",
+        entityId: id,
+        description: `${getUserDisplayName(user)} archived contact #${id}`
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete contact" });
@@ -5964,6 +6122,13 @@ async function registerRoutes(app2) {
       const isTest = req.body?.isTest !== false;
       const updated = await storage.setContactTest(id, isTest);
       if (!updated) return res.status(404).json({ error: "Contact not found" });
+      await logAdminActivity(user, {
+        action: "contact.mark_test",
+        entityType: "contact",
+        entityId: id,
+        description: `${getUserDisplayName(user)} marked contact #${id} as ${isTest ? "test" : "not test"}`,
+        metadata: { isTest }
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to update contact" });
@@ -6100,7 +6265,14 @@ async function registerRoutes(app2) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
       req.session.userId = user.id;
-      return res.json({ id: user.id, email: user.email, role: user.role, mustChangePassword: user.mustChangePassword });
+      await logAdminActivity(user, {
+        action: "auth.login",
+        entityType: "user",
+        entityId: user.id,
+        entityLabel: getUserDisplayName(user),
+        description: `${getUserDisplayName(user)} signed in to the admin dashboard`
+      });
+      return res.json(toPublicUser(user));
     } catch (error) {
       console.error("Login error:", error);
       return res.status(500).json({ error: "Login failed" });
@@ -6116,6 +6288,11 @@ async function registerRoutes(app2) {
         id: users.id,
         email: users.email,
         role: users.role,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        phone: users.phone,
+        profileImageUrl: users.profileImageUrl,
+        createdAt: users.createdAt,
         mustChangePassword: users.mustChangePassword
       }).from(users);
       return res.json(allUsers);
@@ -6132,7 +6309,11 @@ async function registerRoutes(app2) {
       const createUserSchema = z2.object({
         email: z2.string().trim().email(),
         password: z2.string().min(6),
-        role: z2.enum(["admin", "manager", "user", "billing"])
+        role: z2.enum(["admin", "manager", "user", "billing"]),
+        firstName: z2.string().trim().optional().nullable(),
+        lastName: z2.string().trim().optional().nullable(),
+        phone: z2.string().trim().optional().nullable(),
+        profileImageUrl: z2.string().trim().url().optional().or(z2.literal("")).nullable()
       });
       const result = createUserSchema.safeParse(req.body);
       if (!result.success) {
@@ -6149,11 +6330,65 @@ async function registerRoutes(app2) {
         email: result.data.email,
         password: hashedPassword,
         role: result.data.role,
+        firstName: result.data.firstName || null,
+        lastName: result.data.lastName || null,
+        phone: result.data.phone || null,
+        profileImageUrl: result.data.profileImageUrl || null,
         mustChangePassword: true
       });
-      return res.json({ id: created.id, email: created.email, role: created.role, mustChangePassword: created.mustChangePassword });
+      await logAdminActivity(user, {
+        action: "user.create",
+        entityType: "user",
+        entityId: created.id,
+        entityLabel: getUserDisplayName(created),
+        description: `${getUserDisplayName(user)} created user ${getUserDisplayName(created)} (${created.email})`,
+        metadata: { role: created.role }
+      });
+      return res.json(toPublicUser(created));
     } catch (error) {
       return res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+  app2.patch("/api/admin/users/:id", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!isOwner(user)) return res.status(403).json({ error: "Owner access required" });
+      const targetId = parseInt(req.params.id);
+      const targetUser = await storage.getUser(targetId);
+      if (!targetUser) return res.status(404).json({ error: "User not found" });
+      const updateUserSchema = z2.object({
+        firstName: z2.string().trim().optional().nullable(),
+        lastName: z2.string().trim().optional().nullable(),
+        phone: z2.string().trim().optional().nullable(),
+        profileImageUrl: z2.string().trim().url().optional().or(z2.literal("")).nullable(),
+        role: z2.enum(["admin", "manager", "user", "billing", "owner", "superadmin"]).optional()
+      });
+      const result = updateUserSchema.safeParse(req.body);
+      if (!result.success) return res.status(400).json({ error: result.error.message });
+      const patch = {
+        firstName: result.data.firstName ?? null,
+        lastName: result.data.lastName ?? null,
+        phone: result.data.phone ?? null,
+        profileImageUrl: result.data.profileImageUrl || null
+      };
+      if (result.data.role && normalizeAdminEmail(targetUser.email) !== "dr@keshevplus.co.il") {
+        patch.role = result.data.role;
+      }
+      const updated = await storage.updateUserProfile(targetId, patch);
+      if (!updated) return res.status(404).json({ error: "User not found" });
+      await logAdminActivity(user, {
+        action: "user.update",
+        entityType: "user",
+        entityId: updated.id,
+        entityLabel: getUserDisplayName(updated),
+        description: `${getUserDisplayName(user)} updated user ${getUserDisplayName(updated)} (${updated.email})`,
+        metadata: patch
+      });
+      return res.json(toPublicUser(updated));
+    } catch (error) {
+      return res.status(500).json({ error: "Failed to update user" });
     }
   });
   app2.delete("/api/admin/users/:id", async (req, res) => {
@@ -6177,6 +6412,14 @@ async function registerRoutes(app2) {
         return res.status(403).json({ error: "Cannot delete dr@keshevplus.co.il" });
       }
       await db.delete(users).where(eq2(users.id, targetId));
+      await logAdminActivity(user, {
+        action: "user.delete",
+        entityType: "user",
+        entityId: targetUser.id,
+        entityLabel: getUserDisplayName(targetUser),
+        description: `${getUserDisplayName(user)} deleted user ${getUserDisplayName(targetUser)} (${targetUser.email})`,
+        metadata: { targetEmail: targetUser.email, targetRole: targetUser.role }
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Delete failed" });
@@ -6238,7 +6481,7 @@ async function registerRoutes(app2) {
     if (!user) {
       return res.status(401).json({ error: "User not found" });
     }
-    return res.json({ id: user.id, email: user.email, role: user.role, mustChangePassword: user.mustChangePassword });
+    return res.json(toPublicUser(user));
   });
   app2.post("/api/auth/change-password", async (req, res) => {
     try {
@@ -6431,6 +6674,9 @@ ${resetUrl}
         return res.status(403).json({ error: "Admin access required" });
       }
       const key = decodeURIComponent(req.params.key);
+      if (PROTECTED_TRANSLATION_KEYS.has(key)) {
+        return res.status(400).json({ error: "This translation key is protected from deletion" });
+      }
       const count = await storage.deleteTranslationKey(key);
       return res.json({ deleted: count });
     } catch (error) {
@@ -6527,7 +6773,8 @@ ${resetUrl}
       }
       const type = req.query.type;
       const status = req.query.status;
-      let submissions = await storage.getQuestionnaireSubmissions(type && type !== "all" ? type : void 0);
+      const includeTest = req.query.includeTest === "true";
+      let submissions = await storage.getQuestionnaireSubmissions(type && type !== "all" ? type : void 0, includeTest);
       if (status && status !== "all") {
         submissions = submissions.filter((s) => s.status === status);
       }
@@ -6551,6 +6798,14 @@ ${resetUrl}
       if (!submission) {
         return res.status(404).json({ error: "Questionnaire not found" });
       }
+      await logAdminActivity(user, {
+        action: "questionnaire.status",
+        entityType: "questionnaire",
+        entityId: submission.id,
+        entityLabel: submission.respondentName,
+        description: `${getUserDisplayName(user)} changed questionnaire ${submission.respondentName} status to ${status}`,
+        metadata: { status }
+      });
       return res.json(submission);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update questionnaire status" });
@@ -6565,10 +6820,16 @@ ${resetUrl}
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = isOwner(user) ? await storage.deleteQuestionnaire(id) : await storage.archiveQuestionnaire(id);
+      const deleted = await storage.archiveQuestionnaire(id);
       if (!deleted) {
         return res.status(404).json({ error: "Questionnaire not found" });
       }
+      await logAdminActivity(user, {
+        action: "questionnaire.archive",
+        entityType: "questionnaire",
+        entityId: id,
+        description: `${getUserDisplayName(user)} archived questionnaire #${id}`
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete questionnaire" });
@@ -6586,6 +6847,13 @@ ${resetUrl}
       const isTest = req.body?.isTest !== false;
       const updated = await storage.setQuestionnaireTest(id, isTest);
       if (!updated) return res.status(404).json({ error: "Questionnaire not found" });
+      await logAdminActivity(user, {
+        action: "questionnaire.mark_test",
+        entityType: "questionnaire",
+        entityId: id,
+        description: `${getUserDisplayName(user)} marked questionnaire #${id} as ${isTest ? "test" : "not test"}`,
+        metadata: { isTest }
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to update questionnaire" });
@@ -6600,10 +6868,18 @@ ${resetUrl}
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = isOwner(user) ? await storage.deleteAppointment(id) : await storage.archiveAppointment(id);
+      const appointment = await storage.getAppointment(id);
+      const deleted = await storage.archiveAppointment(id);
       if (!deleted) {
         return res.status(404).json({ error: "Appointment not found" });
       }
+      await logAdminActivity(user, {
+        action: "appointment.archive",
+        entityType: "appointment",
+        entityId: id,
+        entityLabel: appointment?.clientName ?? null,
+        description: `${getUserDisplayName(user)} archived appointment for ${appointment?.clientName ?? `#${id}`}`
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete appointment" });
@@ -6621,6 +6897,13 @@ ${resetUrl}
       const isTest = req.body?.isTest !== false;
       const updated = await storage.setAppointmentTest(id, isTest);
       if (!updated) return res.status(404).json({ error: "Appointment not found" });
+      await logAdminActivity(user, {
+        action: "appointment.mark_test",
+        entityType: "appointment",
+        entityId: id,
+        description: `${getUserDisplayName(user)} marked appointment #${id} as ${isTest ? "test" : "not test"}`,
+        metadata: { isTest }
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to update appointment" });
@@ -6685,6 +6968,13 @@ ${resetUrl}
       if (!submission) {
         return res.status(404).json({ error: "Submission not found" });
       }
+      await logAdminActivity(user, {
+        action: "questionnaire.reviewed",
+        entityType: "questionnaire",
+        entityId: submission.id,
+        entityLabel: submission.respondentName,
+        description: `${getUserDisplayName(user)} marked questionnaire ${submission.respondentName} as reviewed`
+      });
       return res.json(submission);
     } catch (error) {
       console.error("Error updating questionnaire:", error);
@@ -6907,7 +7197,16 @@ ${resetUrl}
         clientId: client.id,
         type: "appointment",
         description: `\u05E0\u05E7\u05D1\u05E2\u05D4 \u05E4\u05D2\u05D9\u05E9\u05D4 \u05DE\u05E1\u05D5\u05D2 ${getAppointmentTypeLabelHe(result.data.type)} \u05DC\u05EA\u05D0\u05E8\u05D9\u05DA ${result.data.date} \u05D1\u05E9\u05E2\u05D4 ${result.data.time} (\u05E0\u05D5\u05E1\u05E4\u05D4 \u05D9\u05D3\u05E0\u05D9\u05EA \u05E2"\u05D9 \u05D4\u05E6\u05D5\u05D5\u05EA)`,
-        metadata: { source: "manual_appointment" }
+        metadata: { source: "manual_appointment" },
+        ...actorSnapshot(user)
+      });
+      await logAdminActivity(user, {
+        action: "appointment.manual_create",
+        entityType: "appointment",
+        entityId: appointment.id,
+        entityLabel: appointment.clientName,
+        description: `${getUserDisplayName(user)} manually created appointment for ${appointment.clientName}`,
+        metadata: { clientId: client.id, date: appointment.date, time: appointment.time, type: appointment.type }
       });
       return res.json({ success: true, appointment, client });
     } catch (error) {
@@ -6924,7 +7223,8 @@ ${resetUrl}
         return res.status(403).json({ error: "Admin access required" });
       }
       const status = req.query.status;
-      const list = await storage.getAppointments(status);
+      const includeTest = req.query.includeTest === "true";
+      const list = await storage.getAppointments(status, includeTest);
       return res.json(list);
     } catch (error) {
       console.error("Error fetching appointments:", error);
@@ -6947,6 +7247,14 @@ ${resetUrl}
       const existing = await storage.getAppointment(id);
       const updated = await storage.updateAppointmentStatus(id, status);
       if (!updated) return res.status(404).json({ error: "Appointment not found" });
+      await logAdminActivity(user, {
+        action: "appointment.status",
+        entityType: "appointment",
+        entityId: updated.id,
+        entityLabel: updated.clientName,
+        description: `${getUserDisplayName(user)} changed appointment for ${updated.clientName} from ${existing?.status ?? "unknown"} to ${status}`,
+        metadata: { from: existing?.status ?? null, to: status, contactMethod: contactMethod ?? null }
+      });
       if (status === "cancelled" && existing && existing.status !== "cancelled") {
         try {
           const client = await storage.getClientByEmail(existing.clientEmail);
@@ -6956,7 +7264,8 @@ ${resetUrl}
               clientId: client.id,
               type: "cancellation",
               description: `\u05D4\u05E4\u05D2\u05D9\u05E9\u05D4 \u05DE\u05E1\u05D5\u05D2 ${getAppointmentTypeLabelHe(existing.type)} \u05D1\u05EA\u05D0\u05E8\u05D9\u05DA ${existing.date} \u05D1\u05D5\u05D8\u05DC\u05D4. \u05D3\u05E8\u05DA \u05D9\u05E6\u05D9\u05E8\u05EA \u05E7\u05E9\u05E8 \u05DC\u05D1\u05D9\u05D8\u05D5\u05DC: ${methodLabel}`,
-              metadata: { source: "appointment_cancelled", appointmentId: id, contactMethod: contactMethod ?? null }
+              metadata: { source: "appointment_cancelled", appointmentId: id, contactMethod: contactMethod ?? null },
+              ...actorSnapshot(user)
             });
           }
         } catch (e) {
@@ -6993,6 +7302,14 @@ ${resetUrl}
         return res.status(400).json({ error: "This time slot is already booked" });
       }
       const updated = await storage.updateAppointmentSchedule(id, date, time);
+      await logAdminActivity(user, {
+        action: "appointment.reschedule",
+        entityType: "appointment",
+        entityId: id,
+        entityLabel: existing.clientName,
+        description: `${getUserDisplayName(user)} rescheduled appointment for ${existing.clientName}`,
+        metadata: { from: { date: existing.date, time: existing.time }, to: { date, time } }
+      });
       return res.json(updated);
     } catch (error) {
       console.error("Error rescheduling appointment:", error);
@@ -7018,7 +7335,16 @@ ${resetUrl}
         clientId: client.id,
         type: "note",
         description: note,
-        metadata: { source: "appointment", appointmentId: id }
+        metadata: { source: "appointment", appointmentId: id },
+        ...actorSnapshot(user)
+      });
+      await logAdminActivity(user, {
+        action: "appointment.note",
+        entityType: "appointment",
+        entityId: id,
+        entityLabel: appointment.clientName,
+        description: `${getUserDisplayName(user)} added note to appointment for ${appointment.clientName}`,
+        metadata: { clientId: client.id, activityId: activity.id }
       });
       return res.json(activity);
     } catch (error) {
@@ -7039,6 +7365,14 @@ ${resetUrl}
         return res.status(400).json({ error: result.error.message });
       }
       const client = await storage.createClient(result.data);
+      await logAdminActivity(user, {
+        action: "client.create",
+        entityType: client.status === "client" ? "client" : "lead",
+        entityId: client.id,
+        entityLabel: client.name,
+        description: `${getUserDisplayName(user)} created ${client.status === "client" ? "client" : "lead"} ${client.name}`,
+        metadata: { email: client.email, phone: client.phone, status: client.status }
+      });
       return res.json(client);
     } catch (error) {
       console.error("Error creating client:", error);
@@ -7058,7 +7392,13 @@ ${resetUrl}
         return res.status(400).json({ error: "IDs array is required" });
       }
       const numericIds = ids.map(Number);
-      const count = isOwner(user) ? await storage.bulkDeleteClients(numericIds) : await storage.bulkArchiveClients(numericIds);
+      const count = await storage.bulkArchiveClients(numericIds);
+      await logAdminActivity(user, {
+        action: "client.bulk_archive",
+        entityType: "client",
+        description: `${getUserDisplayName(user)} archived ${count} leads/clients`,
+        metadata: { ids: numericIds, count }
+      });
       return res.json({ success: true, deleted: count });
     } catch (error) {
       return res.status(500).json({ error: "Failed to bulk delete clients" });
@@ -7073,8 +7413,16 @@ ${resetUrl}
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = isOwner(user) ? await storage.deleteClient(id) : await storage.archiveClient(id);
+      const client = await storage.getClient(id);
+      const deleted = await storage.archiveClient(id);
       if (!deleted) return res.status(404).json({ error: "Client not found" });
+      await logAdminActivity(user, {
+        action: "client.archive",
+        entityType: client?.status === "client" ? "client" : "lead",
+        entityId: id,
+        entityLabel: client?.name ?? null,
+        description: `${getUserDisplayName(user)} archived ${client?.name ?? `client #${id}`}`
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete client" });
@@ -7092,6 +7440,13 @@ ${resetUrl}
       const isTest = req.body?.isTest !== false;
       const updated = await storage.setClientTest(id, isTest);
       if (!updated) return res.status(404).json({ error: "Client not found" });
+      await logAdminActivity(user, {
+        action: "client.mark_test",
+        entityType: "client",
+        entityId: id,
+        description: `${getUserDisplayName(user)} marked client #${id} as ${isTest ? "test" : "not test"}`,
+        metadata: { isTest }
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to update client" });
@@ -7105,7 +7460,8 @@ ${resetUrl}
       if (!hasBillingAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
-      const list = await storage.getClients();
+      const includeTest = hasAdminAccess(user) && req.query.includeTest === "true";
+      const list = await storage.getClients(includeTest);
       return res.json(hasAdminAccess(user) ? list : list.map(toBillingClientView));
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch clients" });
@@ -7144,6 +7500,14 @@ ${resetUrl}
       }
       const updated = await storage.updateClient(id, result.data);
       if (!updated) return res.status(404).json({ error: "Client not found" });
+      await logAdminActivity(user, {
+        action: "client.update",
+        entityType: updated.status === "client" ? "client" : "lead",
+        entityId: updated.id,
+        entityLabel: updated.name,
+        description: `${getUserDisplayName(user)} updated ${updated.name}`,
+        metadata: result.data
+      });
       return res.json(updated);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update client" });
@@ -7170,7 +7534,7 @@ ${resetUrl}
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const interactions = await storage.getClientInteractions(id);
+      const interactions = await storage.getClientInteractions(id, req.query.includeTest === "true");
       return res.json(interactions);
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch interactions" });
@@ -7189,7 +7553,7 @@ ${resetUrl}
         return res.status(400).json({ error: "IDs array is required" });
       }
       const numericIds = ids.map(Number);
-      const interactions = await storage.getClientInteractionsBulk(numericIds);
+      const interactions = await storage.getClientInteractionsBulk(numericIds, req.query.includeTest === "true");
       return res.json(interactions);
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch interactions" });
@@ -7204,11 +7568,18 @@ ${resetUrl}
         return res.status(403).json({ error: "Admin access required" });
       }
       const clientId = parseInt(req.params.id);
-      const result = insertClientActivitySchema.safeParse({ ...req.body, clientId });
+      const result = insertClientActivitySchema.safeParse({ ...req.body, clientId, ...actorSnapshot(user) });
       if (!result.success) {
         return res.status(400).json({ error: result.error.message });
       }
       const activity = await storage.createClientActivity(result.data);
+      await logAdminActivity(user, {
+        action: "client_activity.create",
+        entityType: "client",
+        entityId: clientId,
+        description: `${getUserDisplayName(user)} added ${activity.type} activity to client #${clientId}`,
+        metadata: { activityId: activity.id, type: activity.type }
+      });
       return res.json(activity);
     } catch (error) {
       return res.status(500).json({ error: "Failed to create activity" });
@@ -7243,6 +7614,15 @@ ${resetUrl}
         return res.status(400).json({ error: result.error.message });
       }
       const payment = await storage.createClientPayment(result.data);
+      const client = await storage.getClient(clientId);
+      await logAdminActivity(user, {
+        action: "payment.create",
+        entityType: "client",
+        entityId: clientId,
+        entityLabel: client?.name ?? null,
+        description: `${getUserDisplayName(user)} added payment record for ${client?.name ?? `client #${clientId}`}`,
+        metadata: { paymentId: payment.id, amount: payment.amount, status: payment.status }
+      });
       return res.json(payment);
     } catch (error) {
       return res.status(500).json({ error: "Failed to create payment" });
@@ -7274,6 +7654,12 @@ ${resetUrl}
       const id = parseInt(req.params.id);
       const deleted = await storage.deleteClientPayment(id);
       if (!deleted) return res.status(404).json({ error: "Payment not found" });
+      await logAdminActivity(user, {
+        action: "payment.delete",
+        entityType: "payment",
+        entityId: id,
+        description: `${getUserDisplayName(user)} deleted payment record #${id}`
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete payment" });
@@ -7319,6 +7705,14 @@ ${resetUrl}
         return res.status(400).json({ error: result.error.message });
       }
       const created = await storage.createClientFile(result.data);
+      await logAdminActivity(user, {
+        action: "client_file.upload",
+        entityType: "client",
+        entityId: clientId,
+        entityLabel: client.name,
+        description: `${getUserDisplayName(user)} uploaded file ${created.fileName} for ${client.name}`,
+        metadata: { fileId: created.id, fileName: created.fileName, fileType: created.fileType, fileSize: created.fileSize }
+      });
       const { blobUrl, ...fileMeta } = created;
       return res.json(fileMeta);
     } catch (error) {
@@ -7371,8 +7765,17 @@ ${resetUrl}
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
+      const file = await storage.getClientFile(id);
       const deleted = await storage.deleteClientFile(id);
       if (!deleted) return res.status(404).json({ error: "File not found" });
+      await logAdminActivity(user, {
+        action: "client_file.delete",
+        entityType: "client_file",
+        entityId: id,
+        entityLabel: file?.fileName ?? null,
+        description: `${getUserDisplayName(user)} deleted file ${file?.fileName ?? `#${id}`}`,
+        metadata: { clientId: file?.clientId ?? null }
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete file" });
@@ -7569,7 +7972,8 @@ RESPONSE BEHAVIOR:
       if (!hasAdminAccess(user)) {
         return res.status(403).json({ error: "Admin access required" });
       }
-      const list = await storage.getConversations();
+      const includeTest = req.query.includeTest === "true";
+      const list = await storage.getConversations(includeTest);
       return res.json(list);
     } catch (error) {
       return res.status(500).json({ error: "Failed to fetch conversations" });
@@ -7601,6 +8005,13 @@ RESPONSE BEHAVIOR:
       const id = parseInt(req.params.id);
       const updated = await storage.markConversationReviewed(id);
       if (!updated) return res.status(404).json({ error: "Conversation not found" });
+      await logAdminActivity(user, {
+        action: "conversation.reviewed",
+        entityType: "conversation",
+        entityId: updated.id,
+        entityLabel: updated.visitorName,
+        description: `${getUserDisplayName(user)} marked conversation with ${updated.visitorName} as reviewed`
+      });
       return res.json(updated);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update conversation" });
@@ -7617,6 +8028,13 @@ RESPONSE BEHAVIOR:
       const id = parseInt(req.params.id);
       const updated = await storage.markConversationUnreviewed(id);
       if (!updated) return res.status(404).json({ error: "Conversation not found" });
+      await logAdminActivity(user, {
+        action: "conversation.unreviewed",
+        entityType: "conversation",
+        entityId: updated.id,
+        entityLabel: updated.visitorName,
+        description: `${getUserDisplayName(user)} marked conversation with ${updated.visitorName} as unread`
+      });
       return res.json(updated);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update conversation" });
@@ -7635,7 +8053,13 @@ RESPONSE BEHAVIOR:
         return res.status(400).json({ error: "IDs array is required" });
       }
       const numericIds = ids.map(Number);
-      const count = isOwner(user) ? await storage.bulkDeleteConversations(numericIds) : await storage.bulkArchiveConversations(numericIds);
+      const count = await storage.bulkArchiveConversations(numericIds);
+      await logAdminActivity(user, {
+        action: "conversation.bulk_archive",
+        entityType: "conversation",
+        description: `${getUserDisplayName(user)} archived ${count} conversations`,
+        metadata: { ids: numericIds, count }
+      });
       return res.json({ success: true, deleted: count });
     } catch (error) {
       return res.status(500).json({ error: "Failed to bulk delete conversations" });
@@ -7650,10 +8074,18 @@ RESPONSE BEHAVIOR:
         return res.status(403).json({ error: "Admin access required" });
       }
       const id = parseInt(req.params.id);
-      const deleted = isOwner(user) ? await storage.deleteConversation(id) : await storage.archiveConversation(id);
+      const conversation = await storage.getConversation(id);
+      const deleted = await storage.archiveConversation(id);
       if (!deleted) {
         return res.status(404).json({ error: "Conversation not found" });
       }
+      await logAdminActivity(user, {
+        action: "conversation.archive",
+        entityType: "conversation",
+        entityId: id,
+        entityLabel: conversation?.visitorName ?? null,
+        description: `${getUserDisplayName(user)} archived conversation with ${conversation?.visitorName ?? `#${id}`}`
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to delete conversation" });
@@ -7671,6 +8103,13 @@ RESPONSE BEHAVIOR:
       const isTest = req.body?.isTest !== false;
       const updated = await storage.setConversationTest(id, isTest);
       if (!updated) return res.status(404).json({ error: "Conversation not found" });
+      await logAdminActivity(user, {
+        action: "conversation.mark_test",
+        entityType: "conversation",
+        entityId: id,
+        description: `${getUserDisplayName(user)} marked conversation #${id} as ${isTest ? "test" : "not test"}`,
+        metadata: { isTest }
+      });
       return res.json({ success: true });
     } catch (error) {
       return res.status(500).json({ error: "Failed to update conversation" });
@@ -7812,6 +8251,14 @@ RESPONSE BEHAVIOR:
         content: message,
         status: "sent"
       });
+      await logAdminActivity(user, {
+        action: "whatsapp.send",
+        entityType: clientId ? "client" : "whatsapp",
+        entityId: clientId,
+        entityLabel: phone,
+        description: `${getUserDisplayName(user)} sent WhatsApp message to ${phone}`,
+        metadata: { messageId: saved.id, waMessageId, phone }
+      });
       return res.json(saved);
     } catch (error) {
       console.error("WhatsApp send error:", error);
@@ -7849,6 +8296,47 @@ RESPONSE BEHAVIOR:
 // server/migrate.ts
 async function ensureSchema() {
   await pool.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS first_name text,
+      ADD COLUMN IF NOT EXISTS last_name text,
+      ADD COLUMN IF NOT EXISTS phone text,
+      ADD COLUMN IF NOT EXISTS profile_image_url text,
+      ADD COLUMN IF NOT EXISTS created_at timestamp NOT NULL DEFAULT now(),
+      ADD COLUMN IF NOT EXISTS updated_at timestamp NOT NULL DEFAULT now()
+  `);
+  await pool.query(`
+    ALTER TABLE client_activities
+      ADD COLUMN IF NOT EXISTS actor_user_id integer,
+      ADD COLUMN IF NOT EXISTS actor_email text,
+      ADD COLUMN IF NOT EXISTS actor_name text,
+      ADD COLUMN IF NOT EXISTS actor_role text,
+      ADD COLUMN IF NOT EXISTS actor_profile_image_url text
+  `);
+  await pool.query(`
+    ALTER TABLE client_files
+      ADD COLUMN IF NOT EXISTS archived boolean NOT NULL DEFAULT false
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS activity_logs (
+      id serial PRIMARY KEY,
+      actor_user_id integer,
+      actor_email text,
+      actor_name text,
+      actor_role text,
+      actor_profile_image_url text,
+      action text NOT NULL,
+      entity_type text NOT NULL,
+      entity_id integer,
+      entity_label text,
+      description text NOT NULL,
+      metadata jsonb,
+      created_at timestamp NOT NULL DEFAULT now()
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS activity_logs_created_at_idx ON activity_logs (created_at DESC)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS activity_logs_actor_user_id_idx ON activity_logs (actor_user_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS activity_logs_entity_idx ON activity_logs (entity_type, entity_id)`);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS images (
       id serial PRIMARY KEY,
       slot text NOT NULL UNIQUE,
@@ -7863,6 +8351,7 @@ async function ensureSchema() {
 // server/seed-load-test.ts
 var SEED_SOURCE = "seed_loadtest";
 var ACTIVITY_TYPES = ["call", "email", "note", "meeting"];
+var TEST_STATUS_VALUES = ["lead", "client"];
 var SIX_MONTHS_MS = 1e3 * 60 * 60 * 24 * 180;
 var MAX_COUNT_PER_CALL = 5e3;
 var FIRST_NAMES = [
@@ -7948,7 +8437,7 @@ async function seedBatch(count) {
       `${randomFrom(FIRST_NAMES)} ${randomFrom(LAST_NAMES)}`,
       `loadtest.lead.${leadNumber}@example.test`,
       `05${Math.floor(1e7 + Math.random() * 89999999)}`,
-      randomFrom(["lead", "in_progress", "closed"]),
+      randomFrom(TEST_STATUS_VALUES),
       SEED_SOURCE,
       true,
       createdAt
@@ -7996,11 +8485,8 @@ function registerLoadTestSeedRoutes(app2) {
     }
     try {
       const result = await seedBatch(count);
-      const { rows } = await pool.query(
-        `SELECT COUNT(*)::int AS total FROM clients WHERE source = $1`,
-        [SEED_SOURCE]
-      );
-      return res.json({ ...result, totalSeeded: rows[0].total });
+      const { rows } = await pool.query(loadTestCountSql, [SEED_SOURCE]);
+      return res.json({ ...result, ...rows[0] });
     } catch (error) {
       console.error("Error seeding load test leads:", error);
       return res.status(500).json({ error: "Failed to seed load test leads" });
@@ -8010,11 +8496,23 @@ function registerLoadTestSeedRoutes(app2) {
     if (!await hasAdminAccess2(req)) {
       return res.status(403).json({ error: "Admin access required" });
     }
+    const { rows } = await pool.query(loadTestCountSql, [SEED_SOURCE]);
+    return res.json(rows[0]);
+  });
+  app2.get("/api/admin/seed-load-test-leads/sample", async (req, res) => {
+    if (!await hasAdminAccess2(req)) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
     const { rows } = await pool.query(
-      `SELECT COUNT(*)::int AS total FROM clients WHERE source = $1`,
-      [SEED_SOURCE]
+      `SELECT id, lead_number AS "leadNumber", client_number AS "clientNumber", name, email, phone, status, created_at AS "createdAt"
+       FROM clients
+       WHERE source = $1 AND is_test = true
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [SEED_SOURCE, limit]
     );
-    return res.json({ totalSeeded: rows[0].total });
+    return res.json(rows);
   });
   app2.delete("/api/admin/seed-load-test-leads", async (req, res) => {
     if (!await hasAdminAccess2(req)) {
@@ -8022,10 +8520,10 @@ function registerLoadTestSeedRoutes(app2) {
     }
     try {
       await pool.query(
-        `DELETE FROM client_activities WHERE client_id IN (SELECT id FROM clients WHERE source = $1)`,
+        `DELETE FROM client_activities WHERE client_id IN (SELECT id FROM clients WHERE source = $1 AND is_test = true)`,
         [SEED_SOURCE]
       );
-      const { rowCount } = await pool.query(`DELETE FROM clients WHERE source = $1`, [SEED_SOURCE]);
+      const { rowCount } = await pool.query(`DELETE FROM clients WHERE source = $1 AND is_test = true`, [SEED_SOURCE]);
       return res.json({ deleted: rowCount });
     } catch (error) {
       console.error("Error deleting load test leads:", error);
@@ -8033,12 +8531,47 @@ function registerLoadTestSeedRoutes(app2) {
     }
   });
 }
+var loadTestCountSql = `
+  SELECT
+    COUNT(*)::int AS "totalSeeded",
+    COUNT(*) FILTER (WHERE status = 'lead')::int AS "leadCount",
+    COUNT(*) FILTER (WHERE status = 'client')::int AS "clientCount",
+    MIN(created_at) AS "oldestCreatedAt",
+    MAX(created_at) AS "newestCreatedAt"
+  FROM clients
+  WHERE source = $1 AND is_test = true
+`;
 
 // server/app.ts
 var PgSession = connectPgSimple(session);
+var rateLimitBuckets = /* @__PURE__ */ new Map();
+function rateLimit(maxRequests, windowMs) {
+  return (req, res, next) => {
+    const now = Date.now();
+    const key = `${req.ip}:${req.path}`;
+    const current = rateLimitBuckets.get(key);
+    if (!current || current.resetAt <= now) {
+      rateLimitBuckets.set(key, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+    current.count += 1;
+    if (current.count > maxRequests) {
+      res.setHeader("Retry-After", Math.ceil((current.resetAt - now) / 1e3).toString());
+      return res.status(429).json({ error: "Too many requests" });
+    }
+    return next();
+  };
+}
 async function createApp() {
   const app2 = express();
   app2.set("trust proxy", 1);
+  app2.use((_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+    next();
+  });
   const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || "https://keshevplus.co.il,https://www.keshevplus.co.il,https://dev.keshevplus.co.il,https://admin.keshevplus.co.il,https://www.admin.keshevplus.co.il,https://admin.keshevplus.com,https://lp.keshevplus.co.il,https://lp.keshevplus.com,https://keshevplus.com,https://www.keshevplus.com").split(",").map((origin) => origin.trim()).filter(Boolean);
   app2.use((req, res, next) => {
     const origin = req.headers.origin;
@@ -8055,7 +8588,19 @@ async function createApp() {
   });
   app2.use(express.json({ limit: "12mb" }));
   app2.use(express.urlencoded({ extended: false }));
+  const authWriteLimit = rateLimit(20, 60 * 1e3);
+  const apiWriteLimit = rateLimit(120, 60 * 1e3);
+  app2.use((req, res, next) => {
+    if (!req.path.startsWith("/api") || !["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+      return next();
+    }
+    return req.path.startsWith("/api/auth") ? authWriteLimit(req, res, next) : apiWriteLimit(req, res, next);
+  });
   const isProduction = process.env.NODE_ENV === "production";
+  const sessionSecret = process.env.SESSION_SECRET;
+  if (isProduction && !sessionSecret) {
+    throw new Error("SESSION_SECRET is required in production");
+  }
   app2.use(
     session({
       store: new PgSession({
@@ -8063,7 +8608,7 @@ async function createApp() {
         tableName: "user_sessions",
         createTableIfMissing: true
       }),
-      secret: process.env.SESSION_SECRET || "keshevplus-session-secret-change-in-production",
+      secret: sessionSecret || "keshevplus-session-secret-change-in-development",
       resave: false,
       saveUninitialized: false,
       cookie: {
@@ -8078,11 +8623,13 @@ async function createApp() {
     const start = Date.now();
     const path = req.path;
     let capturedJsonResponse = void 0;
-    const originalResJson = res.json;
-    res.json = function(bodyJson, ...args) {
-      capturedJsonResponse = bodyJson;
-      return originalResJson.apply(res, [bodyJson, ...args]);
-    };
+    if (!isProduction) {
+      const originalResJson = res.json;
+      res.json = function(bodyJson, ...args) {
+        capturedJsonResponse = bodyJson;
+        return originalResJson.apply(res, [bodyJson, ...args]);
+      };
+    }
     res.on("finish", () => {
       const duration = Date.now() - start;
       if (path.startsWith("/api")) {

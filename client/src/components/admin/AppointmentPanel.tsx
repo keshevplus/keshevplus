@@ -13,6 +13,7 @@ import { AppointmentForFields, type AppointmentFor } from "@/components/Appointm
 import { APPOINTMENT_TYPES, getLocalDateInputValue } from "@shared/appointmentSchedule";
 import { fetchAppointmentAvailability, getAppointmentSubmitError } from "@/lib/appointmentAvailability";
 import type { Appointment, Client } from "@shared/schema";
+import { useAdminUndo } from "@/hooks/useAdminUndo";
 
 const STATUS_BADGE: Record<string, { he: string; en: string; color: string }> = {
   pending: { he: "ממתינה", en: "Pending", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" },
@@ -194,6 +195,7 @@ interface AppointmentCardProps {
 
 function AppointmentCard({ appointment, canManage, isHe, onChanged }: AppointmentCardProps) {
   const { toast } = useToast();
+  const pushUndo = useAdminUndo();
   const [mode, setMode] = useState<"view" | "reschedule" | "cancel" | "note">("view");
   const [rescheduleDate, setRescheduleDate] = useState(appointment.date);
   const [rescheduleTime, setRescheduleTime] = useState(appointment.time);
@@ -251,10 +253,21 @@ function AppointmentCard({ appointment, canManage, isHe, onChanged }: Appointmen
 
   const handleCancel = async () => {
     if (!cancelMethod) return;
+    const previousStatus = appointment.status;
     setSubmitting(true);
     try {
       await apiRequest("PATCH", `/api/appointments/${appointment.id}/status`, { status: "cancelled", contactMethod: cancelMethod });
-      toast({ title: isHe ? "הפגישה בוטלה" : "Appointment cancelled" });
+      pushUndo({
+        title: isHe ? "הפגישה בוטלה" : "Appointment cancelled",
+        description: isHe ? "אפשר לבטל עם Ctrl+Z." : "Press Ctrl+Z to undo.",
+        undoLabel: isHe ? "בטל" : "Undo",
+        undoSuccessTitle: isHe ? "ביטול הפגישה שוחזר" : "Appointment cancellation undone",
+        undoErrorTitle: isHe ? "ביטול השחזור נכשל" : "Failed to undo cancellation",
+        onUndo: async () => {
+          await apiRequest("PATCH", `/api/appointments/${appointment.id}/status`, { status: previousStatus });
+          onChanged();
+        },
+      });
       resetMode();
       onChanged();
     } catch {
@@ -265,10 +278,21 @@ function AppointmentCard({ appointment, canManage, isHe, onChanged }: Appointmen
   };
 
   const handleComplete = async () => {
+    const previousStatus = appointment.status;
     setSubmitting(true);
     try {
       await apiRequest("PATCH", `/api/appointments/${appointment.id}/status`, { status: "completed" });
-      toast({ title: isHe ? "הפגישה סומנה כהושלמה" : "Appointment marked complete" });
+      pushUndo({
+        title: isHe ? "הפגישה סומנה כהושלמה" : "Appointment marked complete",
+        description: isHe ? "אפשר לבטל עם Ctrl+Z." : "Press Ctrl+Z to undo.",
+        undoLabel: isHe ? "בטל" : "Undo",
+        undoSuccessTitle: isHe ? "סטטוס הפגישה שוחזר" : "Appointment status restored",
+        undoErrorTitle: isHe ? "שחזור הסטטוס נכשל" : "Failed to restore status",
+        onUndo: async () => {
+          await apiRequest("PATCH", `/api/appointments/${appointment.id}/status`, { status: previousStatus });
+          onChanged();
+        },
+      });
       onChanged();
     } catch {
       toast({ title: isHe ? "שגיאה" : "Error", description: isHe ? "העדכון נכשל." : "Failed to update.", variant: "destructive" });

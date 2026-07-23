@@ -17,7 +17,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ToastAction } from "@/components/ui/toast";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Calendar, CalendarClock, ChevronLeft, ChevronRight, ChevronsLeftRight, Clock, Phone, Mail, User, Trash2, Filter, CheckSquare, ListChecks, StickyNote, ArrowUpDown, Tag, IdCard, ExternalLink, Plus, X, Search } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
@@ -30,6 +29,7 @@ import { AppointmentForFields, type AppointmentFor } from "@/components/Appointm
 import { getLocalDateInputValue, isAppointmentWorkingDay, APPOINTMENT_TYPES } from "@shared/appointmentSchedule";
 import { fetchAppointmentAvailability, getAppointmentSubmitError } from "@/lib/appointmentAvailability";
 import type { Appointment, Client } from "@shared/schema";
+import { useAdminUndo } from "@/hooks/useAdminUndo";
 
 const weekDaysHe = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
 const weekDaysEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -123,8 +123,10 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
   const { language, isRTL } = useLanguage();
   const isHe = language === "he";
   const { toast } = useToast();
+  const showUndo = useAdminUndo();
   const [filter, setFilter] = useState<AppointmentFilter>(initialFilter)
   const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [includeTest, setIncludeTest] = useState(false)
   const [sortBy, setSortBy] = useState<AppointmentSortBy>('date-asc')
   const [calendarView, setCalendarView] = useState<CalendarViewMode>('month')
   const [anchorDate, setAnchorDate] = useState(() => {
@@ -165,7 +167,13 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
   }, [initialFilter])
 
   const { data: allAppointments = [], isLoading } = useQuery<Appointment[]>({
-    queryKey: ["/api/appointments"],
+    queryKey: ["/api/appointments", includeTest],
+    queryFn: async () => {
+      const url = includeTest ? "/api/appointments?includeTest=true" : "/api/appointments";
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch appointments");
+      return res.json();
+    },
   });
 
   const { data: clients = [] } = useQuery<Client[]>({
@@ -192,15 +200,21 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
       toast({
         title: isHe ? "הסטטוס עודכן" : "Status updated",
         description: isHe ? "סטטוס הפגישה עודכן בהצלחה." : "Appointment status has been updated successfully.",
-        action: previousStatus && previousStatus !== status ? (
-          <ToastAction
-            altText={isHe ? "בטל שינוי" : "Undo change"}
-            onClick={() => updateStatus.mutate({ id, status: previousStatus, previousStatus: status })}
-          >
-            {isHe ? "בטל" : "Undo"}
-          </ToastAction>
-        ) : undefined,
       });
+      if (previousStatus && previousStatus !== status) {
+        showUndo({
+          title: isHe ? "הסטטוס עודכן" : "Status updated",
+          description: isHe ? "אפשר לבטל עם Ctrl+Z." : "Press Ctrl+Z to undo.",
+          undoLabel: isHe ? "בטל" : "Undo",
+          undoSuccessTitle: isHe ? "השינוי בוטל" : "Change undone",
+          undoErrorTitle: isHe ? "הביטול נכשל" : "Undo failed",
+          onUndo: async () => {
+            await apiRequest("PATCH", `/api/appointments/${id}/status`, { status: previousStatus });
+            queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
+          },
+        });
+      }
     },
     onError: () => {
       toast({
@@ -234,12 +248,20 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/appointments/${id}`);
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
       queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
-      toast({
-        title: isHe ? "הפגישה נמחקה" : "Appointment deleted",
-        description: isHe ? "הפגישה נמחקה בהצלחה." : "Appointment has been deleted successfully.",
+      showUndo({
+        title: isHe ? "הפגישה הועברה לסל" : "Appointment moved to bin",
+        description: isHe ? "אפשר לשחזר מיד עם Ctrl+Z." : "Press Ctrl+Z to restore it.",
+        undoLabel: isHe ? "שחזר" : "Restore",
+        undoSuccessTitle: isHe ? "הפגישה שוחזרה" : "Appointment restored",
+        undoErrorTitle: isHe ? "השחזור נכשל" : "Restore failed",
+        onUndo: async () => {
+          await apiRequest("POST", `/api/admin/bin/appointment/${id}/restore`);
+          queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+          queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
+        },
       });
     },
   });
@@ -248,12 +270,20 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
     mutationFn: async (id: number) => {
       await apiRequest("PATCH", `/api/appointments/${id}/mark-test`, { isTest: true });
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
       queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
-      toast({
+      showUndo({
         title: isHe ? "סומן כבדיקה" : "Marked as test",
-        description: isHe ? "הפריט הוסתר מהרשימה הרגילה." : "The item has been hidden from the normal list.",
+        description: isHe ? "אפשר להחזיר לרשימה הרגילה עם Ctrl+Z." : "Press Ctrl+Z to return it to normal data.",
+        undoLabel: isHe ? "בטל" : "Undo",
+        undoSuccessTitle: isHe ? "סימון הבדיקה בוטל" : "Test mark removed",
+        undoErrorTitle: isHe ? "הביטול נכשל" : "Undo failed",
+        onUndo: async () => {
+          await apiRequest("PATCH", `/api/appointments/${id}/mark-test`, { isTest: false });
+          queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+          queryClient.invalidateQueries({ queryKey: ["admin-badges"] });
+        },
       });
     },
   });
@@ -1052,6 +1082,16 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
                   <SelectItem value="adult-first">{isHe ? "מבוגרים תחילה" : "Adults first"}</SelectItem>
                 </SelectContent>
               </Select>
+              <label className="flex h-8 items-center gap-2 rounded-md border px-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={includeTest}
+                  onChange={(event) => setIncludeTest(event.target.checked)}
+                  className="h-4 w-4"
+                  data-testid="checkbox-include-test-appointments"
+                />
+                {isHe ? "כולל QA" : "Include QA"}
+              </label>
             </div>
             {visibleAppointments.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground" data-testid="empty-appointments">
@@ -1082,6 +1122,11 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
                         </div>
                         <div className="flex items-center justify-between gap-1">
                           <span className="text-[10px] text-muted-foreground shrink-0">{formatAppointmentTime(appointment.time)}</span>
+                          {appointment.isTest && (
+                            <Badge variant="outline" className="text-[9px] leading-tight px-1 py-0">
+                              QA
+                            </Badge>
+                          )}
                           <Badge
                             variant="secondary"
                             className={`no-default-hover-elevate no-default-active-elevate text-[9px] leading-tight px-1 py-0 truncate ${statusInfo.color}`}
@@ -1124,6 +1169,11 @@ const AppointmentsManager = ({ initialFilter = 'all', onOpenClient }: Appointmen
                       >
                         {isHe ? statusInfo.he : statusInfo.en}
                       </Badge>
+                      {appointment.isTest && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 leading-none">
+                          QA
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 flex-wrap">
                       <Select

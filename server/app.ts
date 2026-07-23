@@ -8,10 +8,38 @@ import { registerLoadTestSeedRoutes } from "./seed-load-test";
 
 const PgSession = connectPgSimple(session);
 
+const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function rateLimit(maxRequests: number, windowMs: number) {
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const now = Date.now();
+    const key = `${req.ip}:${req.path}`;
+    const current = rateLimitBuckets.get(key);
+    if (!current || current.resetAt <= now) {
+      rateLimitBuckets.set(key, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+    current.count += 1;
+    if (current.count > maxRequests) {
+      res.setHeader("Retry-After", Math.ceil((current.resetAt - now) / 1000).toString());
+      return res.status(429).json({ error: "Too many requests" });
+    }
+    return next();
+  };
+}
+
 export async function createApp(): Promise<Express> {
   const app = express();
 
   app.set("trust proxy", 1);
+
+  app.use((_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+    next();
+  });
 
   const allowedOrigins = (
     process.env.CORS_ALLOWED_ORIGINS ||
@@ -38,7 +66,22 @@ export async function createApp(): Promise<Express> {
   app.use(express.json({ limit: "12mb" }));
   app.use(express.urlencoded({ extended: false }));
 
+  const authWriteLimit = rateLimit(20, 60 * 1000);
+  const apiWriteLimit = rateLimit(120, 60 * 1000);
+  app.use((req, res, next) => {
+    if (!req.path.startsWith("/api") || !["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+      return next();
+    }
+    return req.path.startsWith("/api/auth")
+      ? authWriteLimit(req, res, next)
+      : apiWriteLimit(req, res, next);
+  });
+
   const isProduction = process.env.NODE_ENV === "production";
+  const sessionSecret = process.env.SESSION_SECRET;
+  if (isProduction && !sessionSecret) {
+    throw new Error("SESSION_SECRET is required in production");
+  }
 
   app.use(
     session({
@@ -47,7 +90,7 @@ export async function createApp(): Promise<Express> {
         tableName: "user_sessions",
         createTableIfMissing: true,
       }),
-      secret: process.env.SESSION_SECRET || "keshevplus-session-secret-change-in-production",
+      secret: sessionSecret || "keshevplus-session-secret-change-in-development",
       resave: false,
       saveUninitialized: false,
       cookie: {
@@ -64,11 +107,13 @@ export async function createApp(): Promise<Express> {
     const path = req.path;
     let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
-    const originalResJson = res.json;
-    res.json = function (bodyJson, ...args) {
-      capturedJsonResponse = bodyJson;
-      return originalResJson.apply(res, [bodyJson, ...args]);
-    };
+    if (!isProduction) {
+      const originalResJson = res.json;
+      res.json = function (bodyJson, ...args) {
+        capturedJsonResponse = bodyJson;
+        return originalResJson.apply(res, [bodyJson, ...args]);
+      };
+    }
 
     res.on("finish", () => {
       const duration = Date.now() - start;
