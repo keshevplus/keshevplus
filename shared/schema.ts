@@ -207,7 +207,11 @@ export const insertClientFileSchema = createInsertSchema(clientFiles).omit({ id:
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
-export const insertContactSchema = createInsertSchema(contacts).omit({ id: true, createdAt: true, read: true });
+export const insertContactSchema = createInsertSchema(contacts)
+  .omit({ id: true, createdAt: true, read: true })
+  .extend({
+    message: z.string().optional().default(""),
+  });
 export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({ id: true });
 export const insertTranslationSchema = createInsertSchema(translations).omit({ id: true });
 export const insertQuestionnaireSubmissionSchema = createInsertSchema(questionnaireSubmissions).omit({ id: true, createdAt: true, reviewed: true });
@@ -269,7 +273,7 @@ export const widgetSettingsSchema = z.object({
 });
 
 export const contactFormSettingsSchema = z.object({
-  requireMessage: z.boolean().default(true),
+  requireMessage: z.boolean().default(false),
 });
 
 export const heroLayoutSettingsSchema = z.object({

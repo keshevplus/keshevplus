@@ -12,7 +12,7 @@ export default function ContactFormSettings() {
   const { language } = useLanguage()
   const isHe = language === 'he'
   const { toast } = useToast()
-  const [requireMessage, setRequireMessage] = useState(true)
+  const [requireMessage, setRequireMessage] = useState(false)
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(false)
 
@@ -53,7 +53,7 @@ export default function ContactFormSettings() {
           <CardTitle>{isHe ? 'טופס יצירת קשר' : 'Contact Form'}</CardTitle>
         </div>
         <CardDescription>
-          {isHe ? 'שליטה על שדות חובה בטופס יצירת הקשר' : 'Control required fields on the contact form'}
+          {isHe ? 'שליטה האם הודעת הטקסט בטופס יצירת הקשר היא שדה חובה.' : 'Control whether the contact form message field is required.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -63,7 +63,7 @@ export default function ContactFormSettings() {
               {isHe ? 'דרוש הודעה' : 'Require message'}
             </Label>
             <p className="text-xs text-muted-foreground">
-              {isHe ? 'האם על מבקרים למלא הודעה כדי לשלוח את טופס יצירת הקשר' : 'Whether visitors must fill in a message to submit the contact form'}
+              {isHe ? 'כאשר מופעל, מבקרים חייבים למלא את תיבת ההודעה לפני שליחת הטופס.' : 'When enabled, visitors must fill in the message box before submitting the form.'}
             </p>
           </div>
           <Switch

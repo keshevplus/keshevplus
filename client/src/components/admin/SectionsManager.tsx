@@ -29,8 +29,8 @@ interface HeroLayoutSettings {
 }
 
 const DEFAULT_HERO_LAYOUT: HeroLayoutSettings = {
-  logoHeightMobile: 96,
-  logoHeightDesktop: 112,
+  logoHeightMobile: 128,
+  logoHeightDesktop: 180,
 }
 
 function clampImageSize(value: number, min: number, max: number) {
@@ -362,6 +362,7 @@ const SectionsManager = () => {
   const [previewSrc] = useState(() => `/?visualEditor=true&_t=${Date.now()}`)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const sectionsRef = useRef<HomeSection[]>([])
+  const textEditModeRef = useRef(false)
   const clickListenerRef = useRef<{ doc: Document; handler: (e: MouseEvent) => void } | null>(null)
 
   const {
@@ -379,6 +380,10 @@ const SectionsManager = () => {
   useEffect(() => {
     sectionsRef.current = sections
   }, [sections])
+
+  useEffect(() => {
+    textEditModeRef.current = textEditMode
+  }, [textEditMode])
 
   const fetchSections = useCallback(async () => {
     setLoading(true)
@@ -483,11 +488,12 @@ const SectionsManager = () => {
     doc.querySelectorAll('section[id]').forEach((el) => el.setAttribute('data-cms-section', 'true'))
 
     const clickHandler = (e: MouseEvent) => {
+      if (textEditModeRef.current) return
       const target = e.target as HTMLElement
       const sectionEl = target.closest('section[id]') as HTMLElement | null
+      if (!sectionEl) return
       e.preventDefault()
       e.stopPropagation()
-      if (!sectionEl) return
       const domId = sectionEl.id
       const match = sectionsRef.current.find((s) => domIdForSection(s) === domId)
       if (match) setSelectedId(match.id)

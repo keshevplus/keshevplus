@@ -17,8 +17,8 @@ interface HeroLayoutSettings {
 }
 
 const DEFAULT_HERO_LAYOUT: HeroLayoutSettings = {
-  logoHeightMobile: 96,
-  logoHeightDesktop: 112,
+  logoHeightMobile: 128,
+  logoHeightDesktop: 180,
 };
 
 const MedicalHero: React.FC = () => {

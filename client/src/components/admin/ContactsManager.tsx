@@ -6,12 +6,25 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Mail, Phone, User, Clock, Eye, EyeOff, ChevronDown, ChevronUp, Inbox, Trash2, Filter, Globe } from 'lucide-react'
+import { Mail, Phone, User, Clock, Eye, EyeOff, ChevronDown, ChevronUp, Inbox, Trash2, Filter, Globe, UserPlus, Hash } from 'lucide-react'
 import { SiWhatsapp } from 'react-icons/si'
 import { apiRequest, queryClient } from '@/lib/queryClient'
 import { cn } from '@/lib/utils'
 import type { Contact } from '@shared/schema'
 import { useAdminUndo } from '@/hooks/useAdminUndo'
+
+type LinkedClientSummary = {
+  id: number
+  name: string
+  status: string
+  leadNumber: number | null
+  clientNumber: number | null
+  adminSeen: boolean
+}
+
+type ContactWithLinkedClient = Contact & {
+  linkedClient?: LinkedClientSummary | null
+}
 
 const STATUS_CONFIG: Record<string, { he: string; en: string; color: string }> = {
   new: { he: "חדש", en: "New", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
@@ -54,9 +67,10 @@ type ManagerFilter = 'all' | 'new'
 
 interface ContactsManagerProps {
   initialFilter?: ManagerFilter
+  onOpenClient?: (clientId: number) => void
 }
 
-const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
+const ContactsManager = ({ initialFilter = 'all', onOpenClient }: ContactsManagerProps) => {
   const [filter, setFilter] = useState<ManagerFilter>(initialFilter)
 
   useEffect(() => {
@@ -72,7 +86,7 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
   const [includeTest, setIncludeTest] = useState(false)
   const showUndo = useAdminUndo()
 
-  const { data: contacts = [], isLoading } = useQuery<Contact[]>({
+  const { data: contacts = [], isLoading } = useQuery<ContactWithLinkedClient[]>({
     queryKey: ['/api/contacts', statusFilter, includeTest],
     queryFn: async () => {
       const params = new URLSearchParams()
@@ -205,6 +219,14 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
     },
   })
 
+  const createLeadMutation = useMutation({
+    mutationFn: (id: number) => apiRequest('POST', `/api/contacts/${id}/create-lead`),
+    onSuccess: () => {
+      invalidateContactsQueries()
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] })
+    },
+  })
+
   const unreadCount = contacts.filter(c => !c.read).length
 
   const toggleSelect = (id: number) => {
@@ -244,6 +266,13 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
       minute: '2-digit',
       second: '2-digit',
     })
+  }
+
+  const formatLinkedClientLabel = (linkedClient: LinkedClientSummary) => {
+    if (linkedClient.status === 'client') {
+      return `${isHe ? 'לקוח' : 'Client'} #${linkedClient.clientNumber ?? linkedClient.id}`
+    }
+    return `${isHe ? 'ליד' : 'Lead'} #${linkedClient.leadNumber ?? linkedClient.id}`
   }
 
   return (
@@ -343,6 +372,7 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
             {contacts.map((contact) => {
               const isExpanded = expandedId === contact.id
               const statusInfo = STATUS_CONFIG[contact.status] || STATUS_CONFIG.new
+              const linkedClient = contact.linkedClient
               return (
                 <div
                   key={contact.id}
@@ -393,6 +423,25 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
                             {contact.isTest && (
                               <Badge variant="outline" className="text-[10px] px-1.5 py-0 leading-none">
                                 QA
+                              </Badge>
+                            )}
+                            {linkedClient ? (
+                              <Badge
+                                variant="secondary"
+                                className={cn(
+                                  "text-[10px] px-1.5 py-0 leading-none gap-1",
+                                  !linkedClient.adminSeen && linkedClient.status !== 'client'
+                                    ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
+                                    : "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
+                                )}
+                              >
+                                <Hash className="h-2.5 w-2.5" aria-hidden="true" />
+                                {formatLinkedClientLabel(linkedClient)}
+                                {!linkedClient.adminSeen && linkedClient.status !== 'client' ? ` ${isHe ? 'חדש' : 'new'}` : ''}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 leading-none">
+                                {isHe ? 'לא משויך לליד/לקוח' : 'Not linked to a lead/client'}
                               </Badge>
                             )}
                             {formatContactSource(contact.source, isHe) && (
@@ -470,6 +519,25 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
                             </span>
                           </div>
                         )}
+                        {linkedClient && (
+                          <div className="flex items-center gap-2">
+                            <Hash className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <button
+                              type="button"
+                              className="text-sm text-primary hover:underline"
+                              onClick={() => onOpenClient?.(linkedClient.id)}
+                              disabled={!onOpenClient}
+                              data-testid={`button-open-linked-client-${contact.id}`}
+                            >
+                              {formatLinkedClientLabel(linkedClient)} - {linkedClient.name}
+                            </button>
+                            {!linkedClient.adminSeen && linkedClient.status !== 'client' && (
+                              <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                                {isHe ? 'ליד חדש' : 'New lead'}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="rounded-md bg-muted/50 p-3">
@@ -488,6 +556,18 @@ const ContactsManager = ({ initialFilter = 'all' }: ContactsManagerProps) => {
                               <SiWhatsapp className="h-4 w-4 mr-1 text-[#25D366]" />
                               WhatsApp
                             </a>
+                          </Button>
+                        )}
+                        {!linkedClient && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => createLeadMutation.mutate(contact.id)}
+                            disabled={createLeadMutation.isPending}
+                            data-testid={`button-create-lead-from-contact-${contact.id}`}
+                          >
+                            <UserPlus className="h-4 w-4 mr-1" />
+                            {isHe ? 'צור ליד חדש' : 'Create new lead'}
                           </Button>
                         )}
                         {contact.read ? (

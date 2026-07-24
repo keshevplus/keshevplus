@@ -516,7 +516,7 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="contacts" className="mt-0">
-            <ContactsManager initialFilter={tabInitialFilters.contacts ?? 'all'} />
+            <ContactsManager initialFilter={tabInitialFilters.contacts ?? 'all'} onOpenClient={setDetailClientId} />
           </TabsContent>
 
           <TabsContent value="appointments" className="mt-0">

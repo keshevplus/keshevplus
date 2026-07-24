@@ -35,8 +35,8 @@ interface HeroLayoutSettings {
 }
 
 const DEFAULT_HERO_LAYOUT: HeroLayoutSettings = {
-  logoHeightMobile: 96,
-  logoHeightDesktop: 112,
+  logoHeightMobile: 128,
+  logoHeightDesktop: 180,
 }
 
 function clampImageSize(value: number, min: number, max: number) {

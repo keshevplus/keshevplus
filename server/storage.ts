@@ -13,6 +13,7 @@ export interface IStorage {
   setResetToken(id: number, token: string | null): Promise<void>;
   clearResetToken(id: number): Promise<void>;
   createContact(contact: InsertContact): Promise<Contact>;
+  getContact(id: number): Promise<Contact | undefined>;
   getContacts(includeTest?: boolean): Promise<Contact[]>;
   markContactRead(id: number): Promise<Contact | undefined>;
   markContactUnread(id: number): Promise<Contact | undefined>;
@@ -55,6 +56,7 @@ export interface IStorage {
   restoreClientFile(id: number): Promise<boolean>;
   permanentlyDeleteClientFile(id: number): Promise<boolean>;
   upsertClientByEmail(data: { name: string; email?: string | null; phone?: string | null; source: string; childName?: string }): Promise<Client>;
+  findClientByIdentity(identity: { email?: string | null; phone?: string | null }, excludeId?: number, includeTest?: boolean): Promise<Client | undefined>;
   getClientByEmail(email: string): Promise<Client | undefined>;
   getClientInteractions(clientId: number, includeTest?: boolean): Promise<{ contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }>;
   getClientInteractionsBulk(clientIds: number[], includeTest?: boolean): Promise<Record<number, { contacts: Contact[]; appointments: Appointment[]; questionnaires: QuestionnaireSubmission[]; conversations: Conversation[]; whatsappMessages: WhatsAppMessage[] }>>;
@@ -184,6 +186,11 @@ export class DatabaseStorage implements IStorage {
     return contact;
   }
 
+  async getContact(id: number): Promise<Contact | undefined> {
+    const [contact] = await db.select().from(contacts).where(eq(contacts.id, id));
+    return contact || undefined;
+  }
+
   async getContacts(includeTest = false): Promise<Contact[]> {
     return await db.select().from(contacts)
       .where(includeTest ? eq(contacts.archived, false) : and(eq(contacts.archived, false), eq(contacts.isTest, false)))
@@ -263,12 +270,12 @@ export class DatabaseStorage implements IStorage {
     return this.getNextCrmNumber("crm_next_client_number", 200, "client_number");
   }
 
-  private async findClientByIdentity(identity: { email?: string | null; phone?: string | null }, excludeId?: number): Promise<Client | undefined> {
+  async findClientByIdentity(identity: { email?: string | null; phone?: string | null }, excludeId?: number, includeTest = false): Promise<Client | undefined> {
     const email = normalizeCrmEmail(identity.email);
     const phone = normalizeCrmPhone(identity.phone);
     if (!email && !phone) return undefined;
 
-    const allClients = await this.getClients();
+    const allClients = await this.getClients(includeTest);
     return allClients.find((client) => client.id !== excludeId && clientMatchesIdentity(client, identity));
   }
 
@@ -685,18 +692,21 @@ export class DatabaseStorage implements IStorage {
     if (!client) {
       return { contacts: [], appointments: [], questionnaires: [], conversations: [], whatsappMessages: [] };
     }
-    const email = client.email;
     const visibleContact = includeTest ? eq(contacts.archived, false) : and(eq(contacts.archived, false), eq(contacts.isTest, false));
     const visibleAppointment = includeTest ? eq(appointments.archived, false) : and(eq(appointments.archived, false), eq(appointments.isTest, false));
     const visibleQuestionnaire = includeTest ? eq(questionnaireSubmissions.archived, false) : and(eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false));
     const visibleConversation = includeTest ? eq(conversations.archived, false) : and(eq(conversations.archived, false), eq(conversations.isTest, false));
-    const [clientContacts, clientAppointments, clientQuestionnaires, clientConversations, clientWhatsapp] = await Promise.all([
-      email ? db.select().from(contacts).where(and(eq(contacts.email, email), visibleContact)).orderBy(desc(contacts.createdAt)) : Promise.resolve([]),
-      email ? db.select().from(appointments).where(and(eq(appointments.clientEmail, email), visibleAppointment)).orderBy(desc(appointments.createdAt)) : Promise.resolve([]),
-      email ? db.select().from(questionnaireSubmissions).where(and(eq(questionnaireSubmissions.respondentEmail, email), visibleQuestionnaire)).orderBy(desc(questionnaireSubmissions.createdAt)) : Promise.resolve([]),
-      email ? db.select().from(conversations).where(and(eq(conversations.visitorEmail, email), visibleConversation)).orderBy(desc(conversations.createdAt)) : Promise.resolve([]),
+    const [allContacts, allAppointments, allQuestionnaires, allConversations, clientWhatsapp] = await Promise.all([
+      db.select().from(contacts).where(visibleContact).orderBy(desc(contacts.createdAt)),
+      db.select().from(appointments).where(visibleAppointment).orderBy(desc(appointments.createdAt)),
+      db.select().from(questionnaireSubmissions).where(visibleQuestionnaire).orderBy(desc(questionnaireSubmissions.createdAt)),
+      db.select().from(conversations).where(visibleConversation).orderBy(desc(conversations.createdAt)),
       db.select().from(whatsappMessages).where(eq(whatsappMessages.clientId, clientId)).orderBy(desc(whatsappMessages.createdAt)),
     ]);
+    const clientContacts = allContacts.filter((row) => clientMatchesIdentity(client, { email: row.email, phone: row.phone }));
+    const clientAppointments = allAppointments.filter((row) => clientMatchesIdentity(client, { email: row.clientEmail, phone: row.clientPhone }));
+    const clientQuestionnaires = allQuestionnaires.filter((row) => clientMatchesIdentity(client, { email: row.respondentEmail, phone: row.respondentPhone }));
+    const clientConversations = allConversations.filter((row) => clientMatchesIdentity(client, { email: row.visitorEmail, phone: row.visitorPhone }));
     return { contacts: clientContacts, appointments: clientAppointments, questionnaires: clientQuestionnaires, conversations: clientConversations, whatsappMessages: clientWhatsapp };
   }
 
@@ -705,15 +715,9 @@ export class DatabaseStorage implements IStorage {
     if (clientIds.length === 0) return result;
 
     const clientRows = await db.select().from(clients).where(inArray(clients.id, clientIds));
-    const emailToClientIds = new Map<string, number[]>();
     for (const client of clientRows) {
       result[client.id] = { contacts: [], appointments: [], questionnaires: [], conversations: [], whatsappMessages: [] };
-      if (!client.email) continue;
-      const ids = emailToClientIds.get(client.email) ?? [];
-      ids.push(client.id);
-      emailToClientIds.set(client.email, ids);
     }
-    const emails = [...emailToClientIds.keys()];
 
     const visibleContact = includeTest ? eq(contacts.archived, false) : and(eq(contacts.archived, false), eq(contacts.isTest, false));
     const visibleAppointment = includeTest ? eq(appointments.archived, false) : and(eq(appointments.archived, false), eq(appointments.isTest, false));
@@ -721,24 +725,32 @@ export class DatabaseStorage implements IStorage {
     const visibleConversation = includeTest ? eq(conversations.archived, false) : and(eq(conversations.archived, false), eq(conversations.isTest, false));
 
     const [allContacts, allAppointments, allQuestionnaires, allConversations, allWhatsapp] = await Promise.all([
-      emails.length ? db.select().from(contacts).where(and(inArray(contacts.email, emails), visibleContact)).orderBy(desc(contacts.createdAt)) : Promise.resolve([]),
-      emails.length ? db.select().from(appointments).where(and(inArray(appointments.clientEmail, emails), visibleAppointment)).orderBy(desc(appointments.createdAt)) : Promise.resolve([]),
-      emails.length ? db.select().from(questionnaireSubmissions).where(and(inArray(questionnaireSubmissions.respondentEmail, emails), visibleQuestionnaire)).orderBy(desc(questionnaireSubmissions.createdAt)) : Promise.resolve([]),
-      emails.length ? db.select().from(conversations).where(and(inArray(conversations.visitorEmail, emails), visibleConversation)).orderBy(desc(conversations.createdAt)) : Promise.resolve([]),
+      db.select().from(contacts).where(visibleContact).orderBy(desc(contacts.createdAt)),
+      db.select().from(appointments).where(visibleAppointment).orderBy(desc(appointments.createdAt)),
+      db.select().from(questionnaireSubmissions).where(visibleQuestionnaire).orderBy(desc(questionnaireSubmissions.createdAt)),
+      db.select().from(conversations).where(visibleConversation).orderBy(desc(conversations.createdAt)),
       db.select().from(whatsappMessages).where(inArray(whatsappMessages.clientId, clientIds)).orderBy(desc(whatsappMessages.createdAt)),
     ]);
 
     for (const row of allContacts) {
-      for (const id of emailToClientIds.get(row.email) ?? []) result[id].contacts.push(row);
+      for (const client of clientRows) {
+        if (clientMatchesIdentity(client, { email: row.email, phone: row.phone })) result[client.id].contacts.push(row);
+      }
     }
     for (const row of allAppointments) {
-      for (const id of emailToClientIds.get(row.clientEmail) ?? []) result[id].appointments.push(row);
+      for (const client of clientRows) {
+        if (clientMatchesIdentity(client, { email: row.clientEmail, phone: row.clientPhone })) result[client.id].appointments.push(row);
+      }
     }
     for (const row of allQuestionnaires) {
-      for (const id of emailToClientIds.get(row.respondentEmail) ?? []) result[id].questionnaires.push(row);
+      for (const client of clientRows) {
+        if (clientMatchesIdentity(client, { email: row.respondentEmail, phone: row.respondentPhone })) result[client.id].questionnaires.push(row);
+      }
     }
     for (const row of allConversations) {
-      for (const id of emailToClientIds.get(row.visitorEmail) ?? []) result[id].conversations.push(row);
+      for (const client of clientRows) {
+        if (clientMatchesIdentity(client, { email: row.visitorEmail, phone: row.visitorPhone })) result[client.id].conversations.push(row);
+      }
     }
     for (const row of allWhatsapp) {
       if (row.clientId != null && result[row.clientId]) result[row.clientId].whatsappMessages.push(row);
@@ -826,7 +838,7 @@ export class DatabaseStorage implements IStorage {
   async getContactFormSettings(): Promise<ContactFormSettings> {
     const setting = await this.getSetting("contact_form_settings");
     if (setting) return setting.value as ContactFormSettings;
-    return { requireMessage: true };
+    return { requireMessage: false };
   }
 
   async updateContactFormSettings(settings: ContactFormSettings): Promise<ContactFormSettings> {

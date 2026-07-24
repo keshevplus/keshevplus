@@ -288,7 +288,9 @@ var insertClientFileSchema = createInsertSchema2(clientFiles).omit({ id: true, a
   fileSize: z.number().int().positive().max(CLIENT_FILE_MAX_SIZE_BYTES)
 });
 var insertUserSchema = createInsertSchema2(users).omit({ id: true });
-var insertContactSchema = createInsertSchema2(contacts).omit({ id: true, createdAt: true, read: true });
+var insertContactSchema = createInsertSchema2(contacts).omit({ id: true, createdAt: true, read: true }).extend({
+  message: z.string().optional().default("")
+});
 var insertSiteSettingSchema = createInsertSchema2(siteSettings).omit({ id: true });
 var insertTranslationSchema = createInsertSchema2(translations).omit({ id: true });
 var insertQuestionnaireSubmissionSchema = createInsertSchema2(questionnaireSubmissions).omit({ id: true, createdAt: true, reviewed: true });
@@ -318,7 +320,7 @@ var widgetSettingsSchema = z.object({
   showWhatsApp: z.boolean().default(true)
 });
 var contactFormSettingsSchema = z.object({
-  requireMessage: z.boolean().default(true)
+  requireMessage: z.boolean().default(false)
 });
 var heroLayoutSettingsSchema = z.object({
   logoHeightMobile: z.number().int().min(48).max(240).default(96),
@@ -455,6 +457,10 @@ var DatabaseStorage = class {
     const [contact] = await db.insert(contacts).values(insertContact).returning();
     return contact;
   }
+  async getContact(id) {
+    const [contact] = await db.select().from(contacts).where(eq(contacts.id, id));
+    return contact || void 0;
+  }
   async getContacts(includeTest = false) {
     return await db.select().from(contacts).where(includeTest ? eq(contacts.archived, false) : and(eq(contacts.archived, false), eq(contacts.isTest, false))).orderBy(desc(contacts.createdAt));
   }
@@ -508,11 +514,11 @@ var DatabaseStorage = class {
   async getNextClientNumber() {
     return this.getNextCrmNumber("crm_next_client_number", 200, "client_number");
   }
-  async findClientByIdentity(identity, excludeId) {
+  async findClientByIdentity(identity, excludeId, includeTest = false) {
     const email = normalizeCrmEmail(identity.email);
     const phone = normalizeCrmPhone(identity.phone);
     if (!email && !phone) return void 0;
-    const allClients = await this.getClients();
+    const allClients = await this.getClients(includeTest);
     return allClients.find((client) => client.id !== excludeId && clientMatchesIdentity(client, identity));
   }
   async getTranslationsByLanguage(language) {
@@ -657,6 +663,9 @@ var DatabaseStorage = class {
       values.clientNumber = await this.getNextClientNumber();
     } else {
       values.leadNumber = await this.getNextLeadNumber();
+      if (values.adminSeen === void 0 && (values.source || "manual") === "manual") {
+        values.adminSeen = true;
+      }
     }
     const [created] = await db.insert(clients).values(values).returning();
     return created;
@@ -778,6 +787,12 @@ var DatabaseStorage = class {
       if (data.email && !existing.email) updates.email = data.email;
       if (data.phone && !existing.phone) updates.phone = data.phone;
       if (data.childName && !existing.childName) updates.childName = data.childName;
+      if (existing.status === "lead" && !existing.leadNumber) updates.leadNumber = await this.getNextLeadNumber();
+      if (existing.status === "client" && !existing.clientNumber) updates.clientNumber = await this.getNextClientNumber();
+      if (existing.status === "lead" && existing.adminSeen && existing.source === "manual" && data.source !== "manual") {
+        updates.adminSeen = false;
+        updates.source = data.source;
+      }
       if (Object.keys(updates).length > 0) {
         const [updated] = await db.update(clients).set(updates).where(eq(clients.id, existing.id)).returning();
         return updated;
@@ -804,55 +819,60 @@ var DatabaseStorage = class {
     if (!client) {
       return { contacts: [], appointments: [], questionnaires: [], conversations: [], whatsappMessages: [] };
     }
-    const email = client.email;
     const visibleContact = includeTest ? eq(contacts.archived, false) : and(eq(contacts.archived, false), eq(contacts.isTest, false));
     const visibleAppointment = includeTest ? eq(appointments.archived, false) : and(eq(appointments.archived, false), eq(appointments.isTest, false));
     const visibleQuestionnaire = includeTest ? eq(questionnaireSubmissions.archived, false) : and(eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false));
     const visibleConversation = includeTest ? eq(conversations.archived, false) : and(eq(conversations.archived, false), eq(conversations.isTest, false));
-    const [clientContacts, clientAppointments, clientQuestionnaires, clientConversations, clientWhatsapp] = await Promise.all([
-      email ? db.select().from(contacts).where(and(eq(contacts.email, email), visibleContact)).orderBy(desc(contacts.createdAt)) : Promise.resolve([]),
-      email ? db.select().from(appointments).where(and(eq(appointments.clientEmail, email), visibleAppointment)).orderBy(desc(appointments.createdAt)) : Promise.resolve([]),
-      email ? db.select().from(questionnaireSubmissions).where(and(eq(questionnaireSubmissions.respondentEmail, email), visibleQuestionnaire)).orderBy(desc(questionnaireSubmissions.createdAt)) : Promise.resolve([]),
-      email ? db.select().from(conversations).where(and(eq(conversations.visitorEmail, email), visibleConversation)).orderBy(desc(conversations.createdAt)) : Promise.resolve([]),
+    const [allContacts, allAppointments, allQuestionnaires, allConversations, clientWhatsapp] = await Promise.all([
+      db.select().from(contacts).where(visibleContact).orderBy(desc(contacts.createdAt)),
+      db.select().from(appointments).where(visibleAppointment).orderBy(desc(appointments.createdAt)),
+      db.select().from(questionnaireSubmissions).where(visibleQuestionnaire).orderBy(desc(questionnaireSubmissions.createdAt)),
+      db.select().from(conversations).where(visibleConversation).orderBy(desc(conversations.createdAt)),
       db.select().from(whatsappMessages).where(eq(whatsappMessages.clientId, clientId)).orderBy(desc(whatsappMessages.createdAt))
     ]);
+    const clientContacts = allContacts.filter((row) => clientMatchesIdentity(client, { email: row.email, phone: row.phone }));
+    const clientAppointments = allAppointments.filter((row) => clientMatchesIdentity(client, { email: row.clientEmail, phone: row.clientPhone }));
+    const clientQuestionnaires = allQuestionnaires.filter((row) => clientMatchesIdentity(client, { email: row.respondentEmail, phone: row.respondentPhone }));
+    const clientConversations = allConversations.filter((row) => clientMatchesIdentity(client, { email: row.visitorEmail, phone: row.visitorPhone }));
     return { contacts: clientContacts, appointments: clientAppointments, questionnaires: clientQuestionnaires, conversations: clientConversations, whatsappMessages: clientWhatsapp };
   }
   async getClientInteractionsBulk(clientIds, includeTest = false) {
     const result = {};
     if (clientIds.length === 0) return result;
     const clientRows = await db.select().from(clients).where(inArray(clients.id, clientIds));
-    const emailToClientIds = /* @__PURE__ */ new Map();
     for (const client of clientRows) {
       result[client.id] = { contacts: [], appointments: [], questionnaires: [], conversations: [], whatsappMessages: [] };
-      if (!client.email) continue;
-      const ids = emailToClientIds.get(client.email) ?? [];
-      ids.push(client.id);
-      emailToClientIds.set(client.email, ids);
     }
-    const emails = [...emailToClientIds.keys()];
     const visibleContact = includeTest ? eq(contacts.archived, false) : and(eq(contacts.archived, false), eq(contacts.isTest, false));
     const visibleAppointment = includeTest ? eq(appointments.archived, false) : and(eq(appointments.archived, false), eq(appointments.isTest, false));
     const visibleQuestionnaire = includeTest ? eq(questionnaireSubmissions.archived, false) : and(eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false));
     const visibleConversation = includeTest ? eq(conversations.archived, false) : and(eq(conversations.archived, false), eq(conversations.isTest, false));
     const [allContacts, allAppointments, allQuestionnaires, allConversations, allWhatsapp] = await Promise.all([
-      emails.length ? db.select().from(contacts).where(and(inArray(contacts.email, emails), visibleContact)).orderBy(desc(contacts.createdAt)) : Promise.resolve([]),
-      emails.length ? db.select().from(appointments).where(and(inArray(appointments.clientEmail, emails), visibleAppointment)).orderBy(desc(appointments.createdAt)) : Promise.resolve([]),
-      emails.length ? db.select().from(questionnaireSubmissions).where(and(inArray(questionnaireSubmissions.respondentEmail, emails), visibleQuestionnaire)).orderBy(desc(questionnaireSubmissions.createdAt)) : Promise.resolve([]),
-      emails.length ? db.select().from(conversations).where(and(inArray(conversations.visitorEmail, emails), visibleConversation)).orderBy(desc(conversations.createdAt)) : Promise.resolve([]),
+      db.select().from(contacts).where(visibleContact).orderBy(desc(contacts.createdAt)),
+      db.select().from(appointments).where(visibleAppointment).orderBy(desc(appointments.createdAt)),
+      db.select().from(questionnaireSubmissions).where(visibleQuestionnaire).orderBy(desc(questionnaireSubmissions.createdAt)),
+      db.select().from(conversations).where(visibleConversation).orderBy(desc(conversations.createdAt)),
       db.select().from(whatsappMessages).where(inArray(whatsappMessages.clientId, clientIds)).orderBy(desc(whatsappMessages.createdAt))
     ]);
     for (const row of allContacts) {
-      for (const id of emailToClientIds.get(row.email) ?? []) result[id].contacts.push(row);
+      for (const client of clientRows) {
+        if (clientMatchesIdentity(client, { email: row.email, phone: row.phone })) result[client.id].contacts.push(row);
+      }
     }
     for (const row of allAppointments) {
-      for (const id of emailToClientIds.get(row.clientEmail) ?? []) result[id].appointments.push(row);
+      for (const client of clientRows) {
+        if (clientMatchesIdentity(client, { email: row.clientEmail, phone: row.clientPhone })) result[client.id].appointments.push(row);
+      }
     }
     for (const row of allQuestionnaires) {
-      for (const id of emailToClientIds.get(row.respondentEmail) ?? []) result[id].questionnaires.push(row);
+      for (const client of clientRows) {
+        if (clientMatchesIdentity(client, { email: row.respondentEmail, phone: row.respondentPhone })) result[client.id].questionnaires.push(row);
+      }
     }
     for (const row of allConversations) {
-      for (const id of emailToClientIds.get(row.visitorEmail) ?? []) result[id].conversations.push(row);
+      for (const client of clientRows) {
+        if (clientMatchesIdentity(client, { email: row.visitorEmail, phone: row.visitorPhone })) result[client.id].conversations.push(row);
+      }
     }
     for (const row of allWhatsapp) {
       if (row.clientId != null && result[row.clientId]) result[row.clientId].whatsappMessages.push(row);
@@ -871,14 +891,14 @@ var DatabaseStorage = class {
     const [conversationsNew] = await db.select({ count: sql2`count(*)` }).from(conversations).where(and(eq(conversations.reviewed, false), eq(conversations.archived, false), eq(conversations.isTest, false)));
     const [questionnairesNew] = await db.select({ count: sql2`count(*)` }).from(questionnaireSubmissions).where(and(eq(questionnaireSubmissions.status, "new"), eq(questionnaireSubmissions.archived, false), eq(questionnaireSubmissions.isTest, false)));
     const [whatsappUnread] = await db.select({ count: sql2`count(*)` }).from(whatsappMessages).where(and(eq(whatsappMessages.direction, "inbound"), sql2`${whatsappMessages.status} != 'read'`));
-    const [newLeadsCount] = await db.select({ count: sql2`count(*)` }).from(clients).where(and(eq(clients.status, "lead"), eq(clients.adminSeen, false), eq(clients.archived, false), eq(clients.isTest, false)));
+    const [newLeadsCount] = await db.select({ count: sql2`count(*)` }).from(clients).where(and(eq(clients.status, "lead"), eq(clients.adminSeen, false), eq(clients.archived, false), eq(clients.isTest, false), sql2`${clients.source} <> 'manual'`));
     const newLeadRows = await db.select({
       id: clients.id,
       name: clients.name,
       email: clients.email,
       phone: clients.phone,
       leadNumber: clients.leadNumber
-    }).from(clients).where(and(eq(clients.status, "lead"), eq(clients.adminSeen, false), eq(clients.archived, false), eq(clients.isTest, false))).orderBy(desc(clients.createdAt)).limit(10);
+    }).from(clients).where(and(eq(clients.status, "lead"), eq(clients.adminSeen, false), eq(clients.archived, false), eq(clients.isTest, false), sql2`${clients.source} <> 'manual'`)).orderBy(desc(clients.createdAt)).limit(10);
     return {
       unreadContacts: Number(contactsNew?.count ?? 0),
       pendingAppointments: Number(appointmentsPending?.count ?? 0),
@@ -901,7 +921,7 @@ var DatabaseStorage = class {
   async getContactFormSettings() {
     const setting = await this.getSetting("contact_form_settings");
     if (setting) return setting.value;
-    return { requireMessage: true };
+    return { requireMessage: false };
   }
   async updateContactFormSettings(settings) {
     const updated = await this.upsertSetting("contact_form_settings", settings);
@@ -5724,6 +5744,25 @@ function resolveContactSource(req) {
   }
   return null;
 }
+function toLinkedClientSummary(client) {
+  if (!client) return null;
+  return {
+    id: client.id,
+    name: client.name,
+    status: client.status,
+    leadNumber: client.leadNumber,
+    clientNumber: client.clientNumber,
+    adminSeen: client.adminSeen
+  };
+}
+function findLinkedClientForContact(contact, clientList) {
+  const contactEmail = normalizeEmail(contact.email);
+  return clientList.find((client) => !!contactEmail && normalizeEmail(client.email) === contactEmail || phonesMatch(client.phone, contact.phone));
+}
+function attachLinkedClient(contact, clientList) {
+  const linkedClient = findLinkedClientForContact(contact, clientList);
+  return { ...contact, linkedClient: toLinkedClientSummary(linkedClient) };
+}
 async function registerRoutes(app2) {
   app2.post("/api/contact", async (req, res) => {
     try {
@@ -5732,10 +5771,10 @@ async function registerRoutes(app2) {
         return res.status(400).json({ success: false, message: result.error.message });
       }
       const contactFormSettings = await storage.getContactFormSettings();
-      if (contactFormSettings.requireMessage && result.data.message.trim().length < 10) {
-        return res.status(400).json({ success: false, message: "Message must be at least 10 characters" });
+      if (contactFormSettings.requireMessage && !result.data.message?.trim()) {
+        return res.status(400).json({ success: false, message: "Message is required" });
       }
-      await storage.createContact({ ...result.data, source: resolveContactSource(req) });
+      await storage.createContact({ ...result.data, message: result.data.message || "", source: resolveContactSource(req) });
       if (result.data.email || result.data.phone) {
         try {
           await storage.upsertClientByEmail({
@@ -5802,7 +5841,7 @@ async function registerRoutes(app2) {
       return res.json(settings);
     } catch (error) {
       console.error("Error fetching contact form settings:", error);
-      return res.json({ requireMessage: true });
+      return res.json({ requireMessage: false });
     }
   });
   app2.put("/api/settings/contact-form", async (req, res) => {
@@ -5978,10 +6017,45 @@ async function registerRoutes(app2) {
       const contacts2 = await storage.getContacts(includeTest);
       const status = req.query.status;
       const filtered = status && status !== "all" ? contacts2.filter((c) => c.status === status) : contacts2;
-      return res.json(filtered);
+      const clientList = await storage.getClients(includeTest);
+      return res.json(filtered.map((contact) => attachLinkedClient(contact, clientList)));
     } catch (error) {
       console.error("Error fetching contacts:", error);
       return res.status(500).json({ error: "Failed to fetch contacts" });
+    }
+  });
+  app2.post("/api/contacts/:id/create-lead", async (req, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const contact = await storage.getContact(id);
+      if (!contact) return res.status(404).json({ error: "Contact not found" });
+      const client = await storage.upsertClientByEmail({
+        name: contact.name,
+        email: contact.email,
+        phone: contact.phone,
+        source: "contact_form"
+      });
+      await logAdminActivity(user, {
+        action: "contact.create_lead",
+        entityType: "lead",
+        entityId: client.id,
+        entityLabel: client.name,
+        description: `${getUserDisplayName(user)} linked contact ${contact.name} to ${client.status === "client" ? "client" : "lead"} #${client.leadNumber ?? client.clientNumber ?? client.id}`,
+        metadata: { contactId: contact.id, email: contact.email, phone: contact.phone }
+      });
+      return res.json({
+        contact: attachLinkedClient(contact, [client]),
+        linkedClient: toLinkedClientSummary(client)
+      });
+    } catch (error) {
+      console.error("Error creating lead from contact:", error);
+      return res.status(500).json({ error: "Failed to create lead from contact" });
     }
   });
   app2.patch("/api/contacts/:id/read", async (req, res) => {

@@ -686,6 +686,31 @@ function resolveContactSource(req: Request): string | null {
   return null;
 }
 
+function toLinkedClientSummary(client: Client | undefined) {
+  if (!client) return null;
+  return {
+    id: client.id,
+    name: client.name,
+    status: client.status,
+    leadNumber: client.leadNumber,
+    clientNumber: client.clientNumber,
+    adminSeen: client.adminSeen,
+  };
+}
+
+function findLinkedClientForContact(contact: any, clientList: Client[]) {
+  const contactEmail = normalizeEmail(contact.email);
+  return clientList.find((client) => (
+    (!!contactEmail && normalizeEmail(client.email) === contactEmail) ||
+    phonesMatch(client.phone, contact.phone)
+  ));
+}
+
+function attachLinkedClient(contact: any, clientList: Client[]) {
+  const linkedClient = findLinkedClientForContact(contact, clientList);
+  return { ...contact, linkedClient: toLinkedClientSummary(linkedClient) };
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/contact", async (req, res) => {
     try {
@@ -695,11 +720,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const contactFormSettings = await storage.getContactFormSettings();
-      if (contactFormSettings.requireMessage && result.data.message.trim().length < 10) {
-        return res.status(400).json({ success: false, message: "Message must be at least 10 characters" });
+      if (contactFormSettings.requireMessage && !result.data.message?.trim()) {
+        return res.status(400).json({ success: false, message: "Message is required" });
       }
 
-      await storage.createContact({ ...result.data, source: resolveContactSource(req) });
+      await storage.createContact({ ...result.data, message: result.data.message || "", source: resolveContactSource(req) });
 
       if (result.data.email || result.data.phone) {
         try {
@@ -769,7 +794,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json(settings);
     } catch (error) {
       console.error("Error fetching contact form settings:", error);
-      return res.json({ requireMessage: true });
+      return res.json({ requireMessage: false });
     }
   });
 
@@ -978,10 +1003,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const filtered = status && status !== "all" 
         ? contacts.filter(c => c.status === status)
         : contacts;
-      return res.json(filtered);
+      const clientList = await storage.getClients(includeTest);
+      return res.json(filtered.map((contact) => attachLinkedClient(contact, clientList)));
     } catch (error) {
       console.error("Error fetching contacts:", error);
       return res.status(500).json({ error: "Failed to fetch contacts" });
+    }
+  });
+
+  app.post("/api/contacts/:id/create-lead", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!hasAdminAccess(user)) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const id = parseInt(req.params.id);
+      const contact = await storage.getContact(id);
+      if (!contact) return res.status(404).json({ error: "Contact not found" });
+
+      const client = await storage.upsertClientByEmail({
+        name: contact.name,
+        email: contact.email,
+        phone: contact.phone,
+        source: "contact_form",
+      });
+
+      await logAdminActivity(user, {
+        action: "contact.create_lead",
+        entityType: "lead",
+        entityId: client.id,
+        entityLabel: client.name,
+        description: `${getUserDisplayName(user)} linked contact ${contact.name} to ${client.status === "client" ? "client" : "lead"} #${client.leadNumber ?? client.clientNumber ?? client.id}`,
+        metadata: { contactId: contact.id, email: contact.email, phone: contact.phone },
+      });
+
+      return res.json({
+        contact: attachLinkedClient(contact, [client]),
+        linkedClient: toLinkedClientSummary(client),
+      });
+    } catch (error) {
+      console.error("Error creating lead from contact:", error);
+      return res.status(500).json({ error: "Failed to create lead from contact" });
     }
   });
 

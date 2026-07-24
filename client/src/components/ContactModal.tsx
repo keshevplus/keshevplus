@@ -26,8 +26,8 @@ const getContactSchema = (requireMessage: boolean) => z.object({
   email: z.string().trim().email({ message: 'Please enter a valid email' }).optional().or(z.literal('')),
   topic: z.string().optional(),
   message: requireMessage
-    ? z.string().trim().min(10, { message: 'Message must be at least 10 characters' }).max(1000)
-    : z.string().trim().max(1000),
+    ? z.string().trim().min(1, { message: 'Message is required' }).max(1000)
+    : z.string().trim().max(1000).default(''),
 });
 
 type ContactFormData = z.infer<ReturnType<typeof getContactSchema>>;
@@ -44,9 +44,10 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
   const { toast } = useToast();
   const firstNameLabel = language === 'he' ? 'שם פרטי' : 'First name';
   const lastNameLabel = language === 'he' ? 'שם משפחה' : 'Last name';
+  const messageRequiredText = language === 'he' ? 'נא למלא הודעה' : 'Message is required';
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [requireMessage, setRequireMessage] = useState(true);
+  const [requireMessage, setRequireMessage] = useState(false);
   const [formData, setFormData] = useState<ContactFormData>({
     firstName: '',
     lastName: '',
@@ -86,7 +87,10 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
     if (!result.success) {
       const fieldErrors: Partial<Record<keyof ContactFormData, string>> = {};
       result.error.errors.forEach(err => {
-        if (err.path[0]) fieldErrors[err.path[0] as keyof ContactFormData] = err.message;
+        if (err.path[0]) {
+          const field = err.path[0] as keyof ContactFormData;
+          fieldErrors[field] = field === 'message' ? messageRequiredText : err.message;
+        }
       });
       setErrors(fieldErrors);
       return;
@@ -97,7 +101,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ open, onOpenChange }) => {
         name: joinName(result.data.firstName, result.data.lastName),
         phone: result.data.phone,
         email: result.data.email,
-        message: result.data.message,
+        message: result.data.message || '',
       });
       if (response.success) {
         setIsSubmitted(true);
